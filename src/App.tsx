@@ -1,17 +1,17 @@
 import { useState } from "react";
 import type { SystemNotification } from "./types/index";
 import { initialNotifications } from "./mocks/data/notifications";
-import Audit from "./pages/admin/Audit";
-import Dashboard from "./pages/admin/Dashboard";
-import Driver from "./pages/admin/Driver";
-import Notification from "./pages/admin/Notification";
-import Reports from "./pages/admin/Reports";
-import Request from "./pages/admin/Request";
-import Role from "./pages/admin/Role";
-import Schedule from "./pages/admin/Schedule";
-import System from "./pages/admin/System";
-import User from "./pages/admin/User";
-import Vehicle from "./pages/admin/Vehicle";
+import Audit from "./pages/admin/audit";
+import Dashboard from "./pages/admin/dashboard";
+import Driver from "./pages/admin/drivers";
+import Notification from "./pages/admin/notifications";
+import Reports from "./pages/admin/reports";
+import Request from "./pages/admin/requests";
+import Role from "./pages/admin/roles";
+import Schedule from "./pages/admin/schedules";
+import System from "./pages/admin/settings";
+import User from "./pages/admin/users";
+import Vehicle from "./pages/admin/vehicles";
 
 type Page =
   | "Dashboard"
@@ -99,7 +99,7 @@ export default function App() {
         <Notification
           notifications={notifications}
           onMarkAsRead={handleMarkAsRead}
-          onMarkAllAllAsRead={handleMarkAllAsRead}
+          onMarkAllAsRead={handleMarkAllAsRead}
           onDeleteNotification={handleDeleteNotification}
           onNavigate={navigate}
         />

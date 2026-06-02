@@ -1,4 +1,4 @@
-import { Icon } from "./Icon";
+import { Icon } from "../ui/Icon";
 
 export function Topbar({ title, userName = "Admin User", userRole = "Administrator", searchPlaceholder = "Quick search...", searchValue, onSearchChange }:
   { title: string; userName?: string; userRole?: string; searchPlaceholder?: string; searchValue?: string; onSearchChange?: (value: string) => void }) {

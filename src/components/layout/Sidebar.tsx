@@ -1,5 +1,5 @@
-import { NAV_MAIN, NAV_ADMIN } from "./navData";
-import { Icon } from "./Icon";
+import { NAV_MAIN, NAV_ADMIN } from "../../config/navData";
+import { Icon } from "../ui/Icon";
 
 export function Sidebar({ activeNav, onNavigate }: { activeNav: string; onNavigate?: (p: string) => void }) {
   const go = (label: string) => { onNavigate?.(label); };
