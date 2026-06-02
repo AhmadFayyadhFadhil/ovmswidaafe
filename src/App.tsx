@@ -1,17 +1,17 @@
 import { useState } from "react";
 import type { SystemNotification } from "./types/index";
 import { initialNotifications } from "./mocks/data/notifications";
-import Audit from "./pages/Audit";
-import Dashboard from "./pages/Dashboard";
-import Driver from "./pages/Driver";
-import Notification from "./pages/Notification";
-import Reports from "./pages/Reports";
-import Request from "./pages/Request";
-import Role from "./pages/Role";
-import Schedule from "./pages/Schedule";
-import System from "./pages/System";
-import User from "./pages/User";
-import Vehicle from "./pages/Vehicle";
+import Audit from "./pages/admin/Audit";
+import Dashboard from "./pages/admin/Dashboard";
+import Driver from "./pages/admin/Driver";
+import Notification from "./pages/admin/Notification";
+import Reports from "./pages/admin/Reports";
+import Request from "./pages/admin/Request";
+import Role from "./pages/admin/Role";
+import Schedule from "./pages/admin/Schedule";
+import System from "./pages/admin/System";
+import User from "./pages/admin/User";
+import Vehicle from "./pages/admin/Vehicle";
 
 type Page =
   | "Dashboard"

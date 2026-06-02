@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Layout, Icon } from "../components/layout/layout.tsx";
+import { Layout, Icon } from "../../components/layout/layout.tsx";
 
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const HCV_H  = [120,180,150,220,200,210,190];

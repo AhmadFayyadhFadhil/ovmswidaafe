@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Layout, Icon } from "../components/layout/layout.tsx";
+import { Layout, Icon } from "../../components/layout/layout.tsx";
 const ROLES = [
   { icon:"gavel",                   label:"Approver",         sub:"Financial & asset approvals" },
   { icon:"admin_panel_settings",    label:"Administrator",    sub:"Full system access & control" },

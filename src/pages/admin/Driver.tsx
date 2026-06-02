@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Layout, Icon } from "../components/layout/layout.tsx";
-import { useApi } from "../hooks/useApi";
-import { driverService } from "../services/driverService";
+import { Layout, Icon } from "../../components/layout/layout.tsx";
+import { useApi } from "../../hooks/useApi.ts";
+import { driverService } from "../../services/driverService";
 
 const getStatusColor = (status: string) => {
   switch (status) {

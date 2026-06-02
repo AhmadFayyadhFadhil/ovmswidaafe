@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
-import { Layout, Icon } from "../components/layout/layout.tsx";
-import { useApi } from "../hooks/useApi";
-import { scheduleService } from "../services/scheduleService";
+import { Layout, Icon } from "../../components/layout/layout.tsx";
+import { useApi } from "../../hooks/useApi.ts";
+import { scheduleService } from "../../services/scheduleService.ts";
 
 // ── Gantt data ──
 const WEEK_DAYS = [

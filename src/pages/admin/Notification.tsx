@@ -5,8 +5,8 @@ import {
   X,
   MailOpen,
 } from "lucide-react";
-import type { SystemNotification } from "../types/index.ts";
-import { Layout } from "../components/layout/layout.tsx";
+import type { SystemNotification } from "../../types/index.ts";
+import { Layout } from "../../components/layout/layout.tsx";
 
 interface NotificationProps {
   notifications: SystemNotification[];

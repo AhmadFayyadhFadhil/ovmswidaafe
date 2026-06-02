@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Layout, Icon } from "../components/layout/layout.tsx";
-import { useApi } from "../hooks/useApi";
-import { vehicleService } from "../services/vehicleService";
+import { Layout, Icon } from "../../components/layout/layout.tsx";
+import { useApi } from "../../hooks/useApi.ts";
+import { vehicleService } from "../../services/vehicleService.ts";
 
 const getVehicleImage = (imageType: string) => {
   const map: Record<string, string> = {

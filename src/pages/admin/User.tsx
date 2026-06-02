@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Layout, Icon } from "../components/layout/layout.tsx";
-import { useApi } from "../hooks/useApi";
-import { userService } from "../services/userService";
+import { Layout, Icon } from "../../components/layout/layout.tsx";
+import { useApi } from "../../hooks/useApi.ts";
+import { userService } from "../../services/userService.ts";
 
 const statusStyle: Record<string, string> = {
   ACTIVE: "bg-[#dcfce7] text-[#16a34a]",
