@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Layout } from "../../../components/layout/RoleLayout";
+import { Layout } from "@/components/layout/RoleLayout";
 
 const SETTING_SECTIONS = [
   { icon: "settings",        label: "General Settings" },

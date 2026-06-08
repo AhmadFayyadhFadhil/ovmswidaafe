@@ -5,22 +5,43 @@ import {
   X,
   MailOpen,
 } from "lucide-react";
-import type { SystemNotification } from "../../../types/index.ts";
-import { Layout } from "../../../components/layout/RoleLayout.tsx";
+import type { SystemNotification } from "@/types";
+import { Layout } from "@/components/layout/RoleLayout";
 
 interface NotificationProps {
-  notifications: SystemNotification[];
-  onMarkAsRead: (id: string) => void;
-  onMarkAllAsRead: () => void;
-  onDeleteNotification: (id: string) => void;
+  notifications?: SystemNotification[];
+  onMarkAsRead?: (id: string) => void;
+  onMarkAllAsRead?: () => void;
+  onDeleteNotification?: (id: string) => void;
   onNavigate?: (p: string) => void;
 }
 
+const MOCK_NOTIFICATIONS: SystemNotification[] = [
+  {
+    id: '1',
+    title: 'New Request Approval Required',
+    description: 'A new fleet request from Sales department is pending approval',
+    timeAgo: '2 minutes ago',
+    severity: 'high',
+    category: 'Approvals',
+    isRead: false,
+  },
+  {
+    id: '2',
+    title: 'Vehicle Maintenance Alert',
+    description: 'Toyota Avanza (ID: VEH-001) is due for maintenance',
+    timeAgo: '1 hour ago',
+    severity: 'medium',
+    category: 'Operational',
+    isRead: true,
+  },
+];
+
 export default function Notification({
-  notifications,
-  onMarkAsRead,
-  onMarkAllAsRead,
-  onDeleteNotification,
+  notifications = MOCK_NOTIFICATIONS,
+  onMarkAsRead = () => {},
+  onMarkAllAsRead = () => {},
+  onDeleteNotification = () => {},
   onNavigate
 }: NotificationProps) {
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("All Categories");

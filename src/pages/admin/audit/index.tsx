@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Layout, Icon } from "../../../components/layout/RoleLayout.tsx";
-import { useApi } from "../../../hooks/useApi.ts";
-import { auditLogService } from "../../../services/modules/auditLogService.ts";
+import { Layout, Icon } from "@/components/layout/RoleLayout";
+import { useApi } from "@/hooks/useApi";
+import { auditLogService } from "@/services/modules/auditLogService";
 
 // Audit logs will be loaded from backend via `auditLogService.getAll()`
 

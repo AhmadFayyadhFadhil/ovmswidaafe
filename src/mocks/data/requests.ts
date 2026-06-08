@@ -1,4 +1,4 @@
-import type { FleetRequest } from "../../types";
+import type { FleetRequest } from "@/types";
 
 export const initialFleetRequests: FleetRequest[] = [
   {

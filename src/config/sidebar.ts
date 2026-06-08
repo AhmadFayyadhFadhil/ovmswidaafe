@@ -89,21 +89,15 @@ export const SIDEBAR_MENU = {
     },
 
     {
-      label: "Pending Approvals",
-      path: "/approver/pending-approvals",
-      icon: "approval",
+      label: "Requests",
+      path: "/approver/requests",
+      icon: "description",
     },
 
     {
-      label: "Approval History",
-      path: "/approver/approval-history",
+      label: "History",
+      path: "/approver/history",
       icon: "history",
-    },
-
-    {
-      label: "Notifications",
-      path: "/approver/notifications",
-      icon: "notifications",
     },
   ],
 

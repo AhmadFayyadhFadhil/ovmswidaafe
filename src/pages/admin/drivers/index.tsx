@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Layout, Icon } from "../../../components/layout/RoleLayout.tsx";
-import { useApi } from "../../../hooks/useApi.ts";
-import { driverService } from "../../../services/modules/driverService.ts";
+import { Layout, Icon } from "@/components/layout/RoleLayout";
+import { useApi } from "@/hooks/useApi";
+import { driverService } from "@/services/modules/driverService";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -19,7 +19,7 @@ const getAvatarUrl = (id: string, gender: 'men' | 'women' = 'men') => {
   return `https://randomuser.me/api/portraits/thumb/${gender}/${num % 100}.jpg`;
 };
 
-export default function Driver({ onNavigate }: { onNavigate?: (p: string) => void }) {
+export default function Driver({ onNavigate = () => {} }: { onNavigate?: (p: string) => void }) {
   const { data: drivers, loading, error, refetch } = useApi(() => driverService.getAll());
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");

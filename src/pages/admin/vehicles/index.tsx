@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Layout, Icon } from "../../../components/layout/RoleLayout.tsx";
-import { useApi } from "../../../hooks/useApi.ts";
-import { vehicleService } from "../../../services/modules/vehicleService.ts";
+import { Layout, Icon } from "@/components/layout/RoleLayout";
+import { useApi } from "@/hooks/useApi";
+import { vehicleService } from "@/services/modules/vehicleService";
 
 const getVehicleImage = (imageType: string) => {
   const map: Record<string, string> = {
@@ -18,7 +18,7 @@ const getStatusColor = (status: string) => {
   return status === "AVAILABLE" ? "bg-[#dcfce7] text-[#16a34a]" : "bg-[#dbeafe] text-[#1d4ed8]";
 };
 
-export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => void }) {
+export default function Vehicle({ onNavigate = () => {} }: { onNavigate?: (p: string) => void }) {
   const { data: vehicles, loading, error, refetch } = useApi(() => vehicleService.getAll());
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All Statuses");

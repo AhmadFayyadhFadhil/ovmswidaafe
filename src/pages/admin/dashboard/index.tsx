@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Layout, Icon } from "../../../components/layout/RoleLayout.tsx";
-import { useApi } from "../../../hooks/useApi.ts";
-import { requestService } from "../../../services/modules/requestService.ts";
+import { Layout, Icon } from "@/components/layout/RoleLayout";
+import { useApi } from "@/hooks/useApi";
+import { requestService } from "@/services/modules/requestService";
 
 // ── Types ────────────────────────────────────
 interface StatCard { icon: string; iconBg: string; iconColor: string; value: string; label: string; barColor: string; barWidth: string; trend?: string }
@@ -100,7 +100,7 @@ function UsageChart() {
   );
 }
 
-export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void }) {
+export default function Dashboard({ onNavigate = () => {} }: { onNavigate?: (page: string) => void }) {
   const [statusFilter, setStatusFilter] = useState("All Status");
 
   // fetch requests from backend and map to UI shape

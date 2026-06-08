@@ -1,15 +1,97 @@
 import type { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
-export { Icon } from "../ui/Icon";
+export { Icon } from "@/components/ui/Icon";
 export { Sidebar } from "./Sidebar";
 export { Topbar } from "./Topbar";
 
 export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole, searchPlaceholder, searchValue, onSearchChange, children }:
   { activeNav: string; onNavigate?: (p:string)=>void; topbarTitle: string; userName?: string; userRole?: string; searchPlaceholder?: string; searchValue?: string; onSearchChange?: (value: string) => void; children: ReactNode }) {
+  const navigate = useNavigate();
+
+  const handleNavigate = (page: string) => {
+    if (onNavigate) {
+      onNavigate(page);
+      return;
+    }
+
+    const role = userRole?.toLowerCase() || "administrator";
+    if (role === "employee") {
+      switch (page) {
+        case "Dashboard":
+          navigate("/employee/dashboard");
+          break;
+        case "Create Request":
+          navigate("/employee/createrequest");
+          break;
+        case "My Requests":
+          navigate("/employee/myrequests");
+          break;
+        case "Notifications":
+          navigate("/employee/notifications");
+          break;
+        case "My Profile":
+          navigate("/employee/profile");
+          break;
+        case "Settings":
+          // Can stay on same page or go to settings
+          break;
+        case "Logout":
+          navigate("/login");
+          break;
+        default:
+          break;
+      }
+    } else {
+      switch (page) {
+        case "Dashboard":
+          navigate("/admin/dashboard");
+          break;
+        case "Vehicle Management":
+          navigate("/admin/vehicles");
+          break;
+        case "Driver Management":
+          navigate("/admin/drivers");
+          break;
+        case "Request Monitoring":
+          navigate("/admin/requests");
+          break;
+        case "Vehicle Schedule":
+          navigate("/admin/schedules");
+          break;
+        case "Reports & Analytics":
+          navigate("/admin/reports");
+          break;
+        case "User Management":
+          navigate("/admin/users");
+          break;
+        case "Role Management":
+          navigate("/admin/roles");
+          break;
+        case "Notification Center":
+          navigate("/admin/notifications");
+          break;
+        case "Audit Logs":
+          navigate("/admin/audit");
+          break;
+        case "System Settings":
+          navigate("/admin/settings");
+          break;
+        case "Settings":
+          break;
+        case "Logout":
+          navigate("/login");
+          break;
+        default:
+          break;
+      }
+    }
+  };
+
   return (
     <div className="flex h-screen bg-[#f1f5f9] overflow-hidden animate-fadein" style={{ fontFamily:"'Inter',sans-serif" }}>
-      <Sidebar activeNav={activeNav} onNavigate={onNavigate} />
+      <Sidebar activeNav={activeNav} onNavigate={handleNavigate} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Topbar title={topbarTitle} userName={userName} userRole={userRole} searchPlaceholder={searchPlaceholder} searchValue={searchValue} onSearchChange={onSearchChange} />
         <div className="flex-1 overflow-y-auto">

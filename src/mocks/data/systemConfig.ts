@@ -1,4 +1,4 @@
-import type { SystemConfig } from "../../types";
+import type { SystemConfig } from "@/types";
 
 export const initialSystemConfig: SystemConfig = {
   systemName: "OVMS Enterprise Hub",

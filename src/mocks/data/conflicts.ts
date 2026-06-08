@@ -1,4 +1,4 @@
-import type { ScheduleConflict } from "../../types";
+import type { ScheduleConflict } from "@/types";
 
 export const initialConflicts: ScheduleConflict[] = [
   {

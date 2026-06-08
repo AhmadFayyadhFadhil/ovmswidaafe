@@ -1,4 +1,4 @@
-import type { ScheduleItem } from "../../types";
+import type { ScheduleItem } from "@/types";
 
 export const initialScheduleItems: ScheduleItem[] = [
   {

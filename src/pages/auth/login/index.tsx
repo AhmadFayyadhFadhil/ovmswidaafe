@@ -1,25 +1,44 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuthContext } from "@/auth/authContext";
 
 export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
+  const { login } = useAuthContext();
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
-    // TEMP LOGIN
-    // nanti diganti API backend
+    try {
+      await login(email, password);
+      
+      const role = email.toLowerCase().includes("employee") ? "employee" :
+                   email.toLowerCase().includes("approver") ? "approver" :
+                   email.toLowerCase().includes("driver") ? "driver" :
+                   email.toLowerCase().includes("gahrd") ? "gahrd" : "admin";
 
-    if (!email || !password) {
-      alert("Email dan password wajib diisi.");
-      return;
+      const dashboards: Record<string, string> = {
+        employee: "/employee/dashboard",
+        admin: "/admin/dashboard",
+        approver: "/approver/dashboard",
+        driver: "/driver/dashboard",
+        gahrd: "/gahrd/dashboard",
+      };
+
+      navigate(dashboards[role] || "/admin/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login gagal");
+    } finally {
+      setIsLoading(false);
     }
-
-    navigate("/admin/dashboard");
   };
 
   return (
@@ -228,10 +247,19 @@ export default function LoginPage() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-14 rounded-2xl border border-slate-200 px-5 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all"
+                  disabled={isLoading}
+                  className="w-full h-14 rounded-2xl border border-slate-200 px-5 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all disabled:opacity-50"
                 />
 
               </div>
+
+              {/* Error Message */}
+
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                  {error}
+                </div>
+              )}
 
               {/* Remember */}
 
@@ -239,7 +267,7 @@ export default function LoginPage() {
 
                 <label className="flex items-center gap-2 text-sm text-slate-600">
 
-                  <input type="checkbox" />
+                  <input type="checkbox" disabled={isLoading} />
 
                   Remember me
 
@@ -260,10 +288,11 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="w-full h-14 rounded-2xl bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white font-semibold shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+                disabled={isLoading}
+                className="w-full h-14 rounded-2xl bg-[#1e3a8a] hover:bg-[#1d4ed8] disabled:bg-slate-400 text-white font-semibold shadow-lg transition-all duration-300 hover:-translate-y-0.5 disabled:hover:translate-y-0"
               >
 
-                Login
+                {isLoading ? "Logging in..." : "Login"}
 
               </button>
 

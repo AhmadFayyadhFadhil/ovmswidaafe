@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Layout, Icon } from "../../../components/layout/RoleLayout.tsx";
-import { useApi } from "../../../hooks/useApi.ts";
-import { requestService } from "../../../services/modules/requestService.ts";
+import { Layout, Icon } from "@/components/layout/RoleLayout";
+import { useApi } from "@/hooks/useApi";
+import { requestService } from "@/services/modules/requestService";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -31,7 +31,7 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
-export default function Request({ onNavigate }: { onNavigate?: (p: string) => void }) {
+export default function Request({ onNavigate = () => {} }: { onNavigate?: (p: string) => void }) {
   const { data: requests, loading, error, refetch } = useApi(() => requestService.getAll());
   const [statusFilter, setStatusFilter] = useState("All");
   const [search, setSearch] = useState("");

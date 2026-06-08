@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Layout, Icon } from "../../../components/layout/RoleLayout";
+import { Layout, Icon } from "@/components/layout/RoleLayout";
 
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const HCV_H  = [120,180,150,220,200,210,190];
@@ -34,7 +34,7 @@ function DonutChart() {
   );
 }
 
-export default function Reports({ onNavigate }: { onNavigate?: (p:string)=>void }) {
+export default function Reports({ onNavigate = () => {} }: { onNavigate?: (p:string)=>void }) {
   const [dept,   setDept]   = useState("All Departments");
   const [type,   setType]   = useState("All Vehicles");
   const [status, setStatus] = useState("Any Status");

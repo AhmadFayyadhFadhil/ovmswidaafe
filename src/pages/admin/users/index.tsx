@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Layout, Icon } from "../../../components/layout/RoleLayout.tsx";
-import { useApi } from "../../../hooks/useApi.ts";
-import { userService } from "../../../services/modules/userService.ts";
+import { Layout, Icon } from "@/components/layout/RoleLayout";
+import { useApi } from "@/hooks/useApi";
+import { userService } from "@/services/modules/userService";
 
 const statusStyle: Record<string, string> = {
   ACTIVE: "bg-[#dcfce7] text-[#16a34a]",
@@ -9,7 +9,7 @@ const statusStyle: Record<string, string> = {
   SUSPENDED: "bg-[#fee2e2] text-[#991b1b]"
 };
 
-export default function User({ onNavigate }: { onNavigate?: (p: string) => void }) {
+export default function User({ onNavigate = () => {} }: { onNavigate?: (p: string) => void }) {
   const { data: users, loading, error, refetch } = useApi(() => userService.getAll());
   const [search, setSearch] = useState("");
   const [addClicked, setAddClicked] = useState(false);

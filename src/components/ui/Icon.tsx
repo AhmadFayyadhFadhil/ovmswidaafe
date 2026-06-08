@@ -8,3 +8,4 @@ export function Icon({ name, className = "", style, size }: { name: string; clas
     </span>
   );
 }
+  

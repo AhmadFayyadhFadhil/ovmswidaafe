@@ -1,4 +1,4 @@
-import type { SystemNotification } from "../../types";
+import type { SystemNotification } from "@/types";
 
 export const initialNotifications: SystemNotification[] = [
   {

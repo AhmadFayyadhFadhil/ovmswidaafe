@@ -1,4 +1,4 @@
-import type { AuditLog } from "../../types";
+import type { AuditLog } from "@/types";
 
 export const initialAuditLogs: AuditLog[] = [
   {
