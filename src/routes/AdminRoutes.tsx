@@ -1,8 +1,7 @@
-﻿import { Route } from "react-router-dom";
+import { Route } from "react-router-dom";
 
 import Dashboard from "@/pages/admin/dashboard";
 import Driver from "@/pages/admin/drivers";
-import Reports from "@/pages/admin/reports";
 import Request from "@/pages/admin/requests";
 import User from "@/pages/admin/users";
 import Vehicle from "@/pages/admin/vehicles";
@@ -13,7 +12,6 @@ export default function AdminRoutes() {
       <Route path="dashboard" element={<Dashboard />} />
       <Route path="drivers" element={<Driver />} />
       <Route path="requests" element={<Request />} />
-      <Route path="reports" element={<Reports />} />
       <Route path="users" element={<User />} />
       <Route path="vehicles" element={<Vehicle />} />
     </Route>

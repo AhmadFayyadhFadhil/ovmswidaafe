@@ -18,12 +18,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      
-      const role = email.toLowerCase().includes("employee") ? "employee" :
-                   email.toLowerCase().includes("approver") ? "approver" :
-                   email.toLowerCase().includes("driver") ? "driver" :
-                   email.toLowerCase().includes("gahrd") ? "gahrd" : "admin";
+      const userRole = await login(email, password);
 
       const dashboards: Record<string, string> = {
         employee: "/employee/dashboard",
@@ -33,7 +28,7 @@ export default function LoginPage() {
         gahrd: "/gahrd/dashboard",
       };
 
-      navigate(dashboards[role] || "/admin/dashboard");
+      navigate(dashboards[userRole] || "/admin/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login gagal");
     } finally {
@@ -275,6 +270,7 @@ export default function LoginPage() {
 
                 <button
                   type="button"
+                  onClick={() => navigate("/forgot-password")}
                   className="text-sm font-semibold text-blue-700 hover:text-blue-800"
                 >
 
@@ -306,6 +302,7 @@ export default function LoginPage() {
 
               <button
                 type="button"
+                onClick={() => navigate("/register")}
                 className="font-semibold text-blue-700 hover:text-blue-800"
               >
 

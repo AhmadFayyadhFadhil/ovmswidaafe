@@ -1,5 +1,5 @@
 // Role-based access guards
-import type { UserRole } from './authContext';
+import type { UserRole, AuthUser } from './authContext';
 import { checkPermission } from '@/config/permissions';
 
 export type GuardResult = 'allowed' | 'forbidden' | 'unauthorized';
@@ -15,16 +15,19 @@ export function checkRolePermission(userRole: UserRole | null, requiredPermissio
 /**
  * Check if user can access a specific route
  */
-export function canAccessRoute(userRole: UserRole | null, route: string): GuardResult {
-  if (!userRole) return 'unauthorized';
+export function canAccessRoute(user: AuthUser | null, route: string): GuardResult {
+  if (!user) return 'unauthorized';
+  const userRole = user.role;
 
-  // Define role-based route access
+  const isHrGaHead = user.role === 'approver' &&
+    (user.department_id === 'HR&GA' || user.department_id === 'HRD&GA') &&
+    !!user.is_department_head;
+
   const routeAccess: Record<string, string[]> = {
     '/admin': ['admin'],
     '/admin/dashboard': ['admin'],
     '/admin/drivers': ['admin'],
     '/admin/requests': ['admin'],
-    '/admin/reports': ['admin'],
     '/admin/users': ['admin'],
     '/admin/vehicles': ['admin'],
     '/admin/audit': ['admin'],
@@ -32,12 +35,14 @@ export function canAccessRoute(userRole: UserRole | null, route: string): GuardR
     '/admin/notifications': ['admin'],
     '/admin/schedules': ['admin'],
     '/admin/settings': ['admin'],
+    '/admin/profile': ['admin'],
 
     '/approver': ['approver', 'admin'],
     '/approver/dashboard': ['approver', 'admin'],
     '/approver/requests': ['approver', 'admin'],
-    '/approver/historys': ['approver', 'admin'],
+    '/approver/history': ['approver', 'admin'],
     '/approver/profile': ['approver', 'admin'],
+    '/approver/assignment': isHrGaHead ? ['approver', 'admin'] : ['admin'],
 
     '/employee': ['employee', 'admin'],
     '/employee/dashboard': ['employee', 'admin'],
@@ -48,9 +53,15 @@ export function canAccessRoute(userRole: UserRole | null, route: string): GuardR
 
     '/driver': ['driver', 'admin'],
     '/driver/dashboard': ['driver', 'admin'],
+    '/driver/profile': ['driver', 'admin'],
 
     '/gahrd': ['gahrd', 'admin'],
     '/gahrd/dashboard': ['gahrd', 'admin'],
+    '/gahrd/requests': ['gahrd', 'admin'],
+    '/gahrd/history': ['gahrd', 'admin'],
+    '/gahrd/notifications': ['gahrd', 'admin'],
+    '/gahrd/driver': ['gahrd', 'admin'],
+    '/gahrd/profile': ['gahrd', 'admin'],
   };
 
   const allowedRoles = routeAccess[route] || [];
@@ -81,13 +92,18 @@ export function getDefaultDashboardRoute(userRole: UserRole): string {
 /**
  * Get allowed routes for a specific role
  */
-export function getAllowedRoutes(userRole: UserRole): string[] {
+export function getAllowedRoutes(user: AuthUser | null): string[] {
+  if (!user) return [];
+  const userRole = user.role;
+  const isHrGaHead = user.role === 'approver' &&
+    (user.department_id === 'HR&GA' || user.department_id === 'HRD&GA') &&
+    !!user.is_department_head;
+
   const roleRoutes: Record<UserRole, string[]> = {
     admin: [
       '/admin/dashboard',
       '/admin/drivers',
       '/admin/requests',
-      '/admin/reports',
       '/admin/users',
       '/admin/vehicles',
       '/admin/audit',
@@ -95,12 +111,14 @@ export function getAllowedRoutes(userRole: UserRole): string[] {
       '/admin/notifications',
       '/admin/schedules',
       '/admin/settings',
+      '/admin/profile',
     ],
     approver: [
       '/approver/dashboard',
       '/approver/requests',
-      '/approver/historys',
+      '/approver/history',
       '/approver/profile',
+      ...(isHrGaHead ? ['/approver/assignment'] : []),
     ],
     employee: [
       '/employee/dashboard',
@@ -111,9 +129,15 @@ export function getAllowedRoutes(userRole: UserRole): string[] {
     ],
     driver: [
       '/driver/dashboard',
+      '/driver/profile',
     ],
     gahrd: [
       '/gahrd/dashboard',
+      '/gahrd/requests',
+      '/gahrd/history',
+      '/gahrd/notifications',
+      '/gahrd/driver',
+      '/gahrd/profile',
     ],
   };
 

@@ -12,7 +12,8 @@ const SETTING_SECTIONS = [
 
 function Icon({ name, className = "" }: { name: string; className?: string }) {
   return (
-    <span className={`material-symbols-outlined select-none leading-none ${className}`}
+    <span className={`material-symbols-outlined select-none leading-none notranslate ${className}`}
+      translate="no"
       style={{ fontVariationSettings: "'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24" }}>
       {name}
     </span>

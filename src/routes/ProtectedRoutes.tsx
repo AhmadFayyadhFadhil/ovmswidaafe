@@ -1,4 +1,4 @@
-﻿import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuthContext } from "@/auth/authContext";
 import { canAccessRoute } from "@/auth/roleGuard";
 
@@ -22,7 +22,7 @@ export default function ProtectedRoutes() {
   }
 
   // Check role-based access
-  const accessResult = canAccessRoute(user.role, location.pathname);
+  const accessResult = canAccessRoute(user, location.pathname);
   
   if (accessResult === 'forbidden') {
     return (

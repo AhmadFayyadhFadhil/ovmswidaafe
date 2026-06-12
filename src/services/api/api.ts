@@ -12,7 +12,7 @@ export const apiClient = axios.create({
 // Request interceptor to add authorization token if present
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -29,7 +29,7 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // e.g. redirect to login or clear token
-      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
     }
     return Promise.reject(error);
   }

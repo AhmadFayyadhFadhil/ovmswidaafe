@@ -1,5 +1,5 @@
 ﻿import { Route } from "react-router-dom";
-import DriverDashboard from "@/pages/driver/dashboard";
+import DriverDashboard from "@/pages/driver/dasboard";
 
 export default function DriverRoutes() {
   return (

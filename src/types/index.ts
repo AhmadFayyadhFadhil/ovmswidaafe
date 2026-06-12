@@ -52,6 +52,15 @@ export interface FleetRequest {
   time?: string;
   status: "APPROVED" | "PENDING" | "ONGOING" | "COMPLETED" | "REJECTED";
   priority: "HIGH" | "URGENT" | "NORMAL" | "LOW";
+  canApprove?: boolean;
+  canReject?: boolean;
+  rawStatus?: string;
+  approvals?: any[];
+  passengers?: any[];
+  purpose?: string;
+  startTime?: string;
+  passengerCount?: number;
+  notes?: string;
 }
 
 export interface ScheduleItem {

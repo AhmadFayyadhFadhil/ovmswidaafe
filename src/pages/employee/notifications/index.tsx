@@ -88,12 +88,7 @@ export default function NotificationsPage({ onNavigate = () => {} }: Props) {
       onSearchChange={setSearch}
     >
       <div className="p-6 animate-fadeup space-y-5">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-1.5 text-[12px] text-[#94a3b8]">
-          <span className="hover:text-[#00236f] cursor-pointer" onClick={() => onNavigate?.("Dashboard")}>Portal</span>
-          <Icon name="chevron_right" className="text-[15px]" />
-          <span className="text-[#0f172a] font-semibold">Notifications</span>
-        </div>
+
 
         {/* Header */}
         <div className="flex items-start justify-between">

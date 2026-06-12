@@ -2,7 +2,17 @@ import { useNavigate } from "react-router-dom";
 import { Icon } from "@/components/ui/Icon";
 import { useAuthContext } from "@/auth/authContext";
 
-export function Sidebar({ activeNav, onNavigate }: { activeNav: string; onNavigate?: (p: string) => void }) {
+export function Sidebar({ 
+  activeNav, 
+  onNavigate, 
+  isOpen, 
+  onClose 
+}: { 
+  activeNav: string; 
+  onNavigate?: (p: string) => void; 
+  isOpen?: boolean; 
+  onClose?: () => void 
+}) {
   const navigate = useNavigate();
   const { user, logout } = useAuthContext();
   
@@ -51,26 +61,40 @@ export function Sidebar({ activeNav, onNavigate }: { activeNav: string; onNaviga
     { icon: "person", label: "My Profile", path: "/employee/profile" },
   ];
 
+  // Detect if user is Head of HRD & GA
+  const isHrGaHead = user?.role === "approver" && 
+    (user?.department_id === "HR&GA" || user?.department_id === "HRD&GA") && 
+    !!user?.is_department_head;
+
   // Approver menu
   const approverMenu = [
     { icon: "dashboard", label: "Dashboard", path: "/approver/dashboard" },
     { icon: "list_alt", label: "Pending Requests", path: "/approver/requests" },
-    { icon: "history", label: "History", path: "/approver/historys" },
+    ...(isHrGaHead ? [
+      { icon: "assignment_ind", label: "Driver Assignment", path: "/approver/assignment" },
+    ] : []),
+    { icon: "history", label: "History", path: "/approver/history" },
+    { icon: "person", label: "My Profile", path: "/approver/profile" },
   ];
 
   // Driver menu
   const driverMenu = [
     { icon: "dashboard", label: "Dashboard", path: "/driver/dashboard" },
-    { icon: "directions_car", label: "My Vehicle", path: "/driver/dashboard" },
-    { icon: "calendar_month", label: "Schedule", path: "/driver/dashboard" },
+    { icon: "directions_car", label: "My Vehicle", path: "/driver/dashboard?tab=vehicle" },
+    { icon: "calendar_month", label: "Schedule", path: "/driver/dashboard?tab=schedule" },
+    { icon: "person", label: "My Profile", path: "/driver/profile" },
   ];
 
   // GAHRD menu
   const gahrdMenu = [
-    { icon: "dashboard", label: "Dashboard", path: "/gahrd/dashboard" },
-    { icon: "person", label: "Driver Management", path: "/gahrd/dashboard" },
-    { icon: "group", label: "User Management", path: "/gahrd/dashboard" },
+    { icon: "dashboard",        label: "Dashboard",           path: "/gahrd/dashboard" },
+    { icon: "monitor_heart",    label: "Requests",            path: "/gahrd/requests" },
+    { icon: "directions_car",   label: "Driver Availability", path: "/gahrd/driver" },
+    { icon: "history",          label: "History",             path: "/gahrd/history" },
+    { icon: "notifications",    label: "Notifications",       path: "/gahrd/notifications" },
+    { icon: "person",           label: "My Profile",          path: "/gahrd/profile" },
   ];
+
 
   // Admin menu navigation
   const adminNavMain = [
@@ -79,7 +103,6 @@ export function Sidebar({ activeNav, onNavigate }: { activeNav: string; onNaviga
     { icon: "person", label: "Driver Management", path: "/admin/drivers" },
     { icon: "monitor_heart", label: "Request Monitoring", path: "/admin/requests" },
     { icon: "calendar_month", label: "Vehicle Schedule", path: "/admin/schedules" },
-    { icon: "analytics", label: "Reports & Analytics", path: "/admin/reports" },
   ];
 
   const adminNavAdmin = [
@@ -88,20 +111,45 @@ export function Sidebar({ activeNav, onNavigate }: { activeNav: string; onNaviga
     { icon: "notifications", label: "Notification Center", path: "/admin/notifications" },
     { icon: "history", label: "Audit Logs", path: "/admin/audit" },
     { icon: "settings", label: "System Settings", path: "/admin/settings" },
+    { icon: "person", label: "My Profile", path: "/admin/profile" },
   ];
 
   return (
-    <aside className="w-[220px] flex-shrink-0 bg-white border-r border-[#e2e8f0] flex flex-col overflow-y-auto">
-      {/* Logo Section */}
-      <div className="flex items-center gap-3 px-5 pt-6 pb-6">
-        <div className="w-10 h-10 bg-[#1e3a8a] rounded-xl flex items-center justify-center shadow-sm">
-          <Icon name="directions_car" className="text-white text-[22px]" />
+    <>
+      {/* Backdrop overlay for mobile */}
+      {isOpen && (
+        <div 
+          onClick={onClose}
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm transition-opacity duration-300"
+        />
+      )}
+
+      {/* Sidebar container */}
+      <aside 
+        className={`fixed inset-y-0 left-0 z-50 w-[240px] bg-white border-r border-[#e2e8f0] flex flex-col overflow-y-auto transition-transform duration-300 ease-in-out lg:static lg:w-[220px] lg:translate-x-0 ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Logo Section */}
+        <div className="flex items-center justify-between px-5 pt-6 pb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#1e3a8a] rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
+              <Icon name="directions_car" className="text-white text-[22px]" />
+            </div>
+            <div>
+              <div className="text-[17px] font-bold text-[#0f172a] leading-tight">OVMS</div>
+              <div className="text-[11px] text-[#94a3b8] font-medium">Enterprise Fleet</div>
+            </div>
+          </div>
+          {onClose && (
+            <button 
+              onClick={onClose}
+              className="p-1 rounded-lg text-[#64748b] hover:bg-[#f1f5f9] lg:hidden cursor-pointer"
+            >
+              <Icon name="close" className="text-[20px]" />
+            </button>
+          )}
         </div>
-        <div>
-          <div className="text-[17px] font-bold text-[#0f172a] leading-tight">OVMS</div>
-          <div className="text-[11px] text-[#94a3b8] font-medium">Enterprise Fleet</div>
-        </div>
-      </div>
 
       {/* Navigation Menu */}
       <nav className="flex-1 px-3 space-y-0.5">
@@ -132,25 +180,17 @@ export function Sidebar({ activeNav, onNavigate }: { activeNav: string; onNaviga
         )}
       </nav>
 
-      {/* Bottom section for Settings and Logout */}
+      {/* Bottom section for Logout */}
       <div className="px-3 py-4 border-t border-[#e2e8f0] mt-auto">
-        {!isAdmin && (
-          <button
-            onClick={() => go("Settings", "/admin/settings")}
-            className="w-full flex items-center gap-3 py-2.5 rounded-md hover:bg-[#f1f5f9] text-[#475569] transition-colors"
-          >
-            <Icon name="settings" className="text-[20px]" />
-            <span className="text-[13px] font-medium">Settings</span>
-          </button>
-        )}
         <button
           onClick={handleLogout}
-          className={`w-full flex items-center gap-3 py-2.5 rounded-md hover:bg-[#f1f5f9] text-[#475569] transition-colors ${!isAdmin ? "mt-2" : ""}`}
+          className="w-full flex items-center gap-3 py-2.5 rounded-md hover:bg-[#f1f5f9] text-[#475569] transition-colors"
         >
           <Icon name="logout" className="text-[20px]" />
           <span className="text-[13px] font-medium">Logout</span>
         </button>
       </div>
     </aside>
+    </>
   );
 }

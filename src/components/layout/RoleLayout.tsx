@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { useAuthContext } from "../../auth/authContext";
 export { Icon } from "@/components/ui/Icon";
 export { Sidebar } from "./Sidebar";
 export { Topbar } from "./Topbar";
@@ -9,6 +11,19 @@ export { Topbar } from "./Topbar";
 export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole, searchPlaceholder, searchValue, onSearchChange, children }:
   { activeNav: string; onNavigate?: (p:string)=>void; topbarTitle: string; userName?: string; userRole?: string; searchPlaceholder?: string; searchValue?: string; onSearchChange?: (value: string) => void; children: ReactNode }) {
   const navigate = useNavigate();
+  const { user, logout } = useAuthContext();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const roleDisplayMap: Record<string, string> = {
+    admin: "Administrator",
+    gahrd: "GA & HRD",
+    approver: "Manager Approver",
+    driver: "Driver",
+    employee: "Employee"
+  };
+
+  const displayUserName = user?.name || userName || "User";
+  const displayUserRole = user?.role ? (roleDisplayMap[user.role] || user.role) : (userRole || "User");
 
   const handleNavigate = (page: string) => {
     if (onNavigate) {
@@ -16,7 +31,19 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
       return;
     }
 
-    const role = userRole?.toLowerCase() || "administrator";
+    const role = user?.role?.toLowerCase() || userRole?.toLowerCase() || "employee";
+
+    if (page === "Logout") {
+      logout();
+      navigate("/login");
+      return;
+    }
+
+    if (page === "My Profile") {
+      navigate(`/${role}/profile`);
+      return;
+    }
+
     if (role === "employee") {
       switch (page) {
         case "Dashboard":
@@ -31,19 +58,53 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Notifications":
           navigate("/employee/notifications");
           break;
-        case "My Profile":
-          navigate("/employee/profile");
+      }
+    } else if (role === "driver") {
+      switch (page) {
+        case "Dashboard":
+          navigate("/driver/dashboard");
           break;
-        case "Settings":
-          // Can stay on same page or go to settings
+        case "My Vehicle":
+          navigate("/driver/dashboard?tab=vehicle");
           break;
-        case "Logout":
-          navigate("/login");
-          break;
-        default:
+        case "Schedule":
+          navigate("/driver/dashboard?tab=schedule");
           break;
       }
-    } else {
+    } else if (role === "approver") {
+      switch (page) {
+        case "Dashboard":
+          navigate("/approver/dashboard");
+          break;
+        case "Pending Requests":
+          navigate("/approver/requests");
+          break;
+        case "History":
+          navigate("/approver/history");
+          break;
+        case "Driver Assignment":
+          navigate("/approver/assignment");
+          break;
+      }
+    } else if (role === "gahrd") {
+      switch (page) {
+        case "Dashboard":
+          navigate("/gahrd/dashboard");
+          break;
+        case "Requests":
+          navigate("/gahrd/requests");
+          break;
+        case "Driver Availability":
+          navigate("/gahrd/driver");
+          break;
+        case "History":
+          navigate("/gahrd/history");
+          break;
+        case "Notifications":
+          navigate("/gahrd/notifications");
+          break;
+      }
+    } else if (role === "admin") {
       switch (page) {
         case "Dashboard":
           navigate("/admin/dashboard");
@@ -60,9 +121,6 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Vehicle Schedule":
           navigate("/admin/schedules");
           break;
-        case "Reports & Analytics":
-          navigate("/admin/reports");
-          break;
         case "User Management":
           navigate("/admin/users");
           break;
@@ -78,22 +136,36 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "System Settings":
           navigate("/admin/settings");
           break;
-        case "Settings":
-          break;
-        case "Logout":
-          navigate("/login");
-          break;
-        default:
-          break;
       }
     }
   };
 
   return (
     <div className="flex h-screen bg-[#f1f5f9] overflow-hidden animate-fadein" style={{ fontFamily:"'Inter',sans-serif" }}>
-      <Sidebar activeNav={activeNav} onNavigate={handleNavigate} />
+      <Sidebar 
+        activeNav={activeNav} 
+        onNavigate={(p) => {
+          handleNavigate(p);
+          setSidebarOpen(false);
+        }} 
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Topbar title={topbarTitle} userName={userName} userRole={userRole} searchPlaceholder={searchPlaceholder} searchValue={searchValue} onSearchChange={onSearchChange} />
+        <Topbar 
+          title={topbarTitle} 
+          userName={displayUserName} 
+          userRole={displayUserRole} 
+          searchPlaceholder={searchPlaceholder} 
+          searchValue={searchValue} 
+          onSearchChange={onSearchChange} 
+          onMenuClick={() => setSidebarOpen(true)}
+          onProfileClick={() => {
+            const role = user?.role || "employee";
+            navigate(`/${role}/profile`);
+            setSidebarOpen(false);
+          }}
+        />
         <div className="flex-1 overflow-y-auto">
           {children}
         </div>

@@ -1,8 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/RoleLayout';
 import { PriorityBadge } from '@/components/layout/PriorityBadge';
-import type { PendingRequest } from '@/config/data';
-import { PENDING_REQUESTS } from '@/config/data';
+import { useApi } from '@/hooks/useApi';
+import { requestService } from '@/services/modules/requestService';
+import { RequestDetailModal } from '@/components/ui/RequestDetailModal';
+import type { FleetRequest } from '@/types';
+import { useAuthContext } from "@/auth/authContext";
+
+interface PendingRequest {
+  id: string;
+  reqId: string;
+  requesterName: string;
+  role: string;
+  department: string;
+  avatar: string;
+  priority: "URGENT" | "NORMAL" | "CRITICAL";
+  destination: string;
+  schedule: string;
+  passengers: string;
+  date: string;
+  time: string;
+  vehicleType: string;
+  purpose: string;
+  isActive?: boolean;
+  rawStatus?: string;
+  canApprove?: boolean;
+  approvals?: any[];
+}
+
+// ── Status Mapping Helpers ──────────────────────────────────────────────────
+function getStageLabel(rawStatus: string | undefined) {
+  switch (rawStatus) {
+    case "submitted":
+      return "MENUNGGU DEPT HEAD";
+    case "approved_department":
+      return "MENUNGGU K.DEP HRD&GA";
+    case "approved_hrd_ga":
+    case "approved_hrd":
+      return "MENUNGGU DRIVER";
+    case "waiting_driver":
+      return "MENUNGGU KONFIRMASI DRIVER";
+    case "driver_assigned":
+      return "TERJADWAL";
+    case "on_going":
+      return "BERJALAN";
+    case "completed":
+      return "SELESAI";
+    case "rejected":
+      return "DITOLAK";
+    default:
+      return rawStatus?.toUpperCase() || "PENDING";
+  }
+}
+
+function getStatusBadgeStyle(rawStatus: string | undefined) {
+  switch (rawStatus) {
+    case "completed":
+      return "bg-[#dcfce7] text-[#16a34a] border border-[#bbf7d0]";
+    case "rejected":
+      return "bg-[#fef2f2] text-[#dc2626] border border-[#fecaca]";
+    case "on_going":
+      return "bg-[#dbeafe] text-[#1d4ed8] border border-[#bfdbfe]";
+    case "driver_assigned":
+      return "bg-[#f5f3ff] text-[#7c3aed] border border-[#ddd6fe]";
+    case "approved_hrd_ga":
+    case "approved_hrd":
+      return "bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]";
+    default:
+      return "bg-[#fef9c3] text-[#854d0e] border border-[#fef08a]";
+  }
+}
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 function IconCalendar() {
@@ -83,17 +150,20 @@ function RequestCard({
   onApprove,
   onReject,
   onViewDetail,
+  onSelect,
 }: {
   req: PendingRequest;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   onViewDetail: (id: string) => void;
+  onSelect: (id: string) => void;
 }) {
   return (
     <div
-      className={`bg-white rounded-2xl border transition-all duration-200 flex flex-col ${
+      onClick={() => onSelect(req.id)}
+      className={`bg-white rounded-2xl border cursor-pointer transition-all duration-200 flex flex-col ${
         req.isActive
-          ? 'border-[#1e3a8a] shadow-md'
+          ? 'border-[#1e3a8a] shadow-md ring-1 ring-[#1e3a8a]/20'
           : 'border-[#e2e8f0] hover:border-[#c7d7f7] hover:shadow-sm'
       }`}
     >
@@ -116,6 +186,11 @@ function RequestCard({
         </div>
         <div className="flex flex-col items-end gap-1">
           <PriorityBadge priority={req.priority} />
+          {req.rawStatus && (
+            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md mt-0.5 border ${getStatusBadgeStyle(req.rawStatus)}`}>
+              {getStageLabel(req.rawStatus)}
+            </span>
+          )}
           <span className="text-[11px] text-[#94a3b8] font-medium">ID: {req.reqId}</span>
         </div>
       </div>
@@ -135,31 +210,57 @@ function RequestCard({
       <div className="px-5 grid grid-cols-2 gap-x-6 gap-y-3 pb-4">
         <DetailField icon={<IconCalendar />} label="Date" value={req.date} />
         <DetailField icon={<IconClock />} label="Time" value={req.time} />
-        <DetailField icon={<IconCar />} label="Vehicle Type" value={req.vehicleType} />
+        <DetailField icon={<IconCar />} label="Vehicle" value={req.vehicleType} />
         <DetailField icon={<IconCheck />} label="Purpose" value={req.purpose} />
       </div>
+
+      {/* Approvals Checklist */}
+      {(() => {
+        const approvals = req.approvals || [];
+        const isDeptHeadApproved = approvals.some((a: any) => a.role === 'dept_head' && a.status === 'approved');
+        const isHrdApproved = approvals.some((a: any) => a.role === 'hrd_head' && a.status === 'approved');
+        return (
+          <div className="mx-5 mb-3 px-3 py-2 bg-[#fafbfc] border border-[#f1f5f9] rounded-xl flex items-center justify-between text-[11px] font-semibold">
+            <span className="text-[#64748b]">Persetujuan:</span>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${isDeptHeadApproved ? "bg-green-500 animate-pulse" : "bg-gray-300"}`} />
+                <span className={isDeptHeadApproved ? "text-green-800 font-bold" : "text-gray-500 font-normal"}>Dept Head</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${isHrdApproved ? "bg-green-500 animate-pulse" : "bg-gray-300"}`} />
+                <span className={isHrdApproved ? "text-green-800 font-bold" : "text-gray-500 font-normal"}>K.Dep HRD & GA</span>
+              </span>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Spacer */}
       <div className="flex-1" />
 
       {/* Action buttons — only shown when isActive */}
       {req.isActive && (
-        <div className="px-5 pb-5 pt-2 flex items-center gap-2 border-t border-[#f1f5f9] mt-2">
-          <button
-            onClick={() => onApprove(req.id)}
-            className="flex-1 h-10 bg-[#1e3a8a] text-white text-[13px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all"
-          >
-            Approve
-          </button>
-          <button
-            onClick={() => onReject(req.id)}
-            className="flex-1 h-10 bg-white text-[#dc2626] border border-[#dc2626] text-[13px] font-bold rounded-xl hover:bg-[#fef2f2] active:scale-95 transition-all"
-          >
-            Reject
-          </button>
+        <div className="px-5 pb-5 pt-2 flex flex-wrap items-center gap-2 border-t border-[#f1f5f9] mt-2" onClick={e => e.stopPropagation()}>
+          {req.canApprove && (
+            <>
+              <button
+                onClick={() => onApprove(req.id)}
+                className="flex-1 h-10 bg-[#1e3a8a] text-white text-[13px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all cursor-pointer"
+              >
+                Approve
+              </button>
+              <button
+                onClick={() => onReject(req.id)}
+                className="flex-1 h-10 bg-white text-[#dc2626] border border-[#dc2626] text-[13px] font-bold rounded-xl hover:bg-[#fef2f2] active:scale-95 transition-all cursor-pointer"
+              >
+                Reject
+              </button>
+            </>
+          )}
           <button
             onClick={() => onViewDetail(req.id)}
-            className="flex-1 h-10 bg-[#f8fafc] text-[#334155] border border-[#e2e8f0] text-[13px] font-bold rounded-xl hover:bg-[#f1f5f9] active:scale-95 transition-all"
+            className="flex-1 h-10 bg-[#f8fafc] text-[#334155] border border-[#e2e8f0] text-[13px] font-bold rounded-xl hover:bg-[#f1f5f9] active:scale-95 transition-all cursor-pointer"
           >
             View Detail
           </button>
@@ -169,19 +270,65 @@ function RequestCard({
   );
 }
 
-
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function ApprovalManagement() {
+  const { user } = useAuthContext();
   const [search, setSearch] = useState('');
   const [department, setDepartment] = useState('All Departments');
   const [priority, setPriority] = useState('All Priority');
-  const [requests, setRequests] = useState<PendingRequest[]>(PENDING_REQUESTS);
+  const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const TOTAL = 24;
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<FleetRequest | null>(null);
   const PER_PAGE = 4;
-  const TOTAL_PAGES = Math.ceil(TOTAL / PER_PAGE);
 
-  const filtered = requests.filter((r) => {
+  const isHrGaHead = user?.role === "approver" && 
+    (user?.department_id === "HR&GA" || user?.department_id === "HRD&GA") && 
+    !!user?.is_department_head;
+
+  const { data: fetchedRequests, loading, error, refetch } = useApi(async () => {
+    const res = await requestService.getAll({ per_page: 1000 });
+    return { data: res.data || [] };
+  }, true, []);
+
+  const requestsList = fetchedRequests || [];
+
+  // Map pending requests from database (filtered by canApprove and status)
+  const mappedRequests: PendingRequest[] = requestsList
+    .filter(r => {
+      if (isHrGaHead) {
+        return r.canApprove || ["approved_hrd_ga", "approved_hrd", "waiting_driver", "driver_assigned", "on_going"].includes(r.rawStatus || "");
+      }
+      return r.canApprove;
+    })
+    .map(r => ({
+      id: r.id,
+      reqId: `#RQ-${r.id}`,
+      requesterName: r.employee || "Staff",
+      role: "Staff Member",
+      department: r.department || "IT Department",
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(r.employee || "Staff")}&background=1e3a8a&color=fff`,
+      priority: r.priority === "URGENT" || r.priority === "HIGH" ? "URGENT" : "NORMAL",
+      destination: r.destination,
+      schedule: `${r.date} ${r.time}`,
+      passengers: `${r.passengers?.length || 0} Person`,
+      date: r.date || "Today",
+      time: r.time || "09:00",
+      vehicleType: r.vehicleModel || "Unassigned",
+      purpose: r.purpose || "Operational Trip",
+      rawStatus: r.rawStatus,
+      canApprove: !!r.canApprove,
+      approvals: r.approvals || [],
+    }));
+
+  // Auto-set the first mapped request as active if none is selected
+  useEffect(() => {
+    if (mappedRequests.length > 0 && !activeCardId) {
+      setActiveCardId(mappedRequests[0].id);
+    }
+  }, [mappedRequests, activeCardId]);
+
+  const filtered = mappedRequests.filter((r) => {
     const matchSearch =
       r.requesterName.toLowerCase().includes(search.toLowerCase()) ||
       r.reqId.toLowerCase().includes(search.toLowerCase()) ||
@@ -191,22 +338,52 @@ export default function ApprovalManagement() {
     return matchSearch && matchDept && matchPri;
   });
 
-  const displayed = filtered.slice(0, PER_PAGE);
+  const TOTAL = filtered.length;
+  const TOTAL_PAGES = Math.max(1, Math.ceil(TOTAL / PER_PAGE));
 
-  const handleApprove = (id: string) => {
-    setRequests((prev) => prev.filter((r) => r.id !== id));
+  const startIdx = (currentPage - 1) * PER_PAGE;
+  const displayed = filtered.slice(startIdx, startIdx + PER_PAGE).map(r => ({
+    ...r,
+    isActive: r.id === activeCardId
+  }));
+
+  const handleApprove = async (id: string) => {
+    try {
+      await requestService.approve(id, "Disetujui");
+      setActiveCardId(null);
+      refetch();
+    } catch (err) {
+      console.error("Gagal menyetujui request", err);
+    }
   };
-  const handleReject = (id: string) => {
-    setRequests((prev) => prev.filter((r) => r.id !== id));
+
+  const handleReject = async (id: string) => {
+    try {
+      await requestService.reject(id, "Ditolak");
+      setActiveCardId(null);
+      refetch();
+    } catch (err) {
+      console.error("Gagal menolak request", err);
+    }
   };
-  const handleViewDetail = (_id: string) => {
-    alert('View Detail — connect to your router here');
+
+  const handleViewDetail = (id: string) => {
+    const found = requestsList.find(r => r.id === id);
+    if (found) {
+      setSelectedRequest(found);
+      setDetailModalOpen(true);
+    }
   };
+
   const handleReset = () => {
     setDepartment('All Departments');
     setPriority('All Priority');
     setSearch('');
+    setCurrentPage(1);
   };
+
+  // Get distinct departments from database requests for dynamic dropdown options
+  const uniqueDepts = Array.from(new Set(mappedRequests.map(r => r.department)));
 
   return (
     <Layout
@@ -216,9 +393,9 @@ export default function ApprovalManagement() {
       searchValue={search}
       onSearchChange={setSearch}
     >
-      <div className="p-8 bg-[#f8f9ff] min-h-screen">
+      <div className="p-4 sm:p-8 bg-[#f8f9ff] min-h-screen">
         {/* Page header */}
-        <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-6 gap-4">
           <div>
             <h2 className="text-[26px] font-bold text-[#0f172a] leading-tight">Approval Management</h2>
             <p className="text-[14px] text-[#64748b] mt-1">Review and manage vehicle requests across departments.</p>
@@ -228,16 +405,11 @@ export default function ApprovalManagement() {
             <div className="relative">
               <select
                 value={department}
-                onChange={(e) => setDepartment(e.target.value)}
+                onChange={(e) => { setDepartment(e.target.value); setCurrentPage(1); }}
                 className="h-10 pl-3 pr-8 bg-white border border-[#e2e8f0] rounded-xl text-[13px] font-semibold text-[#334155] outline-none cursor-pointer appearance-none focus:ring-2 focus:ring-[#1e3a8a]/20"
               >
                 <option>All Departments</option>
-                <option>Logistics Department</option>
-                <option>Sales &amp; Marketing</option>
-                <option>Maintenance Unit</option>
-                <option>Admin &amp; Facilities</option>
-                <option>IT Department</option>
-                <option>HR Division</option>
+                {uniqueDepts.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
               <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path d="m6 9 6 6 6-6" stroke="#64748b" strokeWidth="2" strokeLinecap="round"/>
@@ -247,13 +419,12 @@ export default function ApprovalManagement() {
             <div className="relative">
               <select
                 value={priority}
-                onChange={(e) => setPriority(e.target.value)}
+                onChange={(e) => { setPriority(e.target.value); setCurrentPage(1); }}
                 className="h-10 pl-3 pr-8 bg-white border border-[#e2e8f0] rounded-xl text-[13px] font-semibold text-[#334155] outline-none cursor-pointer appearance-none focus:ring-2 focus:ring-[#1e3a8a]/20"
               >
                 <option>All Priority</option>
                 <option>URGENT</option>
                 <option>NORMAL</option>
-                <option>CRITICAL</option>
               </select>
               <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path d="m6 9 6 6 6-6" stroke="#64748b" strokeWidth="2" strokeLinecap="round"/>
@@ -262,7 +433,7 @@ export default function ApprovalManagement() {
             {/* Reset */}
             <button
               onClick={handleReset}
-              className="h-10 px-4 flex items-center gap-1.5 text-[13px] font-semibold text-[#1e3a8a] hover:bg-[#eff4ff] rounded-xl transition-colors"
+              className="h-10 px-4 flex items-center gap-1.5 text-[13px] font-semibold text-[#1e3a8a] hover:bg-[#eff4ff] rounded-xl transition-colors cursor-pointer"
             >
               <IconRefresh />
               Reset
@@ -271,16 +442,27 @@ export default function ApprovalManagement() {
         </div>
 
         {/* Cards grid */}
-        {displayed.length === 0 ? (
+        {loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-16 h-16 bg-[#eff4ff] rounded-2xl flex items-center justify-center mb-4">
-              <IconCheck />
+            <p className="text-[16px] font-bold text-[#0f172a]">Loading requests...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <p className="text-[16px] font-bold text-red-500">Failed to load requests from backend.</p>
+          </div>
+        ) : displayed.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-16 h-16 bg-[#eff4ff] rounded-2xl flex items-center justify-center mb-4 text-[#1e3a8a]">
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
+                <path d="m9 12 2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
             <p className="text-[16px] font-bold text-[#0f172a]">No pending requests</p>
             <p className="text-[13px] text-[#64748b] mt-1">All requests have been processed.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {displayed.map((req) => (
               <RequestCard
                 key={req.id}
@@ -288,48 +470,58 @@ export default function ApprovalManagement() {
                 onApprove={handleApprove}
                 onReject={handleReject}
                 onViewDetail={handleViewDetail}
+                onSelect={setActiveCardId}
               />
             ))}
           </div>
         )}
 
         {/* Divider + pagination */}
-        <div className="border-t border-[#e2e8f0] mt-8 pt-5 flex items-center justify-between">
-          <span className="text-[13px] text-[#64748b]">
-            Showing <strong>{Math.min(displayed.length, PER_PAGE)}</strong> of{' '}
-            <strong>{TOTAL}</strong> pending requests
-          </span>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="w-9 h-9 rounded-xl border border-[#e2e8f0] bg-white flex items-center justify-center text-[#475569] hover:bg-[#f1f5f9] disabled:opacity-40 transition-colors"
-            >
-              <IconChevron dir="left" />
-            </button>
-            {Array.from({ length: TOTAL_PAGES }, (_, i) => i + 1).map((p) => (
+        {TOTAL_PAGES > 1 && (
+          <div className="border-t border-[#e2e8f0] mt-8 pt-5 flex items-center justify-between">
+            <span className="text-[13px] text-[#64748b]">
+              Showing <strong>{TOTAL === 0 ? 0 : startIdx + 1}–{Math.min(startIdx + PER_PAGE, TOTAL)}</strong> of{' '}
+              <strong>{TOTAL}</strong> pending requests
+            </span>
+            <div className="flex items-center gap-1.5">
               <button
-                key={p}
-                onClick={() => setCurrentPage(p)}
-                className={`w-9 h-9 rounded-xl border text-[13px] font-bold transition-all ${
-                  currentPage === p
-                    ? 'bg-[#1e3a8a] border-[#1e3a8a] text-white shadow-sm'
-                    : 'border-[#e2e8f0] bg-white text-[#475569] hover:border-[#93c5fd] hover:text-[#1e3a8a]'
-                }`}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1 || loading}
+                className="w-9 h-9 rounded-xl border border-[#e2e8f0] bg-white flex items-center justify-center text-[#475569] hover:bg-[#f1f5f9] disabled:opacity-40 transition-colors cursor-pointer"
               >
-                {p}
+                <IconChevron dir="left" />
               </button>
-            ))}
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(TOTAL_PAGES, p + 1))}
-              disabled={currentPage === TOTAL_PAGES}
-              className="w-9 h-9 rounded-xl border border-[#e2e8f0] bg-white flex items-center justify-center text-[#475569] hover:bg-[#f1f5f9] disabled:opacity-40 transition-colors"
-            >
-              <IconChevron dir="right" />
-            </button>
+              {Array.from({ length: TOTAL_PAGES }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setCurrentPage(p)}
+                  className={`w-9 h-9 rounded-xl border text-[13px] font-bold transition-all cursor-pointer ${
+                    currentPage === p
+                      ? 'bg-[#1e3a8a] border-[#1e3a8a] text-white shadow-sm'
+                      : 'border-[#e2e8f0] bg-white text-[#475569] hover:border-[#93c5fd] hover:text-[#1e3a8a]'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(TOTAL_PAGES, p + 1))}
+                disabled={currentPage === TOTAL_PAGES || loading}
+                className="w-9 h-9 rounded-xl border border-[#e2e8f0] bg-white flex items-center justify-center text-[#475569] hover:bg-[#f1f5f9] disabled:opacity-40 transition-colors cursor-pointer"
+              >
+                <IconChevron dir="right" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
+      <RequestDetailModal
+        isOpen={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        request={selectedRequest}
+        onApprove={handleApprove}
+        onReject={handleReject}
+      />
     </Layout>
   );
 }

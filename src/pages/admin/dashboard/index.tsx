@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { requestService } from "@/services/modules/requestService";
+import { vehicleService } from "@/services/modules/vehicleService";
+import { userService } from "@/services/modules/userService";
 
 // ── Types ────────────────────────────────────
 interface StatCard { icon: string; iconBg: string; iconColor: string; value: string; label: string; barColor: string; barWidth: string; trend?: string }
@@ -9,19 +11,7 @@ interface Schedule { month: string; day: string; title: string; sub: string; tim
 interface Request  { id: string; initials: string; name: string; destination: string; vehicle: string; driver: string; date: string; status: "Approved" | "Pending" | "Rejected"; priority: "HIGH" | "MEDIUM" | "LOW" }
 
 // ── Data ─────────────────────────────────────
-const STATS: StatCard[] = [
-  { icon: "directions_car", iconBg: "bg-[#e8edf8]",  iconColor: "text-[#1e3a8a]", value: "120", label: "Total Vehicles",   barColor: "bg-[#1e3a8a]",  barWidth: "85%"},
-  { icon: "check_circle",   iconBg: "bg-[#dcfce7]",  iconColor: "text-[#16a34a]", value: "67",  label: "Available",        barColor: "bg-[#22c55e]",  barWidth: "56%" },
-  { icon: "commute",        iconBg: "bg-[#e0f2fe]",  iconColor: "text-[#0369a1]", value: "45",  label: "In Use",           barColor: "bg-[#0ea5e9]",  barWidth: "38%" },
-  { icon: "pending_actions",iconBg: "bg-[#fff7ed]",  iconColor: "text-[#c2410c]", value: "18",  label: "Pending Requests", barColor: "bg-[#f97316]",  barWidth: "15%" },
-  { icon: "badge",          iconBg: "bg-[#ede9fe]",  iconColor: "text-[#6d28d9]", value: "42",  label: "Active Drivers",   barColor: "bg-[#8b5cf6]",  barWidth: "90%" },
-];
-
-const SCHEDULES: Schedule[] = [
-  { month: "OCT", day: "14", title: "Executive M...",   sub: "Toyota Camry - JFK Airport",    time: "08:30", accentColor: "#1e3a8a" },
-  { month: "OCT", day: "14", title: "Site Inspection",  sub: "Ford Ranger - Project Alpha",   time: "10:15", accentColor: "#0369a1" },
-  { month: "OCT", day: "15", title: "Logistics Su...",  sub: "Isuzu Truck - Warehouse",       time: "09:00", accentColor: "#c2410c" },
-];
+// STATS and SCHEDULES are calculated dynamically inside the component
 
 // Requests will be loaded from backend
 
@@ -100,17 +90,74 @@ function UsageChart() {
   );
 }
 
-export default function Dashboard({ onNavigate = () => {} }: { onNavigate?: (page: string) => void }) {
+export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState("All Status");
 
-  // fetch requests from backend and map to UI shape
-  const { data: fetchedRequests, loading: reqLoading, error: reqError, refetch } = useApi(async () => {
-    const res = await requestService.getAll();
-    return { data: res.data };
+  // Fetch all dashboard metrics in parallel
+  const { data: dashboardData, loading: reqLoading, error: reqError, refetch } = useApi(async () => {
+    const [reqsRes, vehiclesRes, usersRes] = await Promise.all([
+      requestService.getAll({ per_page: 1000 }),
+      vehicleService.getAll({ per_page: 1000 }),
+      userService.getAll({ per_page: 1000 }),
+    ]);
+    return {
+      data: {
+        requests: reqsRes.data || [],
+        vehicles: vehiclesRes.data || [],
+        users: usersRes.data || [],
+      }
+    };
   }, true, []);
 
-  const requests: Request[] = (fetchedRequests || []).map((r: any) => {
-    const name = r.employee || r.fullName || "Unknown";
+  const requestsList = dashboardData?.requests || [];
+  const vehiclesList = dashboardData?.vehicles || [];
+  const usersList = dashboardData?.users || [];
+
+  // Calculate stats dynamically from actual database data
+  const totalVehicles = vehiclesList.length;
+  const availableVehicles = vehiclesList.filter(v => v.status === "AVAILABLE").length;
+  const inUseVehicles = vehiclesList.filter(v => v.status === "IN TRANSIT").length;
+  const pendingRequests = requestsList.filter(r => r.status === "PENDING").length;
+  const activeDrivers = usersList.filter(u => u.roleName === "Driver" && u.status === "ACTIVE").length;
+
+  const STATS: StatCard[] = [
+    { icon: "directions_car", iconBg: "bg-[#e8edf8]",  iconColor: "text-[#1e3a8a]", value: String(totalVehicles), label: "Total Vehicles",   barColor: "bg-[#1e3a8a]",  barWidth: "100%"},
+    { icon: "check_circle",   iconBg: "bg-[#dcfce7]",  iconColor: "text-[#16a34a]", value: String(availableVehicles),  label: "Available",        barColor: "bg-[#22c55e]",  barWidth: totalVehicles ? `${Math.round((availableVehicles/totalVehicles)*100)}%` : "0%" },
+    { icon: "commute",        iconBg: "bg-[#e0f2fe]",  iconColor: "text-[#0369a1]", value: String(inUseVehicles),  label: "In Use",           barColor: "bg-[#0ea5e9]",  barWidth: totalVehicles ? `${Math.round((inUseVehicles/totalVehicles)*100)}%` : "0%" },
+    { icon: "pending_actions",iconBg: "bg-[#fff7ed]",  iconColor: "text-[#c2410c]", value: String(pendingRequests),  label: "Pending Requests", barColor: "bg-[#f97316]",  barWidth: requestsList.length ? `${Math.round((pendingRequests/requestsList.length)*100)}%` : "0%" },
+    { icon: "badge",          iconBg: "bg-[#ede9fe]",  iconColor: "text-[#6d28d9]", value: String(activeDrivers),  label: "Active Drivers",   barColor: "bg-[#8b5cf6]",  barWidth: "100%" },
+  ];
+
+  // Derive upcoming schedules dynamically from requests
+  const SCHEDULES: Schedule[] = requestsList
+    .filter(r => r.status === "APPROVED" || r.status === "PENDING")
+    .map(r => {
+      let month = "OCT";
+      let day = "01";
+      if (r.date) {
+        try {
+          const d = new Date(r.date);
+          if (!isNaN(d.getTime())) {
+            month = d.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+            day = String(d.getDate()).padStart(2, '0');
+          }
+        } catch {
+          // ignore
+        }
+      }
+      return {
+        month,
+        day,
+        title: r.employee ? `${r.employee}'s Trip` : "Operational Trip",
+        sub: `${r.vehicleModel || 'No Vehicle'} - ${r.destination}`,
+        time: r.time || "09:00",
+        accentColor: r.status === "APPROVED" ? "#1e3a8a" : "#c2410c"
+      };
+    })
+    .slice(0, 3);
+
+  const requests: Request[] = requestsList.map((r: any) => {
+    const name = r.employee || "Unknown";
     const initials = name.split(" ").map((p:string)=>p[0]).slice(0,2).join("").toUpperCase() || "";
     const vehicle = r.vehicleModel || "Unassigned";
     const driver = r.driverName || (vehicle === "Unassigned" ? "Awaiting Dispatch" : "Unassigned");
@@ -123,10 +170,10 @@ export default function Dashboard({ onNavigate = () => {} }: { onNavigate?: (pag
       id: r.id,
       initials,
       name,
-      destination: r.destination || r.destinationAddress || "",
+      destination: r.destination || "",
       vehicle,
       driver,
-      date: r.date || r.dateLabel || "",
+      date: r.date || "",
       status: status as Request["status"],
       priority: priority as Request["priority"],
     } as Request;
@@ -136,16 +183,21 @@ export default function Dashboard({ onNavigate = () => {} }: { onNavigate?: (pag
     ? requests
     : requests.filter(r => r.status === statusFilter);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const perPage = 5;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  const startIndex = (currentPage - 1) * perPage;
+  const paginatedRequests = filtered.slice(startIndex, startIndex + perPage);
+
   return (
     <Layout
       activeNav="Dashboard"
-      onNavigate={onNavigate}
       topbarTitle="Dashboard"
       searchPlaceholder="Search dashboard..."
     >
-      <div className="p-6 space-y-5 animate-fadein">
+      <div className="p-4 sm:p-6 space-y-5 animate-fadein">
         {/* ── STAT CARDS ── */}
-        <div className="grid grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {STATS.map(card => (
             <div key={card.label} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between mb-2">
@@ -169,7 +221,7 @@ export default function Dashboard({ onNavigate = () => {} }: { onNavigate?: (pag
         </div>
 
         {/* ── CHART + SCHEDULES ── */}
-        <div className="grid grid-cols-12 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <div className="col-span-8 bg-white rounded-2xl border border-[#e2e8f0] p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-5">
@@ -227,7 +279,7 @@ export default function Dashboard({ onNavigate = () => {} }: { onNavigate?: (pag
 
         {/* ── REQUESTS TABLE ── */}
         <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-[#f1f5f9] flex items-center justify-between">
+          <div className="px-6 py-4 border-b border-[#f1f5f9] flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-[16px] font-bold text-[#0f172a]">Active Fleet Requests</div>
               <div className="text-[12.5px] text-[#64748b] mt-0.5">Real-time monitoring of all vehicle assignments</div>
@@ -237,7 +289,7 @@ export default function Dashboard({ onNavigate = () => {} }: { onNavigate?: (pag
                 <Icon name="filter_list" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[16px]" />
                 <select
                   value={statusFilter}
-                  onChange={e => setStatusFilter(e.target.value)}
+                  onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
                   className="pl-8 pr-8 py-2 text-[12px] font-semibold text-[#475569] bg-[#f8fafc] border border-[#e2e8f0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer appearance-none"
                 >
                   {["All Status","Approved","Pending","Rejected"].map(o => <option key={o}>{o}</option>)}
@@ -274,64 +326,88 @@ export default function Dashboard({ onNavigate = () => {} }: { onNavigate?: (pag
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(req => (
-                  <tr
-                    key={req.id}
-                    className="border-t border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors group"
-                  >
-                    <td className="px-5 py-3.5">
-                      <span className="text-[13px] font-bold text-[#1e3a8a]">{req.id}</span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-[#e2e8f0] flex items-center justify-center text-[11px] font-bold text-[#475569] flex-shrink-0">
-                          {req.initials}
-                        </div>
-                        <span className="text-[13px] font-medium text-[#1e293b]">{req.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5 text-[13px] text-[#475569]">{req.destination}</td>
-                    <td className="px-5 py-3.5">
-                      <div className="text-[13px] font-semibold text-[#1e293b]">{req.vehicle}</div>
-                      <div className="text-[11px] text-[#94a3b8] mt-0.5">
-                        {req.vehicle === "Unassigned" ? req.driver : `Driver: ${req.driver}`}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5 text-[13px] text-[#475569] whitespace-nowrap">{req.date}</td>
-                    <td className="px-5 py-3.5"><StatusBadge status={req.status} /></td>
-                    <td className="px-5 py-3.5"><PriorityBadge priority={req.priority} /></td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-1">
-                        <button className="w-7 h-7 rounded-lg hover:bg-[#eff6ff] flex items-center justify-center transition-colors">
-                          <Icon name="visibility" className="text-[#1e3a8a] text-[16px]" />
-                        </button>
-                        <button className="w-7 h-7 rounded-lg hover:bg-[#f1f5f9] flex items-center justify-center transition-colors">
-                          <Icon name="edit" className="text-[#64748b] text-[16px]" />
-                        </button>
-                      </div>
+                {paginatedRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-5 py-8 text-center text-[13px] text-[#64748b]">
+                      No active requests found.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  paginatedRequests.map(req => (
+                    <tr
+                      key={req.id}
+                      className="border-t border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors group"
+                    >
+                      <td className="px-5 py-3.5">
+                        <span className="text-[13px] font-bold text-[#1e3a8a]">{req.id}</span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-[#e2e8f0] flex items-center justify-center text-[11px] font-bold text-[#475569] flex-shrink-0">
+                            {req.initials}
+                          </div>
+                          <span className="text-[13px] font-medium text-[#1e293b]">{req.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-[13px] text-[#475569]">{req.destination}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="text-[13px] font-semibold text-[#1e293b]">{req.vehicle}</div>
+                        <div className="text-[11px] text-[#94a3b8] mt-0.5">
+                          {req.vehicle === "Unassigned" ? req.driver : `Driver: ${req.driver}`}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-[13px] text-[#475569] whitespace-nowrap">{req.date}</td>
+                      <td className="px-5 py-3.5"><StatusBadge status={req.status} /></td>
+                      <td className="px-5 py-3.5"><PriorityBadge priority={req.priority} /></td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-1">
+                          <button className="w-7 h-7 rounded-lg hover:bg-[#eff6ff] flex items-center justify-center transition-colors">
+                            <Icon name="visibility" className="text-[#1e3a8a] text-[16px]" />
+                          </button>
+                          <button className="w-7 h-7 rounded-lg hover:bg-[#f1f5f9] flex items-center justify-center transition-colors">
+                            <Icon name="edit" className="text-[#64748b] text-[16px]" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
 
-          <div className="px-6 py-3 border-t border-[#f1f5f9] flex items-center justify-between bg-[#fafbfc]">
-            <span className="text-[12px] text-[#94a3b8]">Showing {filtered.length} of 124 results</span>
-            <div className="flex items-center gap-1.5">
-              <button disabled className="w-7 h-7 rounded border border-[#e2e8f0] flex items-center justify-center opacity-40 cursor-not-allowed">
-                <Icon name="chevron_left" className="text-[#475569] text-[18px]" />
-              </button>
-              {[1,2,3].map(n => (
-                <button key={n} className={`w-7 h-7 rounded text-[12px] font-semibold border transition-colors ${n === 1 ? "bg-[#1e3a8a] text-white border-[#1e3a8a]" : "border-[#e2e8f0] text-[#475569] hover:bg-[#f1f5f9]"}`}>
-                  {n}
+          {totalPages > 1 && (
+            <div className="px-6 py-3 border-t border-[#f1f5f9] flex items-center justify-between bg-[#fafbfc]">
+              <span className="text-[12px] text-[#94a3b8]">
+                Showing <b>{startIndex + 1}–{Math.min(startIndex + perPage, filtered.length)}</b> of <b>{filtered.length}</b> results
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="w-7 h-7 rounded border border-[#e2e8f0] flex items-center justify-center disabled:opacity-40 hover:bg-[#f1f5f9]"
+                >
+                  <Icon name="chevron_left" className="text-[18px]" />
                 </button>
-              ))}
-              <button className="w-7 h-7 rounded border border-[#e2e8f0] flex items-center justify-center hover:bg-[#f1f5f9] transition-colors">
-                <Icon name="chevron_right" className="text-[#475569] text-[18px]" />
-              </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setCurrentPage(n)}
+                    className={`w-7 h-7 rounded text-[12px] font-semibold border transition-colors ${
+                      n === currentPage ? "bg-[#1e3a8a] text-white border-[#1e3a8a]" : "border-[#e2e8f0] text-[#475569] hover:bg-[#f1f5f9]"
+                    }`}
+                  >{n}</button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="w-7 h-7 rounded border border-[#e2e8f0] flex items-center justify-center disabled:opacity-40 hover:bg-[#f1f5f9]"
+                >
+                  <Icon name="chevron_right" className="text-[18px]" />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </Layout>

@@ -2,49 +2,71 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/services/api/api";
 
-export default function RegisterPage() {
-  const [name, setName] = useState("");
+export default function ForgotPasswordPage() {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [email, setEmail] = useState("");
-  const [departmentId, setDepartmentId] = useState("IT");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
 
   const navigate = useNavigate();
 
-  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Stage 1: Verify Email
+  const handleVerifyEmail = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const response = await apiClient.post("/forgot-password", { email });
+      if (response.data?.status === "success" || response.status === 200) {
+        setStep(2); // Go to Reset Password step
+      } else {
+        setError("Email tidak ditemukan atau tidak valid.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(
+        err.response?.data?.message ||
+        "Terjadi kesalahan saat memverifikasi email Anda."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Stage 2: Reset Password
+  const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
     if (password !== passwordConfirmation) {
-      setError("Konfirmasi password tidak cocok.");
+      setError("Konfirmasi password baru tidak cocok.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Send register request to Laravel backend
-      const response = await apiClient.post("/register", {
-        name,
+      const response = await apiClient.post("/reset-password", {
         email,
         password,
         password_confirmation: passwordConfirmation,
-        department_id: departmentId,
       });
 
-      if (response.data?.status === "success" || response.status === 201) {
-        setIsSuccess(true);
+      if (response.data?.status === "success" || response.status === 200) {
+        setSuccessMessage(response.data?.message || "Password berhasil diubah!");
+        setStep(3); // Show success step
       } else {
-        setError("Pendaftaran gagal. Silakan periksa kembali data Anda.");
+        setError("Gagal merubah password. Silakan coba kembali.");
       }
     } catch (err: any) {
       console.error(err);
       setError(
         err.response?.data?.message ||
-        "Gagal mendaftarkan akun. Pastikan email belum terdaftar."
+        "Gagal merubah password. Pastikan password baru minimal 6 karakter."
       );
     } finally {
       setIsLoading(false);
@@ -73,10 +95,10 @@ export default function RegisterPage() {
           {/* Hero Content */}
           <div className="max-w-[520px]">
             <h2 className="text-5xl leading-tight font-bold text-white mb-6">
-              Join the Fleet Network
+              Recover Your Account Access
             </h2>
             <p className="text-lg text-blue-100 leading-relaxed">
-              Create an employee account to easily request operational vehicles, monitor approvals, and coordinate trips.
+              Reset your password securely to return to managing vehicle requests and scheduling.
             </p>
           </div>
 
@@ -87,9 +109,9 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* RIGHT SIDE (Form) */}
+      {/* RIGHT SIDE (Forms) */}
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
-        <div className="w-full max-w-[480px] my-8">
+        <div className="w-full max-w-[480px]">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-2xl bg-[#1e3a8a] flex items-center justify-center">
@@ -103,53 +125,16 @@ export default function RegisterPage() {
 
           {/* Card */}
           <div className="bg-white rounded-[32px] shadow-[0_20px_50px_rgba(15,23,42,0.08)] border border-slate-200/70 p-8 lg:p-10">
-            {isSuccess ? (
-              <div className="text-center py-4 space-y-4 animate-fadein">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600 text-3xl">
-                  ✓
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900">Pendaftaran Berhasil!</h2>
-                  <p className="text-slate-500 mt-2 text-sm leading-relaxed">
-                    Akun Anda dengan email <strong>{email}</strong> telah sukses dibuat. Silakan masuk menggunakan kata sandi Anda.
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => navigate("/login")}
-                  type="button"
-                  className="w-full h-12 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white font-semibold text-sm shadow-md transition-all duration-300 cursor-pointer"
-                >
-                  Kembali ke Halaman Login
-                </button>
-              </div>
-            ) : (
-              <>
+            {step === 1 && (
+              <div>
                 <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-slate-900">Buat Akun Baru</h2>
+                  <h2 className="text-2xl font-bold text-slate-900">Lupa Kata Sandi?</h2>
                   <p className="text-slate-500 mt-1.5 text-sm">
-                    Daftarkan diri Anda untuk mengakses pemesanan kendaraan operasional.
+                    Masukkan alamat email akun Anda untuk memverifikasi dan mereset kata sandi.
                   </p>
                 </div>
 
-                {/* FORM */}
-                <form className="space-y-4" onSubmit={handleRegister}>
-                  {/* Full Name */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Nama Lengkap
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Masukkan nama lengkap Anda"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full h-11 rounded-xl border border-slate-200 px-4 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 text-sm transition-all"
-                    />
-                  </div>
-
-                  {/* Email */}
+                <form className="space-y-4" onSubmit={handleVerifyEmail}>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Alamat Email
@@ -157,35 +142,44 @@ export default function RegisterPage() {
                     <input
                       type="email"
                       required
-                      placeholder="Masukkan email korporat Anda"
+                      placeholder="Masukkan alamat email Anda"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full h-11 rounded-xl border border-slate-200 px-4 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 text-sm transition-all"
                     />
                   </div>
 
-                  {/* Department */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Departemen
-                    </label>
-                    <select
-                      value={departmentId}
-                      onChange={(e) => setDepartmentId(e.target.value)}
-                      className="w-full h-11 rounded-xl border border-slate-200 px-4 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 text-sm bg-white transition-all"
-                    >
-                      {["IT", "FA", "HR&GA", "QC", "QA", "TECHNICAL", "ENGINEERING", "PRODUKSI", "SUPPLY CHAIN", "HSE"].map((d) => (
-                        <option key={d} value={d}>
-                          {d}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600">
+                      {error}
+                    </div>
+                  )}
 
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full h-12 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] disabled:bg-slate-400 text-white font-semibold text-sm shadow-md transition-all duration-300 hover:-translate-y-0.5 disabled:hover:translate-y-0 cursor-pointer"
+                  >
+                    {isLoading ? "Memverifikasi..." : "Verifikasi Email"}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div>
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-slate-900">Reset Kata Sandi</h2>
+                  <p className="text-slate-500 mt-1.5 text-sm">
+                    Verifikasi berhasil untuk <strong>{email}</strong>. Silakan ketik kata sandi baru Anda.
+                  </p>
+                </div>
+
+                <form className="space-y-4" onSubmit={handleResetPassword}>
                   {/* Password */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Kata Sandi
+                      Kata Sandi Baru
                     </label>
                     <input
                       type="password"
@@ -200,47 +194,69 @@ export default function RegisterPage() {
                   {/* Confirm Password */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Konfirmasi Kata Sandi
+                      Konfirmasi Kata Sandi Baru
                     </label>
                     <input
                       type="password"
                       required
-                      placeholder="Ulangi kata sandi"
+                      placeholder="Ulangi kata sandi baru"
                       value={passwordConfirmation}
                       onChange={(e) => setPasswordConfirmation(e.target.value)}
                       className="w-full h-11 rounded-xl border border-slate-200 px-4 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 text-sm transition-all"
                     />
                   </div>
 
-                  {/* Error Message */}
                   {error && (
                     <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600">
                       {error}
                     </div>
                   )}
 
-                  {/* SUBMIT BUTTON */}
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full h-12 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] disabled:bg-slate-400 text-white font-semibold text-sm shadow-md transition-all duration-300 hover:-translate-y-0.5 disabled:hover:translate-y-0 cursor-pointer"
+                    className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold text-sm shadow-md transition-all duration-300 hover:-translate-y-0.5 disabled:hover:translate-y-0 cursor-pointer"
                   >
-                    {isLoading ? "Mendaftarkan..." : "Daftar Akun"}
+                    {isLoading ? "Menyimpan..." : "Reset Kata Sandi"}
                   </button>
                 </form>
+              </div>
+            )}
 
-                {/* Link to login */}
-                <div className="mt-6 text-center text-xs text-slate-500">
-                  Sudah memiliki akun?{" "}
-                  <button
-                    onClick={() => navigate("/login")}
-                    type="button"
-                    className="font-bold text-blue-700 hover:text-blue-800 cursor-pointer"
-                  >
-                    Login di sini
-                  </button>
+            {step === 3 && (
+              <div className="text-center py-4 space-y-4">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600 text-3xl">
+                  ✓
                 </div>
-              </>
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">Berhasil!</h2>
+                  <p className="text-slate-500 mt-2 text-sm">
+                    {successMessage || "Password Anda telah berhasil diperbarui."}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => navigate("/login")}
+                  type="button"
+                  className="w-full h-12 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white font-semibold text-sm shadow-md transition-all duration-300 cursor-pointer"
+                >
+                  Kembali ke Halaman Login
+                </button>
+              </div>
+            )}
+
+            {/* Back link for stage 1 & 2 */}
+            {step !== 3 && (
+              <div className="mt-6 text-center text-xs text-slate-500">
+                Kembali ke{" "}
+                <button
+                  onClick={() => navigate("/login")}
+                  type="button"
+                  className="font-bold text-blue-700 hover:text-blue-800 cursor-pointer"
+                >
+                  Halaman Login
+                </button>
+              </div>
             )}
           </div>
         </div>

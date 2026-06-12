@@ -5,16 +5,21 @@ export type UserRole = "admin" | "employee" | "approver" | "driver" | "gahrd";
 export interface AuthUser {
   id: string;
   email: string;
+  name?: string;
   role: UserRole;
   token: string;
+  department_id?: string;
+  is_department_head?: boolean;
+  availability_status?: 'available' | 'unavailable' | 'on_trip' | 'assigned';
 }
 
 export interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<UserRole>;
   logout: () => void;
   isAuthenticated: boolean;
+  updateUser: (updated: Partial<AuthUser>) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);

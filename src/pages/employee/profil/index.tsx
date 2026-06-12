@@ -1,7 +1,9 @@
-// src/pages/employee/profile/index.tsx
-import { useState, useRef } from "react";
+// src/pages/employee/profil/index.tsx
+import { useState, useEffect, useRef } from "react";
 import { Layout } from "@/components/layout/RoleLayout";
 import { Icon } from "@/components/ui/Icon";
+import { apiClient } from "@/services/api/api";
+import { useAuthContext } from "@/auth/authContext";
 
 interface Props { onNavigate?: (page: string) => void; }
 
@@ -9,7 +11,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
   return (
     <button
       onClick={onChange}
-      className={`w-12 h-6 rounded-full transition-all duration-300 flex items-center flex-shrink-0 ${checked ? "bg-[#00236f]" : "bg-[#e2e8f0]"}`}
+      className={`w-12 h-6 rounded-full transition-all duration-300 flex items-center flex-shrink-0 cursor-pointer ${checked ? "bg-[#00236f]" : "bg-[#e2e8f0]"}`}
     >
       <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 mx-0.5 ${checked ? "translate-x-6" : "translate-x-0"}`} />
     </button>
@@ -17,33 +19,168 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
 }
 
 export default function MyProfilePage({ onNavigate }: Props) {
+  const { user, updateUser } = useAuthContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Profile state
-  const [avatar,     setAvatar]     = useState("https://i.pravatar.cc/120?img=60");
-  const [name,       setName]       = useState("Andi Sullivan");
-  const [email,      setEmail]      = useState("andi.sullivan@kinetic-ovms.com");
-  const [phone,      setPhone]      = useState("+1 (512) 445-9821");
-  const [department, setDepartment] = useState("Operations Dept");
-  const [position,   setPosition]   = useState("Senior Fleet Operator");
-  const [location,   setLocation]   = useState("Austin Hub B");
+  // Profile fields state
+  const [avatar, setAvatar] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("+62 812-3456-7890");
+  const [department, setDepartment] = useState("");
+  const [position, setPosition] = useState("");
+  const [location, setLocation] = useState("Jakarta Head Office");
 
   // Alert preferences
   const [emergency, setEmergency] = useState(true);
   const [reqStatus, setReqStatus] = useState(true);
   const [sysUpdate, setSysUpdate] = useState(false);
 
-  const [editing,  setEditing]  = useState(false);
-  const [saving,   setSaving]   = useState(false);
-  const [saved,    setSaved]    = useState(false);
+  // Form states
+  const [editing, setEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  // Password change states
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Statistics and Activity States
+  const [totalRequests, setTotalRequests] = useState(0);
+  const [approvedRequests, setApprovedRequests] = useState(0);
+  const [activeRequests, setActiveRequests] = useState(0);
+  const [activities, setActivities] = useState<any[]>([]);
+
+  // Map roles and title for layout dynamically
+  const roleDisplayMap: Record<string, string> = {
+    admin: "Administrator",
+    gahrd: "GA & HRD",
+    approver: "Manager Approver",
+    driver: "Driver",
+    employee: "Employee"
+  };
+
+  const dashboardTitleMap: Record<string, string> = {
+    admin: "Admin Dashboard",
+    gahrd: "GAHRD Dashboard",
+    approver: "Approver Dashboard",
+    driver: "Driver Dashboard",
+    employee: "Employee Dashboard"
+  };
+
+  const displayRole = roleDisplayMap[user?.role || "employee"] || "Employee";
+  const displayTitle = dashboardTitleMap[user?.role || "employee"] || "Employee Dashboard";
+
+  const loadData = async () => {
+    setLoading(true);
+    setErrorMsg("");
+    try {
+      // Fetch profile data
+      const res = await apiClient.get("/profile");
+      if (res.data?.status === "success") {
+        const u = res.data.data;
+        setName(u.name || "");
+        setEmail(u.email || "");
+        setDepartment(u.department_id || "Operations");
+        setPhone(u.phone || "+62 812-3456-7890");
+        setPosition(u.position || (u.roles?.[0] ? u.roles[0].toUpperCase() : "Staff"));
+        setLocation(u.location || "Jakarta Head Office");
+        setAvatar(`https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || "User")}&background=00236f&color=fff&size=120`);
+      }
+
+      // Fetch requests data for stats and activity log
+      const reqRes = await apiClient.get("/requests", { params: { per_page: 100 } });
+      const list = Array.isArray(reqRes.data?.data) ? reqRes.data.data : [];
+      setTotalRequests(list.length);
+      
+      const approved = list.filter((r: any) => 
+        ["driver_assigned", "approved_hrd_ga", "approved_hrd"].includes(r.status)
+      ).length;
+      setApprovedRequests(approved);
+      
+      const active = list.filter((r: any) => r.status === "on_going").length;
+      setActiveRequests(active);
+
+      // Generate activity log
+      const recent = list.slice(0, 3).map((r: any) => {
+        let icon = "send";
+        let color = "text-[#00236f]";
+        let bg = "bg-[#e5eeff]";
+        let text = `Permintaan #${r.id} diajukan`;
+        
+        if (r.status === "COMPLETED" || r.status === "completed") {
+          icon = "task_alt";
+          color = "text-[#1a6e3c]";
+          bg = "bg-[#d4f4e2]";
+          text = `Permintaan #${r.id} selesai`;
+        } else if (r.status === "REJECTED" || r.status === "rejected") {
+          icon = "cancel";
+          color = "text-[#ba1a1a]";
+          bg = "bg-[#ffd9d5]";
+          text = `Permintaan #${r.id} ditolak`;
+        } else if (r.status === "APPROVED" || r.status === "driver_assigned") {
+          icon = "person_add";
+          color = "text-[#006591]";
+          bg = "bg-[#e0f4fe]";
+          text = `Selesai diproses / Driver ditugaskan`;
+        }
+        
+        const time = r.date || "Baru saja";
+        return { icon, color, bg, text, time };
+      });
+      setActivities(recent);
+
+    } catch (err: any) {
+      console.error("Gagal memuat profil atau statistik:", err);
+      setErrorMsg("Gagal sinkronisasi data dengan backend.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
-    await new Promise(r => setTimeout(r, 900));
-    setSaving(false);
-    setSaved(true);
-    setEditing(false);
-    setTimeout(() => setSaved(false), 2500);
+    setErrorMsg("");
+    try {
+      const payload: any = {
+        name,
+        email,
+      };
+      if (newPassword) {
+        payload.password = newPassword;
+        payload.password_confirmation = confirmPassword;
+      }
+      
+      const res = await apiClient.put("/profile", payload);
+      
+      if (res.data?.status === "success") {
+        setSaved(true);
+        setEditing(false);
+        setNewPassword("");
+        setConfirmPassword("");
+        
+        // Update context & local storage
+        updateUser({
+          name: res.data.data.name,
+          email: res.data.data.email,
+        });
+
+        setTimeout(() => setSaved(false), 2500);
+      } else {
+        setErrorMsg(res.data?.message || "Gagal memperbarui profil.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.response?.data?.message || "Password konfirmasi tidak cocok atau minimal 6 karakter.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,36 +202,37 @@ export default function MyProfilePage({ onNavigate }: Props) {
     <Layout
       activeNav="My Profile"
       onNavigate={p => onNavigate?.(p)}
-      topbarTitle="Employee Dashboard"
-      userName={name}
-      userRole="Employee"
+      topbarTitle={displayTitle}
+      userName={name || user?.name || "User"}
+      userRole={displayRole}
       searchPlaceholder="Search requests, vehicles..."
     >
-      <div className="p-6 animate-fadeup space-y-5">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-1.5 text-[12px] text-[#94a3b8]">
-          <span className="hover:text-[#00236f] cursor-pointer" onClick={() => onNavigate?.("Dashboard")}>Portal</span>
-          <Icon name="chevron_right" className="text-[15px]" />
-          <span className="text-[#0f172a] font-semibold">My Profile</span>
-        </div>
-
+      <div className="p-4 sm:p-6 animate-fadeup space-y-5">
         {/* Page Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-[26px] font-bold text-[#0f172a]">My Profile</h2>
-            <p className="text-[13px] text-[#64748b] mt-0.5">Manage your employee information and operational preferences</p>
+            <p className="text-[13px] text-[#64748b] mt-0.5">Manage your personal information and account settings</p>
           </div>
           <div className="flex gap-2.5">
             <button
-              onClick={() => { setEditing(!editing); setSaved(false); }}
-              className="h-10 px-5 border border-[#e2e8f0] bg-white rounded-xl text-[13px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors shadow-sm"
+              onClick={() => {
+                if (editing) {
+                  setName(user?.name || "");
+                  setEmail(user?.email || "");
+                }
+                setEditing(!editing);
+                setSaved(false);
+                setErrorMsg("");
+              }}
+              className="h-10 px-5 border border-[#e2e8f0] bg-white rounded-xl text-[13px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors shadow-sm cursor-pointer"
             >
               {editing ? "Cancel" : "Edit Profile"}
             </button>
             <button
               onClick={handleSave}
               disabled={!editing || saving}
-              className={`h-10 px-6 rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 disabled:opacity-40 ${
+              className={`h-10 px-6 rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${
                 saved   ? "bg-[#1a6e3c] text-white" :
                 saving  ? "bg-[#0f2a5e]/70 text-white cursor-wait" :
                           "bg-[#0f2a5e] hover:bg-[#1e3a8a] text-white"
@@ -105,206 +243,215 @@ export default function MyProfilePage({ onNavigate }: Props) {
           </div>
         </div>
 
-        {/* ── Hero Card ── */}
-        <div className="bg-gradient-to-br from-[#eef2ff] to-[#f8fafc] rounded-2xl border border-[#e2e8f0] shadow-sm p-6">
-          <div className="flex items-start gap-6">
-            {/* Avatar */}
-            <div className="relative flex-shrink-0">
-              <div className="w-28 h-28 rounded-full border-4 border-white shadow-lg overflow-hidden bg-[#e5eeff]">
-                <img
-                  src={avatar}
-                  alt={name}
-                  className="w-full h-full object-cover"
-                  onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=00236f&color=fff&size=120`; }}
-                />
-              </div>
-              {editing && (
-                <>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-1 right-1 w-8 h-8 bg-[#0f2a5e] text-white rounded-full flex items-center justify-center shadow-md hover:bg-[#1e3a8a] transition-colors"
-                  >
-                    <Icon name="photo_camera" className="text-[15px]" />
-                  </button>
-                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                </>
-              )}
-            </div>
+        {errorMsg && (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-[12.5px] flex items-center gap-2">
+            <Icon name="error" className="text-[16px] text-red-500" />
+            {errorMsg}
+          </div>
+        )}
 
-            {/* Identity */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-1">
-                <h3 className="text-[22px] font-bold text-[#0f172a]">{name}</h3>
-                <span className="flex items-center gap-1.5 bg-[#d4f4e2] text-[#1a6e3c] text-[11px] font-bold px-2.5 py-1 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#1a6e3c] animate-pulse" />
-                  Active
-                </span>
-              </div>
-              <div className="text-[15px] font-semibold text-[#00236f]">{position}</div>
-              <div className="text-[12.5px] text-[#64748b] mt-0.5">{department} • EMP-2023-089</div>
-              <div className="flex items-center gap-1.5 mt-2 text-[12px] text-[#64748b]">
-                <Icon name="location_on" className="text-[14px] text-[#94a3b8]" />
-                <span>{location === "Austin Hub B" ? "Austin Corporate Hub" : location}</span>
-              </div>
-            </div>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-white border border-[#e2e8f0] rounded-2xl shadow-sm">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#00236f]"></div>
+            <p className="mt-4 text-[13px] text-[#64748b]">Sinkronisasi profil...</p>
+          </div>
+        ) : (
+          <>
+            {/* Hero Card */}
+            <div className="bg-gradient-to-br from-[#eef2ff] to-[#f8fafc] rounded-2xl border border-[#e2e8f0] shadow-sm p-5 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
+                {/* Avatar */}
+                <div className="relative flex-shrink-0">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-lg overflow-hidden bg-[#e5eeff]">
+                    <img
+                      src={avatar}
+                      alt={name}
+                      className="w-full h-full object-cover"
+                      onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=00236f&color=fff&size=120`; }}
+                    />
+                  </div>
+                  {editing && (
+                    <>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="absolute bottom-1 right-1 w-8 h-8 bg-[#0f2a5e] text-white rounded-full flex items-center justify-center shadow-md hover:bg-[#1e3a8a] transition-colors cursor-pointer"
+                      >
+                        <Icon name="photo_camera" className="text-[15px]" />
+                      </button>
+                      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                    </>
+                  )}
+                </div>
 
-            {/* Quick Stats */}
-            <div className="flex flex-col gap-2 flex-shrink-0">
-              {[
-                { icon: "history",       label: "Total Requests",  value: "42", color: "text-[#0f172a]"   },
-                { icon: "check_circle",  label: "Approved",        value: "38", color: "text-[#1a6e3c]"   },
-                { icon: "calendar_month",label: "Active Schedules",value: "3",  color: "text-[#0f172a]"   },
-              ].map((s, i) => (
-                <div key={i} className="bg-white rounded-xl px-4 py-2.5 border border-[#e2e8f0] flex items-center gap-3 min-w-[160px] shadow-sm">
-                  <Icon name={s.icon} className="text-[#94a3b8] text-[16px]" />
-                  <div>
-                    <div className="text-[10px] text-[#94a3b8] font-medium">{s.label}</div>
-                    <div className={`text-[18px] font-bold ${s.color} leading-tight`}>{s.value}</div>
+                {/* Identity */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 mb-1">
+                    <h3 className="text-[20px] sm:text-[22px] font-bold text-[#0f172a]">{name}</h3>
+                    <span className="flex items-center gap-1.5 bg-[#d4f4e2] text-[#1a6e3c] text-[11px] font-bold px-2.5 py-1 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#1a6e3c] animate-pulse" />
+                      Active
+                    </span>
+                  </div>
+                  <div className="text-[14px] sm:text-[15px] font-semibold text-[#00236f]">{position}</div>
+                  <div className="text-[12px] text-[#64748b] mt-0.5">{department} • ID-{user?.id}</div>
+                  <div className="flex items-center justify-center sm:justify-start gap-1.5 mt-2.5 text-[12px] text-[#64748b]">
+                    <Icon name="location_on" className="text-[14px] text-[#94a3b8]" />
+                    <span>{location}</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
-        {/* ── Bottom Row: Form + Smart Alerts ── */}
-        <div className="grid grid-cols-12 gap-5 pb-4">
-          {/* Personal Information Form */}
-          <div className="col-span-8 bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-6">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 bg-[#e5eeff] rounded-xl flex items-center justify-center">
-                <Icon name="badge" className="text-[#00236f] text-[18px]" />
-              </div>
-              <div>
-                <h3 className="text-[15px] font-bold text-[#0f172a]">Personal Information</h3>
-                <p className="text-[11px] text-[#94a3b8]">Manage your employee data and contact details</p>
+                {/* Quick Stats */}
+                <div className="flex flex-col gap-2 w-full sm:w-auto flex-shrink-0">
+                  {[
+                    { icon: "history",       label: "Total Requests",  value: String(totalRequests), color: "text-[#0f172a]"   },
+                    { icon: "check_circle",  label: "Approved Requests", value: String(approvedRequests), color: "text-[#1a6e3c]"   },
+                    { icon: "commute",       label: "Active Requests", value: String(activeRequests), color: "text-[#4059aa]"   },
+                  ].map((s, i) => (
+                    <div key={i} className="bg-white rounded-xl px-4 py-2 border border-[#e2e8f0] flex items-center gap-3 min-w-[160px] shadow-sm text-left">
+                      <Icon name={s.icon} className="text-[#94a3b8] text-[16px]" />
+                      <div>
+                        <div className="text-[10px] text-[#94a3b8] font-semibold uppercase">{s.label}</div>
+                        <div className={`text-[17px] font-extrabold ${s.color} leading-tight`}>{s.value}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Full Name</label>
-                <input
-                  value={name} onChange={e => setName(e.target.value)} readOnly={!editing}
-                  className={inputClass(editing)}
-                />
-              </div>
-              <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Email Address</label>
-                <input
-                  value={email} onChange={e => setEmail(e.target.value)} readOnly={!editing} type="email"
-                  className={inputClass(editing)}
-                />
-              </div>
-              <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Phone Number</label>
-                <input
-                  value={phone} onChange={e => setPhone(e.target.value)} readOnly={!editing}
-                  className={inputClass(editing)}
-                />
-              </div>
-              <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Department</label>
-                {editing ? (
-                  <div className="relative">
-                    <select
-                      value={department} onChange={e => setDepartment(e.target.value)}
-                      className={`${inputClass(true)} appearance-none pr-8`}
-                    >
-                      {["Operations Dept","Logistics","Finance","Engineering","System Admin"].map(d => (
-                        <option key={d}>{d}</option>
-                      ))}
-                    </select>
-                    <Icon name="keyboard_arrow_down" className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[16px] pointer-events-none" />
+            {/* Form & Info Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pb-4">
+              {/* Personal Information Form */}
+              <div className="col-span-1 lg:col-span-8 bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-5 sm:p-6">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-9 h-9 bg-[#e5eeff] rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Icon name="badge" className="text-[#00236f] text-[18px]" />
                   </div>
-                ) : (
-                  <input value={department} readOnly className={inputClass(false)} />
+                  <div>
+                    <h3 className="text-[15px] font-bold text-[#0f172a]">Personal Information</h3>
+                    <p className="text-[11px] text-[#94a3b8]">Manage your account data and contact details</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Full Name</label>
+                    <input
+                      value={name} onChange={e => setName(e.target.value)} readOnly={!editing}
+                      className={inputClass(editing)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Email Address</label>
+                    <input
+                      value={email} onChange={e => setEmail(e.target.value)} readOnly={!editing} type="email"
+                      className={inputClass(editing)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Phone Number</label>
+                    <input
+                      value={phone} onChange={e => setPhone(e.target.value)} readOnly={!editing}
+                      className={inputClass(editing)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Department</label>
+                    <input value={department} readOnly className={inputClass(false)} />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Role / Position</label>
+                    <input value={position} readOnly className={inputClass(false)} />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Location</label>
+                    <input
+                      value={location} onChange={e => setLocation(e.target.value)} readOnly={!editing}
+                      className={inputClass(editing)}
+                    />
+                  </div>
+                </div>
+
+                {editing && (
+                  <div className="mt-4 pt-4 border-t border-[#f1f5f9] space-y-3">
+                    <label className="block text-[12px] font-semibold text-[#475569]">Change Password</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <input 
+                        type="password" 
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
+                        placeholder="New password"
+                        className="w-full h-10 px-3 border border-[#e2e8f0] bg-[#f8fafc] rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-[#00236f]/20" 
+                      />
+                      <input 
+                        type="password" 
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm new password"
+                        className="w-full h-10 px-3 border border-[#e2e8f0] bg-[#f8fafc] rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-[#00236f]/20" 
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
-              <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Position</label>
-                <input
-                  value={position} onChange={e => setPosition(e.target.value)} readOnly={!editing}
-                  className={inputClass(editing)}
-                />
-              </div>
-              <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Location</label>
-                <input
-                  value={location} onChange={e => setLocation(e.target.value)} readOnly={!editing}
-                  className={inputClass(editing)}
-                />
-              </div>
-            </div>
 
-            {editing && (
-              <div className="mt-4 pt-4 border-t border-[#f1f5f9]">
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Change Password</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <input type="password" placeholder="New password"
-                    className="w-full h-10 px-3 border border-[#e2e8f0] bg-[#f8fafc] rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-[#00236f]/20" />
-                  <input type="password" placeholder="Confirm new password"
-                    className="w-full h-10 px-3 border border-[#e2e8f0] bg-[#f8fafc] rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-[#00236f]/20" />
+              {/* Right: Smart Alerts + Activity */}
+              <div className="col-span-1 lg:col-span-4 space-y-4">
+                {/* Smart Alerts */}
+                <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-5">
+                  <h3 className="text-[13px] font-bold text-[#0f172a] uppercase tracking-wider mb-4">Smart Alerts</h3>
+                  <div className="space-y-4">
+                    {[
+                      { label: "Emergency Dispatch", checked: emergency, toggle: () => setEmergency(p => !p) },
+                      { label: "Request Status Updates", checked: reqStatus, toggle: () => setReqStatus(p => !p) },
+                      { label: "System Maintenance", checked: sysUpdate, toggle: () => setSysUpdate(p => !p) },
+                    ].map(item => (
+                      <div key={item.label} className="flex items-center justify-between">
+                        <span className="text-[13px] font-medium text-[#0f172a]">{item.label}</span>
+                        <Toggle checked={item.checked} onChange={item.toggle} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recent Activity */}
+                <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-5">
+                  <h3 className="text-[13px] font-bold text-[#0f172a] mb-3">Recent Activity</h3>
+                  <div className="space-y-3">
+                    {activities.length === 0 ? (
+                      <p className="text-[11px] text-[#94a3b8] text-center py-2">Belum ada aktivitas terekam.</p>
+                    ) : (
+                      activities.map((a, i) => (
+                        <div key={i} className="flex items-center gap-2.5">
+                          <div className={`w-7 h-7 ${a.bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                            <Icon name={a.icon} className={`${a.color} text-[14px]`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[11px] font-semibold text-[#0f172a] leading-tight truncate">{a.text}</div>
+                            <div className="text-[10px] text-[#94a3b8]">{a.time}</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Danger Zone */}
+                <div className="bg-white rounded-2xl border border-[#fecdd3] shadow-sm p-4">
+                  <h3 className="text-[12px] font-bold text-[#ba1a1a] mb-3 flex items-center gap-2">
+                    <Icon name="warning" className="text-[16px]" />
+                    Danger Zone
+                  </h3>
+                  <div className="space-y-2">
+                    <button className="w-full py-2 border border-[#fecdd3] text-[#ba1a1a] rounded-xl text-[11px] font-bold hover:bg-[#fff1f2] transition-colors cursor-pointer">
+                      Deactivate Account
+                    </button>
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Right: Smart Alerts + Activity */}
-          <div className="col-span-4 space-y-4">
-            {/* Smart Alerts */}
-            <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-5">
-              <h3 className="text-[13px] font-bold text-[#0f172a] uppercase tracking-wider mb-4">Smart Alerts</h3>
-              <div className="space-y-4">
-                {[
-                  { label: "Emergency Dispatch", checked: emergency, toggle: () => setEmergency(p => !p) },
-                  { label: "Request Status",     checked: reqStatus, toggle: () => setReqStatus(p => !p) },
-                  { label: "System Updates",     checked: sysUpdate, toggle: () => setSysUpdate(p => !p) },
-                ].map(item => (
-                  <div key={item.label} className="flex items-center justify-between">
-                    <span className="text-[13px] font-medium text-[#0f172a]">{item.label}</span>
-                    <Toggle checked={item.checked} onChange={item.toggle} />
-                  </div>
-                ))}
-              </div>
             </div>
-
-            {/* Recent Activity */}
-            <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-5">
-              <h3 className="text-[13px] font-bold text-[#0f172a] mb-3">Recent Activity</h3>
-              <div className="space-y-3">
-                {[
-                  { icon: "task_alt",  color: "text-[#1a6e3c]", bg: "bg-[#d4f4e2]", text: "Request #REQ-8291 approved",      time: "2h ago"  },
-                  { icon: "send",      color: "text-[#00236f]", bg: "bg-[#e5eeff]", text: "New request submitted #REQ-9012", time: "1d ago"  },
-                  { icon: "person_add",color: "text-[#006591]", bg: "bg-[#e0f4fe]", text: "Driver assigned: Michael Chen",   time: "2d ago"  },
-                ].map((a, i) => (
-                  <div key={i} className="flex items-center gap-2.5">
-                    <div className={`w-7 h-7 ${a.bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                      <Icon name={a.icon} className={`${a.color} text-[14px]`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[11px] font-semibold text-[#0f172a] leading-tight truncate">{a.text}</div>
-                      <div className="text-[10px] text-[#94a3b8]">{a.time}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Danger Zone */}
-            <div className="bg-white rounded-2xl border border-[#fecdd3] shadow-sm p-4">
-              <h3 className="text-[12px] font-bold text-[#ba1a1a] mb-3 flex items-center gap-2">
-                <Icon name="warning" className="text-[16px]" />
-                Account Actions
-              </h3>
-              <div className="space-y-2">
-                <button className="w-full py-2 border border-[#fecdd3] text-[#ba1a1a] rounded-xl text-[11px] font-bold hover:bg-[#fff1f2] transition-colors">
-                  Deactivate Account
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </Layout>
   );
