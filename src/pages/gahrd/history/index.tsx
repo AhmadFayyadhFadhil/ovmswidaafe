@@ -107,7 +107,7 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
 
         {/* Filters */}
         <div className="bg-white border border-[#e2e8f0] rounded-2xl p-4 mb-5 flex flex-wrap items-center gap-3">
-          <div className="relative flex-1">
+          <div className="relative w-full sm:flex-1">
             <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[18px]" />
             <input
               type="text"
@@ -140,7 +140,7 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
         {/* Table */}
         <div className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-[13px]">
+            <table className="w-full min-w-[750px] text-left text-[13px]">
               <thead>
                 <tr className="bg-[#f8fafc] border-b border-[#e2e8f0]">
                   <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#94a3b8]">Request ID</th>

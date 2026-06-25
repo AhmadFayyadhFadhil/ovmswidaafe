@@ -4,6 +4,7 @@ export function Topbar({
   title, 
   userName = "Admin User", 
   userRole = "Administrator", 
+  avatarUrl,
   searchPlaceholder = "Quick search...", 
   searchValue, 
   onSearchChange,
@@ -13,6 +14,7 @@ export function Topbar({
   title: string; 
   userName?: string; 
   userRole?: string; 
+  avatarUrl?: string | null;
   searchPlaceholder?: string; 
   searchValue?: string; 
   onSearchChange?: (value: string) => void;
@@ -49,7 +51,18 @@ export function Topbar({
             <div className="text-[10px] text-[#94a3b8] font-semibold uppercase tracking-wider">{userRole}</div>
           </div>
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#1e3a8a] border-2 border-[#e2e8f0] flex items-center justify-center overflow-hidden flex-shrink-0">
-            <Icon name="person" className="text-white text-[18px] sm:text-[20px]" />
+            {avatarUrl ? (
+              <img 
+                src={avatarUrl} 
+                alt={userName} 
+                className="w-full h-full object-cover" 
+                onError={(e) => { 
+                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=00236f&color=fff&size=120`; 
+                }} 
+              />
+            ) : (
+              <Icon name="person" className="text-white text-[18px] sm:text-[20px]" />
+            )}
           </div>
         </button>
       </div>

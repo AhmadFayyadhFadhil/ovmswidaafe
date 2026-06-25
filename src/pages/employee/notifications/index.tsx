@@ -60,7 +60,7 @@ const LIVE_ACTIVITY = [
 
 interface Props { onNavigate?: (page: string) => void; }
 
-export default function NotificationsPage({ onNavigate = () => {} }: Props) {
+export default function NotificationsPage({ onNavigate }: Props) {
   const [activeTab, setActiveTab] = useState("All");
   const [notifs, setNotifs] = useState<NotifItem[]>(NOTIFS);
   const [search, setSearch] = useState("");
@@ -91,7 +91,7 @@ export default function NotificationsPage({ onNavigate = () => {} }: Props) {
 
 
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div>
             <h2 className="text-[22px] font-bold text-[#0f172a]">Notification Center</h2>
             <p className="text-[12.5px] text-[#64748b] mt-0.5">Monitor approvals, operational updates, assignments, schedules, and company activity in real-time.</p>
@@ -110,7 +110,7 @@ export default function NotificationsPage({ onNavigate = () => {} }: Props) {
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { icon: "mail",          iconBg: "bg-[#e5eeff]", iconColor: "text-[#00236f]",  value: "12",              label: "Unread Notifications",  bar: "bg-[#00236f]",  barW: "70%" },
             { icon: "pending_actions",iconBg: "bg-[#ffd9d5]",iconColor: "text-[#ba1a1a]",  value: "04", accent: true, label: "Pending Approvals",     bar: "bg-[#ba1a1a]",  barW: "30%" },
@@ -143,7 +143,7 @@ export default function NotificationsPage({ onNavigate = () => {} }: Props) {
         </div>
 
         {/* Content Row */}
-        <div className="flex gap-5">
+        <div className="flex flex-col lg:flex-row gap-5">
           {/* Notifications List */}
           <div className="flex-1 min-w-0 space-y-3">
             {filtered.length === 0 ? (
@@ -186,7 +186,7 @@ export default function NotificationsPage({ onNavigate = () => {} }: Props) {
           </div>
 
           {/* Right Sidebar */}
-          <div className="w-[240px] flex-shrink-0 space-y-4">
+          <div className="w-full lg:w-[240px] flex-shrink-0 space-y-4">
             {/* Live Activity */}
             <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-4">
               <h3 className="text-[13px] font-bold text-[#0f172a] mb-3">Live Activity</h3>

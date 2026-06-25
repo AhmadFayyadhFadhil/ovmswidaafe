@@ -11,6 +11,7 @@ export interface AuthUser {
   department_id?: string;
   is_department_head?: boolean;
   availability_status?: 'available' | 'unavailable' | 'on_trip' | 'assigned';
+  avatar_url?: string | null;
 }
 
 export interface AuthContextType {

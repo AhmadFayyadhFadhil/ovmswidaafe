@@ -156,6 +156,7 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
           title={topbarTitle} 
           userName={displayUserName} 
           userRole={displayUserRole} 
+          avatarUrl={user?.avatar_url}
           searchPlaceholder={searchPlaceholder} 
           searchValue={searchValue} 
           onSearchChange={onSearchChange} 

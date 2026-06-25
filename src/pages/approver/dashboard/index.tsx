@@ -108,7 +108,7 @@ function PendingRow({ req }: { req: PendingRequest }) {
   return (
     <div className="border border-[#e2e8f0] rounded-2xl overflow-hidden bg-white">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4">
         <div className="flex items-center gap-3">
           <img
             src={req.avatar}

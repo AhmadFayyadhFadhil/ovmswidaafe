@@ -18,7 +18,7 @@ const getStatusColor = (status: string) => {
   return status === "AVAILABLE" ? "bg-[#dcfce7] text-[#16a34a]" : "bg-[#dbeafe] text-[#1d4ed8]";
 };
 
-export default function Vehicle({ onNavigate = () => {} }: { onNavigate?: (p: string) => void }) {
+export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => void }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All Statuses");
   const [currentPage, setCurrentPage] = useState(1);
@@ -240,7 +240,7 @@ export default function Vehicle({ onNavigate = () => {} }: { onNavigate?: (p: st
         {/* Filters */}
         <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-[#f1f5f9] flex items-center gap-3 flex-wrap">
-            <div className="relative flex-1 min-w-[200px]">
+            <div className="relative w-full sm:flex-1">
               <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[16px]" />
               <input
                 value={search}
@@ -291,7 +291,7 @@ export default function Vehicle({ onNavigate = () => {} }: { onNavigate?: (p: st
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <img
-                          src={getVehicleImage(v.imageType)}
+                          src={v.photoUrl || getVehicleImage(v.imageType)}
                           alt=""
                           className="w-14 h-10 rounded-lg object-cover border border-[#e2e8f0]"
                           onError={e => { (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='40'%3E%3Crect width='56' height='40' fill='%23e2e8f0'/%3E%3C/svg%3E"; }}
@@ -383,7 +383,7 @@ export default function Vehicle({ onNavigate = () => {} }: { onNavigate?: (p: st
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Model / Name</label>
                   <input
@@ -408,7 +408,7 @@ export default function Vehicle({ onNavigate = () => {} }: { onNavigate?: (p: st
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Vehicle Type</label>
                   <select
@@ -432,7 +432,7 @@ export default function Vehicle({ onNavigate = () => {} }: { onNavigate?: (p: st
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Odometer (km)</label>
                   <input
@@ -516,7 +516,7 @@ export default function Vehicle({ onNavigate = () => {} }: { onNavigate?: (p: st
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Model / Name</label>
                   <input
@@ -541,7 +541,7 @@ export default function Vehicle({ onNavigate = () => {} }: { onNavigate?: (p: st
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Vehicle Type</label>
                   <select
@@ -565,7 +565,7 @@ export default function Vehicle({ onNavigate = () => {} }: { onNavigate?: (p: st
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Odometer (km)</label>
                   <input

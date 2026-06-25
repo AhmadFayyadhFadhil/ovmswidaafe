@@ -108,8 +108,8 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
         </div>
 
         {/* ── Stat Cards ── */}
-        <div className="grid grid-cols-4 gap-3">
-          <div className="bg-white rounded-2xl p-5 border border-[#e2e8f0] shadow-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#e2e8f0] shadow-sm">
             <div className="flex items-start justify-between mb-3">
               <div className="w-10 h-10 bg-[#e8edf8] rounded-xl flex items-center justify-center">
                 <Icon name="calendar_today" className="text-[#1e3a8a] text-[20px]" />
@@ -121,7 +121,7 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 border border-[#e2e8f0] shadow-sm">
+          <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#e2e8f0] shadow-sm">
             <div className="flex items-start justify-between mb-3">
               <div className="w-10 h-10 bg-[#e8edf8] rounded-xl flex items-center justify-center">
                 <Icon name="event_note" className="text-[#1e3a8a] text-[20px]" />
@@ -223,7 +223,7 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
                   </div>
 
                   {/* Gantt cells */}
-                  <div className="flex-1 relative overflow-hidden" style={{ height: 60 }}>
+                  <div className="relative overflow-hidden flex-shrink-0" style={{ height: 60, width: 7 * COL_W }}>
                     {/* Day column lines */}
                     <div className="absolute inset-0 flex pointer-events-none">
                       {weekDayLabels.map((_, i) => (

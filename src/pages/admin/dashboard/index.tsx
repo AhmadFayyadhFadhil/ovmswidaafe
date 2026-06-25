@@ -45,10 +45,45 @@ function PriorityBadge({ priority }: { priority: Request["priority"] }) {
 }
 
 // ── Chart ────────────────────────────────────
-function UsageChart() {
-  const thisWeek  = "M 44,188 C 80,188 100,148 140,120 S 200,96 240,104 S 300,148 340,96 S 400,24 440,40 S 500,56 536,88 S 590,148 626,120";
-  const prevWeek  = "M 44,164 C 80,160 110,172 150,180 S 210,144 255,136 S 320,116 360,128 S 420,152 460,136 S 510,120 560,124 S 600,108 626,100";
-  const fillPath  = thisWeek + " L 626,210 L 44,210 Z";
+function UsageChart({ thisWeekPct, prevWeekPct }: { thisWeekPct: number[]; prevWeekPct: number[] }) {
+  const xCoords = [44, 141, 238, 335, 432, 529, 626];
+  
+  const thisWeekPoints = thisWeekPct.map((p, i) => ({
+    x: xCoords[i],
+    y: 190 - (p / 100) * 160
+  }));
+  
+  const prevWeekPoints = prevWeekPct.map((p, i) => ({
+    x: xCoords[i],
+    y: 190 - (p / 100) * 160
+  }));
+
+  const getSplinePath = (points: { x: number; y: number }[]) => {
+    if (points.length === 0) return "";
+    let path = `M ${points[0].x},${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      const p0 = points[i - 1];
+      const p1 = points[i];
+      const cp1x = p0.x + 48;
+      const cp1y = p0.y;
+      const cp2x = p1.x - 48;
+      const cp2y = p1.y;
+      path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p1.x},${p1.y}`;
+    }
+    return path;
+  };
+
+  const thisWeek = getSplinePath(thisWeekPoints);
+  const prevWeek = getSplinePath(prevWeekPoints);
+  const fillPath = thisWeek + " L 626,210 L 44,210 Z";
+
+  const today = new Date();
+  let dayIndex = today.getDay() - 1; // 0 = Mon, ..., 6 = Sun
+  if (dayIndex === -1) dayIndex = 6;
+
+  const todayX = xCoords[dayIndex];
+  const todayY = thisWeekPoints[dayIndex].y;
+  const todayPct = thisWeekPct[dayIndex];
 
   return (
     <div className="relative w-full" style={{ height: 248 }}>
@@ -65,24 +100,24 @@ function UsageChart() {
         <path d={prevWeek} fill="none" stroke="#93c5fd" strokeWidth="1.8" strokeDasharray="6 4" strokeOpacity="0.8" />
         <path d={fillPath} fill="url(#waveGrad)" />
         <path d={thisWeek} fill="none" stroke="#1e3a8a" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="440" cy="40" r="5.5" fill="#1e3a8a" />
-        <circle cx="440" cy="40" r="11" fill="none" stroke="#1e3a8a" strokeWidth="1.5" strokeOpacity="0.25">
+        <circle cx={todayX} cy={todayY} r="5.5" fill="#1e3a8a" />
+        <circle cx={todayX} cy={todayY} r="11" fill="none" stroke="#1e3a8a" strokeWidth="1.5" strokeOpacity="0.25">
           <animate attributeName="r"              from="6"   to="18"  dur="1.8s" repeatCount="indefinite" />
           <animate attributeName="stroke-opacity" from="0.4" to="0"   dur="1.8s" repeatCount="indefinite" />
         </circle>
         <g>
-          <rect x="390" y="10" width="100" height="26" rx="6" fill="#1e3a8a" />
-          <polygon points="435,36 445,36 440,44" fill="#1e3a8a" />
-          <text x="440" y="28" textAnchor="middle" fill="white" fontSize="12" fontWeight="700" fontFamily="Inter, sans-serif">
-            Usage: 84%
+          <rect x={todayX - 50} y={todayY - 30} width="100" height="26" rx="6" fill="#1e3a8a" />
+          <polygon points={`${todayX - 5},${todayY - 4} ${todayX + 5},${todayY - 4} ${todayX},${todayY + 4}`} fill="#1e3a8a" />
+          <text x={todayX} y={todayY - 12} textAnchor="middle" fill="white" fontSize="12" fontWeight="700" fontFamily="Inter, sans-serif">
+            Usage: {todayPct}%
           </text>
         </g>
       </svg>
       <div className="absolute bottom-0 left-0 right-0 flex" style={{ paddingLeft: 30, paddingRight: 16 }}>
-        {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => (
-          <div key={d} className="flex-1 text-center" style={{ fontSize: 12, color: d === "Fri" ? "#1e3a8a" : "#94a3b8", fontWeight: d === "Fri" ? 700 : 500 }}>
+        {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((d, i) => (
+          <div key={d} className="flex-1 text-center" style={{ fontSize: 12, color: i === dayIndex ? "#1e3a8a" : "#94a3b8", fontWeight: i === dayIndex ? 700 : 500 }}>
             {d}
-            {d === "Fri" && <div className="w-1 h-1 rounded-full bg-[#1e3a8a] mx-auto mt-1" />}
+            {i === dayIndex && <div className="w-1 h-1 rounded-full bg-[#1e3a8a] mx-auto mt-1" />}
           </div>
         ))}
       </div>
@@ -112,6 +147,54 @@ export default function Dashboard() {
   const requestsList = dashboardData?.requests || [];
   const vehiclesList = dashboardData?.vehicles || [];
   const usersList = dashboardData?.users || [];
+
+  // Calculate dynamic weekly usage analytics based on requests in database
+  const getStartOfWeek = (date: Date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(d.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+  };
+
+  const formatDate = (d: Date) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const todayDate = new Date();
+  const startOfThisWeek = getStartOfWeek(todayDate);
+  const startOfPrevWeek = new Date(startOfThisWeek);
+  startOfPrevWeek.setDate(startOfPrevWeek.getDate() - 7);
+
+  const thisWeekUsage = Array(7).fill(0);
+  const prevWeekUsage = Array(7).fill(0);
+
+  const totalVehiclesCount = Math.max(1, vehiclesList.length);
+
+  for (let d = 0; d < 7; d++) {
+    const dateThis = new Date(startOfThisWeek);
+    dateThis.setDate(dateThis.getDate() + d);
+    const strThis = formatDate(dateThis);
+
+    const datePrev = new Date(startOfPrevWeek);
+    datePrev.setDate(datePrev.getDate() + d);
+    const strPrev = formatDate(datePrev);
+
+    const countThis = requestsList.filter((r: any) => r.date === strThis && r.status !== 'REJECTED').length;
+    const countPrev = requestsList.filter((r: any) => r.date === strPrev && r.status !== 'REJECTED').length;
+
+    thisWeekUsage[d] = Math.min(100, Math.round((countThis / totalVehiclesCount) * 100));
+    prevWeekUsage[d] = Math.min(100, Math.round((countPrev / totalVehiclesCount) * 100));
+  }
+
+  // Fallback to sample data if both weeks have 0 active usages
+  const hasRealData = thisWeekUsage.some(v => v > 0) || prevWeekUsage.some(v => v > 0);
+  const finalThisWeekPct = hasRealData ? thisWeekUsage : [10, 25, 45, 38, 84, 52, 35];
+  const finalPrevWeekPct = hasRealData ? prevWeekUsage : [22, 12, 35, 25, 18, 28, 48];
 
   // Calculate stats dynamically from actual database data
   const totalVehicles = vehiclesList.length;
@@ -223,21 +306,21 @@ export default function Dashboard() {
         {/* ── CHART + SCHEDULES ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <div className="col-span-8 bg-white rounded-2xl border border-[#e2e8f0] p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-5">
-                <span className="text-[16px] font-bold text-[#0f172a]">Vehicle Usage Analytics</span>
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div className="flex flex-col min-w-0">
+                <span className="text-[16px] font-bold text-[#0f172a] truncate">Vehicle Usage Analytics</span>
+                <div className="flex items-center gap-3.5 mt-1 flex-wrap">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-full bg-[#1e3a8a]" />
-                    <span className="text-[11px] font-semibold text-[#64748b] uppercase tracking-wider">This Week</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#1e3a8a]" />
+                    <span className="text-[10.5px] font-semibold text-[#64748b] uppercase tracking-wider">This Week</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <svg width="20" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="#93c5fd" strokeWidth="2" strokeDasharray="4 3" /></svg>
-                    <span className="text-[11px] font-semibold text-[#64748b] uppercase tracking-wider">Prev. Week</span>
+                    <svg width="18" height="6"><line x1="0" y1="3" x2="18" y2="3" stroke="#93c5fd" strokeWidth="2" strokeDasharray="4 2" /></svg>
+                    <span className="text-[10.5px] font-semibold text-[#64748b] uppercase tracking-wider">Prev. Week</span>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
                 <select className="text-[12px] font-semibold border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-[#475569] bg-[#f8fafc] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer">
                   <option>Weekly</option>
                   <option>Monthly</option>
@@ -247,7 +330,7 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
-            <UsageChart />
+            <UsageChart thisWeekPct={finalThisWeekPct} prevWeekPct={finalPrevWeekPct} />
           </div>
 
           <div className="col-span-4 bg-white rounded-2xl border border-[#e2e8f0] p-5 shadow-sm flex flex-col">
@@ -295,10 +378,6 @@ export default function Dashboard() {
                   {["All Status","Approved","Pending","Rejected"].map(o => <option key={o}>{o}</option>)}
                 </select>
               </div>
-              <button className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-4 py-2 rounded-lg text-[13px] font-bold transition-colors shadow-sm">
-                <Icon name="add" className="text-[18px]" />
-                New Request
-              </button>
             </div>
           </div>
 
@@ -315,10 +394,10 @@ export default function Dashboard() {
                 <button onClick={() => refetch()} className="ml-4 px-3 py-1.5 bg-[#1e3a8a] text-white rounded-lg">Retry</button>
               </div>
             )}
-            <table className="w-full">
+            <table className="w-full min-w-[800px]">
               <thead>
                 <tr className="bg-[#f8fafc]">
-                  {["ID","EMPLOYEE","DESTINATION","VEHICLE/DRIVER","DATE","STATUS","PRIORITY","ACTIONS"].map(h => (
+                  {["ID","EMPLOYEE","DESTINATION","VEHICLE/DRIVER","DATE","STATUS","PRIORITY"].map(h => (
                     <th key={h} className="px-5 py-3 text-left text-[10.5px] font-bold text-[#94a3b8] uppercase tracking-wider whitespace-nowrap">
                       {h}
                     </th>
@@ -328,7 +407,7 @@ export default function Dashboard() {
               <tbody>
                 {paginatedRequests.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-8 text-center text-[13px] text-[#64748b]">
+                    <td colSpan={7} className="px-5 py-8 text-center text-[13px] text-[#64748b]">
                       No active requests found.
                     </td>
                   </tr>
@@ -359,16 +438,6 @@ export default function Dashboard() {
                       <td className="px-5 py-3.5 text-[13px] text-[#475569] whitespace-nowrap">{req.date}</td>
                       <td className="px-5 py-3.5"><StatusBadge status={req.status} /></td>
                       <td className="px-5 py-3.5"><PriorityBadge priority={req.priority} /></td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-1">
-                          <button className="w-7 h-7 rounded-lg hover:bg-[#eff6ff] flex items-center justify-center transition-colors">
-                            <Icon name="visibility" className="text-[#1e3a8a] text-[16px]" />
-                          </button>
-                          <button className="w-7 h-7 rounded-lg hover:bg-[#f1f5f9] flex items-center justify-center transition-colors">
-                            <Icon name="edit" className="text-[#64748b] text-[16px]" />
-                          </button>
-                        </div>
-                      </td>
                     </tr>
                   ))
                 )}

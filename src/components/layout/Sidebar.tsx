@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@/components/ui/Icon";
 import { useAuthContext } from "@/auth/authContext";
+import { systemConfigService } from "@/services/modules/systemConfigService";
 
 export function Sidebar({ 
   activeNav, 
@@ -15,6 +17,54 @@ export function Sidebar({
 }) {
   const navigate = useNavigate();
   const { user, logout } = useAuthContext();
+
+  const [branding, setBranding] = useState({
+    systemName: "OVMS",
+    companyName: "Enterprise Fleet",
+    companyLogo: ""
+  });
+
+  useEffect(() => {
+    const loadBrandingFromCache = () => {
+      const cached = localStorage.getItem("ovms_branding_config");
+      if (cached) {
+        try {
+          setBranding(JSON.parse(cached));
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
+
+    // 1. Load from cache for instant shift-free rendering
+    loadBrandingFromCache();
+
+    // 2. Fetch fresh config in background
+    const fetchBranding = async () => {
+      try {
+        const res = await systemConfigService.get();
+        if (res && res.data) {
+          const newBranding = {
+            systemName: res.data.systemName || "OVMS",
+            companyName: res.data.companyName || "Enterprise Fleet",
+            companyLogo: res.data.companyLogo || ""
+          };
+          setBranding(newBranding);
+          localStorage.setItem("ovms_branding_config", JSON.stringify(newBranding));
+        }
+      } catch (err) {
+        console.error("Failed to load branding in sidebar", err);
+      }
+    };
+
+    fetchBranding();
+
+    // 3. Listen to local updates (like saving settings or uploading logo)
+    window.addEventListener("branding-update", loadBrandingFromCache);
+    return () => {
+      window.removeEventListener("branding-update", loadBrandingFromCache);
+    };
+  }, []);
   
   const isEmployee = user?.role === "employee";
   const isApprover = user?.role === "approver";
@@ -133,12 +183,20 @@ export function Sidebar({
         {/* Logo Section */}
         <div className="flex items-center justify-between px-5 pt-6 pb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#1e3a8a] rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
-              <Icon name="directions_car" className="text-white text-[22px]" />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0 overflow-hidden ${branding.companyLogo ? "bg-white border border-[#e2e8f0]" : "bg-[#1e3a8a]"}`}>
+              {branding.companyLogo ? (
+                <img src={branding.companyLogo} alt="Logo" className="w-full h-full object-contain p-0.5" />
+              ) : (
+                <Icon name="directions_car" className="text-white text-[22px]" />
+              )}
             </div>
             <div>
-              <div className="text-[17px] font-bold text-[#0f172a] leading-tight">OVMS</div>
-              <div className="text-[11px] text-[#94a3b8] font-medium">Enterprise Fleet</div>
+              <div className="text-[17px] font-bold text-[#0f172a] leading-tight truncate max-w-[130px] notranslate" translate="no">
+                {branding.systemName}
+              </div>
+              <div className="text-[11px] text-[#94a3b8] font-medium truncate max-w-[130px] notranslate" translate="no">
+                {branding.companyName}
+              </div>
             </div>
           </div>
           {onClose && (

@@ -38,7 +38,7 @@ export default function Role({ onNavigate }: { onNavigate?: (p:string)=>void }) 
     <Layout activeNav="Role Management" onNavigate={onNavigate} topbarTitle="Role Management" searchPlaceholder="Search roles..." userName="Admin User" userRole="Administrator">
       <div className="p-6 space-y-5 animate-fadein pb-12">
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div>
             <h2 className="text-[24px] font-bold text-[#0f172a]">Role Management</h2>
             <p className="text-[13px] text-[#64748b] mt-1">Manage system roles, permissions, and access control across the enterprise.</p>
@@ -51,7 +51,7 @@ export default function Role({ onNavigate }: { onNavigate?: (p:string)=>void }) 
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
           {[
             { label:"Total Roles",       value:"5",   icon:"shield",          bg:"bg-[#e8edf8]", color:"text-[#1e3a8a]" },
             { label:"Active Permissions",value:"124", icon:"key",             bg:"bg-[#dcfce7]", color:"text-[#16a34a]" },
@@ -67,9 +67,9 @@ export default function Role({ onNavigate }: { onNavigate?: (p:string)=>void }) 
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-12 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Left: System Roles */}
-          <div className="col-span-4 space-y-3">
+          <div className="col-span-1 lg:col-span-4 space-y-3">
             <h3 className="text-[15px] font-bold text-[#0f172a]">System Roles</h3>
             {ROLES.map(r=>(
               <button key={r.label} onClick={()=>{setSelectedRole(r.label);setSaved(false);}}
@@ -90,9 +90,9 @@ export default function Role({ onNavigate }: { onNavigate?: (p:string)=>void }) 
           </div>
 
           {/* Right: Permission Matrix */}
-          <div className="col-span-8">
+          <div className="col-span-1 lg:col-span-8">
             <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-[#f1f5f9] flex items-center justify-between">
+              <div className="px-5 py-4 border-b border-[#f1f5f9] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="text-[15px] font-bold text-[#0f172a]">Permission Matrix</h3>
                   <p className="text-[12px] text-[#64748b]">Configure action-level access for <b>{selectedRole}</b> role.</p>
@@ -135,7 +135,7 @@ export default function Role({ onNavigate }: { onNavigate?: (p:string)=>void }) 
             </div>
 
             {/* Bottom */}
-            <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               {/* User Assignment */}
               <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-4">
                 <div className="flex items-center justify-between mb-3">

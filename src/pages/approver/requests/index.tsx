@@ -168,7 +168,7 @@ function RequestCard({
       }`}
     >
       {/* Card header */}
-      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 px-5 pt-5 pb-3">
         <div className="flex items-center gap-3">
           <div className="relative">
             <img
@@ -207,7 +207,7 @@ function RequestCard({
       </div>
 
       {/* Detail grid */}
-      <div className="px-5 grid grid-cols-2 gap-x-6 gap-y-3 pb-4">
+      <div className="px-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 pb-4">
         <DetailField icon={<IconCalendar />} label="Date" value={req.date} />
         <DetailField icon={<IconClock />} label="Time" value={req.time} />
         <DetailField icon={<IconCar />} label="Vehicle" value={req.vehicleType} />
@@ -241,18 +241,18 @@ function RequestCard({
 
       {/* Action buttons — only shown when isActive */}
       {req.isActive && (
-        <div className="px-5 pb-5 pt-2 flex flex-wrap items-center gap-2 border-t border-[#f1f5f9] mt-2" onClick={e => e.stopPropagation()}>
+        <div className="px-5 pb-5 pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 border-t border-[#f1f5f9] mt-2" onClick={e => e.stopPropagation()}>
           {req.canApprove && (
             <>
               <button
                 onClick={() => onApprove(req.id)}
-                className="flex-1 h-10 bg-[#1e3a8a] text-white text-[13px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all cursor-pointer"
+                className="w-full sm:flex-1 h-10 bg-[#1e3a8a] text-white text-[13px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all cursor-pointer"
               >
                 Approve
               </button>
               <button
                 onClick={() => onReject(req.id)}
-                className="flex-1 h-10 bg-white text-[#dc2626] border border-[#dc2626] text-[13px] font-bold rounded-xl hover:bg-[#fef2f2] active:scale-95 transition-all cursor-pointer"
+                className="w-full sm:flex-1 h-10 bg-white text-[#dc2626] border border-[#dc2626] text-[13px] font-bold rounded-xl hover:bg-[#fef2f2] active:scale-95 transition-all cursor-pointer"
               >
                 Reject
               </button>
@@ -260,7 +260,7 @@ function RequestCard({
           )}
           <button
             onClick={() => onViewDetail(req.id)}
-            className="flex-1 h-10 bg-[#f8fafc] text-[#334155] border border-[#e2e8f0] text-[13px] font-bold rounded-xl hover:bg-[#f1f5f9] active:scale-95 transition-all cursor-pointer"
+            className="w-full sm:flex-1 h-10 bg-[#f8fafc] text-[#334155] border border-[#e2e8f0] text-[13px] font-bold rounded-xl hover:bg-[#f1f5f9] active:scale-95 transition-all cursor-pointer"
           >
             View Detail
           </button>

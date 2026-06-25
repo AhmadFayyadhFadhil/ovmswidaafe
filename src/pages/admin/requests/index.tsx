@@ -33,7 +33,7 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
-export default function Request({ onNavigate = () => {} }: { onNavigate?: (p: string) => void }) {
+export default function Request({ onNavigate }: { onNavigate?: (p: string) => void }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
@@ -351,7 +351,7 @@ export default function Request({ onNavigate = () => {} }: { onNavigate?: (p: st
         {/* Table */}
         <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-[#f1f5f9] flex items-center gap-3 flex-wrap">
-            <div className="relative flex-1 min-w-[180px]">
+            <div className="relative w-full sm:flex-1">
               <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[16px]" />
               <input
                 value={search}
@@ -530,7 +530,7 @@ export default function Request({ onNavigate = () => {} }: { onNavigate?: (p: st
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Destination City</label>
                   <input
@@ -555,7 +555,7 @@ export default function Request({ onNavigate = () => {} }: { onNavigate?: (p: st
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Departure Time</label>
                   <input
@@ -577,7 +577,7 @@ export default function Request({ onNavigate = () => {} }: { onNavigate?: (p: st
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Passenger Count</label>
                   <input
@@ -715,7 +715,7 @@ export default function Request({ onNavigate = () => {} }: { onNavigate?: (p: st
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Destination City</label>
                   <input
@@ -740,7 +740,7 @@ export default function Request({ onNavigate = () => {} }: { onNavigate?: (p: st
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Departure Time</label>
                   <input
@@ -762,7 +762,7 @@ export default function Request({ onNavigate = () => {} }: { onNavigate?: (p: st
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Passenger Count</label>
                   <input

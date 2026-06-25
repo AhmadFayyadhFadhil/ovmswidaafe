@@ -112,6 +112,31 @@ function getPriorityColor(priority: string) {
   return "text-[#64748b]";
 }
 
+function formatDateTime(str: string) {
+  if (!str) return "";
+  let datePart = "";
+  let timePart = "09:00";
+  
+  if (str.includes("T")) {
+    const parts = str.split("T");
+    datePart = parts[0];
+    timePart = parts[1].split(".")[0].substring(0, 5);
+  } else if (str.includes(" ")) {
+    const parts = str.split(" ");
+    datePart = parts[0];
+    timePart = parts[1].substring(0, 5);
+  } else {
+    datePart = str;
+  }
+  
+  const dateSubparts = datePart.split("-");
+  if (dateSubparts.length === 3) {
+    datePart = `${dateSubparts[2]}-${dateSubparts[1]}-${dateSubparts[0]}`;
+  }
+  
+  return `${datePart} ${timePart}`;
+}
+
 export default function MyRequestsPage() {
   const navigate = useNavigate();
   const { user } = useAuthContext();
@@ -227,7 +252,7 @@ export default function MyRequestsPage() {
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
+          <div className="relative w-full sm:flex-1 sm:max-w-sm">
             <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[17px]" />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Filter by title, ID, or driver..."
@@ -296,10 +321,10 @@ export default function MyRequestsPage() {
                           )}
                         </div>
                         <h4 className="text-[16px] font-bold text-[#0f172a]">{r.purpose || "Vehicle Request"}</h4>
-                        <div className="flex items-center gap-3 mt-1.5 text-[12px] text-[#64748b]">
-                          <span className="flex items-center gap-1"><Icon name="location_on" className="text-[14px]" />{r.destination}</span>
-                          <span className="flex items-center gap-1"><Icon name="schedule" className="text-[14px]" />{r.startTime || (r.date + " " + r.time)}</span>
-                          <span className="flex items-center gap-1"><Icon name="groups" className="text-[14px]" />{r.passengerCount || 1} Pax</span>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1.5 mt-2 text-[12.5px] text-[#64748b] flex-wrap">
+                          <span className="flex items-center gap-1.5"><Icon name="location_on" className="text-[14px]" />{r.destination}</span>
+                          <span className="flex items-center gap-1.5"><Icon name="schedule" className="text-[14px]" />{formatDateTime(r.startTime || (r.date + " " + r.time))}</span>
+                          <span className="flex items-center gap-1.5"><Icon name="groups" className="text-[14px]" />{r.passengerCount || 1} Pax</span>
                         </div>
                       </div>
 
@@ -361,7 +386,7 @@ export default function MyRequestsPage() {
                           </div>
                           <div>
                             <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">Schedule</div>
-                            <div className="font-semibold text-[#0f172a]">{r.startTime || (r.date + " " + r.time)}</div>
+                            <div className="font-semibold text-[#0f172a]">{formatDateTime(r.startTime || (r.date + " " + r.time))}</div>
                           </div>
                           <div>
                             <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">Purpose</div>

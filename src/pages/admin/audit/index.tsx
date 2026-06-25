@@ -158,8 +158,8 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
 
                   </span>
                 </div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mt-2">{c.label}</div>
-                <div className="text-[22px] font-bold text-[#0f172a] leading-tight">{c.value}</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mt-2 h-8 flex items-end leading-tight">{c.label}</div>
+                <div className="text-[22px] font-bold text-[#0f172a] leading-tight mt-1">{c.value}</div>
                 <MiniSparkbar vals={c.vals} colors={c.colors} />
               </div>
             ))}
@@ -310,7 +310,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
         </div>
 
         {/* ── RIGHT SIDEBAR ── */}
-        <div className="w-[240px] flex-shrink-0 space-y-4">
+        <div className="w-full lg:w-[240px] flex-shrink-0 space-y-4">
 
           {/* Critical Alert Card */}
           {!alertDismiss && (

@@ -22,7 +22,7 @@ export const scheduleService = {
           const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
           dateLabelVal = `${days[d.getDay()]} ${d.getDate()}`;
           
-          const time = r.start_time.split(' ')[1];
+          const time = r.start_time.includes('T') ? r.start_time.split('T')[1] : r.start_time.split(' ')[1];
           if (time) startTimeVal = time.substring(0, 5);
         } catch {
           dateLabelVal = 'Today';
@@ -31,7 +31,7 @@ export const scheduleService = {
       
       if (r.end_time) {
         try {
-          const time = r.end_time.split(' ')[1];
+          const time = r.end_time.includes('T') ? r.end_time.split('T')[1] : r.end_time.split(' ')[1];
           if (time) endTimeVal = time.substring(0, 5);
         } catch {
           endTimeVal = '17:00';

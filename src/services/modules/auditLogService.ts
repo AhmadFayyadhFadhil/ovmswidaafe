@@ -11,12 +11,13 @@ export const auditLogService = {
     const mapped = list.map((a: any) => ({
       id: String(a.id),
       user: a.user?.name || 'System',
-      role: a.user?.email ? (a.user.email.includes('admin') ? 'Administrator' : 'Staff') : 'System',
+      role: a.user?.role || (a.user ? 'Staff' : 'System'),
       activityType: a.auditable_type || 'System',
       action: `${a.action || 'modified'} ${a.auditable_type || 'item'} #${a.auditable_id || ''}`,
-      department: 'Operations',
-      severity: (a.action === 'deleted' ? 'High' : 'Normal') as any,
-      ipAddress: '127.0.0.1',
+      department: a.user?.department || 'Operations',
+      severity: (a.action === 'deleted' ? 'High' : (a.action === 'updated' ? 'Normal' : 'Low')) as any,
+      ipAddress: a.user?.email || 'system@ovms.local',
+      avatarUrl: a.user?.avatar_url || '',
       timestamp: a.created_at ? a.created_at.replace('T', ' ').substring(0, 16) : 'Just now',
     }));
 

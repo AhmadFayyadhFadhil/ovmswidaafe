@@ -106,7 +106,7 @@ function ConfirmModal({ vehicle, assignmentRef, onConfirm, onCancel }: {
           </div>
 
           {/* Buttons */}
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={onConfirm}
               className="flex-1 h-12 bg-[#1e3a8a] text-white text-[14px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all"
@@ -225,7 +225,7 @@ export default function VehiclePage({ vehicles, onSelectVehicle, selectedAssignm
       </div>
 
       {/* Tab filter */}
-      <div className="flex gap-2 mt-5 mb-6">
+      <div className="flex flex-wrap gap-2 mt-5 mb-6">
         {(["All Vehicles", "Available", "On Trip"] as const).map((t) => (
           <button
             key={t}

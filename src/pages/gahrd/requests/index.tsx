@@ -303,7 +303,7 @@ export default function GAHRDRequestsPage() {
                       className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden hover:border-[#c7d7f7] hover:shadow-sm transition-all"
                     >
                       {/* Header */}
-                      <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#f8fafc] bg-[#fafbfc]">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 pt-5 pb-4 border-b border-[#f8fafc] bg-[#fafbfc]">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-[#1e3a8a] font-bold text-[14px]">
                             {req.employee ? req.employee.charAt(0).toUpperCase() : "E"}
@@ -365,7 +365,7 @@ export default function GAHRDRequestsPage() {
                       )}
 
                       {/* Actions */}
-                      <div className="px-6 pb-5 pt-3 border-t border-[#f8fafc] flex items-center justify-end gap-2">
+                      <div className="px-6 pb-5 pt-3 border-t border-[#f8fafc] flex flex-wrap items-center justify-end gap-2">
                         {showAssign && (
                           <button
                             onClick={() => handleOpenAssignModal(req)}

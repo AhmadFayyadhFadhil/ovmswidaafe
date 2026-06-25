@@ -35,7 +35,38 @@ function mapPriority(backendPriority: string): "HIGH" | "URGENT" | "NORMAL" | "L
   }
 }
 
+function parseStartDateTime(startTime: string | undefined) {
+  if (!startTime) return { date: '', time: '09:00' };
+
+  let datePart = '';
+  let timePart = '09:00';
+
+  if (startTime.includes('T')) {
+    const parts = startTime.split('T');
+    datePart = parts[0];
+    if (parts[1]) {
+      timePart = parts[1].substring(0, 5);
+    }
+  } else if (startTime.includes(' ')) {
+    const parts = startTime.split(' ');
+    datePart = parts[0];
+    if (parts[1]) {
+      timePart = parts[1].substring(0, 5);
+    }
+  } else {
+    datePart = startTime;
+  }
+
+  const dateSubparts = datePart.split('-');
+  if (dateSubparts.length === 3) {
+    datePart = `${dateSubparts[2]}-${dateSubparts[1]}-${dateSubparts[0]}`;
+  }
+
+  return { date: datePart, time: timePart };
+}
+
 function mapRequestFromBackend(r: any): FleetRequest {
+  const { date, time } = parseStartDateTime(r.start_time);
   return {
     id: String(r.id),
     employee: r.requested_by?.name || 'Staff',
@@ -44,8 +75,8 @@ function mapRequestFromBackend(r: any): FleetRequest {
     destination: `${r.destination_city || ''}${r.destination_place ? ' - ' + r.destination_place : ''}`,
     vehicleModel: r.operational_trip?.vehicle?.name || 'Not Assigned',
     driverName: r.operational_trip?.driver?.name || 'Not Assigned',
-    date: r.start_time ? r.start_time.split(' ')[0] : '',
-    time: r.start_time ? r.start_time.split(' ')[1] || '09:00' : '09:00',
+    date,
+    time,
     status: mapStatus(r.status),
     priority: mapPriority(r.priority),
     // data tambahan detail:

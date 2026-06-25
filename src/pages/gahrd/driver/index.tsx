@@ -47,7 +47,7 @@ function DriverCard({ driver }: { driver: Driver }) {
   const canAssign = driver.status === "AVAILABLE";
   return (
     <div className={`bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden ${cfg.border} hover:shadow-sm transition-all`}>
-      <div className="flex items-center justify-between p-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
         <div className="flex items-center gap-4">
           <div className="relative">
             {driver.avatar ? (
@@ -77,14 +77,14 @@ function DriverCard({ driver }: { driver: Driver }) {
             )}
           </div>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex sm:flex-col gap-2 w-full sm:w-auto">
           <button
             disabled={!canAssign}
-            className={`h-9 px-5 text-[12px] font-bold rounded-xl transition-all ${canAssign ? "bg-[#1e3a8a] text-white hover:bg-[#1e40af] active:scale-95" : "bg-[#f1f5f9] text-[#94a3b8] cursor-not-allowed"}`}
+            className={`w-full sm:w-auto h-9 px-5 text-[12px] font-bold rounded-xl transition-all ${canAssign ? "bg-[#1e3a8a] text-white hover:bg-[#1e40af] active:scale-95" : "bg-[#f1f5f9] text-[#94a3b8] cursor-not-allowed"}`}
           >
             Assign Driver
           </button>
-          <button className="h-9 px-5 bg-white border border-[#e2e8f0] text-[#334155] text-[12px] font-bold rounded-xl hover:bg-[#f8fafc] active:scale-95 transition-all">
+          <button className="w-full sm:w-auto h-9 px-5 bg-white border border-[#e2e8f0] text-[#334155] text-[12px] font-bold rounded-xl hover:bg-[#f8fafc] active:scale-95 transition-all">
             Contact
           </button>
         </div>

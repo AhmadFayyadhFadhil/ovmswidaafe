@@ -1,5 +1,6 @@
 // src/pages/employee/create-request/index.tsx
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Layout as RoleLayout } from "@/components/layout/RoleLayout";
 import { Icon } from "@/components/ui/Icon";
 import { requestService } from "@/services/modules/requestService";
@@ -11,7 +12,8 @@ const DEPARTMENTS = ["IT", "FA", "HR&GA", "QC", "QA", "HRD", "GA", "TECHNICAL", 
 
 
 
-export default function CreateRequestPage({ onNavigate = () => {} }: Props) {
+export default function CreateRequestPage({ onNavigate }: Props) {
+  const navigate = useNavigate();
   const { user } = useAuthContext();
   const [purpose,    setPurpose]    = useState("");
   const [destinationCity, setDestinationCity] = useState("");
@@ -51,7 +53,7 @@ export default function CreateRequestPage({ onNavigate = () => {} }: Props) {
 
       await requestService.create(payload);
       setSubmitted(true);
-      setTimeout(() => onNavigate?.("My Requests"), 1500);
+      setTimeout(() => navigate("/employee/myrequests"), 1500);
     } catch (err: any) {
       console.error(err);
       setFormError(err.response?.data?.message || "Failed to submit request.");

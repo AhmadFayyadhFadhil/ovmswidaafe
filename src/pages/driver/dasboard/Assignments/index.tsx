@@ -48,7 +48,7 @@ function AssignmentCard({ req, onApprove, onReject }: {
   return (
     <div className="bg-white border border-[#e2e8f0] rounded-2xl flex flex-col overflow-hidden hover:border-[#c7d7f7] hover:shadow-sm transition-all">
       <div className="p-5 pb-4">
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-3">
             <img
               src={req.avatar} alt={req.requesterName}
@@ -76,7 +76,7 @@ function AssignmentCard({ req, onApprove, onReject }: {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-[12px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4 text-[12px]">
           <div>
             <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Date</div>
             <div className="font-bold text-[#0f172a]">{req.date}</div>
@@ -96,16 +96,16 @@ function AssignmentCard({ req, onApprove, onReject }: {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 px-5 py-4 border-t border-[#f1f5f9] bg-[#fafbff]">
+      <div className="flex flex-col sm:flex-row items-center gap-2 px-5 py-4 border-t border-[#f1f5f9] bg-[#fafbff]">
         <button
           onClick={() => onApprove(req.id)}
-          className="flex-1 h-9 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all"
+          className="w-full sm:flex-1 h-9 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all cursor-pointer"
         >
           Approve
         </button>
         <button
           onClick={() => onReject(req.id)}
-          className="flex-1 h-9 bg-white border border-[#dc2626] text-[#dc2626] text-[12px] font-bold rounded-xl hover:bg-[#fef2f2] active:scale-95 transition-all"
+          className="w-full sm:flex-1 h-9 bg-white border border-[#dc2626] text-[#dc2626] text-[12px] font-bold rounded-xl hover:bg-[#fef2f2] active:scale-95 transition-all cursor-pointer"
         >
           Reject
         </button>
@@ -187,7 +187,7 @@ export default function MyAssignmentsPage({ assignments, onApprove, onReject }: 
       </div>
 
       {/* Filter bar */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-3">
           <span className="text-[14px] font-bold text-[#0f172a]">Pending Assignment</span>
           <div className="flex gap-1 bg-[#f1f5f9] rounded-xl p-1">

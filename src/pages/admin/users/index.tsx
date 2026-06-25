@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { userService } from "@/services/modules/userService";
@@ -9,7 +10,8 @@ const statusStyle: Record<string, string> = {
   SUSPENDED: "bg-[#fee2e2] text-[#991b1b]"
 };
 
-export default function User({ onNavigate = () => {} }: { onNavigate?: (p: string) => void }) {
+export default function User({ onNavigate }: { onNavigate?: (p: string) => void }) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 15;
@@ -272,16 +274,16 @@ export default function User({ onNavigate = () => {} }: { onNavigate?: (p: strin
 
         {/* Employee Table */}
         <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#f1f5f9] flex items-center justify-between">
+          <div className="px-5 py-4 border-b border-[#f1f5f9] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h3 className="text-[16px] font-bold text-[#0f172a]">All Employees</h3>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
               <div className="relative">
                 <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[15px]" />
                 <input
                   value={search}
                   onChange={e => handleSearchChange(e.target.value)}
                   placeholder="Search..."
-                  className="h-8 pl-9 pr-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 w-48"
+                  className="h-8 pl-9 pr-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 w-full sm:w-48"
                 />
               </div>
               <select
@@ -436,12 +438,12 @@ export default function User({ onNavigate = () => {} }: { onNavigate?: (p: strin
             <p className="text-[12px] text-[#93c5fd] mb-4">Kelola hak akses dan pemetaan departemen untuk setiap role pengguna.</p>
             <div className="space-y-2.5">
               {[
-                { label: "Kelola Permissions", icon: "admin_panel_settings", nav: "Role Management" },
-                { label: "Audit Logs", icon: "history", nav: "Audit Logs" },
+                { label: "Kelola Permissions", icon: "admin_panel_settings", path: "/admin/roles" },
+                { label: "Audit Logs", icon: "history", path: "/admin/audit" },
               ].map(item => (
                 <button
                   key={item.label}
-                  onClick={() => onNavigate?.(item.nav)}
+                  onClick={() => navigate(item.path)}
                   className="w-full flex items-center justify-between bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-4 py-3 rounded-xl text-[13px] font-semibold transition-all active:scale-[0.98]"
                 >
                   <div className="flex items-center gap-2">
@@ -476,7 +478,7 @@ export default function User({ onNavigate = () => {} }: { onNavigate?: (p: strin
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Full Name</label>
                   <input
@@ -501,7 +503,7 @@ export default function User({ onNavigate = () => {} }: { onNavigate?: (p: strin
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Password</label>
                   <input
@@ -539,7 +541,7 @@ export default function User({ onNavigate = () => {} }: { onNavigate?: (p: strin
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Department</label>
                   <select
@@ -627,7 +629,7 @@ export default function User({ onNavigate = () => {} }: { onNavigate?: (p: strin
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Full Name</label>
                   <input
@@ -652,7 +654,7 @@ export default function User({ onNavigate = () => {} }: { onNavigate?: (p: strin
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">New Password (Optional)</label>
                   <input
@@ -689,7 +691,7 @@ export default function User({ onNavigate = () => {} }: { onNavigate?: (p: strin
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Department</label>
                   <select

@@ -24,6 +24,7 @@ export default function MyProfilePage({ onNavigate }: Props) {
 
   // Profile fields state
   const [avatar, setAvatar] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("+62 812-3456-7890");
@@ -87,7 +88,7 @@ export default function MyProfilePage({ onNavigate }: Props) {
         setPhone(u.phone || "+62 812-3456-7890");
         setPosition(u.position || (u.roles?.[0] ? u.roles[0].toUpperCase() : "Staff"));
         setLocation(u.location || "Jakarta Head Office");
-        setAvatar(`https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || "User")}&background=00236f&color=fff&size=120`);
+        setAvatar(u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || "User")}&background=00236f&color=fff&size=120`);
       }
 
       // Fetch requests data for stats and activity log
@@ -148,9 +149,31 @@ export default function MyProfilePage({ onNavigate }: Props) {
     setSaving(true);
     setErrorMsg("");
     try {
+      let finalAvatarUrl = avatar;
+
+      if (avatarFile) {
+        const formData = new FormData();
+        formData.append("avatar", avatarFile);
+        
+        const avatarRes = await apiClient.post("/profile/avatar", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        
+        if (avatarRes.data?.status === "success") {
+          finalAvatarUrl = avatarRes.data.data.avatar_url;
+          setAvatarFile(null);
+        } else {
+          throw new Error(avatarRes.data?.message || "Gagal mengunggah foto profil.");
+        }
+      }
+
       const payload: any = {
         name,
         email,
+        phone,
+        location,
       };
       if (newPassword) {
         payload.password = newPassword;
@@ -169,7 +192,14 @@ export default function MyProfilePage({ onNavigate }: Props) {
         updateUser({
           name: res.data.data.name,
           email: res.data.data.email,
+          avatar_url: finalAvatarUrl,
         });
+
+        setName(res.data.data.name || "");
+        setEmail(res.data.data.email || "");
+        setPhone(res.data.data.phone || "");
+        setLocation(res.data.data.location || "");
+        setAvatar(finalAvatarUrl);
 
         setTimeout(() => setSaved(false), 2500);
       } else {
@@ -177,7 +207,7 @@ export default function MyProfilePage({ onNavigate }: Props) {
       }
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err.response?.data?.message || "Password konfirmasi tidak cocok atau minimal 6 karakter.");
+      setErrorMsg(err.response?.data?.message || err.message || "Gagal memproses pembaruan profil.");
     } finally {
       setSaving(false);
     }
@@ -186,6 +216,7 @@ export default function MyProfilePage({ onNavigate }: Props) {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setAvatarFile(file);
       const url = URL.createObjectURL(file);
       setAvatar(url);
     }
@@ -372,27 +403,7 @@ export default function MyProfilePage({ onNavigate }: Props) {
                   </div>
                 </div>
 
-                {editing && (
-                  <div className="mt-4 pt-4 border-t border-[#f1f5f9] space-y-3">
-                    <label className="block text-[12px] font-semibold text-[#475569]">Change Password</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <input 
-                        type="password" 
-                        value={newPassword}
-                        onChange={e => setNewPassword(e.target.value)}
-                        placeholder="New password"
-                        className="w-full h-10 px-3 border border-[#e2e8f0] bg-[#f8fafc] rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-[#00236f]/20" 
-                      />
-                      <input 
-                        type="password" 
-                        value={confirmPassword}
-                        onChange={e => setConfirmPassword(e.target.value)}
-                        placeholder="Confirm new password"
-                        className="w-full h-10 px-3 border border-[#e2e8f0] bg-[#f8fafc] rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-[#00236f]/20" 
-                      />
-                    </div>
-                  </div>
-                )}
+
               </div>
 
               {/* Right: Smart Alerts + Activity */}

@@ -51,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               department_id: apiUser.department_id,
               is_department_head: !!apiUser.is_department_head,
               availability_status: apiUser.availability_status,
+              avatar_url: apiUser.avatar_url,
             };
             setUser(updatedUser);
             sessionStorage.setItem("auth_user", JSON.stringify(updatedUser));
@@ -139,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             department_id: apiUser.department_id,
             is_department_head: !!apiUser.is_department_head,
             availability_status: apiUser.availability_status,
+            avatar_url: apiUser.avatar_url,
           };
 
           setUser(authUser);

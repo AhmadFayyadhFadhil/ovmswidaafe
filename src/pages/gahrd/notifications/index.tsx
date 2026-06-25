@@ -117,7 +117,7 @@ function NotifCard({ item, onMarkAsRead, onDelete }: {
         <p className="text-[12px] text-[#64748b] mt-1.5 leading-relaxed">{item.description}</p>
 
         {/* Actions */}
-        <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[#f1f5f9]">
+        <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-[#f1f5f9]">
           {item.unread && (
             <button
               onClick={() => onMarkAsRead(item.id)}

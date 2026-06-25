@@ -19,7 +19,7 @@ const getAvatarUrl = (id: string, gender: 'men' | 'women' = 'men') => {
   return `https://randomuser.me/api/portraits/thumb/${gender}/${num % 100}.jpg`;
 };
 
-export default function Driver({ onNavigate = () => {} }: { onNavigate?: (p: string) => void }) {
+export default function Driver({ onNavigate }: { onNavigate?: (p: string) => void }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
@@ -250,8 +250,8 @@ export default function Driver({ onNavigate = () => {} }: { onNavigate?: (p: str
 
         {/* Table */}
         <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-[#f1f5f9] flex items-center gap-3">
-            <div className="relative flex-1 max-w-xs">
+          <div className="px-5 py-3.5 border-b border-[#f1f5f9] flex flex-wrap items-center gap-3">
+            <div className="relative w-full sm:max-w-xs">
               <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[16px]" />
               <input
                 value={search}
@@ -263,18 +263,18 @@ export default function Driver({ onNavigate = () => {} }: { onNavigate?: (p: str
             <select
               value={statusFilter}
               onChange={e => handleStatusChange(e.target.value)}
-              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-semibold text-[#475569] focus:outline-none"
+              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-semibold text-[#475569] focus:outline-none flex-shrink-0"
             >
               {["All", "AVAILABLE", "ON DUTY", "OFF DUTY"].map(s => <option key={s} value={s}>Status: {s}</option>)}
             </select>
-            <select className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-semibold text-[#475569] focus:outline-none">
+            <select className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-semibold text-[#475569] focus:outline-none flex-shrink-0">
               <option>License Type</option>
               <option>Class A</option>
               <option>Class B</option>
             </select>
             <button
               onClick={() => { setSearch(""); setStatusFilter("All"); setCurrentPage(1); }}
-              className="h-9 px-4 border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#475569] hover:bg-[#f1f5f9]"
+              className="h-9 px-4 border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#475569] hover:bg-[#f1f5f9] flex-shrink-0"
             >
               Reset
             </button>

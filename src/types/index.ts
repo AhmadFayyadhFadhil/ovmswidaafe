@@ -25,6 +25,9 @@ export interface Vehicle {
   nextMaint: string; // date or "OVERDUE"
   imageType: "tesla" | "truck" | "rav4" | "ranger" | "generic";
   vin?: string;
+  photoUrl?: string;
+  backendStatus?: string;
+  capacity?: number;
 }
 
 export interface Driver {
@@ -157,4 +160,5 @@ export interface SystemConfig {
   loginRetryLimit: string;
   ipWhitelist: string;
   advancedEncryption: boolean;
+  companyLogo?: string;
 }

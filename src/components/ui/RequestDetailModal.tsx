@@ -135,7 +135,7 @@ export function RequestDetailModal({
                       {request.purpose || "Tidak ada keperluan khusus"}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Jadwal Perjalanan</div>
                       <div className="text-[13px] font-semibold text-slate-800 mt-0.5 flex items-center gap-1">
@@ -253,7 +253,7 @@ export function RequestDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-2">
+        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2">
           {request.canApprove && onApprove && onReject ? (
             <>
               <button
@@ -261,7 +261,7 @@ export function RequestDetailModal({
                   await onReject(request.id);
                   onClose();
                 }}
-                className="h-10 px-4 text-[#dc2626] border border-[#dc2626] rounded-xl text-[13px] font-bold bg-white hover:bg-red-50 active:scale-95 transition-all cursor-pointer"
+                className="w-full sm:w-auto h-10 px-4 text-[#dc2626] border border-[#dc2626] rounded-xl text-[13px] font-bold bg-white hover:bg-red-50 active:scale-95 transition-all cursor-pointer"
               >
                 Tolak Permintaan
               </button>
@@ -270,7 +270,7 @@ export function RequestDetailModal({
                   await onApprove(request.id);
                   onClose();
                 }}
-                className="h-10 px-5 bg-blue-800 text-white rounded-xl text-[13px] font-bold hover:bg-blue-900 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+                className="w-full sm:w-auto h-10 px-5 bg-blue-800 text-white rounded-xl text-[13px] font-bold hover:bg-blue-900 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <Icon name="check_circle" className="text-[16px]" />
                 Setujui Permintaan
@@ -279,7 +279,7 @@ export function RequestDetailModal({
           ) : (
             <button
               onClick={onClose}
-              className="h-10 px-5 bg-slate-800 text-white rounded-xl text-[13px] font-bold hover:bg-slate-900 active:scale-95 transition-all cursor-pointer"
+              className="w-full sm:w-auto h-10 px-5 bg-slate-800 text-white rounded-xl text-[13px] font-bold hover:bg-slate-900 active:scale-95 transition-all cursor-pointer"
             >
               Tutup
             </button>

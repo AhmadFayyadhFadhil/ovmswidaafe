@@ -63,7 +63,7 @@ function RequestCard({
       </div>
 
       {/* Details */}
-      <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-[12px]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4 text-[12px]">
         <div>
           <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Date</div>
           <div className="font-semibold text-[#334155]">{req.date}</div>
@@ -83,16 +83,16 @@ function RequestCard({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 pt-2 border-t border-[#f1f5f9]">
+      <div className="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t border-[#f1f5f9]">
         <button
           onClick={() => onApprove(req.id)}
-          className="flex-1 h-9 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all"
+          className="w-full sm:flex-1 h-9 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all cursor-pointer"
         >
           Approve
         </button>
         <button
           onClick={() => onReject(req.id)}
-          className="flex-1 h-9 bg-white border border-[#dc2626] text-[#dc2626] text-[12px] font-bold rounded-xl hover:bg-[#fef2f2] active:scale-95 transition-all"
+          className="w-full sm:flex-1 h-9 bg-white border border-[#dc2626] text-[#dc2626] text-[12px] font-bold rounded-xl hover:bg-[#fef2f2] active:scale-95 transition-all cursor-pointer"
         >
           Reject
         </button>
@@ -269,8 +269,11 @@ export default function DriverDashboard() {
     let dateStr = "Today";
     let timeStr = "09:00";
     if (req.start_time) {
-      const parts = req.start_time.split(" ");
-      if (parts[0]) dateStr = parts[0];
+      const parts = req.start_time.includes('T') ? req.start_time.split('T') : req.start_time.split(" ");
+      if (parts[0]) {
+        const dateSubparts = parts[0].split('-');
+        dateStr = dateSubparts.length === 3 ? `${dateSubparts[2]}-${dateSubparts[1]}-${dateSubparts[0]}` : parts[0];
+      }
       if (parts[1]) timeStr = parts[1].substring(0, 5);
     }
     
@@ -293,9 +296,9 @@ export default function DriverDashboard() {
     const name = r.employee || "Staff";
     const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1e3a8a&color=fff`;
     
-    let dateStr = r.date || "Today";
-    if (r.start_time) {
-      dateStr = r.start_time;
+    let dateStr = "Today";
+    if (r.date) {
+      dateStr = `${r.date} ${r.time || '09:00'}`;
     }
     
     return {
@@ -326,7 +329,7 @@ export default function DriverDashboard() {
       transmission: v.transmission || "Automatic",
       seats: v.capacity || 4,
       fuel: v.fuel_level || 100,
-      image: v.image_url || "https://via.placeholder.com/400x160?text=Vehicle",
+      image: v.photoUrl || (v.imageType === 'truck' ? "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=160&fit=crop" : v.imageType === 'tesla' ? "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400&h=160&fit=crop" : "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&h=160&fit=crop"),
       status,
       location: v.location || "Pool A",
     };
@@ -677,11 +680,11 @@ export default function DriverDashboard() {
                 </div>
               )}
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-[#f1f5f9]">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-[#f1f5f9]">
                 <button
                   type="button"
                   onClick={() => setConfirmModal({ isOpen: false, type: "start", targetId: "" })}
-                  className="h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[12.5px] font-bold text-[#475569] transition-colors cursor-pointer"
+                  className="w-full sm:w-auto h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[12.5px] font-bold text-[#475569] transition-colors cursor-pointer"
                 >
                   Batal
                 </button>
@@ -712,7 +715,7 @@ export default function DriverDashboard() {
                       setActionLoading(false);
                     }
                   }}
-                  className={`h-10 px-6 text-white rounded-xl text-[12.5px] font-bold transition-all disabled:opacity-50 cursor-pointer ${
+                  className={`w-full sm:w-auto h-10 px-6 text-white rounded-xl text-[12.5px] font-bold transition-all disabled:opacity-50 cursor-pointer ${
                     confirmModal.type === "reject" ? "bg-red-600 hover:bg-red-700" : "bg-[#1e3a8a] hover:bg-[#1e40af]"
                   }`}
                 >

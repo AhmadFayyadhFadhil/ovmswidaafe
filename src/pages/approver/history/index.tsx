@@ -151,7 +151,7 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
             <div className={`text-[14px] font-extrabold tracking-wide ${isApproved ? 'text-[#15803d]' : 'text-[#dc2626]'}`}>
               {item.status}
             </div>
-            <div className="text-[11px] text-[#94a3b8]">{item.statusLabel}</div>
+            <div className="text-[11px] text-[#94a3b8] hidden sm:block">{item.statusLabel}</div>
           </div>
           <div className={`transition-transform ${open ? 'rotate-180' : ''}`}>
             <IconChevronDown />

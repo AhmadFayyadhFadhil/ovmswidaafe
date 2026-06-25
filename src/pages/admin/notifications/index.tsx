@@ -63,7 +63,7 @@ export default function Notification({
       <div className="max-w-4xl mx-auto p-6 space-y-6 animate-in fade-in duration-200">
         {/* Search Header Banner */}
         <div className="bg-white p-4 rounded-xl border border-slate-100 flex items-center justify-between flex-wrap gap-4">
-          <div className="flex gap-2 bg-slate-100 p-0.5 rounded-xl text-xs font-semibold">
+          <div className="flex flex-wrap gap-2 bg-slate-100 p-0.5 rounded-xl text-xs font-semibold">
             {categories.map((cat) => (
               <button
                 key={cat}
@@ -111,7 +111,7 @@ export default function Notification({
 
               {/* Notification Information details */}
               <div className="flex-1 space-y-1 min-w-0">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-900 text-xs">
                       {not.title}

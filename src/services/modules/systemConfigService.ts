@@ -1,48 +1,36 @@
+import { apiClient } from '../api/api';
 import type { SystemConfig } from '../../types';
 import type { ApiResponse } from '../../types/api';
 
-const DEFAULT_CONFIG: SystemConfig = {
-  systemName: "OVMS Enterprise",
-  timezone: "UTC+07:00 (Asia/Jakarta)",
-  dateFormat: "YYYY-MM-DD",
-  systemLanguage: "Bahasa Indonesia",
-  companyName: "OVMS Logistics Corp",
-  supportEmail: "support@ovms.test",
-  hqAddress: "Kawasan Industri Subang, Jawa Barat, Indonesia",
-  mfaEnabled: true,
-  sessionTimeout: 60,
-  loginRetryLimit: "5 Attempts",
-  ipWhitelist: "192.168.1.1/24, 10.0.0.1/16",
-  advancedEncryption: true,
-};
-
-function getStoredConfig(): SystemConfig {
-  const stored = localStorage.getItem('ovms_system_config');
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch {
-      // fallback
-    }
-  }
-  localStorage.setItem('ovms_system_config', JSON.stringify(DEFAULT_CONFIG));
-  return DEFAULT_CONFIG;
-}
-
 export const systemConfigService = {
   get: async (): Promise<ApiResponse<SystemConfig>> => {
-    const config = getStoredConfig();
-    return {
-      data: config
-    };
+    const res = await apiClient.get<ApiResponse<SystemConfig>>('/system-config');
+    return res.data;
   },
   update: async (config: Partial<SystemConfig>): Promise<ApiResponse<SystemConfig>> => {
-    const current = getStoredConfig();
-    const updated = { ...current, ...config };
-    localStorage.setItem('ovms_system_config', JSON.stringify(updated));
-    return {
-      data: updated
-    };
+    const res = await apiClient.put<ApiResponse<SystemConfig>>('/system-config', config);
+    return res.data;
+  },
+  uploadLogo: async (file: File): Promise<ApiResponse<{ logo_url: string }>> => {
+    const formData = new FormData();
+    formData.append('logo', file);
+    const res = await apiClient.post<ApiResponse<{ logo_url: string }>>('/system-config/logo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  },
+  getStats: async (): Promise<ApiResponse<any>> => {
+    const res = await apiClient.get<ApiResponse<any>>('/system-config/stats');
+    return res.data;
+  },
+  purgeLogs: async (): Promise<ApiResponse<any>> => {
+    const res = await apiClient.post<ApiResponse<any>>('/system-config/purge-logs');
+    return res.data;
+  },
+  flushCache: async (): Promise<ApiResponse<any>> => {
+    const res = await apiClient.post<ApiResponse<any>>('/system-config/flush-cache');
+    return res.data;
   },
 };
-
