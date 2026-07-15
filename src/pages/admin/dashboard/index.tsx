@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { requestService } from "@/services/modules/requestService";
@@ -16,7 +16,7 @@ interface Request  { id: string; initials: string; name: string; destination: st
 // Requests will be loaded from backend
 
 // ── Sub-components ───────────────────────────
-function StatusBadge({ status }: { status: Request["status"] }) {
+const StatusBadge = React.memo(function StatusBadge({ status }: { status: Request["status"] }) {
   const map = {
     Approved: "bg-[#dcfce7] text-[#15803d]",
     Pending:  "bg-[#fef9c3] text-[#854d0e]",
@@ -27,9 +27,9 @@ function StatusBadge({ status }: { status: Request["status"] }) {
       {status}
     </span>
   );
-}
+});
 
-function PriorityBadge({ priority }: { priority: Request["priority"] }) {
+const PriorityBadge = React.memo(function PriorityBadge({ priority }: { priority: Request["priority"] }) {
   const map = {
     HIGH:   { dot: "bg-[#ef4444]", text: "text-[#ef4444]" },
     MEDIUM: { dot: "bg-[#f59e0b]", text: "text-[#d97706]" },
@@ -42,10 +42,10 @@ function PriorityBadge({ priority }: { priority: Request["priority"] }) {
       {priority}
     </div>
   );
-}
+});
 
 // ── Chart ────────────────────────────────────
-function UsageChart({ thisWeekPct, prevWeekPct }: { thisWeekPct: number[]; prevWeekPct: number[] }) {
+const UsageChart = React.memo(function UsageChart({ thisWeekPct, prevWeekPct }: { thisWeekPct: number[]; prevWeekPct: number[] }) {
   const xCoords = [44, 141, 238, 335, 432, 529, 626];
   
   const thisWeekPoints = thisWeekPct.map((p, i) => ({
@@ -123,7 +123,7 @@ function UsageChart({ thisWeekPct, prevWeekPct }: { thisWeekPct: number[]; prevW
       </div>
     </div>
   );
-}
+});
 
 export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState("All Status");
@@ -149,128 +149,142 @@ export default function Dashboard() {
   const usersList = dashboardData?.users || [];
 
   // Calculate dynamic weekly usage analytics based on requests in database
-  const getStartOfWeek = (date: Date) => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(d.setDate(diff));
-    monday.setHours(0, 0, 0, 0);
-    return monday;
-  };
+  const { finalThisWeekPct, finalPrevWeekPct } = useMemo(() => {
+    const getStartOfWeek = (date: Date) => {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(d.setDate(diff));
+      monday.setHours(0, 0, 0, 0);
+      return monday;
+    };
 
-  const formatDate = (d: Date) => {
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  };
+    const formatDate = (d: Date) => {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
 
-  const todayDate = new Date();
-  const startOfThisWeek = getStartOfWeek(todayDate);
-  const startOfPrevWeek = new Date(startOfThisWeek);
-  startOfPrevWeek.setDate(startOfPrevWeek.getDate() - 7);
+    const todayDate = new Date();
+    const startOfThisWeek = getStartOfWeek(todayDate);
+    const startOfPrevWeek = new Date(startOfThisWeek);
+    startOfPrevWeek.setDate(startOfPrevWeek.getDate() - 7);
 
-  const thisWeekUsage = Array(7).fill(0);
-  const prevWeekUsage = Array(7).fill(0);
+    const thisWeekUsage = Array(7).fill(0);
+    const prevWeekUsage = Array(7).fill(0);
 
-  const totalVehiclesCount = Math.max(1, vehiclesList.length);
+    const totalVehiclesCount = Math.max(1, vehiclesList.length);
 
-  for (let d = 0; d < 7; d++) {
-    const dateThis = new Date(startOfThisWeek);
-    dateThis.setDate(dateThis.getDate() + d);
-    const strThis = formatDate(dateThis);
+    for (let d = 0; d < 7; d++) {
+      const dateThis = new Date(startOfThisWeek);
+      dateThis.setDate(dateThis.getDate() + d);
+      const strThis = formatDate(dateThis);
 
-    const datePrev = new Date(startOfPrevWeek);
-    datePrev.setDate(datePrev.getDate() + d);
-    const strPrev = formatDate(datePrev);
+      const datePrev = new Date(startOfPrevWeek);
+      datePrev.setDate(datePrev.getDate() + d);
+      const strPrev = formatDate(datePrev);
 
-    const countThis = requestsList.filter((r: any) => r.date === strThis && r.status !== 'REJECTED').length;
-    const countPrev = requestsList.filter((r: any) => r.date === strPrev && r.status !== 'REJECTED').length;
+      const countThis = requestsList.filter((r: any) => r.date === strThis && r.status !== 'REJECTED').length;
+      const countPrev = requestsList.filter((r: any) => r.date === strPrev && r.status !== 'REJECTED').length;
 
-    thisWeekUsage[d] = Math.min(100, Math.round((countThis / totalVehiclesCount) * 100));
-    prevWeekUsage[d] = Math.min(100, Math.round((countPrev / totalVehiclesCount) * 100));
-  }
+      thisWeekUsage[d] = Math.min(100, Math.round((countThis / totalVehiclesCount) * 100));
+      prevWeekUsage[d] = Math.min(100, Math.round((countPrev / totalVehiclesCount) * 100));
+    }
 
-  // Fallback to sample data if both weeks have 0 active usages
-  const hasRealData = thisWeekUsage.some(v => v > 0) || prevWeekUsage.some(v => v > 0);
-  const finalThisWeekPct = hasRealData ? thisWeekUsage : [10, 25, 45, 38, 84, 52, 35];
-  const finalPrevWeekPct = hasRealData ? prevWeekUsage : [22, 12, 35, 25, 18, 28, 48];
+    // Fallback to sample data if both weeks have 0 active usages
+    const hasRealData = thisWeekUsage.some(v => v > 0) || prevWeekUsage.some(v => v > 0);
+    return {
+      finalThisWeekPct: hasRealData ? thisWeekUsage : [10, 25, 45, 38, 84, 52, 35],
+      finalPrevWeekPct: hasRealData ? prevWeekUsage : [22, 12, 35, 25, 18, 28, 48]
+    };
+  }, [requestsList, vehiclesList]);
 
   // Calculate stats dynamically from actual database data
-  const totalVehicles = vehiclesList.length;
-  const availableVehicles = vehiclesList.filter(v => v.status === "AVAILABLE").length;
-  const inUseVehicles = vehiclesList.filter(v => v.status === "IN TRANSIT").length;
-  const pendingRequests = requestsList.filter(r => r.status === "PENDING").length;
-  const activeDrivers = usersList.filter(u => u.roleName === "Driver" && u.status === "ACTIVE").length;
+  const STATS: StatCard[] = useMemo(() => {
+    const totalVehicles = vehiclesList.length;
+    const availableVehicles = vehiclesList.filter(v => v.status === "AVAILABLE").length;
+    const inUseVehicles = vehiclesList.filter(v => v.status === "IN TRANSIT").length;
+    const pendingRequests = requestsList.filter(r => r.status === "PENDING").length;
+    const activeDrivers = usersList.filter(u => u.roleName === "Driver" && u.status === "ACTIVE").length;
 
-  const STATS: StatCard[] = [
-    { icon: "directions_car", iconBg: "bg-[#e8edf8]",  iconColor: "text-[#1e3a8a]", value: String(totalVehicles), label: "Total Vehicles",   barColor: "bg-[#1e3a8a]",  barWidth: "100%"},
-    { icon: "check_circle",   iconBg: "bg-[#dcfce7]",  iconColor: "text-[#16a34a]", value: String(availableVehicles),  label: "Available",        barColor: "bg-[#22c55e]",  barWidth: totalVehicles ? `${Math.round((availableVehicles/totalVehicles)*100)}%` : "0%" },
-    { icon: "commute",        iconBg: "bg-[#e0f2fe]",  iconColor: "text-[#0369a1]", value: String(inUseVehicles),  label: "In Use",           barColor: "bg-[#0ea5e9]",  barWidth: totalVehicles ? `${Math.round((inUseVehicles/totalVehicles)*100)}%` : "0%" },
-    { icon: "pending_actions",iconBg: "bg-[#fff7ed]",  iconColor: "text-[#c2410c]", value: String(pendingRequests),  label: "Pending Requests", barColor: "bg-[#f97316]",  barWidth: requestsList.length ? `${Math.round((pendingRequests/requestsList.length)*100)}%` : "0%" },
-    { icon: "badge",          iconBg: "bg-[#ede9fe]",  iconColor: "text-[#6d28d9]", value: String(activeDrivers),  label: "Active Drivers",   barColor: "bg-[#8b5cf6]",  barWidth: "100%" },
-  ];
+    return [
+      { icon: "directions_car", iconBg: "bg-[#e8edf8]",  iconColor: "text-[#1e3a8a]", value: String(totalVehicles), label: "Total Vehicles",   barColor: "bg-[#1e3a8a]",  barWidth: "100%"},
+      { icon: "check_circle",   iconBg: "bg-[#dcfce7]",  iconColor: "text-[#16a34a]", value: String(availableVehicles),  label: "Available",        barColor: "bg-[#22c55e]",  barWidth: totalVehicles ? `${Math.round((availableVehicles/totalVehicles)*100)}%` : "0%" },
+      { icon: "commute",        iconBg: "bg-[#e0f2fe]",  iconColor: "text-[#0369a1]", value: String(inUseVehicles),  label: "In Use",           barColor: "bg-[#0ea5e9]",  barWidth: totalVehicles ? `${Math.round((inUseVehicles/totalVehicles)*100)}%` : "0%" },
+      { icon: "pending_actions",iconBg: "bg-[#fff7ed]",  iconColor: "text-[#c2410c]", value: String(pendingRequests),  label: "Pending Requests", barColor: "bg-[#f97316]",  barWidth: requestsList.length ? `${Math.round((pendingRequests/requestsList.length)*100)}%` : "0%" },
+      { icon: "badge",          iconBg: "bg-[#ede9fe]",  iconColor: "text-[#6d28d9]", value: String(activeDrivers),  label: "Active Drivers",   barColor: "bg-[#8b5cf6]",  barWidth: "100%" },
+    ];
+  }, [requestsList, vehiclesList, usersList]);
 
   // Derive upcoming schedules dynamically from requests
-  const SCHEDULES: Schedule[] = requestsList
-    .filter(r => r.status === "APPROVED" || r.status === "PENDING")
-    .map(r => {
-      let month = "OCT";
-      let day = "01";
-      if (r.date) {
-        try {
-          const d = new Date(r.date);
-          if (!isNaN(d.getTime())) {
-            month = d.toLocaleString('en-US', { month: 'short' }).toUpperCase();
-            day = String(d.getDate()).padStart(2, '0');
+  const SCHEDULES: Schedule[] = useMemo(() => {
+    return requestsList
+      .filter(r => r.status === "APPROVED" || r.status === "PENDING")
+      .map(r => {
+        let month = "OCT";
+        let day = "01";
+        if (r.date) {
+          try {
+            const d = new Date(r.date);
+            if (!isNaN(d.getTime())) {
+              month = d.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+              day = String(d.getDate()).padStart(2, '0');
+            }
+          } catch {
+            // ignore
           }
-        } catch {
-          // ignore
         }
-      }
+        return {
+          month,
+          day,
+          title: r.employee ? `${r.employee}'s Trip` : "Operational Trip",
+          sub: `${r.vehicleModel || 'No Vehicle'} - ${r.destination}`,
+          time: r.time || "09:00",
+          accentColor: r.status === "APPROVED" ? "#1e3a8a" : "#c2410c"
+        };
+      })
+      .slice(0, 3);
+  }, [requestsList]);
+
+  const requests: Request[] = useMemo(() => {
+    return requestsList.map((r: any) => {
+      const name = r.employee || "Unknown";
+      const initials = name.trim().split(/\s+/).map((p:string)=>p ? p[0] : "").filter(Boolean).slice(0,2).join("").toUpperCase() || "UN";
+      const vehicle = r.vehicleModel || "Unassigned";
+      const driver = r.driverName || (vehicle === "Unassigned" ? "Awaiting Dispatch" : "Unassigned");
+      const statusMap: Record<string,string> = { APPROVED: "Approved", PENDING: "Pending", REJECTED: "Rejected", ONGOING: "Approved", COMPLETED: "Approved" };
+      const status = statusMap[(r.status || "").toUpperCase()] || (r.status || "Pending");
+      const priorityRaw = (r.priority || "").toUpperCase();
+      const priority = priorityRaw === "HIGH" || priorityRaw === "URGENT" ? "HIGH" : (priorityRaw === "NORMAL" ? "MEDIUM" : "LOW");
+
       return {
-        month,
-        day,
-        title: r.employee ? `${r.employee}'s Trip` : "Operational Trip",
-        sub: `${r.vehicleModel || 'No Vehicle'} - ${r.destination}`,
-        time: r.time || "09:00",
-        accentColor: r.status === "APPROVED" ? "#1e3a8a" : "#c2410c"
-      };
-    })
-    .slice(0, 3);
+        id: r.id,
+        initials,
+        name,
+        destination: r.destination || "",
+        vehicle,
+        driver,
+        date: r.date || "",
+        status: status as Request["status"],
+        priority: priority as Request["priority"],
+      } as Request;
+    });
+  }, [requestsList]);
 
-  const requests: Request[] = requestsList.map((r: any) => {
-    const name = r.employee || "Unknown";
-    const initials = name.split(" ").map((p:string)=>p[0]).slice(0,2).join("").toUpperCase() || "";
-    const vehicle = r.vehicleModel || "Unassigned";
-    const driver = r.driverName || (vehicle === "Unassigned" ? "Awaiting Dispatch" : "Unassigned");
-    const statusMap: Record<string,string> = { APPROVED: "Approved", PENDING: "Pending", REJECTED: "Rejected", ONGOING: "Approved", COMPLETED: "Approved" };
-    const status = statusMap[(r.status || "").toUpperCase()] || (r.status || "Pending");
-    const priorityRaw = (r.priority || "").toUpperCase();
-    const priority = priorityRaw === "HIGH" || priorityRaw === "URGENT" ? "HIGH" : (priorityRaw === "NORMAL" ? "MEDIUM" : "LOW");
-
-    return {
-      id: r.id,
-      initials,
-      name,
-      destination: r.destination || "",
-      vehicle,
-      driver,
-      date: r.date || "",
-      status: status as Request["status"],
-      priority: priority as Request["priority"],
-    } as Request;
-  });
-
-  const filtered = statusFilter === "All Status"
-    ? requests
-    : requests.filter(r => r.status === statusFilter);
+  const filtered = useMemo(() => {
+    return statusFilter === "All Status"
+      ? requests
+      : requests.filter(r => r.status === statusFilter);
+  }, [requests, statusFilter]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = 5;
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const startIndex = (currentPage - 1) * perPage;
-  const paginatedRequests = filtered.slice(startIndex, startIndex + perPage);
+  const paginatedRequests = useMemo(() => {
+    return filtered.slice(startIndex, startIndex + perPage);
+  }, [filtered, startIndex, perPage]);
 
   return (
     <Layout
@@ -321,7 +335,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
-                <select className="text-[12px] font-semibold border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-[#475569] bg-[#f8fafc] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer">
+                <select aria-label="Analytics Filter Period" className="text-[12px] font-semibold border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-[#475569] bg-[#f8fafc] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer">
                   <option>Weekly</option>
                   <option>Monthly</option>
                 </select>
@@ -373,6 +387,7 @@ export default function Dashboard() {
                 <select
                   value={statusFilter}
                   onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                  aria-label="Filter requests by status"
                   className="pl-8 pr-8 py-2 text-[12px] font-semibold text-[#475569] bg-[#f8fafc] border border-[#e2e8f0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer appearance-none"
                 >
                   {["All Status","Approved","Pending","Rejected"].map(o => <option key={o}>{o}</option>)}
@@ -412,9 +427,9 @@ export default function Dashboard() {
                     </td>
                   </tr>
                 ) : (
-                  paginatedRequests.map(req => (
+                  paginatedRequests.map((req, index) => (
                     <tr
-                      key={req.id}
+                      key={req.id || index}
                       className="border-t border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors group"
                     >
                       <td className="px-5 py-3.5">

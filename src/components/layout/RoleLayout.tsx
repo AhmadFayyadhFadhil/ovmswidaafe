@@ -189,13 +189,11 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
             setSidebarOpen(false);
           }}
         />
-        <div className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto">
           {children}
-        </div>
+        </main>
       </div>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
         .material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-smoothing:antialiased;vertical-align:middle;}
         ::-webkit-scrollbar{width:4px;height:4px;}
         ::-webkit-scrollbar-track{background:transparent;}

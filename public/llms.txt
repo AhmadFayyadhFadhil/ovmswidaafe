@@ -1,0 +1,26 @@
+# Order Vehicle Management System (OVMS)
+
+Order Vehicle Management System (OVMS) is a dashboard application for managing vehicle orders, assignments, driver availability, and real-time monitoring of fleet requests.
+
+## Main Routes and Pages
+
+- [/login](file:///login) - Authentication page for all roles.
+- [/admin/dashboard](file:///admin/dashboard) - Dashboard for system administrators, showcasing analytics on vehicle usage, driver status, and active schedules.
+- [/admin/vehicles](file:///admin/vehicles) - Manage vehicle inventory, availability, and status.
+- [/admin/drivers](file:///admin/drivers) - Manage drivers, licenses, and assignments.
+- [/admin/requests](file:///admin/requests) - Monitor and dispatch fleet requests.
+- [/admin/users](file:///admin/users) - Manage system users and role assignments.
+- [/admin/settings](file:///admin/settings) - Global system settings and logo uploads.
+- [/employee/dashboard](file:///employee/dashboard) - Dashboard for requesting employees.
+- [/driver/dashboard](file:///driver/dashboard) - Dashboard for drivers to view schedules and assignments.
+- [/approver/dashboard](file:///approver/dashboard) - Dashboard for department heads/managers to approve vehicle requests.
+- [/gahrd/dashboard](file:///gahrd/dashboard) - GA & HRD dashboard for request monitoring and dispatcher tools.
+- [/security/dashboard](file:///security/dashboard) - Dashboard for security officers to scan and log vehicle trips.
+
+## Key APIs
+
+- `/api/auth` - Login, registration, and profile management.
+- `/api/requests` - CRUD for fleet requests and approval flows.
+- `/api/vehicles` - Retrieve and update vehicle information.
+- `/api/users` - Retrieve and manage users/drivers.
+- `/api/settings` - Global configurations.

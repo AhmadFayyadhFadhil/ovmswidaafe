@@ -1,0 +1,10 @@
+User-agent: *
+Disallow: /admin
+Disallow: /approver
+Disallow: /gahrd
+Disallow: /security
+Disallow: /driver
+Disallow: /employee
+Allow: /login
+Allow: /register
+Allow: /forgot-password
