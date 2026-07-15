@@ -18,11 +18,40 @@ function getBlockStyle(priority: string) {
   return BLOCK_STYLES[p] || BLOCK_STYLES.NORMAL;
 }
 
-function getDayIndex(dateStr: string) {
-  if (!dateStr) return -1;
+function parseToDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  if (dateStr.includes("T") || /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const parts = dateStr.split("-");
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      const d = new Date(`${parts[0]}-${parts[1]}-${parts[2]}`);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+    return isNaN(d.getTime()) ? null : d;
+  }
   const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return -1;
-  // 0=Sun,1=Mon,...,6=Sat → map to Mon(0)..Sun(6)
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function getDayIndex(dateStr: string, startOfWeek: Date, endOfWeek: Date) {
+  const d = parseToDate(dateStr);
+  if (!d) return -1;
+  
+  const dateToCompare = new Date(d);
+  dateToCompare.setHours(12, 0, 0, 0);
+  
+  const startCompare = new Date(startOfWeek);
+  startCompare.setHours(0, 0, 0, 0);
+  
+  const endCompare = new Date(endOfWeek);
+  endCompare.setHours(23, 59, 59, 999);
+  
+  if (dateToCompare < startCompare || dateToCompare > endCompare) return -1;
+  
   const jsDay = d.getDay();
   return jsDay === 0 ? 6 : jsDay - 1;
 }
@@ -48,6 +77,19 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
     r.status === "APPROVED" || r.status === "ONGOING"
   );
 
+  // Get today's week start (Monday) for header
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=Sun
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+  const weekLabel = `${monday.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`;
+
+  const startOfWeek = new Date(monday);
+  startOfWeek.setHours(0, 0, 0, 0);
+  const endOfWeek = new Date(monday);
+  endOfWeek.setDate(monday.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+
   // Kelompokkan berdasarkan kendaraan
   const vehicleMap = new Map<string, GanttVehicle>();
   activeRequests.forEach(r => {
@@ -61,9 +103,9 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
       });
     }
     vehicleMap.get(vKey)!.blocks.push({
-      dayIndex: getDayIndex(r.date),
-      label: r.id,
-      purpose: r.destination || r.employee || "",
+      dayIndex: getDayIndex(r.date, startOfWeek, endOfWeek),
+      label: r.employee || "Staff",
+      purpose: r.destination || r.purpose || "",
       priority: r.priority || "NORMAL",
     });
   });
@@ -72,16 +114,14 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
 
   // Stat counts
   const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
-  const scheduledToday = activeRequests.filter(r => (r.date || "").startsWith(todayStr)).length;
+  const scheduledToday = activeRequests.filter(r => {
+    const d = parseToDate(r.date);
+    if (!d) return false;
+    return d.getDate() === today.getDate() &&
+           d.getMonth() === today.getMonth() &&
+           d.getFullYear() === today.getFullYear();
+  }).length;
   const upcoming7 = activeRequests.length;
-
-  // Get today's week start (Monday) for header
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0=Sun
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-  const weekLabel = `${monday.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`;
 
   const weekDayLabels = WEEK_DAYS.map((short, i) => {
     const d = new Date(monday);

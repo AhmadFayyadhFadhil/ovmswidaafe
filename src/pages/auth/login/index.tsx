@@ -1,16 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/auth/authContext";
+import { apiClient } from "@/services/api/api";
 
 export default function LoginPage() {
 
-  const [email, setEmail] = useState("");
+  const [nik, setNik] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [stats, setStats] = useState({
+    activeVehicles: 0,
+    dailyRequests: 0,
+    activeDrivers: 0,
+    systemName: "",
+    companyLogo: "",
+  });
 
   const navigate = useNavigate();
   const { login } = useAuthContext();
+
+  useEffect(() => {
+    apiClient.get("/public-stats")
+      .then(res => {
+        if (res.data?.status === "success" && res.data?.data) {
+          const d = res.data.data;
+          setStats({
+            activeVehicles: d.active_vehicles ?? 0,
+            dailyRequests: d.daily_requests ?? 0,
+            activeDrivers: d.active_drivers ?? 0,
+            systemName: d.system_name ?? "",
+            companyLogo: d.company_logo ?? "",
+          });
+        }
+      })
+      .catch(err => {
+        console.error("Failed to load public stats", err);
+      });
+  }, []);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -18,7 +45,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const userRole = await login(email, password);
+      const userRole = await login(nik, password);
 
       const dashboards: Record<string, string> = {
         employee: "/employee/dashboard",
@@ -26,9 +53,18 @@ export default function LoginPage() {
         approver: "/approver/dashboard",
         driver: "/driver/dashboard",
         gahrd: "/gahrd/dashboard",
+        security: "/security/dashboard",
       };
 
-      navigate(dashboards[userRole] || "/admin/dashboard");
+      // Check for redirect URL in query parameters
+      const params = new URLSearchParams(window.location.search);
+      const redirectUrl = params.get("redirect");
+
+      if (redirectUrl) {
+        navigate(redirectUrl);
+      } else {
+        navigate(dashboards[userRole] || "/admin/dashboard");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login gagal");
     } finally {
@@ -56,18 +92,22 @@ export default function LoginPage() {
 
           <div className="flex items-center gap-4">
 
-            <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center border border-white/20">
-
-              <span className="text-2xl text-white">
-                🚘
-              </span>
-
-            </div>
+            {stats.companyLogo ? (
+              <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center p-2 shadow-sm overflow-hidden">
+                <img src={stats.companyLogo} alt="Logo" className="w-full h-full object-contain" />
+              </div>
+            ) : (
+              <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center border border-white/20">
+                <span className="text-2xl text-white">
+                  🚘
+                </span>
+              </div>
+            )}
 
             <div>
 
               <h1 className="text-3xl font-bold text-white">
-                OVMS
+                {stats.systemName || "OVMS"}
               </h1>
 
               <p className="text-blue-100">
@@ -96,14 +136,14 @@ export default function LoginPage() {
 
             </p>
 
-            {/* Stats */}
+             {/* Stats */}
 
             <div className="grid grid-cols-3 gap-4 mt-12">
 
-              <div className="bg-white/10 border border-white/10 backdrop-blur rounded-3xl p-5">
+              <div className="bg-white/10 border border-white/10 backdrop-blur rounded-3xl p-5 hover:bg-white/20 hover:scale-105 transition-all duration-300 cursor-default">
 
                 <h3 className="text-3xl font-bold text-white">
-                  142
+                  {stats.activeVehicles}
                 </h3>
 
                 <p className="text-sm text-blue-100 mt-1">
@@ -112,10 +152,10 @@ export default function LoginPage() {
 
               </div>
 
-              <div className="bg-white/10 border border-white/10 backdrop-blur rounded-3xl p-5">
+              <div className="bg-white/10 border border-white/10 backdrop-blur rounded-3xl p-5 hover:bg-white/20 hover:scale-105 transition-all duration-300 cursor-default">
 
                 <h3 className="text-3xl font-bold text-white">
-                  98
+                  {stats.dailyRequests}
                 </h3>
 
                 <p className="text-sm text-blue-100 mt-1">
@@ -124,10 +164,10 @@ export default function LoginPage() {
 
               </div>
 
-              <div className="bg-white/10 border border-white/10 backdrop-blur rounded-3xl p-5">
+              <div className="bg-white/10 border border-white/10 backdrop-blur rounded-3xl p-5 hover:bg-white/20 hover:scale-105 transition-all duration-300 cursor-default">
 
                 <h3 className="text-3xl font-bold text-white">
-                  24
+                  {stats.activeDrivers}
                 </h3>
 
                 <p className="text-sm text-blue-100 mt-1">
@@ -213,15 +253,15 @@ export default function LoginPage() {
 
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
 
-                  Email Address
+                  NIK (Nomor Induk Karyawan)
 
                 </label>
 
                 <input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  placeholder="Masukkan NIK Anda"
+                  value={nik}
+                  onChange={(e) => setNik(e.target.value)}
                   className="w-full h-14 rounded-2xl border border-slate-200 px-5 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all"
                 />
 

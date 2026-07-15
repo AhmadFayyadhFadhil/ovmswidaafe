@@ -10,14 +10,15 @@ export const driverService = {
     const mapped = users.map((u: any) => ({
       id: String(u.id),
       name: u.name || 'No Name',
-      status: u.availability_status === 'available' ? 'AVAILABLE' : (u.availability_status === 'on_trip' ? 'ON DUTY' : 'OFF DUTY'),
+      status: u.availability_status === 'available' ? 'AVAILABLE' : (u.availability_status === 'on_trip' ? 'ON DUTY' : (u.availability_status === 'assigned' ? 'ASSIGNED' : 'OFF DUTY')),
       licenseType: 'Class A' as const,
       licenseExpiry: '-',
       performance: 0,
       avatarUrl: u.sim_a_photo_url || undefined,
       phone: u.phone || '',
       email: u.email || '',
-      department: u.department_id || 'IT',
+      department: u.department_name || 'IT',
+      department_id: u.department_id ? String(u.department_id) : '',
     }));
 
     Object.defineProperty(mapped, 'pagination', {
@@ -66,7 +67,8 @@ export const driverService = {
       avatarUrl: u?.sim_a_photo_url,
       phone: (driver instanceof FormData ? '' : driver.phone) || '',
       email: u?.email || (driver instanceof FormData ? '' : driver.email) || '',
-      department: u?.department_id || 'IT',
+      department: u?.department_name || 'IT',
+      department_id: u?.department_id ? String(u.department_id) : '',
     };
     
     return {
@@ -107,7 +109,8 @@ export const driverService = {
       avatarUrl: u?.sim_a_photo_url,
       phone: '',
       email: u?.email || '',
-      department: u?.department_id || 'IT',
+      department: u?.department_name || 'IT',
+      department_id: u?.department_id ? String(u.department_id) : '',
     };
     
     return {

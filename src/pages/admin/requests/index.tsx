@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { requestService } from "@/services/modules/requestService";
 import { driverService } from "@/services/modules/driverService";
 import { assignmentService } from "@/services/modules/assignmentService";
+import { departmentService } from "@/services/modules/departmentService";
+import type { Department } from "@/services/modules/departmentService";
+import { apiClient } from "@/services/api/api";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -40,6 +43,14 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
   const PAGE_SIZE = 15;
 
   const { data: statsData, refetch: refetchStats } = useApi(() => requestService.getAll({ per_page: 1000 }));
+  const [departments, setDepartments] = useState<Department[]>([]);
+
+  useEffect(() => {
+    departmentService.getAll().then(res => {
+      if (res.data) setDepartments(res.data);
+    }).catch(err => console.error(err));
+  }, []);
+
   const { data: paginatedData, loading, error, refetch: refetchPaginated } = useApi(
     () => requestService.getAll({
       page: currentPage,
@@ -70,6 +81,104 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
   const [adding, setAdding] = useState(false);
   const [passengers, setPassengers] = useState<{ name: string; department_id: string }[]>([]);
   const [formError, setFormError] = useState("");
+
+  // Passenger Autocomplete States (Create)
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [activePassengerIndex, setActivePassengerIndex] = useState<number | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchTimeoutRef = useRef<any>(null);
+
+  const handlePassengerNameChange = (index: number, value: string) => {
+    const next = [...passengers];
+    next[index] = { ...next[index], name: value };
+    setPassengers(next);
+
+    if (!value.trim()) {
+      setSuggestions([]);
+      setActivePassengerIndex(null);
+      return;
+    }
+
+    setActivePassengerIndex(index);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const res = await apiClient.get(`/users-search?search=${encodeURIComponent(value)}`);
+        if (res.data?.status === "success") {
+          setSuggestions(res.data.data || []);
+        }
+      } catch (err) {
+        console.error("Error searching users:", err);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+  };
+
+  const handleSelectSuggestion = (passengerIndex: number, userItem: any) => {
+    const next = [...passengers];
+    next[passengerIndex] = {
+      name: userItem.name,
+      department_id: String(userItem.department_id),
+    };
+    setPassengers(next);
+    setSuggestions([]);
+    setActivePassengerIndex(null);
+  };
+
+  // Passenger Autocomplete States (Edit)
+  const [editSuggestions, setEditSuggestions] = useState<any[]>([]);
+  const [activeEditPassengerIndex, setActiveEditPassengerIndex] = useState<number | null>(null);
+  const [editSearchLoading, setEditSearchLoading] = useState(false);
+  const editSearchTimeoutRef = useRef<any>(null);
+
+  const handleEditPassengerNameChange = (index: number, value: string) => {
+    const next = [...editPassengers];
+    next[index] = { ...next[index], name: value };
+    setEditPassengers(next);
+
+    if (!value.trim()) {
+      setEditSuggestions([]);
+      setActiveEditPassengerIndex(null);
+      return;
+    }
+
+    setActiveEditPassengerIndex(index);
+
+    if (editSearchTimeoutRef.current) {
+      clearTimeout(editSearchTimeoutRef.current);
+    }
+
+    editSearchTimeoutRef.current = setTimeout(async () => {
+      setEditSearchLoading(true);
+      try {
+        const res = await apiClient.get(`/users-search?search=${encodeURIComponent(value)}`);
+        if (res.data?.status === "success") {
+          setEditSuggestions(res.data.data || []);
+        }
+      } catch (err) {
+        console.error("Error searching users:", err);
+      } finally {
+        setEditSearchLoading(false);
+      }
+    }, 300);
+  };
+
+  const handleSelectEditSuggestion = (passengerIndex: number, userItem: any) => {
+    const next = [...editPassengers];
+    next[passengerIndex] = {
+      name: userItem.name,
+      department_id: String(userItem.department_id),
+    };
+    setEditPassengers(next);
+    setEditSuggestions([]);
+    setActiveEditPassengerIndex(null);
+  };
 
   // Edit States
   const [editingRequest, setEditingRequest] = useState<any | null>(null);
@@ -153,7 +262,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
   };
 
   const handleAddPassenger = () => {
-    setPassengers([...passengers, { name: "", department_id: "IT" }]);
+    setPassengers([...passengers, { name: "", department_id: departments[0]?.id ? String(departments[0].id) : "" }]);
   };
 
   const handleRemovePassenger = (index: number) => {
@@ -188,7 +297,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
     });
     setEditPassengers(
       Array.isArray(r.passengers)
-        ? r.passengers.map((p: any) => ({ name: p.name || "", department_id: p.department_id || "IT" }))
+        ? r.passengers.map((p: any) => ({ name: p.name || "", department_id: p.department_id ? String(p.department_id) : "" }))
         : []
     );
     setEditFormError("");
@@ -202,7 +311,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
   };
 
   const handleAddEditPassenger = () => {
-    setEditPassengers([...editPassengers, { name: "", department_id: "IT" }]);
+    setEditPassengers([...editPassengers, { name: "", department_id: departments[0]?.id ? String(departments[0].id) : "" }]);
   };
 
   const handleRemoveEditPassenger = (index: number) => {
@@ -331,19 +440,19 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Total Requests",    value: totalRequestsCount, icon: "assignment",      bg: "bg-[#e8edf8]", color: "text-[#1e3a8a]" },
-            { label: "Pending Approval",  value: pendingCount,       icon: "pending_actions", bg: "bg-[#fff7ed]", color: "text-[#c2410c]" },
-            { label: "Active Missions",   value: ongoingCount,       icon: "commute",         bg: "bg-[#e0f2fe]", color: "text-[#0369a1]" },
-            { label: "Completed Today",   value: completedCount,     icon: "task_alt",        bg: "bg-[#dcfce7]", color: "text-[#16a34a]" },
+            { label: "Total Requests",    value: totalRequestsCount, icon: "assignment",      bg: "bg-blue-50",     color: "text-blue-800" },
+            { label: "Pending Approval",  value: pendingCount,       icon: "pending_actions", bg: "bg-orange-50",   color: "text-orange-700" },
+            { label: "Active Missions",   value: ongoingCount,       icon: "commute",         bg: "bg-sky-50",      color: "text-sky-700" },
+            { label: "Completed Today",   value: completedCount,     icon: "task_alt",        bg: "bg-emerald-50",  color: "text-emerald-700" },
           ].map(c => (
-            <div key={c.label} className="bg-white rounded-2xl p-5 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-3">
+            <div key={c.label} className="bg-white rounded-2xl p-5 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
+              <div className="flex items-center justify-between mb-3">
                 <div className={`w-10 h-10 ${c.bg} rounded-xl flex items-center justify-center`}>
                   <Icon name={c.icon} className={`${c.color} text-[20px]`} />
                 </div>
               </div>
-              <div className="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">{c.label}</div>
-              <div className="text-[28px] font-bold text-[#0f172a] leading-tight">{loading ? "..." : c.value}</div>
+              <div className="text-[32px] font-bold text-[#0f172a] leading-none">{loading ? "..." : c.value}</div>
+              <div className="text-[12px] font-semibold text-[#475569] mt-1.5">{c.label}</div>
             </div>
           ))}
         </div>
@@ -374,9 +483,16 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
               <option>NORMAL</option>
               <option>LOW</option>
             </select>
-            <div className="flex items-center gap-2 h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] text-[#475569]">
+            <div className="flex items-center gap-2 h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] text-[#475569] whitespace-nowrap">
               <Icon name="calendar_today" className="text-[15px]" />
-              Oct 20, 2024 – Oct 27, 2024
+              {(() => {
+                const start = new Date();
+                start.setDate(start.getDate() - 3);
+                const end = new Date();
+                end.setDate(end.getDate() + 7);
+                const format = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                return `${format(start)} – ${format(end)}`;
+              })()}
             </div>
           </div>
 
@@ -390,7 +506,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
               <thead>
                 <tr className="bg-[#f8fafc]">
                   {["REQUEST ID", "REQUESTER", "VEHICLE & DRIVER", "DESTINATION", "SCHEDULE", "PRIORITY", "STATUS", "ACTIONS"].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -409,9 +525,9 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                     <td className="px-4 py-4">
                       <div className="text-[13px] text-[#0f172a]">{r.destination}</div>
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="text-[12px] text-[#0f172a]">{r.date}</div>
-                      <div className="text-[11px] text-[#94a3b8]">{r.time || "All day"}</div>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-[12px] text-[#0f172a] whitespace-nowrap">{r.date}</div>
+                      <div className="text-[11px] text-[#94a3b8] whitespace-nowrap">{r.time || "All day"}</div>
                     </td>
                     <td className="px-4 py-4 text-[12px]">
                       <span className={getPriorityColor(r.priority)}>{r.priority}</span>
@@ -624,34 +740,65 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                     <Icon name="person_add" className="text-[15px]" /> Add Passenger
                   </button>
                 </div>
-                <div className="space-y-2">
-                  {passengers.map((passenger, index) => (
+                <div className="space-y-2">                   {passengers.map((passenger, index) => (
                     <div key={index} className="flex gap-3 items-center bg-[#f8fafc] p-3 rounded-xl border border-[#e2e8f0]">
-                      <div className="flex-1">
+                      <div className="flex-1 relative">
                         <input
                           type="text"
                           required
                           value={passenger.name}
-                          onChange={e => handlePassengerChange(index, "name", e.target.value)}
+                          onChange={e => handlePassengerNameChange(index, e.target.value)}
+                          onFocus={() => {
+                            if (passenger.name.trim()) {
+                              handlePassengerNameChange(index, passenger.name);
+                            }
+                          }}
+                          onBlur={() => {
+                            setTimeout(() => {
+                              setActivePassengerIndex(null);
+                              setSuggestions([]);
+                            }, 250);
+                          }}
                           placeholder="Passenger Full Name"
-                          className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none"
+                          className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                         />
+                        {activePassengerIndex === index && (suggestions.length > 0 || searchLoading) && (
+                          <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#e2e8f0] rounded-xl shadow-lg max-h-48 overflow-y-auto z-50">
+                            {searchLoading ? (
+                              <div className="p-3 text-xs text-slate-400 text-center">Searching...</div>
+                            ) : (
+                              suggestions.map((item) => (
+                                <div
+                                  key={item.id}
+                                  onClick={() => handleSelectSuggestion(index, item)}
+                                  className="px-3 py-2 text-[12px] text-slate-700 hover:bg-blue-50/50 hover:text-[#1e3a8a] cursor-pointer flex justify-between items-center transition-all border-b border-slate-50 last:border-0"
+                                >
+                                  <span className="font-semibold">{item.name}</span>
+                                  <span className="text-[10px] bg-blue-100/60 text-[#1e3a8a] px-1.5 py-0.5 rounded-md font-bold uppercase">
+                                    {item.department_name || item.department_id}
+                                  </span>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="w-1/3">
                         <select
                           value={passenger.department_id}
                           onChange={e => handlePassengerChange(index, "department_id", e.target.value)}
-                          className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none"
+                          className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none cursor-pointer"
                         >
-                          {["IT", "FA", "HR&GA", "QC", "QA", "TECHNICAL", "ENGINEERING"].map(d => (
-                            <option key={d} value={d}>{d}</option>
+                          <option value="">Pilih Departemen</option>
+                          {departments.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
                           ))}
                         </select>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleRemovePassenger(index)}
-                        className="text-[#94a3b8] hover:text-red-500"
+                        className="text-[#94a3b8] hover:text-red-500 cursor-pointer"
                       >
                         <Icon name="close" className="text-[18px]" />
                       </button>
@@ -809,34 +956,65 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                     <Icon name="person_add" className="text-[15px]" /> Add Passenger
                   </button>
                 </div>
-                <div className="space-y-2">
-                  {editPassengers.map((passenger, index) => (
+                <div className="space-y-2">                   {editPassengers.map((passenger, index) => (
                     <div key={index} className="flex gap-3 items-center bg-[#f8fafc] p-3 rounded-xl border border-[#e2e8f0]">
-                      <div className="flex-1">
+                      <div className="flex-1 relative">
                         <input
                           type="text"
                           required
                           value={passenger.name}
-                          onChange={e => handleEditPassengerChange(index, "name", e.target.value)}
+                          onChange={e => handleEditPassengerNameChange(index, e.target.value)}
+                          onFocus={() => {
+                            if (passenger.name.trim()) {
+                              handleEditPassengerNameChange(index, passenger.name);
+                            }
+                          }}
+                          onBlur={() => {
+                            setTimeout(() => {
+                              setActiveEditPassengerIndex(null);
+                              setEditSuggestions([]);
+                            }, 250);
+                          }}
                           placeholder="Passenger Full Name"
-                          className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none"
+                          className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                         />
+                        {activeEditPassengerIndex === index && (editSuggestions.length > 0 || editSearchLoading) && (
+                          <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#e2e8f0] rounded-xl shadow-lg max-h-48 overflow-y-auto z-50">
+                            {editSearchLoading ? (
+                              <div className="p-3 text-xs text-slate-400 text-center">Searching...</div>
+                            ) : (
+                              editSuggestions.map((item) => (
+                                <div
+                                  key={item.id}
+                                  onClick={() => handleSelectEditSuggestion(index, item)}
+                                  className="px-3 py-2 text-[12px] text-slate-700 hover:bg-blue-50/50 hover:text-[#1e3a8a] cursor-pointer flex justify-between items-center transition-all border-b border-slate-50 last:border-0"
+                                >
+                                  <span className="font-semibold">{item.name}</span>
+                                  <span className="text-[10px] bg-blue-100/60 text-[#1e3a8a] px-1.5 py-0.5 rounded-md font-bold uppercase">
+                                    {item.department_name || item.department_id}
+                                  </span>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="w-1/3">
                         <select
                           value={passenger.department_id}
                           onChange={e => handleEditPassengerChange(index, "department_id", e.target.value)}
-                          className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none"
+                          className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none cursor-pointer"
                         >
-                          {["IT", "FA", "HR&GA", "QC", "QA", "TECHNICAL", "ENGINEERING"].map(d => (
-                            <option key={d} value={d}>{d}</option>
+                          <option value="">Pilih Departemen</option>
+                          {departments.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
                           ))}
                         </select>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleRemoveEditPassenger(index)}
-                        className="text-[#94a3b8] hover:text-red-500"
+                        className="text-[#94a3b8] hover:text-red-500 cursor-pointer"
                       >
                         <Icon name="close" className="text-[18px]" />
                       </button>

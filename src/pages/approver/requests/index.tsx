@@ -4,6 +4,7 @@ import { PriorityBadge } from '@/components/layout/PriorityBadge';
 import { useApi } from '@/hooks/useApi';
 import { requestService } from '@/services/modules/requestService';
 import { RequestDetailModal } from '@/components/ui/RequestDetailModal';
+import { Icon } from '@/components/ui/Icon';
 import type { FleetRequest } from '@/types';
 import { useAuthContext } from "@/auth/authContext";
 
@@ -34,12 +35,11 @@ function getStageLabel(rawStatus: string | undefined) {
     case "submitted":
       return "MENUNGGU DEPT HEAD";
     case "approved_department":
-      return "MENUNGGU K.DEP HRD&GA";
-    case "approved_hrd_ga":
-    case "approved_hrd":
-      return "MENUNGGU DRIVER";
+      return "MENUNGGU GA KOORDINATOR";
     case "waiting_driver":
       return "MENUNGGU KONFIRMASI DRIVER";
+    case "assigned_by_ga":
+      return "MENUNGGU APPROVAL HRD&GA HEAD";
     case "driver_assigned":
       return "TERJADWAL";
     case "on_going":
@@ -280,10 +280,15 @@ export default function ApprovalManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<FleetRequest | null>(null);
+  const [rejectModal, setRejectModal] = useState<{ isOpen: boolean; requestId: string | null; reason: string }>({
+    isOpen: false,
+    requestId: null,
+    reason: "",
+  });
   const PER_PAGE = 4;
 
   const isHrGaHead = user?.role === "approver" && 
-    (user?.department_id === "HR&GA" || user?.department_id === "HRD&GA") && 
+    (user?.department_id === "HR&GA" || user?.department_id === "HRD&GA" || user?.department_id === "HRD & GA" || user?.department_name === "HRD & GA") && 
     !!user?.is_department_head;
 
   const { data: fetchedRequests, loading, error, refetch } = useApi(async () => {
@@ -297,7 +302,7 @@ export default function ApprovalManagement() {
   const mappedRequests: PendingRequest[] = requestsList
     .filter(r => {
       if (isHrGaHead) {
-        return r.canApprove || ["approved_hrd_ga", "approved_hrd", "waiting_driver", "driver_assigned", "on_going"].includes(r.rawStatus || "");
+        return r.canApprove || ["assigned_by_ga", "approved_hrd_ga", "approved_hrd", "waiting_driver", "driver_assigned", "on_going"].includes(r.rawStatus || "");
       }
       return r.canApprove;
     })
@@ -357,9 +362,9 @@ export default function ApprovalManagement() {
     }
   };
 
-  const handleReject = async (id: string) => {
+  const handleReject = async (id: string, notes: string = "Ditolak") => {
     try {
-      await requestService.reject(id, "Ditolak");
+      await requestService.reject(id, notes);
       setActiveCardId(null);
       refetch();
     } catch (err) {
@@ -468,7 +473,7 @@ export default function ApprovalManagement() {
                 key={req.id}
                 req={req}
                 onApprove={handleApprove}
-                onReject={handleReject}
+                onReject={(id) => setRejectModal({ isOpen: true, requestId: id, reason: "" })}
                 onViewDetail={handleViewDetail}
                 onSelect={setActiveCardId}
               />
@@ -522,6 +527,71 @@ export default function ApprovalManagement() {
         onApprove={handleApprove}
         onReject={handleReject}
       />
+
+      {/* Custom Reject Modal */}
+      {rejectModal.isOpen && (
+        <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/55 backdrop-blur-sm animate-fadein p-4">
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 w-full max-w-md shadow-2xl relative">
+            <button 
+              onClick={() => setRejectModal({ isOpen: false, requestId: null, reason: "" })}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <Icon name="close" className="text-xl" />
+            </button>
+            
+            <div className="text-center mb-5">
+              <div className="w-14 h-14 bg-red-50 text-[#ba1a1a] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Icon name="block" className="text-3xl" />
+              </div>
+              <h3 className="text-[18px] font-extrabold text-slate-800">Tolak Permintaan Kendaraan</h3>
+              <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+                Silakan masukkan alasan penolakan untuk dikirimkan kembali ke pemohon tiket.
+              </p>
+            </div>
+
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!rejectModal.requestId || !rejectModal.reason.trim()) return;
+                await handleReject(rejectModal.requestId, rejectModal.reason.trim());
+                setRejectModal({ isOpen: false, requestId: null, reason: "" });
+              }} 
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                  Alasan Penolakan <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={rejectModal.reason}
+                  onChange={(e) => setRejectModal(prev => ({ ...prev, reason: e.target.value }))}
+                  placeholder="Contoh: Kuota kendaraan habis / tujuan tidak sesuai agenda dinas..."
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all placeholder:text-slate-400 resize-none font-medium"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRejectModal({ isOpen: false, requestId: null, reason: "" })}
+                  className="flex-1 py-3 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer text-sm"
+                >
+                  Kembali
+                </button>
+                <button
+                  type="submit"
+                  disabled={!rejectModal.reason.trim()}
+                  className="flex-1 py-3 bg-[#ba1a1a] text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 text-sm"
+                >
+                  Tolak Request
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

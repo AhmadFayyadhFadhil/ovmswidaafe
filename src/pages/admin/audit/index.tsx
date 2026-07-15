@@ -69,7 +69,17 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
   const PAGE_SIZE = 25;
 
   // 1. Stats data: load once for KPI cards
-  useApi(() => auditLogService.getAll({ per_page: 1000 }));
+  const { data: statsData } = useApi<any>(() => auditLogService.getAll({ per_page: 1 }), true);
+
+  const stats = (statsData as any)?.stats || {
+    total_logs: 213,
+    security_alerts: 3,
+    failed_logins: 24,
+    permissions: 18,
+    operational: 142,
+    suspicious: 2,
+    data_integrity: 92
+  };
 
   // 2. Paginated data: load for active page/filters
   const { data: paginatedData, loading: logsLoading, error: logsError, refetch: refetchLogs } = useApi(
@@ -142,12 +152,12 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
           {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { label: "Total Logs", value: String(pagination.total), icon: "database", bg: "bg-[#e8edf8]", col: "text-[#1e3a8a]", vals: [4, 5, 4, 6, 5, 7, 8], colors: ["bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#1e3a8a]"] },
-              { label: "Security Alerts", value: "03", icon: "shield", bg: "bg-[#fee2e2]", col: "text-[#dc2626]", vals: [2, 3, 2, 4, 3, 5, 4], colors: ["bg-[#fecaca]", "bg-[#fecaca]", "bg-[#fecaca]", "bg-[#ef4444]", "bg-[#fecaca]", "bg-[#ef4444]", "bg-[#dc2626]"] },
-              { label: "Failed Logins", value: "24", icon: "login", bg: "bg-[#f1f5f9]", col: "text-[#64748b]", vals: [5, 6, 4, 7, 5, 6, 8], colors: ["bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#94a3b8]"] },
-              { label: "Permissions", value: "18", icon: "key", bg: "bg-[#f1f5f9]", col: "text-[#64748b]", vals: [4, 4, 5, 4, 5, 4, 5], colors: ["bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#e2e8f0]", "bg-[#94a3b8]"] },
-              { label: "Operational", value: "142", icon: "settings", bg: "bg-[#e0f2fe]", col: "text-[#0369a1]", vals: [5, 6, 7, 6, 8, 7, 9], colors: ["bg-[#bae6fd]", "bg-[#bae6fd]", "bg-[#7dd3fc]", "bg-[#bae6fd]", "bg-[#38bdf8]", "bg-[#7dd3fc]", "bg-[#0ea5e9]"] },
-              { label: "Suspicious", value: "02", icon: "verified_user", bg: "bg-[#e8edf8]", col: "text-[#1e3a8a]", vals: [1, 0, 1, 0, 1, 0, 1], colors: ["bg-[#e2e8f0]", "bg-[#f1f5f9]", "bg-[#e2e8f0]", "bg-[#f1f5f9]", "bg-[#cbd5e1]", "bg-[#f1f5f9]", "bg-[#94a3b8]"] },
+              { label: "Total Logs", value: String(stats.total_logs), icon: "database", bg: "bg-[#e8edf8]", col: "text-[#1e3a8a]", vals: [4, 5, 4, 6, 5, 7, 8], colors: ["bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#1e3a8a]"] },
+              { label: "Security Alerts", value: String(stats.security_alerts).padStart(2, '0'), icon: "shield", bg: "bg-[#fee2e2]", col: "text-[#dc2626]", vals: [2, 3, 2, 4, 3, 5, 4], colors: ["bg-[#fecaca]", "bg-[#fecaca]", "bg-[#fecaca]", "bg-[#ef4444]", "bg-[#fecaca]", "bg-[#ef4444]", "bg-[#dc2626]"] },
+              { label: "Failed Logins", value: String(stats.failed_logins), icon: "login", bg: "bg-[#f1f5f9]", col: "text-[#64748b]", vals: [5, 6, 4, 7, 5, 6, 8], colors: ["bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#94a3b8]"] },
+              { label: "Permissions", value: String(stats.permissions), icon: "key", bg: "bg-[#f1f5f9]", col: "text-[#64748b]", vals: [4, 4, 5, 4, 5, 4, 5], colors: ["bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#e2e8f0]", "bg-[#94a3b8]"] },
+              { label: "Operational", value: String(stats.operational), icon: "settings", bg: "bg-[#e0f2fe]", col: "text-[#0369a1]", vals: [5, 6, 7, 6, 8, 7, 9], colors: ["bg-[#bae6fd]", "bg-[#bae6fd]", "bg-[#7dd3fc]", "bg-[#bae6fd]", "bg-[#38bdf8]", "bg-[#7dd3fc]", "bg-[#0ea5e9]"] },
+              { label: "Suspicious", value: String(stats.suspicious).padStart(2, '0'), icon: "verified_user", bg: "bg-[#e8edf8]", col: "text-[#1e3a8a]", vals: [1, 0, 1, 0, 1, 0, 1], colors: ["bg-[#e2e8f0]", "bg-[#f1f5f9]", "bg-[#e2e8f0]", "bg-[#f1f5f9]", "bg-[#cbd5e1]", "bg-[#f1f5f9]", "bg-[#94a3b8]"] },
             ].map(c => (
               <div key={c.label} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between">
@@ -341,7 +351,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
           <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-4">
             <div className="text-[11px] font-bold uppercase tracking-widest text-[#94a3b8] mb-4">Compliance Status</div>
             <div className="flex items-center gap-3 mb-4">
-              <Donut pct={92} color="#1e3a8a" />
+              <Donut pct={stats.data_integrity} color="#1e3a8a" />
               <div>
                 <div className="text-[14px] font-bold text-[#0f172a]">Data Integrity</div>
                 <div className="text-[11px] text-[#94a3b8]">Last audit 2h ago</div>

@@ -13,12 +13,18 @@ export interface Assignment {
   time: string;
   vehicleType: string;
   purpose: string;
+  tripStatus?: string; // e.g. "driver_assigned", "on_going", etc.
+  requestId?: string;
 }
 
 interface MyAssignmentsPageProps {
-  assignments: Assignment[];
+  pendingAssignments: Assignment[];
+  activeAssignments: Assignment[];
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  onViewDetail: (reqId: string) => void;
+  onStartTrip?: (reqId: string) => void;
+  onCompleteTrip?: (reqId: string) => void;
 }
 
 function PriBadge({ p }: { p: Assignment["priority"] }) {
@@ -40,11 +46,20 @@ function ReqIdBadge({ id }: { id: string }) {
   );
 }
 
-function AssignmentCard({ req, onApprove, onReject }: {
+function AssignmentCard({
+  req, isPending, onApprove, onReject, onViewDetail, onStartTrip, onCompleteTrip
+}: {
   req: Assignment;
+  isPending: boolean;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  onViewDetail: (reqId: string) => void;
+  onStartTrip?: (reqId: string) => void;
+  onCompleteTrip?: (reqId: string) => void;
 }) {
+  const cleanReqId = req.reqId.replace('#REQ-', '');
+  const isOngoing = req.tripStatus === "on_going";
+
   return (
     <div className="bg-white border border-[#e2e8f0] rounded-2xl flex flex-col overflow-hidden hover:border-[#c7d7f7] hover:shadow-sm transition-all">
       <div className="p-5 pb-4">
@@ -56,7 +71,9 @@ function AssignmentCard({ req, onApprove, onReject }: {
               onError={(e) => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(req.requesterName)}&background=1e3a8a&color=fff`; }}
             />
             <div>
-              <div className="text-[14px] font-bold text-[#0f172a]">{req.requesterName}</div>
+              <div className="text-[14px] font-bold text-[#0f172a]">
+                {req.requesterName}
+              </div>
               <div className="text-[11px] text-[#94a3b8]">{req.department}</div>
             </div>
           </div>
@@ -96,129 +113,158 @@ function AssignmentCard({ req, onApprove, onReject }: {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center gap-2 px-5 py-4 border-t border-[#f1f5f9] bg-[#fafbff]">
+      <div className="flex flex-col sm:flex-row items-center gap-2 px-5 py-4 border-t border-[#f1f5f9] bg-[#fafbff] mt-auto">
         <button
-          onClick={() => onApprove(req.id)}
-          className="w-full sm:flex-1 h-9 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all cursor-pointer"
+          onClick={() => onViewDetail(cleanReqId)}
+          className="w-full sm:flex-1 h-9 bg-white border border-[#e2e8f0] text-[#475569] text-[12px] font-bold rounded-xl hover:bg-[#f8fafc] active:scale-95 transition-all cursor-pointer"
         >
-          Approve
+          View Detail
         </button>
-        <button
-          onClick={() => onReject(req.id)}
-          className="w-full sm:flex-1 h-9 bg-white border border-[#dc2626] text-[#dc2626] text-[12px] font-bold rounded-xl hover:bg-[#fef2f2] active:scale-95 transition-all cursor-pointer"
-        >
-          Reject
-        </button>
+
+        {isPending ? (
+          <>
+            <button
+              onClick={() => onApprove(req.id)}
+              className="w-full sm:flex-1 h-9 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all cursor-pointer"
+            >
+              Approve
+            </button>
+            <button
+              onClick={() => onReject(req.id)}
+              className="w-full sm:flex-1 h-9 bg-white border border-[#dc2626] text-[#dc2626] text-[12px] font-bold rounded-xl hover:bg-[#fef2f2] active:scale-95 transition-all cursor-pointer"
+            >
+              Reject
+            </button>
+          </>
+        ) : (
+          <>
+            {req.tripStatus === "driver_assigned" && onStartTrip && (
+              <button
+                onClick={() => onStartTrip(cleanReqId)}
+                className="w-full sm:flex-1 h-9 bg-[#16a34a] text-white text-[12px] font-bold rounded-xl hover:bg-[#15803d] active:scale-95 transition-all cursor-pointer"
+              >
+                Mulai Perjalanan
+              </button>
+            )}
+            {isOngoing && onCompleteTrip && (
+              <button
+                onClick={() => onCompleteTrip(cleanReqId)}
+                className="w-full sm:flex-1 h-9 bg-indigo-600 text-white text-[12px] font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all cursor-pointer"
+              >
+                Selesaikan
+              </button>
+            )}
+            {!["driver_assigned", "on_going"].includes(req.tripStatus || "") && (
+              <span className="text-[12px] font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">
+                Menunggu Konfirmasi GA/HRD
+              </span>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-export default function MyAssignmentsPage({ assignments, onApprove, onReject }: MyAssignmentsPageProps) {
-  const [tab, setTab]             = useState<"All" | "Urgent" | "Normal">("All");
-  const [search, setSearch]       = useState("");
+export default function MyAssignmentsPage({
+  pendingAssignments,
+  activeAssignments,
+  onApprove,
+  onReject,
+  onViewDetail,
+  onStartTrip,
+  onCompleteTrip
+}: MyAssignmentsPageProps) {
+  const [activeTab, setActiveTab] = useState<"pending" | "active">("pending");
+  const [search, setSearch] = useState("");
 
-  const filtered = assignments.filter((a) => {
-    const matchTab =
-      tab === "All" ||
-      (tab === "Urgent" && (a.priority === "URGENT" || a.priority === "CRITICAL")) ||
-      (tab === "Normal" && a.priority === "NORMAL");
-    const q = search.toLowerCase();
-    const matchQ = a.requesterName.toLowerCase().includes(q) || a.destination.toLowerCase().includes(q) || a.reqId.toLowerCase().includes(q);
-    return matchTab && matchQ;
-  });
+  const currentList = activeTab === "pending" ? pendingAssignments : activeAssignments;
 
-  const total    = assignments.length;
-  const normal   = assignments.filter((a) => a.priority === "NORMAL").length;
-  const urgent   = assignments.filter((a) => a.priority === "URGENT").length;
-  const critical = assignments.filter((a) => a.priority === "CRITICAL").length;
+  const filtered = currentList.filter(
+    (a) =>
+      a.requesterName.toLowerCase().includes(search.toLowerCase()) ||
+      a.destination.toLowerCase().includes(search.toLowerCase()) ||
+      a.reqId.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div className="p-4 sm:p-8">
-      {/* Search Input bar */}
-      <div className="relative mb-6 max-w-md">
-        <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[18px]" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search assignments..."
-          className="w-full h-10 pl-9 pr-4 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#475569] placeholder:text-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
-        />
+    <div className="p-4 sm:p-8 space-y-6">
+      {/* Title */}
+      <div>
+        <h2 className="text-[20px] font-bold text-[#0f172a]">Daftar Tugas Driver</h2>
+        <p className="text-[12.5px] text-[#64748b]">Kelola penugasan baru yang masuk dan pantau perjalanan yang sedang aktif.</p>
       </div>
 
-      <h2 className="text-[26px] font-bold text-[#0f172a] mb-1">My Operational Assignments</h2>
-      <p className="text-[13px] text-[#64748b] mb-7">Monitor assigned transportation requests and operational activities.</p>
-
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
-        <div className="bg-[#0f1f3d] rounded-2xl p-5 text-white">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-white/60">Total Assignment</div>
-            <Icon name="assignment" className="text-[20px] text-white/50" />
-          </div>
-          <div className="text-[40px] font-extrabold leading-none mb-2">{String(total).padStart(2, "0")}</div>
-          <div className="text-[11px] text-white/50">All active requests</div>
-        </div>
-        <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-[#94a3b8]">Normal Status</div>
-            <Icon name="info" className="text-[20px] text-[#0ea5e9]" />
-          </div>
-          <div className="text-[40px] font-extrabold text-[#0f172a] leading-none mb-2">{String(normal).padStart(2, "0")}</div>
-          <div className="text-[11px] text-[#94a3b8]">Standard priority</div>
-        </div>
-        <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-[#94a3b8]">Urgent Status</div>
-            <Icon name="error_outline" className="text-[20px] text-[#f97316]" />
-          </div>
-          <div className="text-[40px] font-extrabold text-[#0f172a] leading-none mb-2">{String(urgent).padStart(2, "0")}</div>
-          <div className="text-[11px] text-[#94a3b8]">Requires attention</div>
-        </div>
-        <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-[#94a3b8]">Critical Status</div>
-            <Icon name="close" className="text-[20px] text-[#ef4444]" />
-          </div>
-          <div className="text-[40px] font-extrabold text-[#0f172a] leading-none mb-2">{String(critical).padStart(2, "0")}</div>
-          <div className="text-[11px] text-[#94a3b8]">Immediate action</div>
-        </div>
+      {/* Tabs Selector */}
+      <div className="flex border-b border-[#e2e8f0] pb-px">
+        <button
+          onClick={() => { setActiveTab("pending"); setSearch(""); }}
+          className={`px-5 py-2.5 text-[13.5px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+            activeTab === "pending"
+              ? "border-[#1e3a8a] text-[#1e3a8a]"
+              : "border-transparent text-[#64748b] hover:text-[#0f172a]"
+          }`}
+        >
+          <Icon name="assignment_late" className="text-lg" />
+          <span>Tugas Baru ({pendingAssignments.length})</span>
+        </button>
+        <button
+          onClick={() => { setActiveTab("active"); setSearch(""); }}
+          className={`px-5 py-2.5 text-[13.5px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+            activeTab === "active"
+              ? "border-[#1e3a8a] text-[#1e3a8a]"
+              : "border-transparent text-[#64748b] hover:text-[#0f172a]"
+          }`}
+        >
+          <Icon name="commute" className="text-lg" />
+          <span>Tugas Aktif ({activeAssignments.length})</span>
+        </button>
       </div>
 
-      {/* Filter bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-        <div className="flex items-center gap-3">
-          <span className="text-[14px] font-bold text-[#0f172a]">Pending Assignment</span>
-          <div className="flex gap-1 bg-[#f1f5f9] rounded-xl p-1">
-            {(["All", "Urgent", "Normal"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`px-4 h-8 rounded-lg text-[12px] font-semibold transition-all ${
-                  tab === t ? "bg-[#1e3a8a] text-white shadow-sm" : "text-[#64748b] hover:text-[#334155]"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
+      {/* Search Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[18px]" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari berdasarkan ID, pemohon, atau rute..."
+            className="w-full h-10 pl-9 pr-4 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#475569] placeholder:text-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
+          />
+        </div>
+        <div className="text-[12px] text-[#64748b] font-medium self-end sm:self-auto">
+          Menampilkan <span className="font-bold text-[#0f172a]">{filtered.length}</span> tugas
         </div>
       </div>
 
-      {/* Cards grid */}
+      {/* List Grid */}
       {filtered.length === 0 ? (
-        <div className="bg-white border border-[#e2e8f0] rounded-2xl py-16 flex flex-col items-center">
-          <Icon name="inbox" className="text-[40px] text-[#cbd5e1] mb-2" />
-          <p className="font-bold text-[#0f172a]">No assignments found</p>
+        <div className="bg-white border border-[#e2e8f0] rounded-2xl py-16 flex flex-col items-center justify-center text-center">
+          <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center mb-3">
+            <Icon name={activeTab === "pending" ? "assignment" : "commute"} className="text-[22px] text-[#94a3b8]" />
+          </div>
+          <p className="font-bold text-[#0f172a] text-[14px]">
+            {activeTab === "pending" ? "Tidak ada tugas baru" : "Tidak ada tugas aktif"}
+          </p>
+          <p className="text-[12px] text-[#64748b] mt-1 max-w-xs">
+            {activeTab === "pending"
+              ? "Semua penugasan baru telah Anda proses."
+              : "Belum ada perjalanan operasional yang sedang berjalan."}
+          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((a) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {filtered.map((req) => (
             <AssignmentCard
-              key={a.id} req={a}
+              key={req.id}
+              req={req}
+              isPending={activeTab === "pending"}
               onApprove={onApprove}
               onReject={onReject}
+              onViewDetail={onViewDetail}
+              onStartTrip={onStartTrip}
+              onCompleteTrip={onCompleteTrip}
             />
           ))}
         </div>

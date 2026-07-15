@@ -18,6 +18,7 @@ function mapStatus(backendStatus: string): "APPROVED" | "PENDING" | "ONGOING" | 
     case 'submitted':
     case 'approved_department':
     case 'waiting_driver':
+    case 'assigned_by_ga':
     default:
       return 'PENDING';
   }
@@ -35,48 +36,70 @@ function mapPriority(backendPriority: string): "HIGH" | "URGENT" | "NORMAL" | "L
   }
 }
 
-function parseStartDateTime(startTime: string | undefined) {
-  if (!startTime) return { date: '', time: '09:00' };
+function parseDateTime(dtStr: string | undefined) {
+  if (!dtStr) return { date: '', time: '' };
 
   let datePart = '';
-  let timePart = '09:00';
+  let timePart = '';
 
-  if (startTime.includes('T')) {
-    const parts = startTime.split('T');
+  if (dtStr.includes('T')) {
+    const parts = dtStr.split('T');
     datePart = parts[0];
     if (parts[1]) {
       timePart = parts[1].substring(0, 5);
     }
-  } else if (startTime.includes(' ')) {
-    const parts = startTime.split(' ');
+  } else if (dtStr.includes(' ')) {
+    const parts = dtStr.split(' ');
     datePart = parts[0];
     if (parts[1]) {
       timePart = parts[1].substring(0, 5);
     }
   } else {
-    datePart = startTime;
+    datePart = dtStr;
   }
 
   const dateSubparts = datePart.split('-');
   if (dateSubparts.length === 3) {
-    datePart = `${dateSubparts[2]}-${dateSubparts[1]}-${dateSubparts[0]}`;
+    let day = dateSubparts[2];
+    let monthStr = dateSubparts[1];
+    let year = dateSubparts[0];
+    
+    if (year.length < 4 && day.length === 4) {
+      day = dateSubparts[0];
+      year = dateSubparts[2];
+    }
+    
+    const dayNum = parseInt(day, 10);
+    const monthIndex = parseInt(monthStr, 10) - 1;
+    const monthNames = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    const monthName = monthNames[monthIndex] || monthStr;
+    datePart = `${dayNum} ${monthName} ${year}`;
   }
 
   return { date: datePart, time: timePart };
 }
 
 function mapRequestFromBackend(r: any): FleetRequest {
-  const { date, time } = parseStartDateTime(r.start_time);
+  const start = parseDateTime(r.start_time);
+  const end = parseDateTime(r.end_time);
   return {
     id: String(r.id),
     employee: r.requested_by?.name || 'Staff',
     email: r.requested_by?.email || '',
-    department: r.department_id || 'IT',
+    requestedById: r.requested_by?.id ? String(r.requested_by.id) : null,
+    department: r.department_name || r.department_id || 'IT',
     destination: `${r.destination_city || ''}${r.destination_place ? ' - ' + r.destination_place : ''}`,
-    vehicleModel: r.operational_trip?.vehicle?.name || 'Not Assigned',
-    driverName: r.operational_trip?.driver?.name || 'Not Assigned',
-    date,
-    time,
+    vehicleModel: r.vehicle_model || r.operational_trip?.vehicle?.name || r.vehicle?.name || 'Not Assigned',
+    driverName: r.driver_name || r.operational_trip?.driver?.name || r.driver?.name || 'Not Assigned',
+    driverId: r.driver?.id || r.operational_trip?.driver?.id || null,
+    vehicleId: r.vehicle?.id || r.operational_trip?.vehicle?.id || null,
+    date: start.date,
+    time: start.time,
+    endDate: end.date,
+    endTime: end.time,
     status: mapStatus(r.status),
     priority: mapPriority(r.priority),
     // data tambahan detail:
@@ -84,7 +107,10 @@ function mapRequestFromBackend(r: any): FleetRequest {
     rawDestinationPlace: r.destination_place || '',
     purpose: r.purpose || '',
     startTime: r.start_time || '',
-    endTime: r.end_time || '',
+    rawEndTime: r.end_time || '',
+    estimated_duration: r.estimated_duration || null,
+    is_external: !!r.is_external,
+    third_party_cost: r.third_party_cost || 0,
     passengerCount: r.passenger_count || 1,
     rawPriority: r.priority || 'Normal',
     notes: r.notes || '',
@@ -94,6 +120,42 @@ function mapRequestFromBackend(r: any): FleetRequest {
     canReject: !!r.can_reject,
     rawStatus: r.status,
     approvals: r.approvals || [],
+    qr_code_token: r.qr_code_token || '',
+    security_checked_out_at: r.security_checked_out_at || null,
+    security_checked_in_at: r.security_checked_in_at || null,
+    security_checkout_by: r.security_checkout_by || null,
+    security_checkin_by: r.security_checkin_by || null,
+    security_checkout_notes: r.security_checkout_notes || null,
+    security_checkin_notes: r.security_checkin_notes || null,
+    started_at: r.started_at || null,
+    completed_at: r.completed_at || null,
+    external_fleet_info: r.external_fleet_info || '',
+    external_photo_url: r.external_photo_url || null,
+    external_trip_type: r.external_trip_type || 'round_trip',
+    external_departure_cost: r.external_departure_cost || 0,
+    external_return_cost: r.external_return_cost || 0,
+    external_return_fleet_info: r.external_return_fleet_info || '',
+    external_return_photo_url: r.external_return_photo_url || null,
+    external_driver_name: r.external_driver_name || '',
+    external_license_plate: r.external_license_plate || '',
+    external_return_driver_name: r.external_return_driver_name || '',
+    external_return_license_plate: r.external_return_license_plate || '',
+    external_provider: r.external_provider || null,
+
+    // Second external vehicle:
+    external_driver_name_2: r.external_driver_name_2 || '',
+    external_license_plate_2: r.external_license_plate_2 || '',
+    external_fleet_info_2: r.external_fleet_info_2 || '',
+    external_photo_url_2: r.external_photo_url_2 || null,
+    external_departure_cost_2: r.external_departure_cost_2 || 0,
+    external_return_cost_2: r.external_return_cost_2 || 0,
+    external_return_driver_name_2: r.external_return_driver_name_2 || '',
+    external_return_license_plate_2: r.external_return_license_plate_2 || '',
+    external_return_fleet_info_2: r.external_return_fleet_info_2 || '',
+    external_return_photo_url_2: r.external_return_photo_url_2 || null,
+    third_party_cost_2: r.third_party_cost_2 || 0,
+
+    operational_trips: r.operational_trips || [],
   } as any;
 }
 
@@ -120,6 +182,13 @@ export const requestService = {
 
     return {
       data: mapped,
+      message: res.data?.message
+    };
+  },
+  getById: async (id: string): Promise<ApiResponse<FleetRequest>> => {
+    const res = await apiClient.get<any>(`${ENDPOINTS.REQUESTS}/${id}`);
+    return {
+      data: mapRequestFromBackend(res.data?.data),
       message: res.data?.message
     };
   },

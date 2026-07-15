@@ -218,7 +218,7 @@ export default function HistoryPage() {
 
   // Map database requests to HistoryItems (requests that are not pending for the current user)
   const isHrGaHead = user?.role === "approver" && 
-    (user?.department_id === "HR&GA" || user?.department_id === "HRD&GA") && 
+    (user?.department_id === "HR&GA" || user?.department_id === "HRD&GA" || user?.department_id === "HRD & GA" || user?.department_name === "HRD & GA") && 
     !!user?.is_department_head;
 
   const historyItems: HistoryItem[] = requestsList

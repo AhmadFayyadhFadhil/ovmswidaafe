@@ -9,7 +9,7 @@ export const assignmentService = {
       message: res.data?.message
     };
   },
-  create: async (payload: { request_id: string; driver_id: string; notes?: string }): Promise<ApiResponse<any>> => {
+  create: async (payload: any): Promise<ApiResponse<any>> => {
     const res = await apiClient.post<any>('/assignments', payload);
     return {
       data: res.data?.data,

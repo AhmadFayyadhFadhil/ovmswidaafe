@@ -3,6 +3,19 @@ import type { UserAccount } from '../../types';
 import type { ApiResponse } from '../../types/api';
 import { ENDPOINTS } from '../../constants/endpoints';
 
+function resolvePrimaryRole(roles: any[]): string {
+  if (!roles || roles.length === 0) return 'Employee';
+  const lower = roles.map((r: any) => String(r).toLowerCase());
+  if (lower.includes('admin')) return 'Admin';
+  if (lower.includes('ga')) return 'GA';
+  if (lower.includes('approver')) return 'Approver';
+  if (lower.includes('driver')) return 'Driver';
+  if (lower.includes('security')) return 'Security';
+  
+  const first = String(roles[0]);
+  return first.charAt(0).toUpperCase() + first.slice(1);
+}
+
 export const userService = {
   getAll: async (params?: any): Promise<ApiResponse<UserAccount[]>> => {
     const res = await apiClient.get<any>(ENDPOINTS.USERS, { params });
@@ -10,13 +23,15 @@ export const userService = {
     
     const mapped = users.map((u: any) => ({
       id: String(u.id),
+      nik: u.nik || '',
       fullName: u.name || 'No Name',
       username: u.email ? u.email.split('@')[0] : 'user',
       email: u.email || '',
       phone: u.phone || '+62 812-3456-7890',
-      department: u.department_id || 'IT',
+      department: u.department_name || 'IT',
+      department_id: u.department_id ? String(u.department_id) : '',
       position: u.rank || (u.roles?.[0] || 'Employee'),
-      roleName: u.roles?.[0] || 'Employee',
+      roleName: resolvePrimaryRole(u.roles),
       status: (u.availability_status === 'available' || u.availability_status === 'ACTIVE') ? 'ACTIVE' : 'INACTIVE',
       lastLogin: 'Online',
       avatarUrl: u.sim_a_photo_url || undefined,
@@ -47,9 +62,10 @@ export const userService = {
     let payload: any = user;
     if (!(user instanceof FormData)) {
       payload = {
+        nik: user.nik || null,
         name: user.fullName,
         email: user.email,
-        password: 'password', // Default password
+        password: user.nik, // Default password is user's NIK (required field)
         role: user.roleName || 'Employee',
         rank: user.roleName === 'Approver' ? (user.position || 'Manager') : null,
         department_id: user.department || null,
@@ -64,13 +80,15 @@ export const userService = {
     
     const mapped: any = {
       id: String(u?.id || (user instanceof FormData ? '' : user.id)),
+      nik: u?.nik || (user instanceof FormData ? '' : user.nik) || '',
       fullName: u?.name || (user instanceof FormData ? '' : user.fullName),
       username: u?.email ? u.email.split('@')[0] : (user instanceof FormData ? '' : user.username),
       email: u?.email || (user instanceof FormData ? '' : user.email),
       phone: (user instanceof FormData ? '' : user.phone) || '',
-      department: u?.department_id || (user instanceof FormData ? '' : user.department) || '',
+      department: u?.department_name || 'IT',
+      department_id: u?.department_id ? String(u.department_id) : '',
       position: u?.rank || (user instanceof FormData ? '' : user.position) || '',
-      roleName: u?.roles?.[0] || (user instanceof FormData ? '' : user.roleName) || '',
+      roleName: u?.roles ? resolvePrimaryRole(u.roles) : (user instanceof FormData ? '' : user.roleName) || '',
       status: (u?.availability_status === 'available' || u?.availability_status === 'ACTIVE') ? 'ACTIVE' : 'INACTIVE',
       lastLogin: 'Online',
       avatarUrl: u?.sim_a_photo_url,
@@ -89,6 +107,7 @@ export const userService = {
     if (!isFormData) {
       const u = user as any;
       payload = {};
+      if (u.nik !== undefined) payload.nik = u.nik;
       if (u.fullName) payload.name = u.fullName;
       if (u.email) payload.email = u.email;
       if (u.roleName) payload.role = u.roleName;
@@ -111,13 +130,15 @@ export const userService = {
     
     const mapped: any = {
       id: String(u?.id || id),
+      nik: u?.nik || '',
       fullName: u?.name || '',
       username: u?.email ? u.email.split('@')[0] : '',
       email: u?.email || '',
       phone: '',
-      department: u?.department_id || '',
+      department: u?.department_name || 'IT',
+      department_id: u?.department_id ? String(u.department_id) : '',
       position: u?.rank || '',
-      roleName: u?.roles?.[0] || '',
+      roleName: u?.roles ? resolvePrimaryRole(u.roles) : '',
       status: (u?.availability_status === 'available' || u?.availability_status === 'ACTIVE') ? 'ACTIVE' : 'INACTIVE',
       lastLogin: 'Online',
       avatarUrl: u?.sim_a_photo_url,

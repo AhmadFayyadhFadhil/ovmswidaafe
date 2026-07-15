@@ -19,17 +19,13 @@ export function canAccessRoute(user: AuthUser | null, route: string): GuardResul
   if (!user) return 'unauthorized';
   const userRole = user.role;
 
-  const isHrGaHead = user.role === 'approver' &&
-    (user.department_id === 'HR&GA' || user.department_id === 'HRD&GA') &&
-    !!user.is_department_head;
-
   const routeAccess: Record<string, string[]> = {
     '/admin': ['admin'],
     '/admin/dashboard': ['admin'],
     '/admin/drivers': ['admin'],
     '/admin/requests': ['admin'],
     '/admin/users': ['admin'],
-    '/admin/vehicles': ['admin'],
+    '/admin/vehicles': ['admin', 'gahrd'],
     '/admin/audit': ['admin'],
     '/admin/roles': ['admin'],
     '/admin/notifications': ['admin'],
@@ -41,27 +37,37 @@ export function canAccessRoute(user: AuthUser | null, route: string): GuardResul
     '/approver/dashboard': ['approver', 'admin'],
     '/approver/requests': ['approver', 'admin'],
     '/approver/history': ['approver', 'admin'],
+    '/approver/notifications': ['approver', 'admin'],
     '/approver/profile': ['approver', 'admin'],
-    '/approver/assignment': isHrGaHead ? ['approver', 'admin'] : ['admin'],
 
-    '/employee': ['employee', 'admin'],
-    '/employee/dashboard': ['employee', 'admin'],
-    '/employee/createrequest': ['employee', 'admin'],
-    '/employee/myrequests': ['employee', 'admin'],
-    '/employee/notifications': ['employee', 'admin'],
-    '/employee/profile': ['employee', 'admin'],
+    '/employee': ['employee', 'admin', 'approver', 'gahrd', 'driver', 'security'],
+    '/employee/dashboard': ['employee', 'admin', 'approver', 'gahrd', 'driver', 'security'],
+    '/employee/createrequest': ['employee', 'admin', 'approver', 'gahrd', 'driver', 'security'],
+    '/employee/myrequests': ['employee', 'admin', 'approver', 'gahrd', 'driver', 'security'],
+    '/employee/history': ['employee', 'admin', 'approver', 'gahrd', 'driver', 'security'],
+    '/employee/notifications': ['employee', 'admin', 'approver', 'gahrd', 'driver', 'security'],
+    '/employee/profile': ['employee', 'admin', 'approver', 'gahrd', 'driver', 'security'],
 
     '/driver': ['driver', 'admin'],
     '/driver/dashboard': ['driver', 'admin'],
     '/driver/profile': ['driver', 'admin'],
+    '/driver/notifications': ['driver', 'admin'],
 
     '/gahrd': ['gahrd', 'admin'],
     '/gahrd/dashboard': ['gahrd', 'admin'],
     '/gahrd/requests': ['gahrd', 'admin'],
+    '/gahrd/requests/urgent': ['gahrd', 'admin'],
     '/gahrd/history': ['gahrd', 'admin'],
     '/gahrd/notifications': ['gahrd', 'admin'],
     '/gahrd/driver': ['gahrd', 'admin'],
     '/gahrd/profile': ['gahrd', 'admin'],
+    '/gahrd/users': ['gahrd', 'admin'],
+
+    '/security': ['security', 'admin'],
+    '/security/dashboard': ['security', 'admin'],
+    '/security/history': ['security', 'admin'],
+    '/security/audit': ['admin'],
+    '/security/profile': ['security', 'admin'],
   };
 
   const allowedRoles = routeAccess[route] || [];
@@ -84,26 +90,25 @@ export function getDefaultDashboardRoute(userRole: UserRole): string {
     employee: '/employee/dashboard',
     driver: '/driver/dashboard',
     gahrd: '/gahrd/dashboard',
+    security: '/security/dashboard',
   };
 
   return dashboardRoutes[userRole] || '/login';
 }
 
 /**
- * Get allowed routes for a specific role
+ * Check if user can access a specific route
  */
 export function getAllowedRoutes(user: AuthUser | null): string[] {
   if (!user) return [];
   const userRole = user.role;
-  const isHrGaHead = user.role === 'approver' &&
-    (user.department_id === 'HR&GA' || user.department_id === 'HRD&GA') &&
-    !!user.is_department_head;
 
   const roleRoutes: Record<UserRole, string[]> = {
     admin: [
       '/admin/dashboard',
       '/admin/drivers',
       '/admin/requests',
+      '/gahrd/requests/urgent',
       '/admin/users',
       '/admin/vehicles',
       '/admin/audit',
@@ -117,27 +122,57 @@ export function getAllowedRoutes(user: AuthUser | null): string[] {
       '/approver/dashboard',
       '/approver/requests',
       '/approver/history',
+      '/approver/notifications',
       '/approver/profile',
-      ...(isHrGaHead ? ['/approver/assignment'] : []),
+      '/employee/createrequest',
+      '/employee/myrequests',
+      '/employee/history',
+      '/employee/notifications',
+      '/employee/profile',
     ],
     employee: [
       '/employee/dashboard',
       '/employee/createrequest',
       '/employee/myrequests',
+      '/employee/history',
       '/employee/notifications',
       '/employee/profile',
     ],
     driver: [
       '/driver/dashboard',
       '/driver/profile',
+      '/driver/notifications',
+      '/employee/createrequest',
+      '/employee/myrequests',
+      '/employee/history',
+      '/employee/notifications',
+      '/employee/profile',
     ],
     gahrd: [
       '/gahrd/dashboard',
       '/gahrd/requests',
+      '/gahrd/requests/urgent',
       '/gahrd/history',
       '/gahrd/notifications',
       '/gahrd/driver',
+      '/gahrd/users',
       '/gahrd/profile',
+      '/admin/vehicles',
+      '/employee/createrequest',
+      '/employee/myrequests',
+      '/employee/history',
+      '/employee/notifications',
+      '/employee/profile',
+    ],
+    security: [
+      '/security/dashboard',
+      '/security/history',
+      '/security/profile',
+      '/employee/createrequest',
+      '/employee/myrequests',
+      '/employee/history',
+      '/employee/notifications',
+      '/employee/profile',
     ],
   };
 

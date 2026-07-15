@@ -4,18 +4,7 @@ import { AuthContext } from "./authContext";
 import type { AuthContextType, AuthUser, UserRole } from "./authContext";
 import { apiClient } from "../services/api/api";
 
-function getRoleFromEmail(email: string): UserRole {
-  const lowerEmail = email.toLowerCase();
-  if (lowerEmail.includes("employee")) return "employee";
-  if (lowerEmail.includes("approver")) return "approver";
-  if (lowerEmail.includes("driver")) return "driver";
-  if (lowerEmail.includes("gahrd")) return "gahrd";
-  return "admin";
-}
 
-function generateMockToken(email: string): string {
-  return `token_${email}_${Date.now()}`;
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -32,15 +21,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (res.data?.status === "success" && res.data.data) {
             const apiUser = res.data.data;
             let role: UserRole = "employee";
-            const apiRole = apiUser.roles?.[0];
-            if (apiRole) {
-              const lowerRole = apiRole.toLowerCase();
-              if (lowerRole === "admin") role = "admin";
-              else if (lowerRole === "ga") role = "gahrd";
-              else if (lowerRole === "approver") role = "approver";
-              else if (lowerRole === "driver") role = "driver";
-              else role = "employee";
-            }
+            const userRoles = apiUser.roles || [];
+            const lowerRoles = userRoles.map((r: string) => r.toLowerCase());
+            if (lowerRoles.includes("admin")) role = "admin";
+            else if (lowerRoles.includes("ga")) role = "gahrd";
+            else if (lowerRoles.includes("approver")) role = "approver";
+            else if (lowerRoles.includes("driver")) role = "driver";
+            else if (lowerRoles.includes("security")) role = "security";
+            else role = "employee";
 
             const updatedUser: AuthUser = {
               id: String(apiUser.id),
@@ -83,23 +71,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string, password: string): Promise<UserRole> => {
-    if (!email || !password) {
-      throw new Error("Email dan password wajib diisi.");
+  const login = async (nik: string, password: string): Promise<UserRole> => {
+    if (!nik || !password) {
+      throw new Error("NIK dan password wajib diisi.");
     }
 
-    if (import.meta.env.VITE_ENABLE_MOCK === "true") {
-      const role = getRoleFromEmail(email);
-      const token = generateMockToken(email);
+    if (import.meta.env.VITE_ENABLE_MOCK === "true" && import.meta.env.MODE !== "production") {
+      const role = nik === "SA12345" ? "admin" : "employee";
+      const token = `mock_token_${nik}`;
 
       const authUser: AuthUser = {
         id: `user_${Date.now()}`,
-        email,
-        name: email.split("@")[0].toUpperCase(),
+        email: `${nik}@example.com`,
+        nik,
+        name: `MOCK_${nik}`,
         role,
         token,
-        department_id: email.includes("approver") ? "HRD&GA" : "IT",
-        is_department_head: email.includes("approver"),
+        department_id: "Information and Technology",
+        is_department_head: false,
         availability_status: 'available',
       };
 
@@ -109,27 +98,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return role;
     } else {
       try {
-        const response = await apiClient.post("/login", { email, password });
+        const response = await apiClient.post("/login", { nik, password });
         if (response.data?.status === "success") {
           const { user: apiUser, token } = response.data.data;
 
           // Map Spatie roles from Laravel API to frontend UserRole
           let role: UserRole = "employee";
-          const apiRole = apiUser.roles?.[0]; // Assuming single role
-          if (apiRole) {
-            const lowerRole = apiRole.toLowerCase();
-            if (lowerRole === "admin") {
-              role = "admin";
-            } else if (lowerRole === "ga") {
-              role = "gahrd";
-            } else if (lowerRole === "approver") {
-              role = "approver";
-            } else if (lowerRole === "driver") {
-              role = "driver";
-            } else {
-              role = "employee";
-            }
-          }
+          const userRoles = apiUser.roles || [];
+          const lowerRoles = userRoles.map((r: string) => r.toLowerCase());
+          if (lowerRoles.includes("admin")) role = "admin";
+          else if (lowerRoles.includes("ga")) role = "gahrd";
+          else if (lowerRoles.includes("approver")) role = "approver";
+          else if (lowerRoles.includes("driver")) role = "driver";
+          else if (lowerRoles.includes("security")) role = "security";
+          else role = "employee";
 
           const authUser: AuthUser = {
             id: String(apiUser.id),

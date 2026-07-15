@@ -23,14 +23,21 @@ import EmployeeDashboard from "@/pages/employee/dashboard";
 import MyRequests from "@/pages/employee/myrequests";
 import EmployeeNotifications from "@/pages/employee/notifications";
 import EmployeeProfile from "@/pages/employee/profil";
+import EmployeeHistory from "@/pages/employee/history";
+
+// Driver Pages
+import DriverDashboard from "@/pages/driver/dasboard";
+import DriverNotifications from "@/pages/driver/notifications";
 
 // Approver Pages
 import ApproverDashboard from "@/pages/approver/dashboard";
 import ApproverRequests from "@/pages/approver/requests";
 import ApproverHistory from "@/pages/approver/history";
+import ApproverNotifications from "@/pages/approver/notifications";
 
-// Driver Pages
-import DriverDashboard from "@/pages/driver/dasboard";
+// Security Pages
+import SecurityDashboard from "@/pages/security/dashboard";
+import SecurityHistory from "@/pages/security/history";
 
 // GAHRD Pages
 import GAHRDDashboard from "@/pages/gahrd/dashboard";
@@ -38,6 +45,8 @@ import GAHRDRequests from "@/pages/gahrd/requests";
 import GAHRDHistory from "@/pages/gahrd/history";
 import GAHRDNotifications from "@/pages/gahrd/notifications";
 import GAHRDDrivers from "@/pages/gahrd/driver";
+import GAHRDUsers from "@/pages/gahrd/users";
+import CreateUrgentRequest from "@/pages/gahrd/urgentrequest";
 
 function GAHRDDashboardWrapper() {
   const navigate = useNavigate();
@@ -76,6 +85,7 @@ export default function AppRoutes() {
         <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
         <Route path="/employee/createrequest" element={<CreateRequest />} />
         <Route path="/employee/myrequests" element={<MyRequests />} />
+        <Route path="/employee/history" element={<EmployeeHistory />} />
         <Route path="/employee/notifications" element={<EmployeeNotifications />} />
         <Route path="/employee/profile" element={<EmployeeProfile />} />
 
@@ -83,20 +93,28 @@ export default function AppRoutes() {
         <Route path="/approver/dashboard" element={<ApproverDashboard />} />
         <Route path="/approver/requests" element={<ApproverRequests />} />
         <Route path="/approver/history" element={<ApproverHistory />} />
+        <Route path="/approver/notifications" element={<ApproverNotifications />} />
         <Route path="/approver/profile" element={<EmployeeProfile />} />
-        <Route path="/approver/assignment" element={<GAHRDRequests />} />
 
         {/* Driver Routes */}
         <Route path="/driver/dashboard" element={<DriverDashboard />} />
+        <Route path="/driver/notifications" element={<DriverNotifications />} />
         <Route path="/driver/profile" element={<EmployeeProfile />} />
 
         {/* GAHRD Routes */}
         <Route path="/gahrd/dashboard" element={<GAHRDDashboardWrapper />} />
         <Route path="/gahrd/requests" element={<GAHRDRequests />} />
+        <Route path="/gahrd/requests/urgent" element={<CreateUrgentRequest />} />
         <Route path="/gahrd/history" element={<GAHRDHistory onNavigate={(_p) => {}} />} />
         <Route path="/gahrd/notifications" element={<GAHRDNotifications onNavigate={(_p) => {}} />} />
         <Route path="/gahrd/driver" element={<GAHRDDrivers onNavigate={(_p) => {}} />} />
+        <Route path="/gahrd/users" element={<GAHRDUsers />} />
         <Route path="/gahrd/profile" element={<EmployeeProfile />} />
+
+        {/* Security Routes */}
+        <Route path="/security/dashboard" element={<SecurityDashboard />} />
+        <Route path="/security/history" element={<SecurityHistory />} />
+        <Route path="/security/profile" element={<EmployeeProfile />} />
       </Route>
 
       <Route path="/" element={<Navigate to="/login" replace />} />

@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { userService } from "@/services/modules/userService";
+import { departmentService } from "@/services/modules/departmentService";
+import type { Department } from "@/services/modules/departmentService";
 
 const statusStyle: Record<string, string> = {
   ACTIVE: "bg-[#dcfce7] text-[#16a34a]",
@@ -20,9 +22,6 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
 
   const mapDeptToCategory = (dept: string) => {
     if (dept === "All Departments") return undefined;
-    if (dept === "Production") return "PRODUKSI";
-    if (dept === "HRD & GA") return "HRD&GA";
-    if (dept === "Technical") return "TECHNICAL";
     return dept.toUpperCase();
   };
 
@@ -46,12 +45,13 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
+    nik: "",
     name: "",
     email: "",
     password: "password",
     role: "Employee",
     rank: "",
-    department: "IT",
+    department: "",
     isDepartmentHead: false,
   });
   const [simFile, setSimFile] = useState<File | null>(null);
@@ -63,18 +63,29 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({
+    nik: "",
     name: "",
     email: "",
     password: "",
     role: "Employee",
     rank: "",
-    department: "IT",
+    department: "",
     isDepartmentHead: false,
   });
   const [editSimFile, setEditSimFile] = useState<File | null>(null);
   const [editSimPreview, setEditSimPreview] = useState("");
   const [editFormError, setEditFormError] = useState("");
   const [editClicked, setEditClicked] = useState(false);
+
+  const [departments, setDepartments] = useState<Department[]>([]);
+
+  useEffect(() => {
+    departmentService.getAll().then(res => {
+      if (res.data) {
+        setDepartments(res.data);
+      }
+    }).catch(err => console.error(err));
+  }, []);
 
   const handleDelete = async (id: string) => {
     try {
@@ -96,12 +107,13 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
   const handleEditClick = (u: any) => {
     setEditingUser(u);
     setEditFormData({
+      nik: u.nik || "",
       name: u.fullName,
       email: u.email,
       password: "", // Biarkan kosong jika tidak ingin ganti password
       role: u.roleName || "Employee",
       rank: u.position && u.roleName === "Approver" ? u.position : "",
-      department: u.department || "IT",
+      department: u.department_id ? String(u.department_id) : "",
       isDepartmentHead: !!u.isDepartmentHead,
     });
     setEditSimFile(null);
@@ -135,13 +147,18 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
     setEditFormError("");
     try {
       const data = new FormData();
+      if (editFormData.nik) {
+        data.append("nik", editFormData.nik);
+      }
       data.append("name", editFormData.name);
       data.append("email", editFormData.email);
       if (editFormData.password) {
         data.append("password", editFormData.password);
       }
       data.append("role", editFormData.role);
-      data.append("department_id", editFormData.department);
+      if (editFormData.department) {
+        data.append("department_id", editFormData.department);
+      }
       data.append("is_department_head", editFormData.isDepartmentHead ? "1" : "0");
       if (editFormData.role === "Approver") {
         data.append("rank", editFormData.rank);
@@ -180,11 +197,16 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
     setFormError("");
     try {
       const data = new FormData();
+      if (formData.nik) {
+        data.append("nik", formData.nik);
+      }
       data.append("name", formData.name);
       data.append("email", formData.email);
       data.append("password", formData.password);
       data.append("role", formData.role);
-      data.append("department_id", formData.department);
+      if (formData.department) {
+        data.append("department_id", formData.department);
+      }
       data.append("is_department_head", formData.isDepartmentHead ? "1" : "0");
       if (formData.role === "Approver") {
         data.append("rank", formData.rank);
@@ -196,12 +218,13 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
       await userService.create(data);
       setIsModalOpen(false);
       setFormData({
+        nik: "",
         name: "",
         email: "",
         password: "password",
         role: "Employee",
         rank: "",
-        department: "IT",
+        department: departments[0]?.id ? String(departments[0].id) : "",
         isDepartmentHead: false,
       });
       setSimFile(null);
@@ -291,15 +314,11 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                 onChange={e => handleDeptFilter(e.target.value)}
                 className="h-8 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
               >
-                <option>All Departments</option>
-                <option>Production</option>
-                <option>FA</option>
-                <option>IT</option>
-                <option>HRD & GA</option>
-                <option>Technical</option>
-                <option>QC</option>
-                <option>QA</option>
-                <option>Driver</option>
+                <option value="All Departments">All Departments</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.name}>{d.name}</option>
+                ))}
+                <option value="Driver">Driver</option>
               </select>
               <select
                 value={roleFilter}
@@ -324,7 +343,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
           <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="bg-[#f8fafc]">
-                  {["EMPLOYEE ID", "FULL NAME", "EMAIL", "DEPARTMENT", "ROLE", "STATUS", "LAST LOGIN", "ACTIONS"].map(h => (
+                  {["ID", "NIK", "FULL NAME", "EMAIL", "DEPARTMENT", "ROLE", "STATUS", "LAST LOGIN", "ACTIONS"].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
@@ -333,6 +352,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                 {list.map(e => (
                   <tr key={e.id} className="border-t border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors group">
                     <td className="px-4 py-3.5 text-[12px] font-bold text-[#1e3a8a]">{e.id}</td>
+                    <td className="px-4 py-3.5 text-[12px] font-medium text-[#475569]">{e.nik || "-"}</td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-[#e2e8f0] flex items-center justify-center text-[11px] font-bold text-[#475569] flex-shrink-0">
@@ -480,6 +500,16 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">NIK (Employee ID)</label>
+                  <input
+                    type="text"
+                    value={formData.nik}
+                    onChange={e => setFormData({ ...formData, nik: e.target.value })}
+                    placeholder="e.g. 1393"
+                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
+                  />
+                </div>
+                <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Full Name</label>
                   <input
                     type="text"
@@ -490,6 +520,9 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Email Address</label>
                   <input
@@ -549,8 +582,9 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                     onChange={e => setFormData({ ...formData, department: e.target.value })}
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   >
-                    {["IT", "FA", "HR&GA", "QC", "QA", "HRD", "GA", "TECHNICAL", "ENGINEERING", "SUPPLY CHAIN", "HSE", "PRODUKSI", "HRD&GA"].map(d => (
-                      <option key={d} value={d}>{d}</option>
+                    <option value="">Pilih Departemen</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                   </select>
                 </div>
@@ -569,7 +603,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
 
               {formData.role === "Driver" && (
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">SIM A Photo (Required for Drivers)</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">SIM A Photo</label>
                   <div className="flex items-center gap-4">
                     <input
                       type="file"
@@ -631,6 +665,16 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">NIK (Employee ID)</label>
+                  <input
+                    type="text"
+                    value={editFormData.nik}
+                    onChange={e => setEditFormData({ ...editFormData, nik: e.target.value })}
+                    placeholder="e.g. 1393"
+                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
+                  />
+                </div>
+                <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Full Name</label>
                   <input
                     type="text"
@@ -641,6 +685,9 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Email Address</label>
                   <input
@@ -699,8 +746,9 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                     onChange={e => setEditFormData({ ...editFormData, department: e.target.value })}
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   >
-                    {["IT", "FA", "HR&GA", "QC", "QA", "HRD", "GA", "TECHNICAL", "ENGINEERING", "SUPPLY CHAIN", "HSE", "PRODUKSI", "HRD&GA"].map(d => (
-                       <option key={d} value={d}>{d}</option>
+                    <option value="">Pilih Departemen</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                   </select>
                 </div>

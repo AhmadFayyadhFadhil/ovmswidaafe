@@ -1,1 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
+
+:root {
+  font-size: 110% !important; /* Scales all rem-based typography (sm, base, lg, xl, etc.) by 10% */
+}
+
+body {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-size: 1.05rem; /* Base default font size slightly increased */
+}
+
+/* Accessibility overrides for hardcoded inline pixel font sizes */
+[class*="text-[9px]"] { font-size: 10.5px !important; }
+[class*="text-[10px]"] { font-size: 11.5px !important; }
+[class*="text-[11px]"] { font-size: 12.5px !important; }
+[class*="text-[12px]"] { font-size: 13.5px !important; }
+[class*="text-[12.5px]"] { font-size: 14px !important; }
+[class*="text-[13px]"] { font-size: 14.5px !important; }
+[class*="text-[13.5px]"] { font-size: 15px !important; }
+[class*="text-[14px]"] { font-size: 15.5px !important; }
+[class*="text-[15px]"] { font-size: 16.5px !important; }
+[class*="text-[16px]"] { font-size: 17.5px !important; }
+[class*="text-[18px]"] { font-size: 19.5px !important; }
+[class*="text-[20px]"] { font-size: 21.5px !important; }
+[class*="text-[22px]"] { font-size: 24px !important; }
+[class*="text-[24px]"] { font-size: 26px !important; }
+[class*="text-[30px]"] { font-size: 32px !important; }
+[class*="text-[40px]"] { font-size: 42px !important; }

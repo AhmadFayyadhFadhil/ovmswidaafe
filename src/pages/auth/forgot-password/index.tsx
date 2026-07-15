@@ -5,6 +5,7 @@ import { apiClient } from "@/services/api/api";
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [email, setEmail] = useState("");
+  const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [error, setError] = useState("");
@@ -22,6 +23,8 @@ export default function ForgotPasswordPage() {
     try {
       const response = await apiClient.post("/forgot-password", { email });
       if (response.data?.status === "success" || response.status === 200) {
+        const receivedToken = response.data.data?.token || "";
+        setToken(receivedToken); // Prefill if returned by local api for convenience
         setStep(2); // Go to Reset Password step
       } else {
         setError("Email tidak ditemukan atau tidak valid.");
@@ -42,6 +45,11 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError("");
 
+    if (!token) {
+      setError("Token / Kode verifikasi (OTP) wajib diisi.");
+      return;
+    }
+
     if (password !== passwordConfirmation) {
       setError("Konfirmasi password baru tidak cocok.");
       return;
@@ -52,6 +60,7 @@ export default function ForgotPasswordPage() {
     try {
       const response = await apiClient.post("/reset-password", {
         email,
+        token,
         password,
         password_confirmation: passwordConfirmation,
       });
@@ -176,6 +185,21 @@ export default function ForgotPasswordPage() {
                 </div>
 
                 <form className="space-y-4" onSubmit={handleResetPassword}>
+                  {/* Token OTP */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Token / Kode Verifikasi (OTP)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Masukkan 6-digit kode OTP"
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-slate-200 px-4 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 text-sm transition-all"
+                    />
+                  </div>
+
                   {/* Password */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">

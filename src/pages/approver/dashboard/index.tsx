@@ -104,9 +104,14 @@ function PendingRow({ req }: { req: PendingRequest }) {
   const approvals = req.approvals || [];
   const isDeptHeadApproved = approvals.some((a: any) => a.role === 'dept_head' && a.status === 'approved');
   const isHrdApproved = approvals.some((a: any) => a.role === 'hrd_head' && a.status === 'approved');
+  const navigate = useNavigate();
 
   return (
-    <div className="border border-[#e2e8f0] rounded-2xl overflow-hidden bg-white">
+    <div 
+      onClick={() => navigate("/approver/requests")}
+      className="border border-[#e2e8f0] rounded-2xl overflow-hidden bg-white hover:border-[#1e3a8a] hover:shadow-xs transition-all cursor-pointer"
+      title="Klik untuk melihat detail & memproses request ini"
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4">
         <div className="flex items-center gap-3">
@@ -229,7 +234,7 @@ export default function DashboardPage() {
 
   // Metrics
   const isHrGaHead = user?.role === "approver" && 
-    (user?.department_id === "HR&GA" || user?.department_id === "HRD&GA") && 
+    (user?.department_id === "HR&GA" || user?.department_id === "HRD&GA" || user?.department_id === "HRD & GA" || user?.department_name === "HRD & GA") && 
     !!user?.is_department_head;
 
   const totalRequestsCount = requestsList.length;
@@ -241,7 +246,7 @@ export default function DashboardPage() {
     .filter(r => {
       if (isHrGaHead) {
         // Show pending approvals OR approved/ongoing active requests
-        return r.canApprove || ["approved_hrd_ga", "approved_hrd", "waiting_driver", "driver_assigned", "on_going"].includes(r.rawStatus || "");
+        return r.canApprove || ["assigned_by_ga", "approved_hrd_ga", "approved_hrd", "waiting_driver", "driver_assigned", "on_going"].includes(r.rawStatus || "");
       }
       return r.canApprove;
     })

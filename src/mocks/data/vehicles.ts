@@ -12,6 +12,7 @@ export const initialVehicles: Vehicle[] = [
     battery: 82,
     fuelType: "Electric",
     odometer: 12450,
+    capacity: 5,
     nextMaint: "Oct 24, 2024",
     imageType: "tesla",
     vin: "5YJ3E1EB2LF89028"
@@ -27,6 +28,7 @@ export const initialVehicles: Vehicle[] = [
     battery: 45,
     fuelType: "Diesel",
     odometer: 45200,
+    capacity: 2,
     nextMaint: "Sep 12, 2024",
     imageType: "truck",
     vin: "1FTFW1ED1KE34045"
@@ -42,6 +44,7 @@ export const initialVehicles: Vehicle[] = [
     battery: 12,
     fuelType: "Hybrid",
     odometer: 8900,
+    capacity: 5,
     nextMaint: "OVERDUE",
     imageType: "rav4",
     vin: "JTMDFRFV3KD01825"
@@ -57,6 +60,7 @@ export const initialVehicles: Vehicle[] = [
     battery: 95,
     fuelType: "Gasoline",
     odometer: 28430,
+    capacity: 5,
     nextMaint: "Nov 15, 2024",
     imageType: "tesla",
     vin: "WA1FGAFC8LA401825"
@@ -72,6 +76,7 @@ export const initialVehicles: Vehicle[] = [
     battery: 70,
     fuelType: "Gasoline",
     odometer: 31200,
+    capacity: 4,
     nextMaint: "Dec 05, 2024",
     imageType: "ranger",
     vin: "1FTER4EH2LA51829"
@@ -87,6 +92,7 @@ export const initialVehicles: Vehicle[] = [
     battery: 60,
     fuelType: "Diesel",
     odometer: 64100,
+    capacity: 12,
     nextMaint: "Oct 29, 2024",
     imageType: "truck",
     vin: "WD3PF4CC5KP19825"

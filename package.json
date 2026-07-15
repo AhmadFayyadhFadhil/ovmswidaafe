@@ -12,6 +12,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",
     "axios": "^1.16.1",
+    "jsqr": "^1.4.0",
     "lucide-react": "^1.16.0",
     "msw": "^2.14.6",
     "react": "^19.2.6",

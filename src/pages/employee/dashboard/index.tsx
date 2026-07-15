@@ -121,7 +121,12 @@ export default function EmployeeDashboard() {
                   <div className="p-6 text-center text-[13px] text-[#94a3b8]">No upcoming trips scheduled.</div>
                 ) : (
                   UPCOMING_TRIPS.map((trip) => (
-                    <div key={trip.id} className="p-6 hover:bg-[#f8fafc] transition-colors">
+                    <div 
+                      key={trip.id} 
+                      onClick={() => navigate(`/employee/myrequests?id=${trip.id.replace('#REQ-', '')}`)}
+                      className="p-6 hover:bg-[#f8fafc] transition-colors cursor-pointer"
+                      title="Klik untuk melihat detail di My Requests"
+                    >
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <span className="inline-block px-2 py-1 bg-[#e5eeff] text-[#00236f] text-[11px] font-bold rounded-lg mb-2">

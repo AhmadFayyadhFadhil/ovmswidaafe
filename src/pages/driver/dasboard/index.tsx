@@ -5,8 +5,8 @@ import { useAuthContext } from "@/auth/authContext";
 import { assignmentService } from "@/services/modules/assignmentService";
 import { requestService } from "@/services/modules/requestService";
 import { vehicleService } from "@/services/modules/vehicleService";
-import { driverService } from "@/services/modules/driverService";
 import { apiClient } from "@/services/api/api";
+import { RequestDetailModal } from "@/components/ui/RequestDetailModal";
 
 import MyAssignmentsPage from "./Assignments";
 import type { Assignment } from "./Assignments";
@@ -14,6 +14,8 @@ import TripSchedulePage from "./scheldules";
 import type { TripHistory } from "./scheldules";
 import VehiclePage from "./vahicle";
 import type { Vehicle } from "./vahicle";
+import CalendarView from "./CalendarView";
+import type { CalendarEvent } from "./CalendarView";
 
 function PriBadge({ p }: { p: string }) {
   const map: Record<string, string> = {
@@ -31,8 +33,8 @@ function PriBadge({ p }: { p: string }) {
 }
 
 function RequestCard({
-  req, onApprove, onReject,
-}: { req: Assignment; onApprove: (id: string) => void; onReject: (id: string) => void }) {
+  req, onApprove, onReject, onViewDetail,
+}: { req: Assignment; onApprove: (id: string) => void; onReject: (id: string) => void; onViewDetail: (reqId: string) => void }) {
   return (
     <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 flex flex-col gap-4 hover:border-[#c7d7f7] hover:shadow-sm transition-all">
       {/* Header */}
@@ -44,7 +46,9 @@ function RequestCard({
             onError={(e) => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(req.requesterName)}&background=1e3a8a&color=fff`; }}
           />
           <div>
-            <div className="text-[14px] font-bold text-[#0f172a]">{req.requesterName}</div>
+            <div className="text-[14px] font-bold text-[#0f172a]">
+              {req.requesterName}
+            </div>
             <div className="text-[11px] text-[#94a3b8]">{req.department}</div>
           </div>
         </div>
@@ -85,6 +89,12 @@ function RequestCard({
       {/* Actions */}
       <div className="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t border-[#f1f5f9]">
         <button
+          onClick={() => onViewDetail(req.reqId.replace('#REQ-', ''))}
+          className="w-full sm:flex-1 h-9 bg-white border border-[#e2e8f0] text-[#475569] text-[12px] font-bold rounded-xl hover:bg-[#f8fafc] active:scale-95 transition-all cursor-pointer"
+        >
+          View Detail
+        </button>
+        <button
           onClick={() => onApprove(req.id)}
           className="w-full sm:flex-1 h-9 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all cursor-pointer"
         >
@@ -108,8 +118,9 @@ export default function DriverDashboard() {
 
   const [activeNav, setActiveNav] = useState(() => {
     if (tabParam === "vehicle") return "My Vehicle";
-    if (tabParam === "schedule") return "Schedule";
-    if (tabParam === "assignments") return "My Assignments";
+    if (tabParam === "schedule") return "History";
+    if (tabParam === "calendar") return "Calendar";
+    if (tabParam === "assignments" || tabParam === "tasks") return "My Tasks";
     return "Dashboard";
   });
 
@@ -117,9 +128,11 @@ export default function DriverDashboard() {
     if (tabParam === "vehicle") {
       setActiveNav("My Vehicle");
     } else if (tabParam === "schedule") {
-      setActiveNav("Schedule");
-    } else if (tabParam === "assignments") {
-      setActiveNav("My Assignments");
+      setActiveNav("History");
+    } else if (tabParam === "calendar") {
+      setActiveNav("Calendar");
+    } else if (tabParam === "assignments" || tabParam === "tasks") {
+      setActiveNav("My Tasks");
     } else {
       setActiveNav("Dashboard");
     }
@@ -131,10 +144,27 @@ export default function DriverDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [toggleLoading, setToggleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [selectedAssignmentForAccept, setSelectedAssignmentForAccept] = useState<Assignment | null>(null);
+  
+  const [selectedRequestForDetail, setSelectedRequestForDetail] = useState<any | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [zoomedQrUrl, setZoomedQrUrl] = useState<string | null>(null);
+
+  const handleViewDetail = async (reqId: string) => {
+    setDetailLoading(true);
+    try {
+      const res = await requestService.getById(reqId);
+      if (res.data) {
+        setSelectedRequestForDetail(res.data);
+      }
+    } catch (err: any) {
+      alert("Gagal memuat detail permintaan: " + (err.response?.data?.message || err.message));
+    } finally {
+      setDetailLoading(false);
+    }
+  };
   
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -146,7 +176,6 @@ export default function DriverDashboard() {
     type: "start",
     targetId: "",
   });
-  const [toggleError, setToggleError] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -179,50 +208,9 @@ export default function DriverDashboard() {
     fetchData();
   }, []);
 
-  const handleToggleStatus = async () => {
-    const currentStatus = user?.availability_status || "available";
-    if (currentStatus === "on_trip" || currentStatus === "assigned") {
-      setToggleError("Tidak dapat mengubah status saat sedang bertugas atau memiliki perjalanan aktif.");
-      return;
-    }
 
-    const nextStatus = currentStatus === "available" ? "unavailable" : "available";
-    setToggleLoading(true);
-    setToggleError(null);
-    try {
-      if (import.meta.env.VITE_ENABLE_MOCK === "true") {
-        updateUser({ availability_status: nextStatus });
-      } else {
-        const res = await driverService.updateMyStatus(nextStatus);
-        if (res.data) {
-          updateUser({ availability_status: res.data.availability_status });
-        } else {
-          updateUser({ availability_status: nextStatus });
-        }
-      }
-    } catch (err: any) {
-      console.error(err);
-      setToggleError(err.response?.data?.message || "Gagal memperbarui status ketersediaan.");
-    } finally {
-      setToggleLoading(false);
-    }
-  };
 
-  const handleStartTrip = (requestId: string) => {
-    setConfirmModal({
-      isOpen: true,
-      type: "start",
-      targetId: requestId,
-    });
-  };
 
-  const handleCompleteTrip = (requestId: string) => {
-    setConfirmModal({
-      isOpen: true,
-      type: "complete",
-      targetId: requestId,
-    });
-  };
 
   const handleReject = (assignmentId: string) => {
     setConfirmModal({
@@ -233,11 +221,17 @@ export default function DriverDashboard() {
     });
   };
 
-  const handleApproveClick = (id: string) => {
-    const req = pendingAssignments.find(a => a.id === id);
-    if (req) {
-      setSelectedAssignmentForAccept(req);
-      setSearchParams({ tab: "vehicle" });
+  const handleApproveClick = async (id: string) => {
+    setActionLoading(true);
+    try {
+      await assignmentService.respond(id, {
+        response: "accepted",
+      });
+      await fetchData();
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Gagal menyetujui tugas.");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -262,7 +256,7 @@ export default function DriverDashboard() {
   // Mappers
   const mapAssignment = (a: any): Assignment => {
     const req = a.request || {};
-    const name = req.employee || "Staff";
+    const name = req.requested_by?.name || "Staff";
     const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1e3a8a&color=fff`;
     const priority = (req.priority || "NORMAL").toUpperCase() as "URGENT" | "NORMAL" | "CRITICAL";
     
@@ -281,13 +275,13 @@ export default function DriverDashboard() {
       id: a.id,
       avatar,
       requesterName: name,
-      department: req.department || "IT Department",
+      department: req.department_id || "IT Department",
       priority,
       reqId: `#REQ-${req.id || a.request_id}`,
-      destination: `${req.destination_city || ""} - ${req.destination_place || ""}`,
+      destination: req.destination_city && req.destination_place ? `${req.destination_city} - ${req.destination_place}` : req.destination_city || "",
       date: dateStr,
       time: timeStr,
-      vehicleType: req.vehicleModel || "Unassigned",
+      vehicleType: req.vehicle_model || "Unassigned",
       purpose: req.purpose || "Operational Trip",
     };
   };
@@ -341,7 +335,19 @@ export default function DriverDashboard() {
     .map(mapAssignment);
 
   const activeTrips = rawRequests.filter(
-    (r) => r.rawStatus === "driver_assigned" || r.rawStatus === "on_going"
+    (r) => {
+      const isMatchedStatus = 
+        r.rawStatus === "driver_assigned" || 
+        r.rawStatus === "on_going" ||
+        r.rawStatus === "waiting_driver" ||
+        r.rawStatus === "assigned_by_ga";
+      if (!isMatchedStatus) return false;
+      
+      const asg = rawAssignments.find(
+        (a) => String(a.request?.id) === String(r.id) && String(a.driver?.id) === String(user?.id)
+      );
+      return asg && asg.status === "accepted";
+    }
   );
   
   const historyTrips = rawRequests
@@ -350,8 +356,71 @@ export default function DriverDashboard() {
 
   const mappedVehicles = rawVehicles.map(mapVehicle);
 
-  // Current active trip hero (on_going priority, then driver_assigned)
-  const currentTrip = activeTrips.find(t => t.rawStatus === "on_going") || activeTrips.find(t => t.rawStatus === "driver_assigned");
+  const calendarEvents: CalendarEvent[] = [
+    ...activeTrips.map(r => {
+      let dateStr = "";
+      if (r.startTime) {
+        dateStr = r.startTime.includes('T') ? r.startTime.split('T')[0] : r.startTime.split(" ")[0];
+      }
+      return {
+        id: String(r.id),
+        tripId: `#REQ-${r.id}`,
+        title: `Trip to ${r.destination}`,
+        datetime: r.startTime ? r.startTime.substring(0, 16).replace('T', ' ') : `${r.date} ${r.time}`,
+        dateStr: dateStr,
+        route: r.destination,
+        passenger: r.employee || "Staff",
+        status: r.rawStatus === "on_going" ? "Sedang Berjalan" : "Terjadwal",
+      };
+    }),
+    ...rawRequests.filter(r => r.rawStatus === "completed" || r.rawStatus === "rejected").map(r => {
+      let dateStr = "";
+      if (r.startTime) {
+        dateStr = r.startTime.includes('T') ? r.startTime.split('T')[0] : r.startTime.split(" ")[0];
+      }
+      return {
+        id: String(r.id),
+        tripId: `#REQ-${r.id}`,
+        title: `Trip to ${r.destination}`,
+        datetime: r.startTime ? r.startTime.substring(0, 16).replace('T', ' ') : `${r.date} ${r.time}`,
+        dateStr: dateStr,
+        route: r.destination,
+        passenger: r.employee || "Staff",
+        status: r.rawStatus === "completed" ? "Completed" : "Rejected",
+      };
+    })
+  ];
+
+  const activeAssignments = activeTrips.map(r => {
+    const asg = rawAssignments.find(
+      (a) => String(a.request?.id) === String(r.id) && String(a.driver?.id) === String(user?.id)
+    );
+    const name = r.employee || "Staff";
+    const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1e3a8a&color=fff`;
+    
+    return {
+      id: asg?.id || String(r.id),
+      avatar,
+      requesterName: name,
+      department: r.department || "IT Department",
+      priority: (r.priority === "URGENT" || r.priority === "HIGH" ? "URGENT" : "NORMAL") as "URGENT" | "NORMAL" | "CRITICAL",
+      reqId: `#REQ-${r.id}`,
+      destination: r.destination || "",
+      date: r.date || "",
+      time: r.time || "",
+      vehicleType: r.vehicleModel || "Unassigned",
+      purpose: r.purpose || "Operational Trip",
+      tripStatus: r.rawStatus,
+      requestId: String(r.id),
+    };
+  });
+
+  // Current active trip hero (on_going priority, then driver_assigned, then assigned_by_ga, then waiting_driver)
+  const currentTrip = 
+    activeTrips.find(t => t.rawStatus === "on_going") || 
+    activeTrips.find(t => t.rawStatus === "driver_assigned") ||
+    activeTrips.find(t => t.rawStatus === "assigned_by_ga") ||
+    activeTrips.find(t => t.rawStatus === "waiting_driver");
 
   const totalCompletedCount = rawRequests.filter(r => r.rawStatus === "completed").length;
   const upcomingCount = activeTrips.length;
@@ -377,68 +446,42 @@ export default function DriverDashboard() {
 
     switch (activeNav) {
       case "Dashboard": {
-        const currentStatus = user?.availability_status || "available";
-        const isAvailable = currentStatus === "available";
-        const isOffDuty = currentStatus === "unavailable";
-        const isOnTrip = currentStatus === "on_trip" || currentStatus === "assigned";
+         const getHeroStatusConfig = (status: string) => {
+          switch (status) {
+            case "on_going":
+              return { label: "Berjalan", color: "bg-green-400 animate-pulse" };
+            case "completed":
+              return { label: "Selesai", color: "bg-emerald-500" };
+            case "driver_assigned":
+            case "pending":
+              return { label: "Terjadwal (Siap Jalan)", color: "bg-[#7c3aed]" };
+            case "assigned_by_ga":
+              return { label: "Menunggu Head HRD", color: "bg-blue-400 animate-pulse" };
+            case "waiting_driver":
+              return { label: "Menunggu Driver Lain", color: "bg-amber-400 animate-pulse" };
+            default:
+              return { label: "Terjadwal", color: "bg-gray-400" };
+          }
+        };
+
+        const driverTripStatus = (() => {
+          if (!currentTrip) return null;
+          if (currentTrip.is_external) {
+            return currentTrip.rawStatus;
+          }
+          const myTripDetails = currentTrip.operational_trips?.find(
+            (ot: any) => String(ot.driver?.id) === String(user?.id)
+          );
+          if (myTripDetails) {
+            return myTripDetails.status; // 'pending' / 'on_going' / 'completed'
+          }
+          return currentTrip.rawStatus;
+        })();
+
+        const heroStatus = currentTrip ? getHeroStatusConfig(driverTripStatus || currentTrip.rawStatus) : null;
 
         return (
           <div className="p-4 sm:p-8 space-y-6">
-            {/* Status Kehadiran Card */}
-            <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 shadow-sm space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    isAvailable ? "bg-[#f0fdf4]" : (isOnTrip ? "bg-[#fffbeb]" : "bg-gray-100")
-                  }`}>
-                    <Icon name={isAvailable ? "event_available" : (isOnTrip ? "commute" : "power_settings_new")} className={`text-[24px] ${
-                      isAvailable ? "text-green-600" : (isOnTrip ? "text-amber-600" : "text-gray-500")
-                    }`} />
-                  </div>
-                  <div>
-                    <div className="text-[15px] font-bold text-[#0f172a]">Status Kehadiran</div>
-                    <div className="text-[12.5px] text-[#64748b] mt-0.5">
-                      {isAvailable && "Status Anda On Duty. Anda siap menerima tugas perjalanan baru dari GAHRD."}
-                      {isOffDuty && "Status Anda Off Duty. Aktifkan On Duty untuk menerima tugas baru."}
-                      {isOnTrip && "Status Anda Sedang Bertugas. Tombol terkunci selama perjalanan aktif."}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 self-end sm:self-auto flex-shrink-0">
-                  <span className={`text-[12px] font-bold px-3 py-1 rounded-full ${
-                    isAvailable ? "bg-[#e0f2fe] text-[#0369a1]" : (isOnTrip ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-700")
-                  }`}>
-                    {isAvailable ? "On Duty (Tersedia)" : (isOnTrip ? "Sedang Bertugas" : "Off Duty (Libur)")}
-                  </span>
-
-                  <button
-                    type="button"
-                    disabled={isOnTrip || toggleLoading}
-                    onClick={handleToggleStatus}
-                    className={`w-12 h-6 rounded-full transition-all relative focus:outline-none flex items-center ${
-                      isOnTrip ? "opacity-50 cursor-not-allowed bg-amber-400" : (isAvailable ? "bg-[#1e3a8a] cursor-pointer" : "bg-gray-300 cursor-pointer")
-                    }`}
-                    title={isOnTrip ? "Selesaikan tugas aktif terlebih dahulu untuk mengubah status" : ""}
-                  >
-                    <span className={`absolute w-4 h-4 rounded-full bg-white shadow-sm transition-transform left-1 ${
-                      isAvailable || isOnTrip ? "translate-x-6" : "translate-x-0"
-                    }`} />
-                  </button>
-                </div>
-              </div>
-
-              {toggleError && (
-                <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded-xl text-[12px] font-semibold flex items-center gap-2 animate-fadein">
-                  <Icon name="error" className="text-[16px]" />
-                  <span className="flex-1">{toggleError}</span>
-                  <button type="button" onClick={() => setToggleError(null)} className="text-red-400 hover:text-red-600 cursor-pointer">
-                    <Icon name="close" className="text-[14px]" />
-                  </button>
-                </div>
-              )}
-            </div>
-
             {/* Hero current assignment */}
             {currentTrip ? (
               <div className="relative bg-[#0f1f3d] rounded-2xl p-6 sm:p-7 overflow-hidden text-white shadow-lg">
@@ -448,8 +491,8 @@ export default function DriverDashboard() {
                 <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
                   <div className="space-y-4">
                     <div className="inline-flex items-center gap-2 bg-[#1a2d4f] border border-[#2a4a7f] text-white text-[11px] font-bold px-3 py-1.5 rounded-full">
-                      <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                      Trip Aktif
+                      <span className={`w-2 h-2 rounded-full ${heroStatus?.color}`} />
+                      {heroStatus?.label}
                     </div>
 
                     <div>
@@ -485,30 +528,69 @@ export default function DriverDashboard() {
                       </div>
                     </div>
                   </div>
-
                   <div className="flex flex-col items-start md:items-end justify-between h-full gap-4 flex-shrink-0">
-                    <span className="text-[12px] text-[#8ca3c4] font-bold">
-                      Ref: #REQ-{currentTrip.id}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12px] text-[#8ca3c4] font-bold">
+                        Ref: #REQ-{currentTrip.id}
+                      </span>
+                      <button
+                        onClick={() => handleViewDetail(String(currentTrip.id))}
+                        className="text-[11px] font-bold text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-lg cursor-pointer transition-all hover:underline"
+                      >
+                        View Detail
+                      </button>
+                    </div>
 
-                    {currentTrip.rawStatus === "driver_assigned" ? (
-                      <button
-                        onClick={() => handleStartTrip(currentTrip.id)}
-                        disabled={actionLoading}
-                        className="h-11 px-6 bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-bold rounded-xl active:scale-95 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
+                    {["driver_assigned", "pending", "on_going"].includes(driverTripStatus || "") && currentTrip.qr_code_token && (
+                      <div 
+                        onClick={() => setZoomedQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${currentTrip.qr_code_token}`)}`)}
+                        className="bg-white p-2.5 rounded-xl border border-slate-700 shadow-sm flex flex-col items-center cursor-zoom-in hover:border-blue-500 transition-all hover:scale-105"
+                        title="Klik untuk memperbesar"
                       >
-                        <Icon name="play_arrow" className="text-[18px]" />
-                        Mulai Perjalanan
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleCompleteTrip(currentTrip.id)}
-                        disabled={actionLoading}
-                        className="h-11 px-6 bg-green-600 hover:bg-green-700 text-white text-[13px] font-bold rounded-xl active:scale-95 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
-                      >
-                        <Icon name="check_circle" className="text-[18px]" />
-                        Selesaikan Perjalanan
-                      </button>
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${currentTrip.qr_code_token}`)}`}
+                          alt="Security Scan QR"
+                          className="w-[80px] h-[80px] object-contain"
+                        />
+                        <span className="text-[8px] font-mono font-bold text-slate-500 mt-1">
+                          {currentTrip.qr_code_token}
+                        </span>
+                      </div>
+                    )}
+
+                    {(driverTripStatus === "driver_assigned" || driverTripStatus === "pending") && (
+                      <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-[#1a2d4f]/60 border border-[#2a4a7f] px-3.5 py-2 rounded-xl max-w-xs">
+                        <Icon name="info" className="text-[15px] text-blue-400" />
+                        <span className="font-semibold text-blue-300">Tunjukkan QR Code di samping ke Security saat berangkat</span>
+                      </div>
+                    )}
+
+                    {driverTripStatus === "on_going" && (
+                      <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-[#1a2d4f]/60 border border-[#2a4a7f] px-3.5 py-2 rounded-xl max-w-xs">
+                        <Icon name="info" className="text-[15px] text-green-400 animate-pulse" />
+                        <span className="font-semibold text-green-300">Tunjukkan QR Code di samping ke Security saat kembali</span>
+                      </div>
+                    )}
+
+                    {driverTripStatus === "completed" && (
+                      <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-emerald-950/60 border border-emerald-500/50 px-3.5 py-2 rounded-xl max-w-xs">
+                        <Icon name="check_circle" className="text-[15px] text-emerald-400 animate-bounce" />
+                        <span className="font-semibold text-emerald-300">Perjalanan Anda telah selesai</span>
+                      </div>
+                    )}
+
+                    {currentTrip.rawStatus === "waiting_driver" && (
+                      <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-[#1a2d4f]/60 border border-[#2a4a7f] px-3.5 py-2 rounded-xl">
+                        <Icon name="hourglass_empty" className="text-[15px] text-amber-400 animate-spin" />
+                        <span className="font-semibold text-amber-300">Menunggu persetujuan driver kedua</span>
+                      </div>
+                    )}
+
+                    {currentTrip.rawStatus === "assigned_by_ga" && (
+                      <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-[#1a2d4f]/60 border border-[#2a4a7f] px-3.5 py-2 rounded-xl">
+                        <Icon name="hourglass_empty" className="text-[15px] text-blue-400 animate-pulse" />
+                        <span className="font-semibold text-blue-300">Menunggu persetujuan akhir Head HRD & GA</span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -572,6 +654,7 @@ export default function DriverDashboard() {
                       key={req.id} req={req}
                       onApprove={handleApproveClick}
                       onReject={handleReject}
+                      onViewDetail={handleViewDetail}
                     />
                   ))}
                 </div>
@@ -581,13 +664,30 @@ export default function DriverDashboard() {
         );
       }
 
+      case "My Tasks":
       case "My Assignments":
       case "Pending Requests":
         return (
           <MyAssignmentsPage
-            assignments={pendingAssignments}
+            pendingAssignments={pendingAssignments}
+            activeAssignments={activeAssignments}
             onApprove={handleApproveClick}
             onReject={handleReject}
+            onViewDetail={handleViewDetail}
+            onStartTrip={(reqId) => {
+              setConfirmModal({
+                isOpen: true,
+                type: "start",
+                targetId: reqId,
+              });
+            }}
+            onCompleteTrip={(reqId) => {
+              setConfirmModal({
+                isOpen: true,
+                type: "complete",
+                targetId: reqId,
+              });
+            }}
           />
         );
 
@@ -601,8 +701,13 @@ export default function DriverDashboard() {
           />
         );
 
+      case "History":
+      case "My Schedule":
       case "Schedule":
-        return <TripSchedulePage trips={historyTrips} />;
+        return <TripSchedulePage trips={historyTrips} onViewDetail={handleViewDetail} />;
+
+      case "Calendar":
+        return <CalendarView events={calendarEvents} onViewDetail={handleViewDetail} />;
 
       default:
         return null;
@@ -613,11 +718,16 @@ export default function DriverDashboard() {
     switch (activeNav) {
       case "My Vehicle":
         return "Select Vehicle";
+      case "History":
+      case "My Schedule":
       case "Schedule":
-        return "Assignment History";
+        return "History";
+      case "My Tasks":
       case "My Assignments":
       case "Pending Requests":
-        return "My Assignments";
+        return "My Tasks";
+      case "Calendar":
+        return "Calendar";
       default:
         return "Driver Portal";
     }
@@ -629,8 +739,9 @@ export default function DriverDashboard() {
       onNavigate={(nav) => {
         if (nav === "Dashboard") setSearchParams({});
         else if (nav === "My Vehicle") setSearchParams({ tab: "vehicle" });
-        else if (nav === "Schedule") setSearchParams({ tab: "schedule" });
-        else if (nav === "My Assignments" || nav === "Pending Requests") setSearchParams({ tab: "assignments" });
+        else if (nav === "History" || nav === "My Schedule") setSearchParams({ tab: "schedule" });
+        else if (nav === "Calendar") setSearchParams({ tab: "calendar" });
+        else if (nav === "My Tasks" || nav === "My Assignments" || nav === "Pending Requests") setSearchParams({ tab: "assignments" });
         else setActiveNav(nav);
       }}
       topbarTitle={getTitle()}
@@ -694,7 +805,6 @@ export default function DriverDashboard() {
                   onClick={async () => {
                     const id = confirmModal.targetId;
                     setActionLoading(true);
-                    setToggleError(null);
                     try {
                       if (confirmModal.type === "start") {
                         await requestService.start(id);
@@ -710,7 +820,7 @@ export default function DriverDashboard() {
                       await fetchData();
                     } catch (err: any) {
                       console.error(err);
-                      setToggleError(err.response?.data?.message || "Terjadi kesalahan saat memproses aksi.");
+                      alert(err.response?.data?.message || "Terjadi kesalahan saat memproses aksi.");
                     } finally {
                       setActionLoading(false);
                     }
@@ -726,6 +836,53 @@ export default function DriverDashboard() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedRequestForDetail && (
+        <RequestDetailModal
+          isOpen={!!selectedRequestForDetail}
+          onClose={() => setSelectedRequestForDetail(null)}
+          request={selectedRequestForDetail}
+        />
+      )}
+
+      {detailLoading && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[9999] flex items-center justify-center">
+          <div className="bg-white p-6 rounded-2xl flex flex-col items-center gap-3 shadow-lg">
+            <div className="w-10 h-10 border-4 border-t-blue-600 border-blue-200 rounded-full animate-spin" />
+            <p className="text-[13px] text-[#64748b] font-semibold">Memuat detail...</p>
+          </div>
+        </div>
+      )}
+
+      {zoomedQrUrl && (
+        <div 
+          className="fixed inset-0 bg-black/85 z-[99999] flex flex-col items-center justify-center p-4 cursor-pointer animate-fadein"
+          onClick={() => setZoomedQrUrl(null)}
+        >
+          <div 
+            className="bg-white p-6 rounded-3xl border border-slate-100 flex flex-col items-center max-w-sm w-full shadow-2xl relative" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => setZoomedQrUrl(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <Icon name="close" className="text-2xl" />
+            </button>
+            <div className="text-[13px] font-extrabold text-[#1e3a8a] mb-4 uppercase tracking-widest text-center mt-2">Pindai QR Code Tiket</div>
+            <div className="bg-slate-50 p-4 rounded-2xl border border-[#e2e8f0]">
+              <img
+                src={zoomedQrUrl}
+                alt="Zoomed Ticket QR Code"
+                className="w-64 h-64 object-contain"
+              />
+            </div>
+            <div className="text-xs text-slate-400 font-semibold mt-4 text-center">
+              Tunjukkan QR Code ini ke Security untuk dipindai saat berangkat/kembali.
             </div>
           </div>
         </div>

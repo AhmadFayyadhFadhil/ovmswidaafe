@@ -1,20 +1,27 @@
 // src/pages/employee/create-request/index.tsx
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout as RoleLayout } from "@/components/layout/RoleLayout";
 import { Icon } from "@/components/ui/Icon";
 import { requestService } from "@/services/modules/requestService";
 import { useAuthContext } from "@/auth/authContext";
+import { apiClient } from "@/services/api/api";
+
+import { departmentService } from "@/services/modules/departmentService";
+import type { Department } from "@/services/modules/departmentService";
 
 interface Props { onNavigate?: (page: string) => void; }
-
-const DEPARTMENTS = ["IT", "FA", "HR&GA", "QC", "QA", "HRD", "GA", "TECHNICAL", "ENGINEERING", "SUPPLY CHAIN", "HSE", "PRODUKSI", "HRD&GA"];
-
-
 
 export default function CreateRequestPage({ onNavigate }: Props) {
   const navigate = useNavigate();
   const { user } = useAuthContext();
+  const [departments, setDepartments] = useState<Department[]>([]);
+
+  useEffect(() => {
+    departmentService.getAll().then(res => {
+      if (res.data) setDepartments(res.data);
+    }).catch(err => console.error("Failed to load departments", err));
+  }, []);
   const [purpose,    setPurpose]    = useState("");
   const [destinationCity, setDestinationCity] = useState("");
   const [destinationPlace, setDestinationPlace] = useState("");
@@ -22,7 +29,56 @@ export default function CreateRequestPage({ onNavigate }: Props) {
   const [estReturn,  setEstReturn]  = useState("");
   const [priority,   setPriority]   = useState("Normal");
   const [notes,      setNotes]      = useState("");
-  const [passengers, setPassengers] = useState<{ name: string; department_id: string }[]>([]);
+  const [passengers, setPassengers] = useState<{ name: string; department_id: string | number; user_id?: number | null }[]>([]);
+  const [suggestions, setSuggestions] = useState<{ id: number; name: string; email: string; department_id: string | number; department_name?: string }[]>([]);
+  const [activePassengerIndex, setActivePassengerIndex] = useState<number | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchTimeoutRef = useRef<any>(null);
+
+  const handlePassengerNameChange = (index: number, value: string) => {
+    const next = [...passengers];
+    next[index] = { ...next[index], name: value };
+    setPassengers(next);
+
+    if (!value.trim()) {
+      setSuggestions([]);
+      setActivePassengerIndex(null);
+      return;
+    }
+
+    setActivePassengerIndex(index);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const res = await apiClient.get(`/users-search?search=${encodeURIComponent(value)}`);
+        if (res.data?.status === "success") {
+          setSuggestions(res.data.data || []);
+        }
+      } catch (err) {
+        console.error("Error searching users:", err);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+  };
+
+  const handleSelectSuggestion = (passengerIndex: number, userItem: { id: number; name: string; department_id: string | number }) => {
+    const next = [...passengers];
+    next[passengerIndex] = {
+      name: userItem.name,
+      department_id: userItem.department_id,
+      user_id: userItem.id,
+    };
+    setPassengers(next);
+    setSuggestions([]);
+    setActivePassengerIndex(null);
+  };
+
   const [files,      setFiles]      = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted,  setSubmitted]  = useState(false);
@@ -30,12 +86,123 @@ export default function CreateRequestPage({ onNavigate }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formError,  setFormError]  = useState("");
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
 
-  const handleSubmit = async () => {
-    if (!purpose || !destinationCity || !destinationPlace || !departure) {
-      setFormError("Purpose, destination city, destination place, and departure time are required.");
+  const showAlert = (msg: string) => {
+    setAlertMessage(msg);
+    setAlertOpen(true);
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const [minLeadTimeHours, setMinLeadTimeHours] = useState(24);
+
+  useEffect(() => {
+    const cached = localStorage.getItem("ovms_branding_config");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (parsed.minLeadTimeHours !== undefined && parsed.minLeadTimeHours !== null) {
+          setMinLeadTimeHours(parsed.minLeadTimeHours);
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, []);
+
+  const handlePreSubmitCheck = () => {
+    if (!purpose || !destinationCity || !destinationPlace || !departure || !estReturn) {
+      const errMsg = "Tujuan perjalanan, kota, tempat tujuan, waktu keberangkatan, dan estimasi waktu kembali wajib diisi.";
+      setFormError(errMsg);
+      showAlert(errMsg);
       return;
     }
+
+    const depDate = new Date(departure);
+    const now = new Date();
+    const diffHours = (depDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    if (diffHours < minLeadTimeHours) {
+      const earliestAllowed = new Date(now.getTime() + minLeadTimeHours * 60 * 60 * 1000);
+      const formattedEarliest = earliestAllowed.toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+      }) + " " + earliestAllowed.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+
+      const errMsg = `Waktu keberangkatan minimal ${minLeadTimeHours} jam dari waktu pengajuan saat ini (keberangkatan tercepat yang diizinkan: ${formattedEarliest}).`;
+      setFormError(errMsg);
+      showAlert(errMsg);
+      return;
+    }
+
+    const retDate = new Date(estReturn);
+    if (retDate <= depDate) {
+      const errMsg = "Waktu kembali harus setelah waktu keberangkatan.";
+      setFormError(errMsg);
+      showAlert(errMsg);
+      return;
+    }
+
+    // Passengers validation
+    const validPassengers = passengers.filter(p => p.name.trim() !== "");
+    if (validPassengers.length === 0) {
+      const errMsg = "Penumpang wajib diisi. Silakan tambahkan minimal satu penumpang.";
+      setFormError(errMsg);
+      showAlert(errMsg);
+      return;
+    }
+
+    const hasEmptyField = passengers.some(p => !p.name.trim() || !p.department_id);
+    if (hasEmptyField) {
+      const errMsg = "Silakan lengkapi nama dan departemen untuk setiap penumpang yang ditambahkan.";
+      setFormError(errMsg);
+      showAlert(errMsg);
+      return;
+    }
+
+    setFormError("");
+    setIsConfirmOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!purpose || !destinationCity || !destinationPlace || !departure || !estReturn) {
+      const errMsg = "Tujuan perjalanan, kota, tempat tujuan, waktu keberangkatan, dan estimasi waktu kembali wajib diisi.";
+      setFormError(errMsg);
+      showAlert(errMsg);
+      return;
+    }
+
+    const validPassengers = passengers.filter(p => p.name.trim() !== "");
+    if (validPassengers.length === 0) {
+      const errMsg = "Penumpang wajib diisi. Silakan tambahkan minimal satu penumpang.";
+      setFormError(errMsg);
+      showAlert(errMsg);
+      return;
+    }
+
+    const hasEmptyField = passengers.some(p => !p.name.trim() || !p.department_id);
+    if (hasEmptyField) {
+      const errMsg = "Silakan lengkapi nama dan departemen untuk setiap penumpang yang ditambahkan.";
+      setFormError(errMsg);
+      showAlert(errMsg);
+      return;
+    }
+
+    setIsConfirmOpen(false);
     setSubmitting(true);
     setFormError("");
     try {
@@ -44,19 +211,37 @@ export default function CreateRequestPage({ onNavigate }: Props) {
         destination_city: destinationCity,
         destination_place: destinationPlace,
         start_time: departure.replace('T', ' ') + ':00',
-        end_time: estReturn ? estReturn.replace('T', ' ') + ':00' : null,
-        passenger_count: passengers.length + 1,
+        end_time: estReturn.replace('T', ' ') + ':00',
+        passenger_count: validPassengers.length,
         priority,
         notes: notes || null,
-        passengers: passengers.filter(p => p.name.trim() !== ""),
+        passengers: validPassengers.map(p => ({
+          name: p.name,
+          department_id: p.department_id ? Number(p.department_id) : null,
+          user_id: p.user_id || null
+        })),
       };
 
-      await requestService.create(payload);
+      const response = await requestService.create(payload);
+      if (response.data?.id && files.length > 0) {
+        const fileMetaPromises = files.map(async f => {
+          try {
+            const dataUrl = f.size < 1.5 * 1024 * 1024 ? await fileToBase64(f) : "";
+            return { name: f.name, size: f.size, type: f.type, dataUrl };
+          } catch (e) {
+            return { name: f.name, size: f.size, type: f.type, dataUrl: "" };
+          }
+        });
+        const fileMeta = await Promise.all(fileMetaPromises);
+        localStorage.setItem(`request_attachments_${response.data.id}`, JSON.stringify(fileMeta));
+      }
       setSubmitted(true);
       setTimeout(() => navigate("/employee/myrequests"), 1500);
     } catch (err: any) {
       console.error(err);
-      setFormError(err.response?.data?.message || "Failed to submit request.");
+      const errMsg = err.response?.data?.message || "Gagal mengirimkan pengajuan.";
+      setFormError(errMsg);
+      showAlert(errMsg);
     } finally {
       setSubmitting(false);
     }
@@ -165,7 +350,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                       className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all" />
                   </div>
                   <div>
-                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Estimated Return</label>
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Estimated Return <span className="text-red-500">*</span></label>
                     <input type="datetime-local" value={estReturn} onChange={e => setEstReturn(e.target.value)}
                       className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all" />
                   </div>
@@ -185,8 +370,8 @@ export default function CreateRequestPage({ onNavigate }: Props) {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-[15px] font-bold text-[#0f172a]">Passengers</h3>
                 <button
-                  onClick={() => setPassengers(p => [...p, { name: "", department_id: "IT" }])}
-                  disabled={passengers.length >= 5}
+                  onClick={() => setPassengers(p => [...p, { name: "", department_id: "" }])}
+                  disabled={passengers.length >= 12}
                   className="flex items-center gap-1.5 text-[12px] font-bold text-[#00236f] hover:underline disabled:opacity-40"
                 >
                   <Icon name="person_add" className="text-[15px]" /> Add Passenger
@@ -194,22 +379,52 @@ export default function CreateRequestPage({ onNavigate }: Props) {
               </div>
               <div className="space-y-2 min-h-[60px]">
                 {passengers.length === 0 ? (
-                  <p className="text-[12px] text-[#94a3b8] text-center py-4">No extra passengers added yet.</p>
+                  <p className="text-[12px] text-[#94a3b8] text-center py-4">No passengers added yet.</p>
                 ) : (
                   passengers.map((p, i) => (
                     <div key={i} className="flex items-center gap-3 bg-[#f8fafc] p-3 rounded-xl border border-[#e2e8f0]">
-                      <div className="flex-1">
+                      <div className="flex-1 relative">
                         <input
                           type="text"
                           value={p.name}
-                          onChange={e => {
-                            const next = [...passengers];
-                            next[i] = { ...next[i], name: e.target.value };
-                            setPassengers(next);
+                          onChange={e => handlePassengerNameChange(i, e.target.value)}
+                          onFocus={() => {
+                            if (p.name.trim()) {
+                              handlePassengerNameChange(i, p.name);
+                            }
+                          }}
+                          onBlur={() => {
+                            setTimeout(() => {
+                              setActivePassengerIndex(null);
+                              setSuggestions([]);
+                            }, 250);
                           }}
                           placeholder="Passenger Full Name"
                           className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20"
                         />
+                        {activePassengerIndex === i && (suggestions.length > 0 || searchLoading) && (
+                          <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#e2e8f0] rounded-xl shadow-lg max-h-48 overflow-y-auto z-50">
+                            {searchLoading ? (
+                              <div className="p-3 text-xs text-slate-400 text-center flex items-center justify-center gap-2">
+                                <span className="animate-spin text-sm text-[#00236f] font-extrabold">&#x21bb;</span>
+                                Searching...
+                              </div>
+                            ) : (
+                              suggestions.map((item) => (
+                                <div
+                                  key={item.id}
+                                  onClick={() => handleSelectSuggestion(i, item)}
+                                  className="px-3 py-2 text-[12px] text-slate-700 hover:bg-blue-50/50 hover:text-[#00236f] cursor-pointer flex justify-between items-center transition-all border-b border-slate-50 last:border-0"
+                                >
+                                  <span className="font-semibold">{item.name}</span>
+                                  <span className="text-[10px] bg-blue-100/60 text-[#00236f] px-1.5 py-0.5 rounded-md font-bold uppercase">
+                                    {item.department_name || item.department_id}
+                                  </span>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="w-1/3">
                         <select
@@ -221,7 +436,8 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                           }}
                           className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none"
                         >
-                          {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                          <option value="">Pilih Departemen</option>
+                          {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
                       </div>
                       <button
@@ -234,8 +450,8 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                   ))
                 )}
               </div>
-              {passengers.length < 5 && (
-                <p className="text-[11px] text-[#94a3b8] mt-2">+ {5 - passengers.length} more can be added</p>
+              {passengers.length < 12 && (
+                <p className="text-[11px] text-[#94a3b8] mt-2">+ {12 - passengers.length} more can be added</p>
               )}
             </div>
 
@@ -305,7 +521,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
             {/* Action Buttons */}
             <div className="flex items-center justify-end gap-2.5 pt-2 flex-wrap">
               <button
-                onClick={handleSubmit}
+                onClick={handlePreSubmitCheck}
                 disabled={!purpose || !destinationCity || !destinationPlace || !departure || submitting || submitted}
                 className={`h-10 px-6 rounded-xl text-[13px] font-bold transition-all active:scale-95 shadow-sm ${
                   submitted ? "bg-[#1a6e3c] text-white" :
@@ -319,6 +535,137 @@ export default function CreateRequestPage({ onNavigate }: Props) {
 
         </div>
       </div>
+
+      {isConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-xs animate-fadein p-4">
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 w-full max-w-lg shadow-2xl relative animate-fadein">
+            <button
+              onClick={() => setIsConfirmOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <Icon name="close" className="text-xl" />
+            </button>
+
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 bg-blue-50 text-[#0f2a5e] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Icon name="assignment_turned_in" className="text-3xl" />
+              </div>
+              <h3 className="text-[18px] font-extrabold text-slate-800">Cek Kembali Pengajuan Anda</h3>
+              <p className="text-xs text-slate-400 mt-2">
+                Pastikan detail informasi perjalanan dinas Anda sudah benar sebelum dikirimkan.
+              </p>
+            </div>
+
+            {/* Request Summary details */}
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs text-slate-600 mb-6 max-h-[300px] overflow-y-auto">
+              <div className="flex flex-col sm:flex-row sm:justify-between border-b border-slate-200/60 pb-2">
+                <span className="font-bold text-slate-400">Keperluan / Tujuan:</span>
+                <span className="font-semibold text-slate-800 text-left sm:text-right mt-0.5 sm:mt-0">{purpose}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-200/60 pb-2">
+                <span className="font-bold text-slate-400">Kota Tujuan:</span>
+                <span className="font-semibold text-slate-800">{destinationCity}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-200/60 pb-2">
+                <span className="font-bold text-slate-400">Tempat Tujuan:</span>
+                <span className="font-semibold text-slate-800">{destinationPlace}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-200/60 pb-2">
+                <span className="font-bold text-slate-400">Keberangkatan:</span>
+                <span className="font-semibold text-slate-800">
+                  {departure ? departure.replace("T", " ") : "-"}
+                </span>
+              </div>
+              <div className="flex justify-between border-b border-slate-200/60 pb-2">
+                <span className="font-bold text-slate-400">Estimasi Kembali:</span>
+                <span className="font-semibold text-slate-800">
+                  {estReturn ? estReturn.replace("T", " ") : "-"}
+                </span>
+              </div>
+              <div className="flex justify-between border-b border-slate-200/60 pb-2">
+                <span className="font-bold text-slate-400">Prioritas:</span>
+                <span className={`font-extrabold ${priority === "Critical" ? "text-red-600" : priority === "Urgent" ? "text-amber-600" : "text-blue-600"}`}>{priority}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-200/60 pb-2">
+                <span className="font-bold text-slate-400">Jumlah Penumpang:</span>
+                <span className="font-semibold text-slate-800">
+                  {passengers.filter(p => p.name.trim() !== "").length} Pax
+                </span>
+              </div>
+              {passengers.filter(p => p.name.trim() !== "").length > 0 && (
+                <div className="border-b border-slate-200/60 pb-2">
+                  <span className="font-bold text-slate-400 block mb-1">Daftar Penumpang:</span>
+                  <div className="space-y-1 pl-2">
+                    {passengers.filter(p => p.name.trim() !== "").map((p, idx) => (
+                      <div key={idx} className="flex justify-between text-[11px] text-slate-500">
+                        <span>• {p.name}</span>
+                        <span className="font-bold uppercase text-[9px]">
+                          {departments.find(d => String(d.id) === String(p.department_id))?.name || p.department_id}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {files.length > 0 && (
+                <div className="border-b border-slate-200/60 pb-2">
+                  <span className="font-bold text-slate-400 block mb-1">Dokumen Lampiran:</span>
+                  <div className="space-y-0.5 pl-2 text-[11px] text-slate-500">
+                    {files.map((f, idx) => (
+                      <div key={idx} className="flex justify-between">
+                        <span>• {f.name}</span>
+                        <span>({(f.size / 1024 / 1024).toFixed(1)} MB)</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <span className="font-bold text-slate-400 block mb-1">Catatan Tambahan:</span>
+                <p className="text-[11px] text-slate-600 italic bg-white p-2 rounded-lg border border-slate-100">
+                  "{notes || "Tidak ada catatan tambahan."}"
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsConfirmOpen(false)}
+                className="flex-1 py-3 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer text-xs sm:text-sm"
+              >
+                Periksa Kembali
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                className="flex-1 py-3 bg-[#0f2a5e] text-white font-bold rounded-xl hover:bg-[#1e3a8a] transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs sm:text-sm"
+              >
+                <Icon name="check" className="text-base" /> Ya, Kirim
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {alertOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-xs animate-fadein p-4">
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 w-full max-w-md shadow-2xl relative animate-scaleup text-center">
+            <div className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Icon name="error" className="text-3xl" />
+            </div>
+            <h3 className="text-[17px] font-extrabold text-slate-800">Pengajuan Ditolak</h3>
+            <p className="text-[13px] font-semibold text-slate-500 mt-2 leading-relaxed">
+              {alertMessage}
+            </p>
+            <button
+              onClick={() => setAlertOpen(false)}
+              className="mt-6 w-full h-11 bg-red-600 hover:bg-red-700 text-white rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
+            >
+              Mengerti
+            </button>
+          </div>
+        </div>
+      )}
     </RoleLayout>
   );
 }

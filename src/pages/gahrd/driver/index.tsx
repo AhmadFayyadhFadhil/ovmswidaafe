@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useAuthContext } from "@/auth/authContext";
 import { driverService } from "@/services/modules/driverService";
+import { apiClient } from "@/services/api/api";
 
 export type DriverStatus = "AVAILABLE" | "ON TRIP" | "OFF DUTY";
 export interface Driver {
@@ -12,6 +13,10 @@ export interface Driver {
   driverId: string;
   trips?: number;
   rating?: number;
+  email?: string;
+  phone?: string;
+  location?: string;
+  licenseType?: string;
 }
 
 export const DRIVERS: Driver[] = [
@@ -42,51 +47,102 @@ const STATUS_CONFIG: Record<DriverStatus, { label: string; badge: string; dot: s
   },
 };
 
-function DriverCard({ driver }: { driver: Driver }) {
+function DriverCard({ 
+  driver, 
+  onToggleDuty 
+}: { 
+  driver: Driver; 
+  onToggleDuty: (id: string, name: string, status: DriverStatus) => void 
+}) {
   const cfg = STATUS_CONFIG[driver.status];
-  const canAssign = driver.status === "AVAILABLE";
+  const isAvailable = driver.status === "AVAILABLE";
+  const isOffDuty = driver.status === "OFF DUTY";
+  const canToggle = isAvailable || isOffDuty;
+  
   return (
-    <div className={`bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden ${cfg.border} hover:shadow-sm transition-all`}>
+    <div className={`bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden ${cfg.border} hover:shadow-md hover:border-slate-300 transition-all duration-200`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
-        <div className="flex items-center gap-4">
-          <div className="relative">
+        <div className="flex items-start gap-4">
+          <div className="relative flex-shrink-0">
             {driver.avatar ? (
               <img
                 src={driver.avatar}
                 alt={driver.name}
-                className="w-14 h-14 rounded-full object-cover border-2 border-[#e2e8f0]"
+                className="w-14 h-14 rounded-full object-cover border-2 border-[#e2e8f0] shadow-sm"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(driver.name)}&background=1e3a8a&color=fff`;
                 }}
               />
             ) : (
-              <div className="w-14 h-14 rounded-full bg-[#f1f5f9] border-2 border-[#e2e8f0] flex items-center justify-center">
+              <div className="w-14 h-14 rounded-full bg-[#f8fafc] border-2 border-[#e2e8f0] flex items-center justify-center shadow-xs">
                 <Icon name="person" className="text-[28px] text-[#94a3b8]" />
               </div>
             )}
             <span className={`absolute bottom-0.5 right-0.5 w-3.5 h-3.5 ${cfg.dot} border-2 border-white rounded-full`} />
           </div>
-          <div>
-            <div className="text-[15px] font-bold text-[#0f172a]">{driver.name}</div>
-            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${cfg.badge}`}>{cfg.label}</span>
-            <div className="text-[12px] text-[#64748b] mt-0.5">ID: {driver.driverId}</div>
-            {driver.trips !== undefined && (
-              <div className="text-[11px] text-[#94a3b8] mt-0.5">
-                {driver.trips} trips · ⭐ {driver.rating}
-              </div>
-            )}
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[15px] font-bold text-[#0f172a]">{driver.name}</span>
+              <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${cfg.badge}`}>{cfg.label}</span>
+            </div>
+            
+            <div className="flex items-center gap-2 text-[11px] font-semibold text-[#94a3b8] uppercase tracking-wider">
+              <span>ID: {driver.driverId}</span>
+              {driver.licenseType && (
+                <>
+                  <span>•</span>
+                  <span className={driver.licenseType === "SIM A Aktif" ? "text-emerald-600 font-bold" : "text-amber-500 font-bold"}>
+                    {driver.licenseType}
+                  </span>
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-0.5 text-[12px] text-[#64748b] pt-1">
+              {driver.phone && (
+                <span className="flex items-center gap-1">
+                  <Icon name="phone" className="text-[14px] text-slate-400" />
+                  {driver.phone}
+                </span>
+              )}
+              {driver.email && (
+                <span className="flex items-center gap-1">
+                  <Icon name="mail" className="text-[14px] text-slate-400" />
+                  {driver.email}
+                </span>
+              )}
+              {driver.location && (
+                <span className="flex items-center gap-1">
+                  <Icon name="location_on" className="text-[14px] text-slate-400" />
+                  {driver.location}
+                </span>
+              )}
+            </div>
           </div>
         </div>
-        <div className="flex sm:flex-col gap-2 w-full sm:w-auto">
-          <button
-            disabled={!canAssign}
-            className={`w-full sm:w-auto h-9 px-5 text-[12px] font-bold rounded-xl transition-all ${canAssign ? "bg-[#1e3a8a] text-white hover:bg-[#1e40af] active:scale-95" : "bg-[#f1f5f9] text-[#94a3b8] cursor-not-allowed"}`}
-          >
-            Assign Driver
-          </button>
-          <button className="w-full sm:w-auto h-9 px-5 bg-white border border-[#e2e8f0] text-[#334155] text-[12px] font-bold rounded-xl hover:bg-[#f8fafc] active:scale-95 transition-all">
-            Contact
-          </button>
+
+        <div className="flex sm:flex-col gap-2 w-full sm:w-auto flex-shrink-0 pt-2 sm:pt-0">
+          {canToggle && (
+            <button
+              onClick={() => onToggleDuty(driver.id, driver.name, driver.status)}
+              className={`w-full sm:w-auto h-9 px-5 text-[12px] font-bold rounded-xl transition-all cursor-pointer shadow-xs ${
+                isAvailable 
+                  ? "bg-rose-600 text-white hover:bg-rose-700 active:scale-95" 
+                  : "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95"
+              }`}
+            >
+              {isAvailable ? "Set Off Duty" : "Set Available"}
+            </button>
+          )}
+          {driver.phone && (
+            <a 
+              href={`tel:${driver.phone}`}
+              className="w-full sm:w-auto h-9 px-5 bg-white border border-[#e2e8f0] text-[#334155] text-[12px] font-bold rounded-xl hover:bg-[#f8fafc] active:scale-95 transition-all flex items-center justify-center gap-1"
+            >
+              <Icon name="call" className="text-[14px]" />
+              Call Driver
+            </a>
+          )}
         </div>
       </div>
     </div>
@@ -100,6 +156,19 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
   const [driversList, setDriversList] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    driverId: string | null;
+    driverName: string;
+    currentStatus: DriverStatus | null;
+  }>({
+    isOpen: false,
+    driverId: null,
+    driverName: "",
+    currentStatus: null,
+  });
+
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     const fetchDrivers = async () => {
@@ -110,11 +179,15 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
         const mapped = (res.data || []).map((d: any) => ({
           id: d.id,
           name: d.name,
-          status: d.status === "AVAILABLE" ? "AVAILABLE" : (d.status === "ON DUTY" ? "ON TRIP" : "OFF DUTY"),
-          avatar: d.avatarUrl,
+          status: d.status === "AVAILABLE" ? "AVAILABLE" : (d.status === "ON TRIP" || d.status === "ON DUTY" || d.status === "ASSIGNED" ? "ON TRIP" : "OFF DUTY"),
+          avatar: d.avatarUrl || d.avatar,
           driverId: `DRV-${String(d.id).padStart(3, "0")}`,
-          trips: 0,
-          rating: 5.0,
+          trips: d.trips_count || 0,
+          rating: d.rating || 5.0,
+          email: d.email || "",
+          phone: d.phone || "",
+          location: d.location || "Pandaan Head Office",
+          licenseType: d.sim_a_photo ? "SIM A Aktif" : "No SIM A",
         } as Driver));
         setDriversList(mapped);
       } catch (err: any) {
@@ -126,6 +199,44 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
     };
     fetchDrivers();
   }, []);
+
+  const handleToggleClick = (driverId: string, driverName: string, currentStatus: DriverStatus) => {
+    setConfirmModal({
+      isOpen: true,
+      driverId,
+      driverName,
+      currentStatus,
+    });
+  };
+
+  const handleConfirmToggle = async () => {
+    if (!confirmModal.driverId || !confirmModal.currentStatus) return;
+    const { driverId, currentStatus } = confirmModal;
+    const nextStatus = currentStatus === "AVAILABLE" ? "unavailable" : "available";
+    setActionLoading(true);
+    try {
+      await apiClient.post(`/users/${driverId}/driver-duty`, {
+        availability_status: nextStatus
+      });
+      
+      // Update local list
+      setDriversList(prev => prev.map(d => {
+        if (d.id === driverId) {
+          return {
+            ...d,
+            status: nextStatus === "unavailable" ? "OFF DUTY" : "AVAILABLE"
+          };
+        }
+        return d;
+      }));
+      setConfirmModal({ isOpen: false, driverId: null, driverName: "", currentStatus: null });
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || "Gagal mengubah status tugas driver.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const filtered = driversList.filter((d) => {
     const matchTab =
@@ -231,12 +342,66 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
                   <p className="text-[13px] text-[#64748b] mt-1">Try changing the filter or search term.</p>
                 </div>
               ) : (
-                filtered.map((d) => <DriverCard key={d.id} driver={d} />)
+                filtered.map((d) => <DriverCard key={d.id} driver={d} onToggleDuty={handleToggleClick} />)
               )}
             </div>
           </>
         )}
       </div>
+
+      {/* Custom Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm animate-fadein p-4">
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 w-full max-w-md shadow-2xl relative">
+            <button 
+              onClick={() => setConfirmModal({ isOpen: false, driverId: null, driverName: "", currentStatus: null })}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <Icon name="close" className="text-xl" />
+            </button>
+            
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 bg-blue-50 text-[#1e3a8a] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Icon name="help_outline" className="text-3xl" />
+              </div>
+              <h3 className="text-[18px] font-extrabold text-slate-800">Ubah Status Tugas Driver</h3>
+              <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+                Apakah Anda yakin ingin mengubah status tugas driver <strong>{confirmModal.driverName}</strong> menjadi{" "}
+                <span className={confirmModal.currentStatus === "AVAILABLE" ? "text-rose-600 font-bold" : "text-emerald-600 font-bold"}>
+                  {confirmModal.currentStatus === "AVAILABLE" ? "OFF DUTY (Tidak Tersedia)" : "AVAILABLE (Tersedia)"}
+                </span>?
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmModal({ isOpen: false, driverId: null, driverName: "", currentStatus: null })}
+                className="flex-1 py-3 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer text-sm"
+              >
+                Kembali
+              </button>
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={handleConfirmToggle}
+                className={`flex-1 py-3 text-white font-bold rounded-xl shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 text-sm ${
+                  confirmModal.currentStatus === "AVAILABLE" ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"
+                }`}
+              >
+                {actionLoading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Icon name="check" className="text-base" />
+                    Ya, Ubah Status
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

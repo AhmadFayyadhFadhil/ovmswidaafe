@@ -47,7 +47,6 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
     plate: "",
     type: "Sedan",
     capacity: 5,
-    odometer: 0,
     status: "Available",
   });
   const [adding, setAdding] = useState(false);
@@ -63,7 +62,6 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
     plate: "",
     type: "Sedan",
     capacity: 5,
-    odometer: 0,
     status: "Available",
   });
   const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
@@ -95,7 +93,6 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
       plate: v.plate,
       type: v.type || "Sedan",
       capacity: v.capacity || 5,
-      odometer: v.odometer || 0,
       status: v.backendStatus || "Available",
     });
     setEditPhotoFile(null);
@@ -126,7 +123,6 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
       data.append("plate_number", editFormData.plate);
       data.append("type", editFormData.type);
       data.append("capacity", String(editFormData.capacity));
-      data.append("odometer", String(editFormData.odometer));
       data.append("status", editFormData.status);
       if (editPhotoFile) {
         data.append("photo", editPhotoFile);
@@ -157,7 +153,6 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
       data.append("plate_number", formData.plate);
       data.append("type", formData.type);
       data.append("capacity", String(formData.capacity));
-      data.append("odometer", String(formData.odometer));
       data.append("status", formData.status);
       if (photoFile) {
         data.append("photo", photoFile);
@@ -170,7 +165,6 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
         plate: "",
         type: "Sedan",
         capacity: 5,
-        odometer: 0,
         status: "Available",
       });
       setPhotoFile(null);
@@ -280,7 +274,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
             <table className="w-full min-w-[700px]">
               <thead>
                 <tr className="bg-[#f8fafc]">
-                  {["VEHICLE INFO", "TYPE", "STATUS", "ODOMETER", "ACTIONS"].map(h => (
+                  {["VEHICLE INFO", "TYPE", "STATUS", "CAPACITY", "ACTIONS"].map(h => (
                     <th key={h} className="px-5 py-3 text-left text-[10.5px] font-bold text-[#94a3b8] uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
@@ -306,7 +300,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                     <td className="px-5 py-3.5">
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(v.status)}`}>{v.status}</span>
                     </td>
-                    <td className="px-5 py-3.5 text-[13px] font-semibold text-[#0f172a]">{v.odometer.toLocaleString()} km</td>
+                    <td className="px-5 py-3.5 text-[13px] font-semibold text-[#0f172a]">{v.capacity || 0} orang</td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1">
                         <button
@@ -434,17 +428,6 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Odometer (km)</label>
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    value={formData.odometer}
-                    onChange={e => setFormData({ ...formData, odometer: parseInt(e.target.value) || 0 })}
-                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
-                  />
-                </div>
-                <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Initial Status</label>
                   <select
                     value={formData.status}
@@ -566,17 +549,6 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Odometer (km)</label>
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    value={editFormData.odometer}
-                    onChange={e => setEditFormData({ ...editFormData, odometer: parseInt(e.target.value) || 0 })}
-                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
-                  />
-                </div>
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Vehicle Status</label>
                   <select

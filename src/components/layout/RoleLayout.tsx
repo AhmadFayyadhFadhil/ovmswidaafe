@@ -19,7 +19,8 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
     gahrd: "GA & HRD",
     approver: "Manager Approver",
     driver: "Driver",
-    employee: "Employee"
+    employee: "Employee",
+    security: "Security Officer"
   };
 
   const displayUserName = user?.name || userName || "User";
@@ -70,6 +71,9 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Schedule":
           navigate("/driver/dashboard?tab=schedule");
           break;
+        case "Notifications":
+          navigate("/driver/notifications");
+          break;
       }
     } else if (role === "approver") {
       switch (page) {
@@ -82,8 +86,8 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "History":
           navigate("/approver/history");
           break;
-        case "Driver Assignment":
-          navigate("/approver/assignment");
+        case "Notifications":
+          navigate("/approver/notifications");
           break;
       }
     } else if (role === "gahrd") {
@@ -94,6 +98,9 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Requests":
           navigate("/gahrd/requests");
           break;
+        case "Vehicle Management":
+          navigate("/admin/vehicles");
+          break;
         case "Driver Availability":
           navigate("/gahrd/driver");
           break;
@@ -102,6 +109,21 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
           break;
         case "Notifications":
           navigate("/gahrd/notifications");
+          break;
+        case "User Activation":
+          navigate("/gahrd/users");
+          break;
+      }
+    } else if (role === "security") {
+      switch (page) {
+        case "Dashboard":
+          navigate("/security/dashboard");
+          break;
+        case "Scan History":
+          navigate("/security/history");
+          break;
+        case "Audit Logs":
+          navigate("/security/audit");
           break;
       }
     } else if (role === "admin") {

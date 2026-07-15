@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { driverService } from "@/services/modules/driverService";
+import { departmentService } from "@/services/modules/departmentService";
+import type { Department } from "@/services/modules/departmentService";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -47,7 +49,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     name: "",
     email: "",
     password: "password",
-    department: "IT",
+    department: "",
   });
   const [adding, setAdding] = useState(false);
   const [simFile, setSimFile] = useState<File | null>(null);
@@ -61,12 +63,22 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     name: "",
     email: "",
     password: "",
-    department: "IT",
+    department: "",
   });
   const [editSimFile, setEditSimFile] = useState<File | null>(null);
   const [editSimPreview, setEditSimPreview] = useState("");
   const [editFormError, setEditFormError] = useState("");
   const [updating, setUpdating] = useState(false);
+
+  const [departments, setDepartments] = useState<Department[]>([]);
+
+  useEffect(() => {
+    departmentService.getAll().then(res => {
+      if (res.data) {
+        setDepartments(res.data);
+      }
+    }).catch(err => console.error(err));
+  }, []);
 
   const handleDelete = async (id: string) => {
     try {
@@ -91,7 +103,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       name: d.name,
       email: d.email || "",
       password: "", // dikosongkan kecuali ingin ganti
-      department: d.department || "IT",
+      department: d.department_id ? String(d.department_id) : "",
     });
     setEditSimFile(null);
     setEditSimPreview(d.avatarUrl || "");
@@ -126,7 +138,9 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
         data.append("password", editFormData.password);
       }
       data.append("role", "Driver");
-      data.append("department_id", editFormData.department);
+      if (editFormData.department) {
+        data.append("department_id", editFormData.department);
+      }
       if (editSimFile) {
         data.append("sim_a_photo", editSimFile);
       }
@@ -160,7 +174,9 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       data.append("email", formData.email);
       data.append("password", formData.password);
       data.append("role", "Driver");
-      data.append("department_id", formData.department);
+      if (formData.department) {
+        data.append("department_id", formData.department);
+      }
       data.append("sim_a_photo", simFile);
 
       await driverService.create(data);
@@ -169,7 +185,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
         name: "",
         email: "",
         password: "password",
-        department: "IT",
+        department: departments[0]?.id ? String(departments[0].id) : "",
       });
       setSimFile(null);
       setSimPreview("");
@@ -441,15 +457,16 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                     onChange={e => setFormData({ ...formData, department: e.target.value })}
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   >
-                    {["IT", "FA", "HR&GA", "QC", "QA", "HRD", "GA", "TECHNICAL", "ENGINEERING", "SUPPLY CHAIN", "HSE", "PRODUKSI", "HRD&GA"].map(d => (
-                      <option key={d} value={d}>{d}</option>
+                    <option value="">Pilih Departemen</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">SIM A Photo (Required)</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">SIM A Photo</label>
                 <div className="flex items-center gap-4">
                   <input
                     type="file"
@@ -460,7 +477,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                   />
                   <label htmlFor="sim-upload" className="cursor-pointer h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
                     <Icon name="upload" className="text-[16px]" />
-                    Upload Image
+                    Upload SIM A Image
                   </label>
                   {simPreview && (
                     <img src={simPreview} alt="SIM Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0]" />
@@ -550,15 +567,16 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                     onChange={e => setEditFormData({ ...editFormData, department: e.target.value })}
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   >
-                    {["IT", "FA", "HR&GA", "QC", "QA", "HRD", "GA", "TECHNICAL", "ENGINEERING", "SUPPLY CHAIN", "HSE", "PRODUKSI", "HRD&GA"].map(d => (
-                      <option key={d} value={d}>{d}</option>
+                    <option value="">Pilih Departemen</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">SIM A Photo (Optional)</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">SIM A Photo</label>
                 <div className="flex items-center gap-4">
                   <input
                     type="file"
@@ -569,7 +587,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                   />
                   <label htmlFor="edit-sim-upload" className="cursor-pointer h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
                     <Icon name="upload" className="text-[16px]" />
-                    Upload Image
+                    Upload SIM A Image
                   </label>
                   {editSimPreview && (
                     <img src={editSimPreview} alt="SIM Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0]" />

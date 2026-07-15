@@ -27,9 +27,10 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // e.g. redirect to login or clear token
+    if (error.response?.status === 401 && !error.config?.url?.includes('/login')) {
       sessionStorage.removeItem('token');
+      sessionStorage.removeItem('auth_user');
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

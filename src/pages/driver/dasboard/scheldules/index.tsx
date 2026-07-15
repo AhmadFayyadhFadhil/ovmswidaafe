@@ -14,9 +14,10 @@ export interface TripHistory {
 
 interface TripSchedulePageProps {
   trips: TripHistory[];
+  onViewDetail: (id: string) => void;
 }
 
-export default function TripSchedulePage({ trips }: TripSchedulePageProps) {
+export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePageProps) {
   const [search, setSearch]       = useState("");
   const [statusFilter, setStatus] = useState("All Statuses");
 
@@ -74,7 +75,7 @@ export default function TripSchedulePage({ trips }: TripSchedulePageProps) {
           <table className="w-full min-w-[700px]">
             <thead>
               <tr className="border-b border-[#f1f5f9] bg-[#fafbfc]">
-                {["Trip ID", "Date & Time", "Passenger", "Vehicle Type", "Route", "Status"].map((h) => (
+                {["Trip ID", "Date & Time", "Passenger", "Vehicle Type", "Route", "Status", "Aksi"].map((h) => (
                   <th
                     key={h}
                     className="px-6 py-4 text-left text-[11px] font-bold text-[#64748b] uppercase tracking-wider"
@@ -133,6 +134,15 @@ export default function TripSchedulePage({ trips }: TripSchedulePageProps) {
                       <span className={`text-[11px] font-bold border px-2.5 py-1 rounded-full uppercase tracking-wide ${badgeClass}`}>
                         {trip.status}
                       </span>
+                    </td>
+                    {/* Aksi */}
+                    <td className="px-6 py-5">
+                      <button
+                        onClick={() => onViewDetail(trip.id)}
+                        className="text-[12px] font-bold text-[#1e3a8a] hover:text-[#1e40af] hover:underline transition-colors cursor-pointer"
+                      >
+                        View Detail
+                      </button>
                     </td>
                   </tr>
                 );

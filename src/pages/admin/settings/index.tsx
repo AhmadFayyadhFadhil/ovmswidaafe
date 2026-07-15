@@ -68,12 +68,21 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
   const [saving,        setSaving]        = useState(false);
   const [uploading,     setUploading]     = useState(false);
 
+  // Cropper states
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
   // Hidden File Input Ref
   const logoInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch data settings & stats from API
+  // Fetch data settings from API (contains both settings and stats)
   const { data: apiData, loading, refetch, setData } = useApi(() => systemConfigService.get());
-  const { data: statsData, refetch: refetchStats } = useApi(() => systemConfigService.getStats());
+  const statsData = (apiData as any)?.stats || null;
+  const refetchStats = refetch;
 
   // Form State
   const [formData, setFormData] = useState<any | null>(null);
@@ -99,6 +108,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
           companyLogo: res.data.companyLogo || ""
         };
         localStorage.setItem("ovms_branding_config", JSON.stringify(branding));
+        localStorage.setItem("ovms_branding_last_fetch", Date.now().toString());
         // Trigger Sidebar custom event update
         window.dispatchEvent(new Event("branding-update"));
       }
@@ -126,29 +136,133 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
     }
   };
 
-  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
-    try {
-      const res = await systemConfigService.uploadLogo(file);
-      if (res && res.data && res.data.logo_url) {
-        setFormData((prev: any) => prev ? { ...prev, companyLogo: res.data.logo_url } : null);
-        
-        // Save to cache immediately
-        const cached = localStorage.getItem("ovms_branding_config");
-        const branding = cached ? JSON.parse(cached) : { systemName: "OVMS", companyName: "Enterprise Fleet" };
-        branding.companyLogo = res.data.logo_url;
-        localStorage.setItem("ovms_branding_config", JSON.stringify(branding));
-        window.dispatchEvent(new Event("branding-update"));
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageSrc(reader.result as string);
+      setZoom(1);
+      setPosition({ x: 0, y: 0 });
+      setCropModalOpen(true);
+      if (logoInputRef.current) {
+        logoInputRef.current.value = "";
       }
-    } catch (err) {
-      console.error("Failed to upload logo", err);
-      alert("Gagal mengunggah logo.");
-    } finally {
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    setIsDragging(true);
+    const touch = e.touches[0];
+    setDragStart({ x: touch.clientX - position.x, y: touch.clientY - position.y });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    setPosition({
+      x: touch.clientX - dragStart.x,
+      y: touch.clientY - dragStart.y
+    });
+  };
+
+  const saveCroppedImage = () => {
+    if (!imageSrc) return;
+    setUploading(true);
+    setCropModalOpen(false);
+
+    const scale = 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = 240 * scale;
+    canvas.height = 200 * scale;
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
       setUploading(false);
+      return;
     }
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = imageSrc;
+    img.onload = () => {
+      ctx.save();
+      ctx.translate(120 * scale, 100 * scale);
+      ctx.translate(position.x * scale, position.y * scale);
+      ctx.scale(zoom, zoom);
+
+      const imgWidth = img.naturalWidth;
+      const imgHeight = img.naturalHeight;
+      const hRatio = 240 / imgWidth;
+      const vRatio = 200 / imgHeight;
+      const fitRatio = Math.min(hRatio, vRatio);
+
+      const w = imgWidth * fitRatio * scale;
+      const h = imgHeight * fitRatio * scale;
+
+      ctx.drawImage(img, -w / 2, -h / 2, w, h);
+      ctx.restore();
+
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          setUploading(false);
+          return;
+        }
+
+        const croppedFile = new File([blob], "logo_cropped.png", { type: "image/png" });
+        systemConfigService.uploadLogo(croppedFile)
+          .then((res) => {
+            if (res && res.data && res.data.logo_url) {
+              setFormData((prev: any) => prev ? { ...prev, companyLogo: res.data.logo_url } : null);
+              const cached = localStorage.getItem("ovms_branding_config");
+              const branding = cached ? JSON.parse(cached) : { systemName: "OVMS", companyName: "Enterprise Fleet" };
+              branding.companyLogo = res.data.logo_url;
+              localStorage.setItem("ovms_branding_config", JSON.stringify(branding));
+              window.dispatchEvent(new Event("branding-update"));
+            }
+          })
+          .catch((err) => {
+            console.error("Failed to upload logo", err);
+            const errMsg = err.response?.data?.message || err.response?.data?.errors?.logo?.[0] || "Gagal mengunggah logo.";
+            alert(errMsg);
+          })
+          .finally(() => {
+            setUploading(false);
+          });
+      }, "image/png");
+    };
+  };
+
+  const handleEditCurrentLogo = () => {
+    if (!formData || !formData.companyLogo) return;
+    setImageSrc(formData.companyLogo);
+    setZoom(1);
+    setPosition({ x: 0, y: 0 });
+    setCropModalOpen(true);
   };
 
   const handleFlushCache = async () => {
@@ -367,6 +481,17 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                         options={["English (United States)", "English (United Kingdom)", "Bahasa Indonesia", "Mandarin Chinese"]} 
                       />
                     </div>
+                    <div className="col-span-1 sm:col-span-2 border-t border-[#f1f5f9] pt-4 mt-2">
+                      <label className="block text-[12px] font-semibold text-[#475569] mb-1">Batas Minimal Waktu Pengajuan (Lead Time dalam Jam)</label>
+                      <p className="text-[11px] text-[#64748b] mb-2">Tentukan minimal jam pengajuan sebelum berangkat (contoh: masukkan 24 untuk wajib H-1 penuh berdasarkan jam, atau 0 untuk bebas).</p>
+                      <input 
+                        type="number"
+                        min="0"
+                        value={formData.minLeadTimeHours !== undefined && formData.minLeadTimeHours !== null ? formData.minLeadTimeHours : 24} 
+                        onChange={e => setFormData({ ...formData, minLeadTimeHours: parseInt(e.target.value, 10) || 0 })}
+                        className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all max-w-xs" 
+                      />
+                    </div>
                   </div>
                 </SectionCard>
               )}
@@ -375,19 +500,44 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
               {activeSection === "Company Info" && (
                 <SectionCard title="Informasi Perusahaan" subtitle="Kelola identitas dan detail kontak organisasi Anda.">
                   <div className="flex flex-col sm:flex-row gap-5">
-                    {/* Logo upload */}
-                    <div 
-                      onClick={() => logoInputRef.current?.click()}
-                      className="w-[120px] h-[100px] flex-shrink-0 bg-[#f8fafc] border-2 border-dashed border-[#e2e8f0] rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-[#1e3a8a]/40 hover:bg-[#eff6ff] transition-all group overflow-hidden relative"
+                                         <div 
+                      onClick={() => !formData.companyLogo && logoInputRef.current?.click()}
+                      className={`w-[120px] h-[100px] flex-shrink-0 bg-[#f8fafc] border-2 border-dashed border-[#e2e8f0] rounded-xl flex flex-col items-center justify-center gap-1.5 overflow-hidden relative ${!formData.companyLogo ? "cursor-pointer hover:border-[#1e3a8a]/40 hover:bg-[#eff6ff] transition-all group" : ""}`}
                     >
                       {uploading ? (
-                        <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
                           <div className="w-5 h-5 border-2 border-[#1e3a8a] border-t-transparent rounded-full animate-spin"></div>
                         </div>
                       ) : null}
                       
                       {formData.companyLogo ? (
-                        <img src={formData.companyLogo} alt="Logo Perusahaan" className="w-full h-full object-contain" />
+                        <div className="w-full h-full relative group/logo">
+                          <img src={formData.companyLogo} alt="Logo Perusahaan" className="w-full h-full object-contain" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/logo:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <button 
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditCurrentLogo();
+                              }}
+                              className="w-8 h-8 rounded-full bg-white text-[#1e3a8a] flex items-center justify-center hover:scale-110 transition-transform shadow-md cursor-pointer"
+                              title="Sesuaikan Ulang"
+                            >
+                              <Icon name="edit" className="text-[16px]" />
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                logoInputRef.current?.click();
+                              }}
+                              className="w-8 h-8 rounded-full bg-white text-slate-600 flex items-center justify-center hover:scale-110 transition-transform shadow-md cursor-pointer"
+                              title="Ganti Gambar"
+                            >
+                              <Icon name="upload" className="text-[16px]" />
+                            </button>
+                          </div>
+                        </div>
                       ) : (
                         <>
                           <Icon name="upload_file" className="text-[#94a3b8] group-hover:text-[#1e3a8a] text-[26px] transition-colors" />
@@ -529,6 +679,85 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
             </div>{/* end right content */}
           </div>{/* end 2-col */}
         </div>{/* end canvas */}
+
+      {/* ── IMAGE CROPPER MODAL ── */}
+      {cropModalOpen && imageSrc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md rounded-2xl border border-slate-100 shadow-2xl overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-[15px] font-bold text-slate-800">Sesuaikan Logo</h3>
+                <p className="text-[11.5px] text-slate-400">Geser untuk memindahkan, gunakan slider di bawah untuk zoom.</p>
+              </div>
+              <button onClick={() => setCropModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <Icon name="close" className="text-[20px]" />
+              </button>
+            </div>
+
+            {/* Modal Body / Crop Container */}
+            <div className="p-6 flex flex-col items-center justify-center bg-slate-50">
+              <div 
+                className="w-[240px] h-[200px] border-2 border-[#1e3a8a] rounded-xl overflow-hidden relative cursor-move bg-white shadow-inner select-none"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleMouseUp}
+              >
+                <img 
+                  id="crop-preview-img"
+                  src={imageSrc} 
+                  alt="Crop Preview" 
+                  className="w-full h-full object-contain pointer-events-none select-none"
+                  style={{
+                    transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+                    transformOrigin: 'center center'
+                  }}
+                />
+                
+                {/* Visual crop guidelines helper */}
+                <div className="absolute inset-0 pointer-events-none border border-dashed border-slate-300/40 rounded-lg"></div>
+              </div>
+
+              {/* Zoom Control */}
+              <div className="w-full mt-5 flex items-center gap-3 px-2">
+                <Icon name="zoom_out" className="text-slate-400 text-[18px]" />
+                <input 
+                  type="range" 
+                  min="1" 
+                  max="3" 
+                  step="0.05"
+                  value={zoom} 
+                  onChange={e => setZoom(parseFloat(e.target.value))}
+                  className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#1e3a8a]"
+                />
+                <Icon name="zoom_in" className="text-[#1e3a8a] text-[18px]" />
+                <span className="text-[11px] font-bold text-slate-500 w-8 text-right">{Math.round(zoom * 100)}%</span>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <button 
+                onClick={() => setCropModalOpen(false)}
+                className="px-4 h-9 rounded-xl border border-slate-200 text-[12px] font-semibold text-slate-500 hover:bg-slate-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={saveCroppedImage}
+                className="px-4 h-9 rounded-xl bg-[#1e3a8a] text-[12px] font-semibold text-white hover:bg-[#1e3a8a]/90 transition-colors flex items-center gap-1.5 shadow-md shadow-blue-900/10"
+              >
+                <Icon name="check" className="text-[16px]" />
+                Crop & Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Global styles */}
       <style>{`

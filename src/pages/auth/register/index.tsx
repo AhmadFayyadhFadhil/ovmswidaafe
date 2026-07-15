@@ -1,11 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/services/api/api";
+import { departmentService } from "@/services/modules/departmentService";
+import type { Department } from "@/services/modules/departmentService";
 
 export default function RegisterPage() {
+  const [nik, setNik] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [departmentId, setDepartmentId] = useState("IT");
+  const [departmentId, setDepartmentId] = useState<string | number>("");
+  const [departments, setDepartments] = useState<Department[]>([]);
+
+  useEffect(() => {
+    departmentService.getAll().then(res => {
+      if (res.data) {
+        setDepartments(res.data);
+        if (res.data.length > 0) {
+          setDepartmentId(res.data[0].id);
+        }
+      }
+    }).catch(err => console.error("Failed to load departments", err));
+  }, []);
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [error, setError] = useState("");
@@ -28,6 +43,7 @@ export default function RegisterPage() {
     try {
       // Send register request to Laravel backend
       const response = await apiClient.post("/register", {
+        nik,
         name,
         email,
         password,
@@ -134,6 +150,20 @@ export default function RegisterPage() {
 
                 {/* FORM */}
                 <form className="space-y-4" onSubmit={handleRegister}>
+                  {/* NIK */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      NIK (Nomor Induk Karyawan)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Masukkan NIK Anda"
+                      value={nik}
+                      onChange={(e) => setNik(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-slate-200 px-4 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 text-sm transition-all"
+                    />
+                  </div>
                   {/* Full Name */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -174,9 +204,9 @@ export default function RegisterPage() {
                       onChange={(e) => setDepartmentId(e.target.value)}
                       className="w-full h-11 rounded-xl border border-slate-200 px-4 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 text-sm bg-white transition-all"
                     >
-                      {["IT", "FA", "HR&GA", "QC", "QA", "TECHNICAL", "ENGINEERING", "PRODUKSI", "SUPPLY CHAIN", "HSE"].map((d) => (
-                        <option key={d} value={d}>
-                          {d}
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
                         </option>
                       ))}
                     </select>

@@ -41,6 +41,14 @@ export function Sidebar({
 
     // 2. Fetch fresh config in background
     const fetchBranding = async () => {
+      const lastFetch = localStorage.getItem("ovms_branding_last_fetch");
+      const cached = localStorage.getItem("ovms_branding_config");
+      const now = Date.now();
+      
+      if (cached && lastFetch && (now - parseInt(lastFetch, 10) < 10 * 60 * 1000)) {
+        return;
+      }
+
       try {
         const res = await systemConfigService.get();
         if (res && res.data) {
@@ -51,6 +59,7 @@ export function Sidebar({
           };
           setBranding(newBranding);
           localStorage.setItem("ovms_branding_config", JSON.stringify(newBranding));
+          localStorage.setItem("ovms_branding_last_fetch", now.toString());
         }
       } catch (err) {
         console.error("Failed to load branding in sidebar", err);
@@ -70,6 +79,7 @@ export function Sidebar({
   const isApprover = user?.role === "approver";
   const isDriver = user?.role === "driver";
   const isGAHRD = user?.role === "gahrd";
+  const isSecurity = user?.role === "security";
   const isAdmin = user?.role === "admin";
 
   const go = (label: string, path: string) => {
@@ -107,31 +117,29 @@ export function Sidebar({
     { icon: "dashboard", label: "Dashboard", path: "/employee/dashboard" },
     { icon: "add_box", label: "Create Request", path: "/employee/createrequest" },
     { icon: "list_alt", label: "My Requests", path: "/employee/myrequests" },
+    { icon: "history", label: "History", path: "/employee/history" },
     { icon: "notifications", label: "Notifications", path: "/employee/notifications" },
     { icon: "person", label: "My Profile", path: "/employee/profile" },
   ];
 
-  // Detect if user is Head of HRD & GA
-  const isHrGaHead = user?.role === "approver" && 
-    (user?.department_id === "HR&GA" || user?.department_id === "HRD&GA") && 
-    !!user?.is_department_head;
 
   // Approver menu
   const approverMenu = [
     { icon: "dashboard", label: "Dashboard", path: "/approver/dashboard" },
     { icon: "list_alt", label: "Pending Requests", path: "/approver/requests" },
-    ...(isHrGaHead ? [
-      { icon: "assignment_ind", label: "Driver Assignment", path: "/approver/assignment" },
-    ] : []),
     { icon: "history", label: "History", path: "/approver/history" },
+    { icon: "notifications", label: "Notifications", path: "/approver/notifications" },
     { icon: "person", label: "My Profile", path: "/approver/profile" },
   ];
 
   // Driver menu
   const driverMenu = [
     { icon: "dashboard", label: "Dashboard", path: "/driver/dashboard" },
+    { icon: "assignment", label: "My Tasks", path: "/driver/dashboard?tab=assignments" },
+    { icon: "history", label: "History", path: "/driver/dashboard?tab=schedule" },
+    { icon: "event", label: "Calendar", path: "/driver/dashboard?tab=calendar" },
     { icon: "directions_car", label: "My Vehicle", path: "/driver/dashboard?tab=vehicle" },
-    { icon: "calendar_month", label: "Schedule", path: "/driver/dashboard?tab=schedule" },
+    { icon: "notifications", label: "Notifications", path: "/driver/notifications" },
     { icon: "person", label: "My Profile", path: "/driver/profile" },
   ];
 
@@ -139,10 +147,19 @@ export function Sidebar({
   const gahrdMenu = [
     { icon: "dashboard",        label: "Dashboard",           path: "/gahrd/dashboard" },
     { icon: "monitor_heart",    label: "Requests",            path: "/gahrd/requests" },
-    { icon: "directions_car",   label: "Driver Availability", path: "/gahrd/driver" },
+    { icon: "directions_car",   label: "Vehicle Management",  path: "/admin/vehicles" },
+    { icon: "person",           label: "Driver Availability", path: "/gahrd/driver" },
     { icon: "history",          label: "History",             path: "/gahrd/history" },
     { icon: "notifications",    label: "Notifications",       path: "/gahrd/notifications" },
+    { icon: "group",            label: "User Activation",     path: "/gahrd/users" },
     { icon: "person",           label: "My Profile",          path: "/gahrd/profile" },
+  ];
+
+  // Security menu
+  const securityMenu = [
+    { icon: "dashboard", label: "Dashboard", path: "/security/dashboard" },
+    { icon: "work_history", label: "Scan History", path: "/security/history" },
+    { icon: "person", label: "My Profile", path: "/security/profile" },
   ];
 
 
@@ -225,6 +242,10 @@ export function Sidebar({
 
         {isGAHRD && (
           gahrdMenu.map(item => btn(item, item.path))
+        )}
+
+        {isSecurity && (
+          securityMenu.map(item => btn(item, item.path))
         )}
 
         {isAdmin && (

@@ -2,6 +2,9 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuthContext } from "@/auth/authContext";
 import { canAccessRoute } from "@/auth/roleGuard";
 
+// SECURITY NOTE: This frontend route guard provides UX-level access control only.
+// All sensitive operations MUST also be validated server-side via Laravel API middleware.
+// Frontend guards can be bypassed by manipulating sessionStorage in the browser console.
 export default function ProtectedRoutes() {
   const { user, loading } = useAuthContext();
   const location = useLocation();
@@ -18,7 +21,7 @@ export default function ProtectedRoutes() {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   }
 
   // Check role-based access
