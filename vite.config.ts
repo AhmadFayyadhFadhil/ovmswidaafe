@@ -32,16 +32,34 @@ export default defineConfig({
 
   build: {
     sourcemap: false,
+    cssCodeSplit: true,
+    reportCompressedSize: true,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+            // React core — dimuat pertama, paling kritis
+            if (
+              id.includes('/react/') ||
+              id.includes('/react-dom/') ||
+              id.includes('/react-router-dom/') ||
+              id.includes('/react-router/')
+            ) {
               return 'vendor-core';
             }
+            // Library QR — hanya untuk halaman security, isolasi supaya tidak polusi chunk lain
+            if (id.includes('jsqr')) {
+              return 'vendor-qr';
+            }
+            // Icon library — besar tapi tree-shakeable, pisahkan
             if (id.includes('lucide-react')) {
               return 'vendor-icons';
             }
+            // MSW hanya untuk dev, pastikan tidak masuk production bundle
+            if (id.includes('msw')) {
+              return undefined; // biarkan tree-shaken
+            }
+            // Semua vendor lain (axios, zustand, dll)
             return 'vendor-helpers';
           }
         }
