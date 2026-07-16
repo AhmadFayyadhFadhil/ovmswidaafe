@@ -26,7 +26,7 @@ export function useApi<T>(
 
   useEffect(() => {
     if (immediate) {
-      execute();
+      execute().catch(() => {});
     }
   }, [execute, immediate]);
 

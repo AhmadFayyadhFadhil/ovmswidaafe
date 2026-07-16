@@ -24,7 +24,14 @@ export default defineConfig({
     },
   },
 
+  preview: {
+    headers: {
+      'Cache-Control': 'public, max-age=31536000, immutable',
+    },
+  },
+
   build: {
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks(id) {
