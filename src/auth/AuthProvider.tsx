@@ -14,7 +14,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const stored = sessionStorage.getItem("auth_user");
     const token = sessionStorage.getItem("token");
 
-    const verifySession = async (storedUser: AuthUser) => {
+    const verifySession = async () => {
       try {
         if (import.meta.env.VITE_ENABLE_MOCK !== "true" && token) {
           const res = await apiClient.get("/profile");
@@ -43,25 +43,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             };
             setUser(updatedUser);
             sessionStorage.setItem("auth_user", JSON.stringify(updatedUser));
-            setLoading(false);
             return;
           }
         }
-        setUser(storedUser);
       } catch (err) {
         console.error("Session verification failed, logging out:", err);
         setUser(null);
         sessionStorage.removeItem("auth_user");
         sessionStorage.removeItem("token");
-      } finally {
-        setLoading(false);
       }
     };
 
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        verifySession(parsed);
+        setUser(parsed);
+        setLoading(false); // Render dashboard immediately
+        verifySession(); // Revalidate in background
       } catch {
         sessionStorage.removeItem("auth_user");
         setLoading(false);
