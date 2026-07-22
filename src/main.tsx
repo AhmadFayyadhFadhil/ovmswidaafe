@@ -3,20 +3,17 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
-async function enableMocking() {
-  if (import.meta.env.VITE_ENABLE_MOCK === 'true') {
-    const { worker } = await import('./mocks/browser')
-    return worker.start({
-      onUnhandledRequest: 'bypass',
-    })
-  }
-}
+// Render React immediately — do NOT block on MSW initialization
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
 
-enableMocking().then(() => {
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  )
-})
+// Initialize MSW mock worker asynchronously (dev only, non-blocking)
+if (import.meta.env.VITE_ENABLE_MOCK === 'true') {
+  import('./mocks/browser').then(({ worker }) => {
+    worker.start({ onUnhandledRequest: 'bypass' })
+  })
+}
 

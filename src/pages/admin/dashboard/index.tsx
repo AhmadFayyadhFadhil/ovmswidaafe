@@ -131,9 +131,9 @@ export default function Dashboard() {
   // Fetch all dashboard metrics in parallel
   const { data: dashboardData, loading: reqLoading, error: reqError, refetch } = useApi(async () => {
     const [reqsRes, vehiclesRes, usersRes] = await Promise.all([
-      requestService.getAll({ per_page: 100 }),   // cukup untuk tabel + weekly analytics
-      vehicleService.getAll({ per_page: 500 }),   // cukup untuk stat card akurat
-      userService.getAll({ per_page: 500 }),      // cukup untuk stat card driver aktif
+      requestService.getAll({ per_page: 100 }),  // cukup untuk tabel + weekly analytics
+      vehicleService.getAll({ per_page: 50 }),   // stat card: cukup 50 record
+      userService.getAll({ per_page: 50 }),      // stat card: cukup 50 record
     ]);
     return {
       data: {
