@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { requestService } from "@/services/modules/requestService";
@@ -119,6 +119,10 @@ export default function GAHRDRequestsPage() {
   const [thirdPartyCost2, setThirdPartyCost2] = useState("0");
 
   const [assignError, setAssignError] = useState("");
+  const [cancelConfirmRequestId, setCancelConfirmRequestId] = useState<string | null>(null);
+  const [deleteConfirmRequestId, setDeleteConfirmRequestId] = useState<string | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [dailyAssignments, setDailyAssignments] = useState<any[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const isEdit = !!(selectedRequest && (
@@ -138,11 +142,15 @@ export default function GAHRDRequestsPage() {
     setLoading(true);
     setError(null);
     try {
-      const reqRes = await requestService.getAll({ per_page: 1000 });
+      const [reqRes, driverRes, vehicleRes] = await Promise.all([
+        requestService.getAll({ per_page: 100 }),
+        driverService.getAll(),
+        vehicleService.getAll({ per_page: 1000 }),
+      ]);
+
       setRequests(reqRes.data || []);
 
-      const driverRes = await driverService.getAll({ per_page: 1000 });
-      const mappedDrivers = (driverRes.data || []).map((d: any) => ({
+      const mappedDrivers: Driver[] = (driverRes.data || []).map((d: any) => ({
         id: String(d.id),
         name: d.name,
         email: d.email,
@@ -150,7 +158,6 @@ export default function GAHRDRequestsPage() {
       } as Driver));
       setDrivers(mappedDrivers);
 
-      const vehicleRes = await vehicleService.getAll({ per_page: 1000 });
       setVehicles(vehicleRes.data || []);
     } catch (err: any) {
       console.error(err);
@@ -220,15 +227,24 @@ export default function GAHRDRequestsPage() {
     setIsExternal(req.is_external || false);
     setThirdPartyCost(req.third_party_cost ? formatNumberIndonesian(String(Math.round(Number(req.third_party_cost)))) : "0");
     
-    // Dynamically calculate estimated duration in hours between startTime and rawEndTime
+    // Dynamically calculate estimated duration based on filled itinerary sessions (e.g. Sesi 1 + Sesi 2) or single-day active hours
     const durationHours = (() => {
+      if (Array.isArray(req.itineraries) && req.itineraries.length > 0) {
+        let totalSessionHours = 0;
+        req.itineraries.forEach((it: any) => {
+          if (it.morning_destination || it.morning_time) totalSessionHours += 2;
+          if (it.afternoon_destination || it.afternoon_time) totalSessionHours += 2;
+        });
+        if (totalSessionHours > 0) return String(totalSessionHours);
+      }
+
       if (req.startTime && req.rawEndTime) {
         const start = new Date(req.startTime);
         const end = new Date(req.rawEndTime);
         if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
           const diffMs = end.getTime() - start.getTime();
           const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
-          return diffHours > 0 ? String(diffHours) : "3";
+          return String(Math.min(diffHours > 0 ? diffHours : 3, 9));
         }
       }
       return req.estimated_duration ? String(req.estimated_duration) : "3";
@@ -236,7 +252,7 @@ export default function GAHRDRequestsPage() {
     setEstimatedDuration(durationHours);
     
     setSelectedPriority(req.rawPriority || "Normal");
-    setAssignNotes(req.notes || "");
+    setAssignNotes("");
     setExternalFleetInfo(req.external_fleet_info || "");
     setExternalPhoto(null);
     setExternalTripType(req.external_trip_type || "round_trip");
@@ -248,6 +264,22 @@ export default function GAHRDRequestsPage() {
     setExternalLicensePlate(req.external_license_plate || "");
     setExternalReturnDriverName(req.external_return_driver_name || "");
     setExternalReturnLicensePlate(req.external_return_license_plate || "");
+
+    if (Array.isArray(req.itineraries) && req.itineraries.length > 0) {
+      setDailyAssignments(req.itineraries.map((it: any) => ({
+        itinerary_id: it.id,
+        date: it.date,
+        driver_id: it.driver_id ? String(it.driver_id) : "",
+        vehicle_id: it.vehicle_id ? String(it.vehicle_id) : "",
+        is_external: !!it.is_external,
+        external_driver_name: it.external_driver_name || "",
+        external_license_plate: it.external_license_plate || "",
+        external_fleet_info: it.external_fleet_info || "",
+        third_party_cost: it.third_party_cost ? formatNumberIndonesian(String(Math.round(Number(it.third_party_cost)))) : "0",
+      })));
+    } else {
+      setDailyAssignments([]);
+    }
     setExternalProvider(req.external_provider || "");
  
     // Prefill second external vehicle states:
@@ -268,6 +300,9 @@ export default function GAHRDRequestsPage() {
 
     // Fetch existing assignments if the request is already assigned to prefill the dropdowns
     if (req.driverName !== "Not Assigned" || req.vehicleModel !== "Not Assigned") {
+      if (req.driver?.id) setSelectedDriverId(String(req.driver.id));
+      if (req.vehicle?.id) setSelectedVehicleId(String(req.vehicle.id));
+
       try {
         const res = await apiClient.get(`/assignments?request_id=${req.id}`);
         const asgs = res.data?.data || [];
@@ -306,6 +341,24 @@ export default function GAHRDRequestsPage() {
     setActionLoading(true);
     setAssignError("");
     try {
+      if (selectedRequest?.itineraries && selectedRequest.itineraries.length > 0 && dailyAssignments.length > 0) {
+        const payload = dailyAssignments.map(asg => ({
+          itinerary_id: asg.itinerary_id,
+          driver_id: asg.is_external ? null : (asg.driver_id || null),
+          vehicle_id: asg.is_external ? null : (asg.vehicle_id || null),
+          is_external: asg.is_external,
+          external_driver_name: asg.is_external ? (asg.external_driver_name || null) : null,
+          external_license_plate: asg.is_external ? (asg.external_license_plate || null) : null,
+          external_fleet_info: asg.is_external ? (asg.external_fleet_info || null) : null,
+          third_party_cost: asg.is_external ? cleanNumber(asg.third_party_cost) : 0,
+        }));
+        await requestService.storeDailyAssignments(selectedRequest.id, payload);
+        setIsAssignModalOpen(false);
+        showToast("Penugasan harian berhasil disimpan!");
+        await fetchData();
+        return;
+      }
+
       if (isExternal) {
         const formData = new FormData();
         formData.append("request_id", selectedRequest.id);
@@ -407,7 +460,6 @@ export default function GAHRDRequestsPage() {
   };
 
   const handleCancelAssignment = async (requestId: string) => {
-    if (!window.confirm("Apakah Anda yakin ingin membatalkan penugasan driver untuk request ini?")) return;
     setActionLoading(true);
     try {
       const res = await assignmentService.getAll({ per_page: 1000 });
@@ -429,12 +481,31 @@ export default function GAHRDRequestsPage() {
     }
   };
 
+  const handleDeleteRequest = async (requestId: string, reason: string) => {
+    setActionLoading(true);
+    try {
+      await requestService.delete(requestId, reason);
+      showToast("Permintaan kendaraan berhasil dibatalkan!");
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || err.response?.data?.errors?.rejected_reason?.[0] || "Gagal membatalkan permintaan.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const readyDrivers = drivers.filter((d) => d.status === "AVAILABLE");
 
   const getAvailableDriversForRequest = (req: any) => {
-    if (!req) return readyDrivers;
+    const allowedDrivers = drivers.filter((d) => 
+      d.status === "AVAILABLE" || 
+      String(d.id) === String(selectedDriverId) || 
+      String(d.id) === String(selectedDriverId2)
+    );
+    if (!req) return allowedDrivers;
     const reqDate = req.startTime ? req.startTime.substring(0, 10) : "";
-    if (!reqDate) return readyDrivers;
+    if (!reqDate) return allowedDrivers;
 
     const assignedDriverIds = new Set<string>();
     requests.forEach(r => {
@@ -454,13 +525,17 @@ export default function GAHRDRequestsPage() {
       }
     });
 
-    return readyDrivers.filter(d => !assignedDriverIds.has(String(d.id)));
+    return allowedDrivers.filter(d => !assignedDriverIds.has(String(d.id)));
   };
 
   const availableDrivers = getAvailableDriversForRequest(selectedRequest);
 
   const getAvailableVehiclesForRequest = (req: any) => {
-    const activeVehicles = vehicles.filter(v => v.status === "AVAILABLE" || v.status === "Available" || v.status === "available");
+    const activeVehicles = vehicles.filter(v => 
+      v.status === "AVAILABLE" || v.status === "Available" || v.status === "available" ||
+      String(v.id) === String(selectedVehicleId) ||
+      String(v.id) === String(selectedVehicleId2)
+    );
     if (!req) return activeVehicles;
 
     const reqDate = req.startTime ? req.startTime.substring(0, 10) : "";
@@ -490,7 +565,10 @@ export default function GAHRDRequestsPage() {
   const availableVehicles = getAvailableVehiclesForRequest(selectedRequest);
 
   // Filter requests
-  const filtered = requests.filter((r) => {
+  const filtered = useMemo(() => requests.filter((r) => {
+    if (r.rawStatus === "completed" || r.rawStatus === "rejected" || r.rawStatus === "cancelled") {
+      return false;
+    }
     const priorityUpper = (r.priority || "NORMAL").toUpperCase();
     const matchTab =
       tab === "All" ||
@@ -506,26 +584,31 @@ export default function GAHRDRequestsPage() {
       (r.purpose || "").toLowerCase().includes(q);
 
     return matchTab && matchQ;
-  });
+  }), [requests, tab, search]);
 
   // Calculate statistics
   // Pending assignment: requests in APPROVED state (driver not assigned yet)
-  const pendingAssignCount = requests.filter(
-    (r) => 
-      r.rawStatus === "submitted" || 
-      r.rawStatus === "approved_department" ||
-      (r.rawStatus === "driver_assigned" && r.driverName === "Not Assigned")
-  ).length;
+  const pendingAssignCount = useMemo(() => requests.filter(
+    (r) => {
+      const isUrgent = (r.priority || "").toUpperCase() === "URGENT" || (r.priority || "").toUpperCase() === "CRITICAL";
+      return (
+        r.rawStatus === "approved_department" ||
+        r.rawStatus === "assigned_by_ga" ||
+        (isUrgent && r.rawStatus === "submitted") ||
+        (r.rawStatus === "driver_assigned" && r.driverName === "Not Assigned")
+      );
+    }
+  ).length, [requests]);
 
-  const activeTripCount = requests.filter((r) => r.rawStatus === "on_going").length;
+  const activeTripCount = useMemo(() => requests.filter((r) => r.rawStatus === "on_going").length, [requests]);
 
-  const criticalCount = requests.filter(
+  const criticalCount = useMemo(() => requests.filter(
     (r) => (r.priority || "").toUpperCase() === "CRITICAL" || (r.priority || "").toUpperCase() === "URGENT"
-  ).length;
+  ).length, [requests]);
 
-  const urgentCount = requests.filter(
+  const urgentCount = useMemo(() => requests.filter(
     (r) => (r.priority || "").toUpperCase() === "URGENT" || (r.priority || "").toUpperCase() === "HIGH"
-  ).length;
+  ).length, [requests]);
 
   const isApprover = user?.role === "approver";
 
@@ -648,11 +731,17 @@ export default function GAHRDRequestsPage() {
             ) : (
               <div className="flex flex-col gap-4">
                 {filtered.map((req) => {
+                  const isUrgentReq = (req.priority || "").toUpperCase() === "URGENT" || (req.priority || "").toUpperCase() === "CRITICAL";
                   const showAssign =
-                    req.rawStatus === "submitted" ||
                     req.rawStatus === "approved_department" ||
+                    req.rawStatus === "assigned_by_ga" ||
+                    req.rawStatus === "approved_hrd" ||
+                    req.rawStatus === "approved_hrd_ga" ||
+                    (isUrgentReq && req.rawStatus === "submitted") ||
                     (req.rawStatus === "driver_assigned" && req.driverName === "Not Assigned");
+                  const isPendingDeptHead = req.rawStatus === "submitted" && !isUrgentReq;
                   const showCancel = req.rawStatus === "waiting_driver";
+                  const canCancelRequest = ["submitted", "approved_department", "waiting_driver", "driver_assigned"].includes(req.rawStatus);
                   const showEdit =
                     (req.rawStatus === "waiting_driver" && !req.all_drivers_approved) ||
                     (req.is_external && ["assigned_by_ga", "on_going", "completed"].includes(req.rawStatus));
@@ -712,24 +801,48 @@ export default function GAHRDRequestsPage() {
                         </div>
                       </div>
 
-                      {/* Info on Assigned Driver/Vehicle */}
-                      {(req.driverName !== "Not Assigned" || req.vehicleModel !== "Not Assigned") && (
-                        <div className="px-6 py-2.5 bg-[#f8fafc] border-t border-[#f1f5f9] flex items-center gap-6 text-[12px]">
-                          {req.driverName !== "Not Assigned" && (
-                            <span className="text-[#475569]">
-                              <strong>Driver:</strong> {req.driverName}
-                            </span>
-                          )}
-                          {req.vehicleModel !== "Not Assigned" && (
-                            <span className="text-[#475569]">
-                              <strong>Kendaraan:</strong> {req.vehicleModel}
-                            </span>
+                      {/* Info on Assigned Driver/Vehicle & Ticket QR */}
+                      {(req.driverName !== "Not Assigned" || req.vehicleModel !== "Not Assigned" || req.qr_code_token) && (
+                        <div className="px-6 py-2.5 bg-[#f8fafc] border-t border-[#f1f5f9] flex flex-wrap items-center justify-between gap-4 text-[12px]">
+                          <div className="flex items-center gap-6">
+                            {req.driverName !== "Not Assigned" && (
+                              <span className="text-[#475569]">
+                                <strong>Driver:</strong> {req.driverName}
+                              </span>
+                            )}
+                            {req.vehicleModel !== "Not Assigned" && (
+                              <span className="text-[#475569]">
+                                <strong>Kendaraan:</strong> {req.vehicleModel}
+                              </span>
+                            )}
+                          </div>
+                          {req.qr_code_token && (
+                            ["driver_assigned", "on_going"].includes(req.rawStatus) ||
+                            (req.is_external && req.rawStatus === "assigned_by_ga")
+                          ) && (
+                            <div className="flex items-center gap-2 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-3xs">
+                              <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=40x40&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${req.qr_code_token}`)}`}
+                                alt="Ticket QR Code"
+                                className="w-6 h-6 object-contain"
+                              />
+                              <span className="text-[10px] font-mono font-bold text-slate-500">
+                                {req.qr_code_token}
+                              </span>
+                            </div>
                           )}
                         </div>
                       )}
 
                       {/* Actions */}
                       <div className="px-6 pb-5 pt-3 border-t border-[#f8fafc] flex flex-wrap items-center justify-end gap-2">
+                        {isPendingDeptHead && (
+                          <span className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 text-[11.5px] font-bold rounded-xl flex items-center gap-1.5">
+                            <Icon name="hourglass_empty" className="text-[15px]" />
+                            Menunggu Persetujuan K.Dep Asal
+                          </span>
+                        )}
+
                         {showAssign && (
                           <button
                             onClick={(e) => {
@@ -762,13 +875,28 @@ export default function GAHRDRequestsPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleCancelAssignment(req.id);
+                              setCancelConfirmRequestId(req.id);
                             }}
                             disabled={actionLoading}
                             className="px-5 h-9 bg-white border border-red-200 text-red-600 text-[12.5px] font-bold rounded-xl hover:bg-red-50 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                           >
                             <Icon name="cancel" className="text-[16px]" />
                             Batalkan Penugasan
+                          </button>
+                        )}
+
+                        {canCancelRequest && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteReason("");
+                              setDeleteConfirmRequestId(req.id);
+                            }}
+                            disabled={actionLoading}
+                            className="px-5 h-9 bg-white border border-red-200 text-red-600 text-[12.5px] font-bold rounded-xl hover:bg-red-50 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            <Icon name="delete" className="text-[16px]" />
+                            Batalkan Pengajuan
                           </button>
                         )}
 
@@ -859,6 +987,7 @@ export default function GAHRDRequestsPage() {
             </div>
 
             <form onSubmit={handleAssignSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+
               {assignError && (
                 <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded-xl text-[12px] font-semibold flex items-center gap-2">
                   <Icon name="error" className="text-[16px]" />
@@ -866,7 +995,7 @@ export default function GAHRDRequestsPage() {
                 </div>
               )}
 
-              {/* Priority Selection */}
+              {/* Konfirmasi Prioritas */}
               <div>
                 <label className="block text-[11px] font-bold text-[#475569] mb-1.5">Konfirmasi Prioritas</label>
                 <select
@@ -886,645 +1015,788 @@ export default function GAHRDRequestsPage() {
                 </select>
               </div>
 
-              {/* Internal vs External Toggle */}
-              <div>
-                <label className="block text-[11px] font-bold text-[#475569] mb-1.5">Penyedia Kendaraan</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 text-[13px] text-slate-700 font-medium cursor-pointer">
-                    <input
-                      type="radio"
-                      name="fleet_type"
-                      checked={!isExternal}
-                      onChange={() => setIsExternal(false)}
-                      disabled={isEdit}
-                      className="text-[#1e3a8a] focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                    Armada Internal
-                  </label>
-                  
-                  <label className="flex items-center gap-2 text-[13px] font-medium text-slate-700 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="fleet_type"
-                      checked={isExternal}
-                      onChange={() => setIsExternal(true)}
-                      disabled={isEdit}
-                      className="text-[#1e3a8a] focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                    Pihak Ketiga (Sewa Eksternal)
-                  </label>
-                </div>
-                {(selectedPriority === "Urgent" || selectedPriority === "Critical") ? (
-                  <p className="text-[10px] text-blue-600 font-semibold mt-1">
-                    *Prioritas Urgent / Critical dapat menggunakan pihak ketiga jika armada internal penuh.
-                  </p>
-                ) : (
-                  <p className="text-[10px] text-slate-400 font-semibold mt-1">
-                    *Gunakan pihak ketiga jika armada internal penuh/tidak mencukupi.
-                  </p>
-                )}
-              </div>
-
-              {isExternal ? (
-                /* Fields for Third Party */
-                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 space-y-3">
-                  <div className="text-[12px] font-bold text-blue-800">Detail Sewa Pihak Ketiga</div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-blue-700 mb-1">Nama Provider / Vendor</label>
-                    <input
-                      type="text"
-                      required
-                      value={externalProvider}
-                      onChange={(e) => setExternalProvider(e.target.value)}
-                      placeholder="Contoh: TRAC, Golden Bird, Grab, dll"
-                      disabled={isEdit}
-                      className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-blue-700 mb-1">Tipe Perjalanan</label>
-                    <div className="flex gap-4">
-                      <label className="flex items-center gap-2 text-[12.5px] text-slate-700 font-medium cursor-pointer">
-                        <input
-                          type="radio"
-                          name="external_trip_type"
-                          checked={externalTripType === "round_trip"}
-                          onChange={() => setExternalTripType("round_trip")}
-                          disabled={isEdit}
-                          className="text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                        />
-                        Pulang Pergi (PP)
-                      </label>
-                      <label className="flex items-center gap-2 text-[12.5px] text-slate-700 font-medium cursor-pointer">
-                        <input
-                          type="radio"
-                          name="external_trip_type"
-                          checked={externalTripType === "one_way"}
-                          onChange={() => setExternalTripType("one_way")}
-                          disabled={isEdit}
-                          className="text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                        />
-                        Sekali Jalan (Hanya Berangkat)
-                      </label>
+              {/* Multi-Day Segmented Assignment Mode */}
+              {selectedRequest?.itineraries && selectedRequest.itineraries.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3 text-blue-900 text-[12.5px] font-bold">
+                    <Icon name="calendar_month" className="text-blue-600 text-xl" />
+                    <div>
+                      <div>Penugasan Harian (Multi-Day Segmented Assignment)</div>
+                      <div className="text-[11px] text-blue-700 font-normal">Tentukan Driver/Mobil internal atau Sewa Pihak Ke-3 untuk tiap tanggal perjalanan.</div>
                     </div>
                   </div>
 
-                  {externalTripType === "round_trip" ? (
-                    /* PP: 1 Cost & 1 Fleet Info */
-                    <div className="space-y-3">
+                  <div className="space-y-4">
+                    {dailyAssignments.map((asg, idx) => {
+                      const itDate = asg.date;
+                      // Filter drivers available for this specific date
+                      const dateAvailableDrivers = drivers.filter(d => {
+                        if (d.status !== "AVAILABLE" && String(d.id) !== String(asg.driver_id)) return false;
+                        // Check if driver has other assignment on itDate
+                        const isBusy = requests.some(r => {
+                          if (String(r.id) === String(selectedRequest.id)) return false;
+                          if (["completed", "rejected", "cancelled"].includes(r.rawStatus)) return false;
+                          if (r.startTime && r.startTime.substring(0, 10) === itDate && String(r.driverId) === String(d.id)) return true;
+                          return false;
+                        });
+                        return !isBusy;
+                      });
+
+                      const dateAvailableVehicles = vehicles.filter(v => {
+                        if (v.status !== "AVAILABLE" && String(v.id) !== String(asg.vehicle_id)) return false;
+                        const isBusy = requests.some(r => {
+                          if (String(r.id) === String(selectedRequest.id)) return false;
+                          if (["completed", "rejected", "cancelled"].includes(r.rawStatus)) return false;
+                          if (r.startTime && r.startTime.substring(0, 10) === itDate && String(r.vehicleId) === String(v.id)) return true;
+                          return false;
+                        });
+                        return !isBusy;
+                      });
+
+                      return (
+                        <div key={asg.itinerary_id || idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                            <span className="font-extrabold text-[#00236f] text-[13px] flex items-center gap-1.5">
+                              <Icon name="event" className="text-blue-600 text-base" />
+                              Hari ke-{idx + 1}: {itDate ? new Date(itDate).toLocaleDateString("id-ID", { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' }) : `Hari ${idx+1}`}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <label className="text-[11px] font-bold text-slate-600 cursor-pointer flex items-center gap-1">
+                                <input
+                                  type="checkbox"
+                                  checked={asg.is_external}
+                                  onChange={e => {
+                                    const checked = e.target.checked;
+                                    setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, is_external: checked } : item));
+                                  }}
+                                  className="rounded text-blue-600"
+                                />
+                                Sewa Pihak Ke-3
+                              </label>
+                            </div>
+                          </div>
+
+                          {asg.is_external ? (
+                            /* External Inputs for this date */
+                            <div className="space-y-2 text-[12px] bg-purple-50/50 p-3 rounded-xl border border-purple-100">
+                              <div className="font-bold text-purple-900 text-[11px]">Mobil Sewa Pihak Ke-3 ({itDate})</div>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <input
+                                  type="text"
+                                  value={asg.external_driver_name}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, external_driver_name: val } : item));
+                                  }}
+                                  placeholder="Nama Driver Sewa"
+                                  className="h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-white"
+                                />
+                                <input
+                                  type="text"
+                                  value={asg.external_license_plate}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, external_license_plate: val } : item));
+                                  }}
+                                  placeholder="Plat Nomor"
+                                  className="h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-white"
+                                />
+                                <input
+                                  type="text"
+                                  value={asg.third_party_cost}
+                                  onChange={e => {
+                                    const val = formatNumberIndonesian(e.target.value);
+                                    setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, third_party_cost: val } : item));
+                                  }}
+                                  placeholder="Biaya Sewa (Rp)"
+                                  className="h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-white"
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            /* Internal Fleet Dropdowns for this date */
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
+                              <div>
+                                <label className="block text-[11px] font-bold text-slate-600 mb-1">Driver Internal ({itDate})</label>
+                                <select
+                                  value={asg.driver_id}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, driver_id: val } : item));
+                                  }}
+                                  className="w-full h-9 px-2 border border-slate-200 rounded-xl text-[12px] bg-white focus:outline-none"
+                                >
+                                  <option value="">-- Pilih Driver --</option>
+                                  {dateAvailableDrivers.map(d => (
+                                    <option key={d.id} value={d.id}>{d.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-[11px] font-bold text-slate-600 mb-1">Mobil Internal ({itDate})</label>
+                                <select
+                                  value={asg.vehicle_id}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, vehicle_id: val } : item));
+                                  }}
+                                  className="w-full h-9 px-2 border border-slate-200 rounded-xl text-[12px] bg-white focus:outline-none"
+                                >
+                                  <option value="">-- Pilih Mobil --</option>
+                                  {dateAvailableVehicles.map(v => (
+                                    <option key={v.id} value={v.id}>{v.model} ({v.plate})</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                /* Single Day Request Form */
+                <div className="space-y-4">
+                  {/* Internal vs External Toggle */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#475569] mb-1.5">Penyedia Kendaraan</label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 text-[13px] text-slate-700 font-medium cursor-pointer">
+                        <input
+                          type="radio"
+                          name="fleet_type"
+                          checked={!isExternal}
+                          onChange={() => setIsExternal(false)}
+                          disabled={isEdit}
+                          className="text-[#1e3a8a] focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        Armada Internal
+                      </label>
+                      
+                      <label className="flex items-center gap-2 text-[13px] font-medium text-slate-700 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="fleet_type"
+                          checked={isExternal}
+                          onChange={() => setIsExternal(true)}
+                          disabled={isEdit}
+                          className="text-[#1e3a8a] focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        Pihak Ketiga (Sewa Eksternal)
+                      </label>
+                    </div>
+                    {(selectedPriority === "Urgent" || selectedPriority === "Critical") ? (
+                      <p className="text-[10px] text-blue-600 font-semibold mt-1">
+                        *Prioritas Urgent / Critical dapat menggunakan pihak ketiga jika armada internal penuh.
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-slate-400 font-semibold mt-1">
+                        *Gunakan pihak ketiga jika armada internal penuh/tidak mencukupi.
+                      </p>
+                    )}
+                  </div>
+
+                  {isExternal ? (
+                    /* Fields for Third Party */
+                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 space-y-3">
+                      <div className="text-[12px] font-bold text-blue-800">Detail Sewa Pihak Ketiga</div>
                       <div>
-                        <label className="block text-[11px] font-bold text-blue-700 mb-1">Biaya Sewa PP (Cost - Rp)</label>
+                        <label className="block text-[11px] font-bold text-blue-700 mb-1">Nama Provider / Vendor</label>
                         <input
                           type="text"
                           required
-                          value={thirdPartyCost}
-                          onChange={(e) => setThirdPartyCost(formatNumberIndonesian(e.target.value))}
-                          placeholder="Contoh: 600.000"
-                          disabled={isEdit}
-                          className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-bold text-blue-700 mb-1">Nama Driver</label>
-                          <input
-                            type="text"
-                            value={externalDriverName}
-                            onChange={(e) => setExternalDriverName(e.target.value)}
-                            placeholder="Contoh: Budi Santoso"
-                            disabled={isEdit}
-                            className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-bold text-blue-700 mb-1">Plat Nomor</label>
-                          <input
-                            type="text"
-                            value={externalLicensePlate}
-                            onChange={(e) => setExternalLicensePlate(e.target.value)}
-                            placeholder="Contoh: B 1234 CD"
-                            disabled={isEdit}
-                            className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-blue-700 mb-1">Detail Tambahan (Opsional)</label>
-                        <input
-                          type="text"
-                          value={externalFleetInfo}
-                          onChange={(e) => setExternalFleetInfo(e.target.value)}
-                          placeholder="Contoh: Toyota Avanza Silver, HP: 0812..."
+                          value={externalProvider}
+                          onChange={(e) => setExternalProvider(e.target.value)}
+                          placeholder="Contoh: TRAC, Golden Bird, Grab, dll"
                           disabled={isEdit}
                           className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-blue-700 mb-1">Upload Foto / Dokumen Armada (Opsional)</label>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              setExternalPhoto(e.target.files[0]);
-                            }
-                          }}
-                          disabled={isEdit}
-                          className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[11px] file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        />
-                        {externalPhoto && (
-                          <p className="text-[10px] text-blue-800 font-semibold mt-1">
-                            Terpilih: {externalPhoto.name} ({(externalPhoto.size / 1024).toFixed(1)} KB)
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    /* Sekali Jalan: 2 Separate Fleet Infos & 2 Separate Costs */
-                    <div className="space-y-4">
-                      {/* 1. Armada Berangkat */}
-                      <div className="p-3 bg-white rounded-xl border border-blue-100 space-y-2">
-                        <div className="text-[11.5px] font-bold text-blue-800 flex items-center gap-1">
-                          <span>🚙</span> Armada Keberangkatan
-                        </div>
-                        <div>
-                          <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Biaya Berangkat (Rp)</label>
-                          <input
-                            type="text"
-                            required
-                            value={externalDepartureCost}
-                            onChange={(e) => setExternalDepartureCost(formatNumberIndonesian(e.target.value))}
-                            placeholder="Contoh: 300.000"
-                            disabled={isEdit}
-                            className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Nama Driver Berangkat</label>
+                        <label className="block text-[11px] font-bold text-blue-700 mb-1">Tipe Perjalanan</label>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 text-[12.5px] text-slate-700 font-medium cursor-pointer">
                             <input
-                              type="text"
-                              value={externalDriverName}
-                              onChange={(e) => setExternalDriverName(e.target.value)}
-                              placeholder="Nama driver..."
+                              type="radio"
+                              name="external_trip_type"
+                              checked={externalTripType === "round_trip"}
+                              onChange={() => setExternalTripType("round_trip")}
                               disabled={isEdit}
-                              className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                              className="text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                             />
-                          </div>
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Plat Nomor Berangkat</label>
+                            Pulang Pergi (PP)
+                          </label>
+                          <label className="flex items-center gap-2 text-[12.5px] text-slate-700 font-medium cursor-pointer">
                             <input
-                              type="text"
-                              value={externalLicensePlate}
-                              onChange={(e) => setExternalLicensePlate(e.target.value)}
-                              placeholder="Plat nomor..."
+                              type="radio"
+                              name="external_trip_type"
+                              checked={externalTripType === "one_way"}
+                              onChange={() => setExternalTripType("one_way")}
                               disabled={isEdit}
-                              className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                              className="text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                             />
-                          </div>
+                            Sekali Jalan (Hanya Berangkat)
+                          </label>
                         </div>
-                        <div>
-                          <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Detail Tambahan Berangkat (Opsional)</label>
-                          <input
-                            type="text"
-                            value={externalFleetInfo}
-                            onChange={(e) => setExternalFleetInfo(e.target.value)}
-                            placeholder="Model mobil, HP driver..."
-                            disabled={isEdit}
-                            className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Foto Armada Berangkat (Opsional)</label>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              if (e.target.files && e.target.files[0]) {
-                                setExternalPhoto(e.target.files[0]);
-                              }
-                            }}
-                            disabled={isEdit}
-                            className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          />
-                          {externalPhoto && (
-                            <p className="text-[10px] text-blue-800 font-semibold mt-0.5">
-                              Terpilih: {externalPhoto.name}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* 2. Armada Penjemputan */}
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                        <div className="text-[11.5px] font-bold text-slate-700 flex items-center gap-1">
-                          <span>🔄</span> Armada Penjemputan / Pulang
-                          <span className="text-[9.5px] font-normal text-slate-400 ml-1">(Opsional - Bisa diisi nanti saat Edit)</span>
-                        </div>
-                        <div>
-                          <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Biaya Penjemputan (Rp)</label>
-                          <input
-                            type="text"
-                            value={externalReturnCost}
-                            onChange={(e) => setExternalReturnCost(formatNumberIndonesian(e.target.value))}
-                            placeholder="Contoh: 300.000"
-                            className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Nama Driver Penjemputan</label>
-                            <input
-                              type="text"
-                              value={externalReturnDriverName}
-                              onChange={(e) => setExternalReturnDriverName(e.target.value)}
-                              placeholder="Nama driver..."
-                              className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Plat Nomor Penjemputan</label>
-                            <input
-                              type="text"
-                              value={externalReturnLicensePlate}
-                              onChange={(e) => setExternalReturnLicensePlate(e.target.value)}
-                              placeholder="Plat nomor..."
-                              className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Detail Tambahan Penjemputan (Opsional)</label>
-                          <input
-                            type="text"
-                            value={externalReturnFleetInfo}
-                            onChange={(e) => setExternalReturnFleetInfo(e.target.value)}
-                            placeholder="Model mobil, HP driver..."
-                            className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Foto Armada Penjemputan (Opsional)</label>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              if (e.target.files && e.target.files[0]) {
-                                setExternalReturnPhoto(e.target.files[0]);
-                              }
-                            }}
-                            className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-slate-600 file:text-white hover:file:bg-slate-700 cursor-pointer"
-                          />
-                          {externalReturnPhoto && (
-                            <p className="text-[10px] text-slate-700 font-semibold mt-0.5">
-                              Terpilih: {externalReturnPhoto.name}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                  {/* Second external vehicle details if passenger count > 6 */}
-                  {selectedRequest?.passengerCount > 6 && (
-                    <div className="pt-4 border-t border-blue-200 space-y-3">
-                      <div className="text-[12px] font-bold text-blue-800 flex justify-between">
-                        <span>🚙 Detail Sewa Pihak Ketiga - Mobil Kedua (Opsional)</span>
-                        <span className="text-[10px] text-blue-700 font-semibold bg-blue-100 px-2 py-0.5 rounded">
-                          Bisa 2 Kendaraan
-                        </span>
                       </div>
 
                       {externalTripType === "round_trip" ? (
-                        /* PP: Cost & Driver info for second vehicle */
+                        /* PP: 1 Cost & 1 Fleet Info */
                         <div className="space-y-3">
                           <div>
-                            <label className="block text-[11px] font-bold text-blue-700 mb-1">Biaya Sewa PP Mobil 2 (Cost - Rp)</label>
+                            <label className="block text-[11px] font-bold text-blue-700 mb-1">Biaya Sewa PP (Cost - Rp)</label>
                             <input
                               type="text"
-                              value={thirdPartyCost2}
-                              onChange={(e) => setThirdPartyCost2(formatNumberIndonesian(e.target.value))}
+                              required
+                              value={thirdPartyCost}
+                              onChange={(e) => setThirdPartyCost(formatNumberIndonesian(e.target.value))}
                               placeholder="Contoh: 600.000"
                               disabled={isEdit}
-                              className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                              className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                             />
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-[11px] font-bold text-blue-700 mb-1">Nama Driver Mobil 2</label>
+                              <label className="block text-[11px] font-bold text-blue-700 mb-1">Nama Driver</label>
                               <input
                                 type="text"
-                                value={externalDriverName2}
-                                onChange={(e) => setExternalDriverName2(e.target.value)}
-                                placeholder="Contoh: Doni"
+                                value={externalDriverName}
+                                onChange={(e) => setExternalDriverName(e.target.value)}
+                                placeholder="Contoh: Budi Santoso"
                                 disabled={isEdit}
-                                className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                                className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                               />
                             </div>
                             <div>
-                              <label className="block text-[11px] font-bold text-blue-700 mb-1">Plat Nomor Mobil 2</label>
+                              <label className="block text-[11px] font-bold text-blue-700 mb-1">Plat Nomor</label>
                               <input
                                 type="text"
-                                value={externalLicensePlate2}
-                                onChange={(e) => setExternalLicensePlate2(e.target.value)}
-                                placeholder="Contoh: B 5678 EF"
+                                value={externalLicensePlate}
+                                onChange={(e) => setExternalLicensePlate(e.target.value)}
+                                placeholder="Contoh: B 1234 CD"
                                 disabled={isEdit}
-                                className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                                className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                               />
                             </div>
                           </div>
                           <div>
-                            <label className="block text-[11px] font-bold text-blue-700 mb-1">Detail Tambahan Mobil 2 (Opsional)</label>
+                            <label className="block text-[11px] font-bold text-blue-700 mb-1">Detail Tambahan (Opsional)</label>
                             <input
                               type="text"
-                              value={externalFleetInfo2}
-                              onChange={(e) => setExternalFleetInfo2(e.target.value)}
-                              placeholder="Contoh: Suzuki Ertiga, Hitam"
+                              value={externalFleetInfo}
+                              onChange={(e) => setExternalFleetInfo(e.target.value)}
+                              placeholder="Contoh: Toyota Avanza Silver, HP: 0812..."
                               disabled={isEdit}
-                              className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                              className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                             />
                           </div>
                           <div>
-                            <label className="block text-[11px] font-bold text-blue-700 mb-1">Upload Foto / Dokumen Mobil 2 (Opsional)</label>
+                            <label className="block text-[11px] font-bold text-blue-700 mb-1">Upload Foto / Dokumen Armada (Opsional)</label>
                             <input
                               type="file"
                               accept="image/*"
                               onChange={(e) => {
                                 if (e.target.files && e.target.files[0]) {
-                                  setExternalPhoto2(e.target.files[0]);
+                                  setExternalPhoto(e.target.files[0]);
                                 }
                               }}
                               disabled={isEdit}
-                              className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[11px] file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer disabled:opacity-50"
+                              className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[11px] file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             />
-                            {externalPhoto2 && (
+                            {externalPhoto && (
                               <p className="text-[10px] text-blue-800 font-semibold mt-1">
-                                Terpilih: {externalPhoto2.name} ({(externalPhoto2.size / 1024).toFixed(1)} KB)
+                                Terpilih: {externalPhoto.name} ({(externalPhoto.size / 1024).toFixed(1)} KB)
                               </p>
                             )}
                           </div>
                         </div>
                       ) : (
-                        /* Sekali jalan: departure & return details for second vehicle */
+                        /* Sekali Jalan: 2 Separate Fleet Infos & 2 Separate Costs */
                         <div className="space-y-4">
-                          {/* Departure 2 */}
+                          {/* 1. Armada Berangkat */}
                           <div className="p-3 bg-white rounded-xl border border-blue-100 space-y-2">
-                            <div className="text-[11.5px] font-bold text-blue-800">🚙 Armada Keberangkatan Mobil 2</div>
+                            <div className="text-[11.5px] font-bold text-blue-800 flex items-center gap-1">
+                              <span>🚙</span> Armada Keberangkatan
+                            </div>
                             <div>
-                              <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Biaya Berangkat Mobil 2 (Rp)</label>
+                              <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Biaya Berangkat (Rp)</label>
                               <input
                                 type="text"
-                                value={externalDepartureCost2}
-                                onChange={(e) => setExternalDepartureCost2(formatNumberIndonesian(e.target.value))}
+                                required
+                                value={externalDepartureCost}
+                                onChange={(e) => setExternalDepartureCost(formatNumberIndonesian(e.target.value))}
                                 placeholder="Contoh: 300.000"
                                 disabled={isEdit}
-                                className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                                className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                               />
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                               <div>
-                                <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Nama Driver Berangkat Mobil 2</label>
+                                <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Nama Driver Berangkat</label>
                                 <input
                                   type="text"
-                                  value={externalDriverName2}
-                                  onChange={(e) => setExternalDriverName2(e.target.value)}
+                                  value={externalDriverName}
+                                  onChange={(e) => setExternalDriverName(e.target.value)}
                                   placeholder="Nama driver..."
                                   disabled={isEdit}
-                                  className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                                  className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Plat Nomor Berangkat Mobil 2</label>
+                                <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Plat Nomor Berangkat</label>
                                 <input
                                   type="text"
-                                  value={externalLicensePlate2}
-                                  onChange={(e) => setExternalLicensePlate2(e.target.value)}
+                                  value={externalLicensePlate}
+                                  onChange={(e) => setExternalLicensePlate(e.target.value)}
                                   placeholder="Plat nomor..."
                                   disabled={isEdit}
-                                  className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                                  className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                                 />
                               </div>
                             </div>
                             <div>
-                              <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Detail Tambahan Berangkat Mobil 2</label>
+                              <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Detail Tambahan Berangkat (Opsional)</label>
                               <input
                                 type="text"
-                                value={externalFleetInfo2}
-                                onChange={(e) => setExternalFleetInfo2(e.target.value)}
-                                placeholder="Model mobil..."
+                                value={externalFleetInfo}
+                                onChange={(e) => setExternalFleetInfo(e.target.value)}
+                                placeholder="Model mobil, HP driver..."
                                 disabled={isEdit}
-                                className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                                className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                               />
                             </div>
                             <div>
-                              <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Foto Armada Berangkat Mobil 2</label>
+                              <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Foto Armada Berangkat (Opsional)</label>
                               <input
                                 type="file"
                                 accept="image/*"
                                 onChange={(e) => {
                                   if (e.target.files && e.target.files[0]) {
-                                    setExternalPhoto2(e.target.files[0]);
+                                    setExternalPhoto(e.target.files[0]);
                                   }
                                 }}
                                 disabled={isEdit}
-                                className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer disabled:opacity-50"
+                                className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                               />
-                              {externalPhoto2 && (
+                              {externalPhoto && (
                                 <p className="text-[10px] text-blue-800 font-semibold mt-0.5">
-                                  Terpilih: {externalPhoto2.name}
+                                  Terpilih: {externalPhoto.name}
                                 </p>
                               )}
                             </div>
                           </div>
 
-                          {/* Return 2 */}
+                          {/* 2. Armada Penjemputan */}
                           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                            <div className="text-[11.5px] font-bold text-slate-700">🔄 Armada Penjemputan Mobil 2</div>
+                            <div className="text-[11.5px] font-bold text-slate-700 flex items-center gap-1">
+                              <span>🔄</span> Armada Penjemputan / Pulang
+                              <span className="text-[9.5px] font-normal text-slate-400 ml-1">(Opsional - Bisa diisi nanti saat Edit)</span>
+                            </div>
                             <div>
-                              <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Biaya Penjemputan Mobil 2 (Rp)</label>
+                              <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Biaya Penjemputan (Rp)</label>
                               <input
                                 type="text"
-                                value={externalReturnCost2}
-                                onChange={(e) => setExternalReturnCost2(formatNumberIndonesian(e.target.value))}
+                                value={externalReturnCost}
+                                onChange={(e) => setExternalReturnCost(formatNumberIndonesian(e.target.value))}
                                 placeholder="Contoh: 300.000"
                                 className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none"
                               />
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                               <div>
-                                <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Nama Driver Penjemputan Mobil 2</label>
+                                <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Nama Driver Penjemputan</label>
                                 <input
                                   type="text"
-                                  value={externalReturnDriverName2}
-                                  onChange={(e) => setExternalReturnDriverName2(e.target.value)}
+                                  value={externalReturnDriverName}
+                                  onChange={(e) => setExternalReturnDriverName(e.target.value)}
                                   placeholder="Nama driver..."
                                   className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none"
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Plat Nomor Penjemputan Mobil 2</label>
+                                <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Plat Nomor Penjemputan</label>
                                 <input
                                   type="text"
-                                  value={externalReturnLicensePlate2}
-                                  onChange={(e) => setExternalReturnLicensePlate2(e.target.value)}
+                                  value={externalReturnLicensePlate}
+                                  onChange={(e) => setExternalReturnLicensePlate(e.target.value)}
                                   placeholder="Plat nomor..."
                                   className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none"
                                 />
                               </div>
                             </div>
                             <div>
-                              <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Detail Tambahan Penjemputan Mobil 2</label>
+                              <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Detail Tambahan Penjemputan (Opsional)</label>
                               <input
                                 type="text"
-                                value={externalReturnFleetInfo2}
-                                onChange={(e) => setExternalReturnFleetInfo2(e.target.value)}
-                                placeholder="Model mobil..."
+                                value={externalReturnFleetInfo}
+                                onChange={(e) => setExternalReturnFleetInfo(e.target.value)}
+                                placeholder="Model mobil, HP driver..."
                                 className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none"
                               />
                             </div>
                             <div>
-                              <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Foto Armada Penjemputan Mobil 2</label>
+                              <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Foto Armada Penjemputan (Opsional)</label>
                               <input
                                 type="file"
                                 accept="image/*"
                                 onChange={(e) => {
                                   if (e.target.files && e.target.files[0]) {
-                                    setExternalReturnPhoto2(e.target.files[0]);
+                                    setExternalReturnPhoto(e.target.files[0]);
                                   }
                                 }}
                                 className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-slate-600 file:text-white hover:file:bg-slate-700 cursor-pointer"
                               />
-                              {externalReturnPhoto2 && (
+                              {externalReturnPhoto && (
                                 <p className="text-[10px] text-slate-700 font-semibold mt-0.5">
-                                  Terpilih: {externalReturnPhoto2.name}
+                                  Terpilih: {externalReturnPhoto.name}
                                 </p>
                               )}
                             </div>
                           </div>
                         </div>
                       )}
-                    </div>
-                  )}
 
-                  <div className="p-2.5 bg-blue-50 border border-blue-200/50 rounded-xl flex justify-between items-center text-blue-900 text-[12px] font-bold">
-                    <span>Total Biaya Sewa (Semua Mobil):</span>
-                    <span className="text-[13.5px] font-extrabold">
-                      Rp {(
-                        externalTripType === "round_trip"
-                          ? cleanNumber(thirdPartyCost) + (selectedRequest?.passengerCount > 6 ? cleanNumber(thirdPartyCost2) : 0)
-                          : cleanNumber(externalDepartureCost) + cleanNumber(externalReturnCost) + (selectedRequest?.passengerCount > 6 ? (cleanNumber(externalDepartureCost2) + cleanNumber(externalReturnCost2)) : 0)
-                      ).toLocaleString('id-ID')}
-                    </span>
-                  </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                /* Fields for Internal */
-                <div className="space-y-4">
-                  {/* Estimasi Durasi (Hanya Internal) */}
-                  <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
-                    <label className="block text-[11px] font-bold text-[#475569] mb-1.5">Estimasi Lama Perjalanan (Jam)</label>
-                    <input
-                      type="number"
-                      required={!isExternal}
-                      min="1"
-                      value={estimatedDuration}
-                      onChange={(e) => setEstimatedDuration(e.target.value)}
-                      placeholder="Contoh: 3"
-                      disabled={isEdit}
-                      className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                    />
-                  </div>
-                  {/* Set 1: Driver & Vehicle */}
-                  <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-3">
-                    <div className="text-[12px] font-bold text-slate-800 flex justify-between">
-                      <span>Kendaraan & Driver Utama</span>
+                      {/* Second external vehicle details if passenger count > 6 */}
                       {selectedRequest?.passengerCount > 6 && (
-                        <span className="text-[10px] text-blue-700 font-semibold bg-blue-50 px-2 py-0.5 rounded">
-                          Penumpang: {selectedRequest?.passengerCount} (Bisa 2 Kendaraan)
-                        </span>
-                      )}
-                    </div>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-bold text-[#475569] mb-1">Driver</label>
-                        <select
-                          required={!isExternal}
-                          value={selectedDriverId}
-                          onChange={(e) => setSelectedDriverId(e.target.value)}
-                          className="w-full h-10 px-2 border border-[#e2e8f0] rounded-xl text-[12.5px] bg-white focus:outline-none"
-                        >
-                          <option value="">-- Pilih Driver --</option>
-                          {availableDrivers.map((d) => (
-                            <option key={d.id} value={d.id}>{d.name}</option>
-                          ))}
-                        </select>
-                      </div>
+                        <div className="pt-4 border-t border-blue-200 space-y-3">
+                          <div className="text-[12px] font-bold text-blue-800 flex justify-between">
+                            <span>🚙 Detail Sewa Pihak Ketiga - Mobil Kedua (Opsional)</span>
+                            <span className="text-[10px] text-blue-700 font-semibold bg-blue-100 px-2 py-0.5 rounded">
+                              Bisa 2 Kendaraan
+                            </span>
+                          </div>
 
-                      <div>
-                        <label className="block text-[11px] font-bold text-[#475569] mb-1">Kendaraan</label>
-                        <select
-                          required={!isExternal}
-                          value={selectedVehicleId}
-                          onChange={(e) => setSelectedVehicleId(e.target.value)}
-                          className="w-full h-10 px-2 border border-[#e2e8f0] rounded-xl text-[12.5px] bg-white focus:outline-none"
-                          disabled={loadingVehicles}
-                        >
-                          {loadingVehicles ? (
-                            <option value="">-- Memuat Mobil... --</option>
+                          {externalTripType === "round_trip" ? (
+                            <div className="space-y-3">
+                              <div>
+                                <label className="block text-[11px] font-bold text-blue-700 mb-1">Biaya Sewa PP Mobil 2 (Cost - Rp)</label>
+                                <input
+                                  type="text"
+                                  value={thirdPartyCost2}
+                                  onChange={(e) => setThirdPartyCost2(formatNumberIndonesian(e.target.value))}
+                                  placeholder="Contoh: 600.000"
+                                  disabled={isEdit}
+                                  className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                                />
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-[11px] font-bold text-blue-700 mb-1">Nama Driver Mobil 2</label>
+                                  <input
+                                    type="text"
+                                    value={externalDriverName2}
+                                    onChange={(e) => setExternalDriverName2(e.target.value)}
+                                    placeholder="Contoh: Doni"
+                                    disabled={isEdit}
+                                    className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[11px] font-bold text-blue-700 mb-1">Plat Nomor Mobil 2</label>
+                                  <input
+                                    type="text"
+                                    value={externalLicensePlate2}
+                                    onChange={(e) => setExternalLicensePlate2(e.target.value)}
+                                    placeholder="Contoh: B 5678 EF"
+                                    disabled={isEdit}
+                                    className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-bold text-blue-700 mb-1">Detail Tambahan Mobil 2 (Opsional)</label>
+                                <input
+                                  type="text"
+                                  value={externalFleetInfo2}
+                                  onChange={(e) => setExternalFleetInfo2(e.target.value)}
+                                  placeholder="Contoh: Suzuki Ertiga, Hitam"
+                                  disabled={isEdit}
+                                  className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-bold text-blue-700 mb-1">Upload Foto / Dokumen Mobil 2 (Opsional)</label>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                      setExternalPhoto2(e.target.files[0]);
+                                    }
+                                  }}
+                                  disabled={isEdit}
+                                  className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[11px] file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer disabled:opacity-50"
+                                />
+                                {externalPhoto2 && (
+                                  <p className="text-[10px] text-blue-800 font-semibold mt-1">
+                                    Terpilih: {externalPhoto2.name} ({(externalPhoto2.size / 1024).toFixed(1)} KB)
+                                  </p>
+                                )}
+                              </div>
+                            </div>
                           ) : (
-                            <>
-                              <option value="">-- Pilih Mobil --</option>
-                              {availableVehicles.map((v) => (
-                                <option key={v.id} value={v.id}>{v.model} ({v.plate})</option>
-                              ))}
-                            </>
+                            <div className="space-y-4">
+                              <div className="p-3 bg-white rounded-xl border border-blue-100 space-y-2">
+                                <div className="text-[11.5px] font-bold text-blue-800">🚙 Armada Keberangkatan Mobil 2</div>
+                                <div>
+                                  <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Biaya Berangkat Mobil 2 (Rp)</label>
+                                  <input
+                                    type="text"
+                                    value={externalDepartureCost2}
+                                    onChange={(e) => setExternalDepartureCost2(formatNumberIndonesian(e.target.value))}
+                                    placeholder="Contoh: 300.000"
+                                    disabled={isEdit}
+                                    className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Nama Driver Berangkat Mobil 2</label>
+                                    <input
+                                      type="text"
+                                      value={externalDriverName2}
+                                      onChange={(e) => setExternalDriverName2(e.target.value)}
+                                      placeholder="Nama driver..."
+                                      disabled={isEdit}
+                                      className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Plat Nomor Berangkat Mobil 2</label>
+                                    <input
+                                      type="text"
+                                      value={externalLicensePlate2}
+                                      onChange={(e) => setExternalLicensePlate2(e.target.value)}
+                                      placeholder="Plat nomor..."
+                                      disabled={isEdit}
+                                      className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Detail Tambahan Berangkat Mobil 2</label>
+                                  <input
+                                    type="text"
+                                    value={externalFleetInfo2}
+                                    onChange={(e) => setExternalFleetInfo2(e.target.value)}
+                                    placeholder="Model mobil..."
+                                    disabled={isEdit}
+                                    className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Foto Armada Berangkat Mobil 2</label>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                      if (e.target.files && e.target.files[0]) {
+                                        setExternalPhoto2(e.target.files[0]);
+                                      }
+                                    }}
+                                    disabled={isEdit}
+                                    className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer disabled:opacity-50"
+                                  />
+                                  {externalPhoto2 && (
+                                    <p className="text-[10px] text-blue-800 font-semibold mt-0.5">
+                                      Terpilih: {externalPhoto2.name}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                                <div className="text-[11.5px] font-bold text-slate-700">🔄 Armada Penjemputan Mobil 2</div>
+                                <div>
+                                  <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Biaya Penjemputan Mobil 2 (Rp)</label>
+                                  <input
+                                    type="text"
+                                    value={externalReturnCost2}
+                                    onChange={(e) => setExternalReturnCost2(formatNumberIndonesian(e.target.value))}
+                                    placeholder="Contoh: 300.000"
+                                    className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Nama Driver Penjemputan Mobil 2</label>
+                                    <input
+                                      type="text"
+                                      value={externalReturnDriverName2}
+                                      onChange={(e) => setExternalReturnDriverName2(e.target.value)}
+                                      placeholder="Nama driver..."
+                                      className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Plat Nomor Penjemputan Mobil 2</label>
+                                    <input
+                                      type="text"
+                                      value={externalReturnLicensePlate2}
+                                      onChange={(e) => setExternalReturnLicensePlate2(e.target.value)}
+                                      placeholder="Plat nomor..."
+                                      className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none"
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Detail Tambahan Penjemputan Mobil 2</label>
+                                  <input
+                                    type="text"
+                                    value={externalReturnFleetInfo2}
+                                    onChange={(e) => setExternalReturnFleetInfo2(e.target.value)}
+                                    placeholder="Model mobil..."
+                                    className="w-full h-9 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] focus:outline-none"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Foto Armada Penjemputan Mobil 2</label>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                      if (e.target.files && e.target.files[0]) {
+                                        setExternalReturnPhoto2(e.target.files[0]);
+                                      }
+                                    }}
+                                    className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-slate-600 file:text-white hover:file:bg-slate-700 cursor-pointer"
+                                  />
+                                  {externalReturnPhoto2 && (
+                                    <p className="text-[10px] text-slate-700 font-semibold mt-0.5">
+                                      Terpilih: {externalReturnPhoto2.name}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           )}
-                        </select>
+                        </div>
+                      )}
+
+                      <div className="p-2.5 bg-blue-50 border border-blue-200/50 rounded-xl flex justify-between items-center text-blue-900 text-[12px] font-bold">
+                        <span>Total Biaya Sewa (Semua Mobil):</span>
+                        <span className="text-[13.5px] font-extrabold">
+                          Rp {(
+                            externalTripType === "round_trip"
+                              ? cleanNumber(thirdPartyCost) + (selectedRequest?.passengerCount > 6 ? cleanNumber(thirdPartyCost2) : 0)
+                              : cleanNumber(externalDepartureCost) + cleanNumber(externalReturnCost) + (selectedRequest?.passengerCount > 6 ? (cleanNumber(externalDepartureCost2) + cleanNumber(externalReturnCost2)) : 0)
+                          ).toLocaleString('id-ID')}
+                        </span>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    /* Internal Fleet Fields */
+                    <div className="space-y-4">
+                      {/* Estimasi Durasi (Hanya Internal) */}
+                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                        <label className="block text-[11px] font-bold text-[#475569] mb-1.5">Estimasi Lama Perjalanan (Jam)</label>
+                        <input
+                          type="number"
+                          required={!isExternal}
+                          min="1"
+                          value={estimatedDuration}
+                          onChange={(e) => setEstimatedDuration(e.target.value)}
+                          placeholder="Contoh: 3"
+                          disabled={isEdit}
+                          className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                        />
+                      </div>
 
-                  {/* Set 2: Optional Driver & Vehicle if passengerCount > 6 */}
-                  {selectedRequest?.passengerCount > 6 && (
-                    <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl space-y-3">
-                      <div className="text-[12px] font-bold text-[#1e3a8a]">Kendaraan & Driver Kedua (Opsional)</div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-bold text-blue-700 mb-1">Driver Kedua</label>
-                          <select
-                            value={selectedDriverId2}
-                            onChange={(e) => setSelectedDriverId2(e.target.value)}
-                            className="w-full h-10 px-2 border border-blue-200 rounded-xl text-[12.5px] bg-white focus:outline-none"
-                          >
-                            <option value="">-- Tanpa Driver 2 --</option>
-                             {availableDrivers.filter(d => d.id !== selectedDriverId).map((d) => (
-                              <option key={d.id} value={d.id}>{d.name}</option>
-                            ))}
-                          </select>
+                      {/* Set 1 & 2: Driver & Vehicle */}
+                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-3">
+                        <div className="text-[12px] font-bold text-slate-800 flex justify-between">
+                          <span>Kendaraan & Driver Utama</span>
+                          {selectedRequest?.passengerCount > 6 && (
+                            <span className="text-[10px] text-blue-700 font-semibold bg-blue-50 px-2 py-0.5 rounded">
+                              Penumpang: {selectedRequest?.passengerCount} (Bisa 2 Kendaraan)
+                            </span>
+                          )}
                         </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-[#475569] mb-1">Driver</label>
+                            <select
+                              required={!isExternal}
+                              value={selectedDriverId}
+                              onChange={(e) => setSelectedDriverId(e.target.value)}
+                              className="w-full h-10 px-2 border border-[#e2e8f0] rounded-xl text-[12.5px] bg-white focus:outline-none"
+                            >
+                              <option value="">-- Pilih Driver --</option>
+                              {availableDrivers.map((d) => (
+                                <option key={d.id} value={d.id}>{d.name}</option>
+                              ))}
+                            </select>
+                          </div>
 
-                        <div>
-                          <label className="block text-[11px] font-bold text-blue-700 mb-1">Mobil Kedua</label>
-                          <select
-                            value={selectedVehicleId2}
-                            onChange={(e) => setSelectedVehicleId2(e.target.value)}
-                            className="w-full h-10 px-2 border border-blue-200 rounded-xl text-[12.5px] bg-white focus:outline-none"
-                            disabled={loadingVehicles}
-                          >
-                            {loadingVehicles ? (
-                              <option value="">-- Memuat Mobil... --</option>
-                            ) : (
-                              <>
-                                <option value="">-- Tanpa Mobil 2 --</option>
-                                {availableVehicles.filter(v => v.id !== selectedVehicleId).map((v) => (
-                                  <option key={v.id} value={v.id}>{v.model} ({v.plate})</option>
-                                ))}
-                              </>
-                            )}
-                          </select>
+                          <div>
+                            <label className="block text-[11px] font-bold text-[#475569] mb-1">Kendaraan</label>
+                            <select
+                              required={!isExternal}
+                              value={selectedVehicleId}
+                              onChange={(e) => setSelectedVehicleId(e.target.value)}
+                              className="w-full h-10 px-2 border border-[#e2e8f0] rounded-xl text-[12.5px] bg-white focus:outline-none"
+                              disabled={loadingVehicles}
+                            >
+                              {loadingVehicles ? (
+                                <option value="">-- Memuat Mobil... --</option>
+                              ) : (
+                                <>
+                                  <option value="">-- Pilih Mobil --</option>
+                                  {availableVehicles.map((v) => (
+                                    <option key={v.id} value={v.id}>{v.model} ({v.plate})</option>
+                                  ))}
+                                </>
+                              )}
+                            </select>
+                          </div>
                         </div>
                       </div>
+
+                      {/* Optional Driver & Vehicle if passengerCount > 6 */}
+                      {selectedRequest?.passengerCount > 6 && (
+                        <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl space-y-3">
+                          <div className="text-[12px] font-bold text-[#1e3a8a]">Kendaraan & Driver Kedua (Opsional)</div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-bold text-blue-700 mb-1">Driver Kedua</label>
+                              <select
+                                value={selectedDriverId2}
+                                onChange={(e) => setSelectedDriverId2(e.target.value)}
+                                className="w-full h-10 px-2 border border-blue-200 rounded-xl text-[12.5px] bg-white focus:outline-none"
+                              >
+                                <option value="">-- Tanpa Driver 2 --</option>
+                                {availableDrivers.filter(d => d.id !== selectedDriverId).map((d) => (
+                                  <option key={d.id} value={d.id}>{d.name}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-[11px] font-bold text-blue-700 mb-1">Mobil Kedua</label>
+                              <select
+                                value={selectedVehicleId2}
+                                onChange={(e) => setSelectedVehicleId2(e.target.value)}
+                                className="w-full h-10 px-2 border border-blue-200 rounded-xl text-[12.5px] bg-[#fff] focus:outline-none"
+                                disabled={loadingVehicles}
+                              >
+                                {loadingVehicles ? (
+                                  <option value="">-- Memuat Mobil... --</option>
+                                ) : (
+                                  <>
+                                    <option value="">-- Tanpa Mobil 2 --</option>
+                                    {availableVehicles.filter(v => v.id !== selectedVehicleId).map((v) => (
+                                      <option key={v.id} value={v.id}>{v.model} ({v.plate})</option>
+                                    ))}
+                                  </>
+                                )}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1551,7 +1823,13 @@ export default function GAHRDRequestsPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={actionLoading || (!isExternal && (!selectedDriverId || !selectedVehicleId))}
+                  disabled={
+                    actionLoading || 
+                    (selectedRequest?.itineraries && selectedRequest.itineraries.length > 0
+                      ? dailyAssignments.length === 0 || dailyAssignments.some(asg => !asg.is_external && (!asg.driver_id || !asg.vehicle_id))
+                      : (!isExternal && (!selectedDriverId || !selectedVehicleId))
+                    )
+                  }
                   className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[12.5px] font-bold transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {actionLoading 
@@ -1576,6 +1854,114 @@ export default function GAHRDRequestsPage() {
         request={detailRequest}
         onReject={handleReject}
       />
+
+      {/* Custom Confirm Cancel Assignment Modal */}
+      {cancelConfirmRequestId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fadein p-4">
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 w-full max-w-md shadow-2xl relative animate-fadein">
+            <button
+              onClick={() => setCancelConfirmRequestId(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <Icon name="close" className="text-xl" />
+            </button>
+
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-100">
+                <Icon name="warning" className="text-3xl" />
+              </div>
+              <h3 className="text-[17px] font-extrabold text-slate-800">Batalkan Penugasan Driver?</h3>
+              <p className="text-xs text-slate-400 mt-2">
+                Apakah Anda yakin ingin membatalkan penugasan driver dan kendaraan untuk request ini? Status request akan dikembalikan menjadi Submitted.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setCancelConfirmRequestId(null)}
+                className="flex-1 py-3 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer text-xs sm:text-sm"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const reqId = cancelConfirmRequestId;
+                  setCancelConfirmRequestId(null);
+                  await handleCancelAssignment(reqId);
+                }}
+                className="flex-1 py-3 bg-[#dc2626] hover:bg-[#b91c1c] text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs sm:text-sm"
+              >
+                <Icon name="check" className="text-base" /> Ya, Batalkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Confirm Cancel Request Modal */}
+      {deleteConfirmRequestId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fadein p-4">
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 w-full max-w-md shadow-2xl relative animate-fadein">
+            <button
+              onClick={() => { setDeleteConfirmRequestId(null); setDeleteReason(""); }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <Icon name="close" className="text-xl" />
+            </button>
+
+            <div className="text-center mb-5">
+              <div className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-100">
+                <Icon name="warning" className="text-3xl" />
+              </div>
+              <h3 className="text-[17px] font-extrabold text-slate-800">Batalkan Pengajuan Request?</h3>
+              <p className="text-xs text-slate-400 mt-2">
+                Mohon masukkan alasan pembatalan. Status request akan diubah menjadi Cancelled.
+              </p>
+            </div>
+
+            {/* Reason Input */}
+            <div className="mb-5">
+              <label className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5">
+                Alasan Pembatalan <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={deleteReason}
+                onChange={e => setDeleteReason(e.target.value)}
+                placeholder="Contoh: Jadwal diubah dari manajemen / Kunjungan ditunda..."
+                rows={3}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 resize-none"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">{deleteReason.trim().length}/500 karakter (min. 5)</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => { setDeleteConfirmRequestId(null); setDeleteReason(""); }}
+                className="flex-1 py-3 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer text-xs sm:text-sm"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={actionLoading || deleteReason.trim().length < 5}
+                onClick={async () => {
+                  const reqId = deleteConfirmRequestId;
+                  const reason = deleteReason.trim();
+                  setDeleteConfirmRequestId(null);
+                  setDeleteReason("");
+                  await handleDeleteRequest(reqId, reason);
+                }}
+                className="flex-1 py-3 bg-[#dc2626] hover:bg-[#b91c1c] text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
+              >
+                <Icon name="check" className="text-base" /> Ya, Batalkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Premium Success Toast Alert */}
       {toastMessage && (

@@ -3,6 +3,7 @@ import { Layout as RoleLayout } from "../../../components/layout/RoleLayout";
 import { Icon } from "../../../components/ui/Icon";
 import { requestService } from "@/services/modules/requestService";
 import { RequestDetailModal } from "@/components/ui/RequestDetailModal";
+import { useAuthContext } from "@/auth/authContext";
 
 const TABS = ["All", "Schedules", "Approvals", "Assignments"];
 
@@ -28,6 +29,7 @@ interface NotifItem {
 }
 
 export default function NotificationsPage({ onNavigate }: { onNavigate?: (page: string) => void }) {
+  const { user } = useAuthContext();
   const [activeTab, setActiveTab] = useState("All");
   const [search, setSearch] = useState("");
   const [requests, setRequests] = useState<any[]>([]);
@@ -48,8 +50,25 @@ export default function NotificationsPage({ onNavigate }: { onNavigate?: (page: 
   };
 
   useEffect(() => {
-    fetchNotifications();
+    fetchNotifications().then(() => {
+      // Signal Topbar to re-check badge when notifications page is opened
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+    });
   }, []);
+
+  // When requests are loaded, mark ALL of them as "seen" with current status
+  // This clears the Topbar badge — same logic as WhatsApp marking messages as read
+  useEffect(() => {
+    if (requests.length > 0) {
+      const seen: Record<string, string> = {};
+      requests.forEach((r: any) => {
+        seen[String(r.id)] = r.rawStatus || r.status || '';
+      });
+      localStorage.setItem('ovms_employee_notif_seen', JSON.stringify(seen));
+      // Re-trigger Topbar badge re-fetch so it reads the updated seen map
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+    }
+  }, [requests]);
 
   // Map requests to notifications
   const notifs: NotifItem[] = requests.map(req => {
@@ -161,7 +180,7 @@ export default function NotificationsPage({ onNavigate }: { onNavigate?: (page: 
       activeNav="Notifications"
       onNavigate={(p: string) => onNavigate?.(p)}
       topbarTitle="Notification Center"
-      userRole="Employee"
+      userRole={user?.role === "approver" ? "Manager Approver" : "Employee"}
       searchPlaceholder="Cari notifikasi..."
       searchValue={search}
       onSearchChange={setSearch}

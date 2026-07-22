@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layout, Icon } from '@/components/layout/RoleLayout';
 
 export interface NotificationItem {
@@ -104,7 +104,9 @@ function NotifCard({ item, onMarkAsRead, onDelete }: {
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap mb-1">
-          <PriorityBadge priority={item.priority} />
+          {(item.priority === 'CRITICAL' || item.priority === 'URGENT') && (
+            <PriorityBadge priority={item.priority} />
+          )}
           {item.requestId && (
             <span className="text-[10px] text-[#94a3b8] font-bold font-mono">Req: {item.requestId}</span>
           )}
@@ -140,7 +142,23 @@ function NotifCard({ item, onMarkAsRead, onDelete }: {
 }
 
 export default function NotificationsPage({ onNavigate }: { onNavigate: (p: string) => void }) {
-  const [notifications, setNotifications] = useState<NotificationItem[]>(SAMPLE_NOTIFICATIONS);
+  const GAHRD_NOTIFS_KEY = 'ovms_gahrd_notifications';
+
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
+    const stored = localStorage.getItem(GAHRD_NOTIFS_KEY);
+    if (stored) {
+      try { return JSON.parse(stored); } catch {}
+    }
+    return SAMPLE_NOTIFICATIONS;
+  });
+
+  const saveNotifications = (newNotifs: NotificationItem[]) => {
+    setNotifications(newNotifs);
+    localStorage.setItem(GAHRD_NOTIFS_KEY, JSON.stringify(newNotifs));
+    // Signal Topbar to immediately re-check unread count
+    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+  };
+
   const [filter, setFilter] = useState<'all' | 'unread' | 'urgent' | 'assignment' | 'schedule'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'priority'>('newest');
 
@@ -164,9 +182,31 @@ export default function NotificationsPage({ onNavigate }: { onNavigate: (p: stri
   const scheduleCount  = notifications.filter(n => n.category === 'schedule').length;
   const assignCount    = notifications.filter(n => n.category === 'assignment').length;
 
-  const markAllRead = () => setNotifications(p => p.map(n => ({ ...n, unread: false })));
-  const markRead    = (id: string) => setNotifications(p => p.map(n => n.id === id ? { ...n, unread: false } : n));
-  const deleteNotif = (id: string) => setNotifications(p => p.filter(n => n.id !== id));
+  const markAllRead = () => saveNotifications(notifications.map(n => ({ ...n, unread: false })));
+  const markRead    = (id: string) => saveNotifications(notifications.map(n => n.id === id ? { ...n, unread: false } : n));
+  const deleteNotif = (id: string) => saveNotifications(notifications.filter(n => n.id !== id));
+
+  // Auto-mark all as read when user opens the notifications page (like WhatsApp/Gmail)
+  useEffect(() => {
+    const stored = localStorage.getItem(GAHRD_NOTIFS_KEY);
+    if (stored) {
+      try {
+        const list = JSON.parse(stored);
+        if (Array.isArray(list) && list.some((n: NotificationItem) => n.unread)) {
+          const updated = list.map((n: NotificationItem) => ({ ...n, unread: false }));
+          localStorage.setItem(GAHRD_NOTIFS_KEY, JSON.stringify(updated));
+          setNotifications(updated);
+          window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+        }
+      } catch {}
+    } else {
+      // First time: save sample data as all-read and signal Topbar
+      const updated = SAMPLE_NOTIFICATIONS.map(n => ({ ...n, unread: false }));
+      localStorage.setItem(GAHRD_NOTIFS_KEY, JSON.stringify(updated));
+      setNotifications(updated);
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const FILTERS = [
     { key: 'all',        label: 'All Notifications' },

@@ -112,10 +112,18 @@ export default function DriverNotificationsPage({ onNavigate }: Props) {
   };
 
   useEffect(() => {
-    loadRealNotifs();
+    loadRealNotifs().then(() => {
+      // Auto-mark all as read when page opens (like WhatsApp/Gmail)
+      setNotifs(prev => prev.map(n => ({ ...n, unread: false, isNew: false })));
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+    });
   }, []);
 
-  const markAllRead = () => setNotifs(prev => prev.map(n => ({ ...n, unread: false, isNew: false })));
+  const markAllRead = () => {
+    setNotifs(prev => prev.map(n => ({ ...n, unread: false, isNew: false })));
+    // Signal Topbar to immediately re-check unread count
+    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+  };
 
   const filtered = notifs.filter(n => {
     if (activeTab === "Unread")          return n.unread;

@@ -3,8 +3,21 @@ import type { Vehicle } from '../../types';
 import type { ApiResponse } from '../../types/api';
 import { ENDPOINTS } from '../../constants/endpoints';
 
+let vehicleCache: { data: ApiResponse<Vehicle[]>; timestamp: number } | null = null;
+const CACHE_TTL_MS = 20000; // 20 seconds short TTL cache
+
 export const vehicleService = {
+  clearCache: () => {
+    vehicleCache = null;
+  },
   getAll: async (params?: any): Promise<ApiResponse<Vehicle[]>> => {
+    const isDefaultFetch = !params || (Object.keys(params).length === 1 && params.per_page === 1000);
+    const now = Date.now();
+
+    if (isDefaultFetch && vehicleCache && (now - vehicleCache.timestamp < CACHE_TTL_MS)) {
+      return vehicleCache.data;
+    }
+
     const res = await apiClient.get<any>(ENDPOINTS.VEHICLES, { params });
     const list = Array.isArray(res.data?.data) ? res.data.data : [];
     
@@ -24,6 +37,7 @@ export const vehicleService = {
       backendStatus: v.status || 'Available',
       capacity: v.capacity || 5,
       photoUrl: v.photo_url || '',
+      stnkPhotoUrl: v.stnk_photo_url || '',
     }));
 
     Object.defineProperty(mapped, 'pagination', {
@@ -40,10 +54,16 @@ export const vehicleService = {
       configurable: true
     });
 
-    return {
+    const response: ApiResponse<Vehicle[]> = {
       data: mapped,
       message: res.data?.message
     };
+
+    if (isDefaultFetch) {
+      vehicleCache = { data: response, timestamp: now };
+    }
+
+    return response;
   },
   getById: async (id: string): Promise<ApiResponse<Vehicle>> => {
     const res = await apiClient.get<any>(`${ENDPOINTS.VEHICLES}/${id}`);
@@ -65,6 +85,7 @@ export const vehicleService = {
       backendStatus: v?.status || 'Available',
       capacity: v?.capacity || 5,
       photoUrl: v?.photo_url || '',
+      stnkPhotoUrl: v?.stnk_photo_url || '',
     };
 
     return {
@@ -73,6 +94,7 @@ export const vehicleService = {
     };
   },
   create: async (vehicle: Vehicle | FormData): Promise<ApiResponse<Vehicle>> => {
+    vehicleCache = null;
     let payload: any = vehicle;
     if (!(vehicle instanceof FormData)) {
       payload = {
@@ -106,6 +128,7 @@ export const vehicleService = {
       backendStatus: v?.status || 'Available',
       capacity: v?.capacity || 5,
       photoUrl: v?.photo_url || '',
+      stnkPhotoUrl: v?.stnk_photo_url || '',
     };
 
     return {
@@ -114,6 +137,7 @@ export const vehicleService = {
     };
   },
   update: async (id: string, vehicle: Partial<Vehicle> | FormData): Promise<ApiResponse<Vehicle>> => {
+    vehicleCache = null;
     let payload: any = vehicle;
     let isFormData = vehicle instanceof FormData;
     if (!isFormData) {
@@ -127,8 +151,6 @@ export const vehicleService = {
       if (v.backendStatus) payload.status = v.backendStatus;
       else if (v.status) payload.status = v.status === 'IN TRANSIT' ? 'In Use' : 'Available';
     } else {
-      // In Laravel, PUT/PATCH with multipart FormData doesn't parse files natively.
-      // We append '_method: PUT' and use POST to spoof the request method.
       if (!payload.has('_method')) {
         payload.append('_method', 'PUT');
       }
@@ -157,6 +179,7 @@ export const vehicleService = {
       backendStatus: v?.status || 'Available',
       capacity: v?.capacity || 5,
       photoUrl: v?.photo_url || '',
+      stnkPhotoUrl: v?.stnk_photo_url || '',
     };
 
     return {
@@ -165,6 +188,7 @@ export const vehicleService = {
     };
   },
   delete: async (id: string): Promise<ApiResponse<void>> => {
+    vehicleCache = null;
     const res = await apiClient.delete<any>(`${ENDPOINTS.VEHICLES}/${id}`);
     return {
       data: undefined,
@@ -172,4 +196,3 @@ export const vehicleService = {
     };
   },
 };
-

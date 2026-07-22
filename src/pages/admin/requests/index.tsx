@@ -205,6 +205,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
   const [assignNotes, setAssignNotes] = useState("");
   const [assigning, setAssigning] = useState(false);
   const [assignError, setAssignError] = useState("");
+  const [cancelConfirmRequestId, setCancelConfirmRequestId] = useState<string | null>(null);
 
   const handleOpenAssignModal = async (req: any) => {
     setAssignRequest(req);
@@ -245,7 +246,6 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
   };
 
   const handleCancelAssignment = async (requestId: string) => {
-    if (!confirm("Apakah Anda yakin ingin membatalkan penugasan driver untuk request ini?")) return;
     try {
       const res = await assignmentService.getAll({ per_page: 1000 });
       const assignment = (res.data || []).find((a: any) => String(a.request?.id) === String(requestId) && a.status === 'pending_driver');
@@ -565,7 +565,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
 
                         {r.rawStatus === "waiting_driver" && (
                           <button
-                            onClick={() => handleCancelAssignment(r.id)}
+                            onClick={() => setCancelConfirmRequestId(r.id)}
                             className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#fef2f2] text-[#dc2626] text-[12px] font-semibold hover:bg-[#fee2e2] transition cursor-pointer"
                           >
                             <Icon name="cancel" className="text-[14px]" />Cancel
@@ -1114,6 +1114,50 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Custom Confirm Cancel Assignment Modal */}
+      {cancelConfirmRequestId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fadein p-4">
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 w-full max-w-md shadow-2xl relative animate-fadein">
+            <button
+              onClick={() => setCancelConfirmRequestId(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <Icon name="close" className="text-xl" />
+            </button>
+
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-100">
+                <Icon name="warning" className="text-3xl" />
+              </div>
+              <h3 className="text-[17px] font-extrabold text-slate-800">Batalkan Penugasan Driver?</h3>
+              <p className="text-xs text-slate-400 mt-2">
+                Apakah Anda yakin ingin membatalkan penugasan driver dan kendaraan untuk request ini? Status request akan dikembalikan menjadi Submitted.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setCancelConfirmRequestId(null)}
+                className="flex-1 py-3 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer text-xs sm:text-sm"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const reqId = cancelConfirmRequestId;
+                  setCancelConfirmRequestId(null);
+                  await handleCancelAssignment(reqId);
+                }}
+                className="flex-1 py-3 bg-[#dc2626] hover:bg-[#b91c1c] text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs sm:text-sm"
+              >
+                <Icon name="check" className="text-base" /> Ya, Batalkan
+              </button>
+            </div>
           </div>
         </div>
       )}

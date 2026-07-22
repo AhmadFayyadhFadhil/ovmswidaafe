@@ -126,6 +126,8 @@ export function Sidebar({
   // Approver menu
   const approverMenu = [
     { icon: "dashboard", label: "Dashboard", path: "/approver/dashboard" },
+    { icon: "add_box", label: "Create Request", path: "/employee/createrequest" },
+    { icon: "list_alt", label: "My Requests", path: "/employee/myrequests" },
     { icon: "list_alt", label: "Pending Requests", path: "/approver/requests" },
     { icon: "history", label: "History", path: "/approver/history" },
     { icon: "notifications", label: "Notifications", path: "/approver/notifications" },
@@ -149,6 +151,7 @@ export function Sidebar({
     { icon: "monitor_heart",    label: "Requests",            path: "/gahrd/requests" },
     { icon: "directions_car",   label: "Vehicle Management",  path: "/admin/vehicles" },
     { icon: "person",           label: "Driver Availability", path: "/gahrd/driver" },
+    { icon: "event",            label: "Calendar",            path: "/gahrd/calendar" },
     { icon: "history",          label: "History",             path: "/gahrd/history" },
     { icon: "notifications",    label: "Notifications",       path: "/gahrd/notifications" },
     { icon: "group",            label: "User Activation",     path: "/gahrd/users" },

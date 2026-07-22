@@ -29,6 +29,14 @@ export default function CreateRequestPage({ onNavigate }: Props) {
   const [estReturn,  setEstReturn]  = useState("");
   const [priority,   setPriority]   = useState("Normal");
   const [notes,      setNotes]      = useState("");
+  const [itineraries, setItineraries] = useState<{
+    date: string;
+    morning_time: string;
+    morning_destination: string;
+    afternoon_time: string;
+    afternoon_destination: string;
+    passengers_notes: string;
+  }[]>([]);
   const [passengers, setPassengers] = useState<{ name: string; department_id: string | number; user_id?: number | null }[]>([]);
   const [suggestions, setSuggestions] = useState<{ id: number; name: string; email: string; department_id: string | number; department_name?: string }[]>([]);
   const [activePassengerIndex, setActivePassengerIndex] = useState<number | null>(null);
@@ -68,6 +76,17 @@ export default function CreateRequestPage({ onNavigate }: Props) {
   };
 
   const handleSelectSuggestion = (passengerIndex: number, userItem: { id: number; name: string; department_id: string | number }) => {
+    const isDuplicate = passengers.some((p, idx) => idx !== passengerIndex && p.name.trim().toLowerCase() === userItem.name.trim().toLowerCase());
+    if (isDuplicate) {
+      const next = [...passengers];
+      next[passengerIndex] = { name: "", department_id: "" };
+      setPassengers(next);
+      setSuggestions([]);
+      setActivePassengerIndex(null);
+      alert("Penumpang tersebut sudah dipilih.");
+      return;
+    }
+
     const next = [...passengers];
     next[passengerIndex] = {
       name: userItem.name,
@@ -84,6 +103,42 @@ export default function CreateRequestPage({ onNavigate }: Props) {
   const [submitted,  setSubmitted]  = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-generate itinerary rows when departure & estReturn span multiple days
+  useEffect(() => {
+    if (!departure || !estReturn) return;
+    const depDateStr = departure.split('T')[0];
+    const retDateStr = estReturn.split('T')[0];
+    if (!depDateStr || !retDateStr || depDateStr >= retDateStr) {
+      setItineraries([]);
+      return;
+    }
+
+    const start = new Date(depDateStr);
+    const end = new Date(retDateStr);
+    const dateList: string[] = [];
+
+    let curr = new Date(start);
+    while (curr <= end) {
+      dateList.push(curr.toISOString().split('T')[0]);
+      curr.setDate(curr.getDate() + 1);
+    }
+
+    setItineraries(prev => {
+      return dateList.map((d, idx) => {
+        const existing = prev.find(item => item.date === d);
+        if (existing) return existing;
+        return {
+          date: d,
+          morning_time: idx === 0 ? (departure.split('T')[1]?.substring(0, 5) || "08:00") : "08:00",
+          morning_destination: destinationPlace || "",
+          afternoon_time: idx === dateList.length - 1 ? (estReturn.split('T')[1]?.substring(0, 5) || "16:00") : "16:00",
+          afternoon_destination: destinationPlace || "",
+          passengers_notes: "",
+        };
+      });
+    });
+  }, [departure, estReturn]);
 
   const [formError,  setFormError]  = useState("");
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -202,11 +257,20 @@ export default function CreateRequestPage({ onNavigate }: Props) {
       return;
     }
 
+    const passengerNames = validPassengers.map(p => p.name.trim().toLowerCase());
+    const hasDuplicateName = passengerNames.some((val, i) => passengerNames.indexOf(val) !== i);
+    if (hasDuplicateName) {
+      const errMsg = "Nama penumpang tidak boleh diduplikasi dalam satu pengajuan.";
+      setFormError(errMsg);
+      showAlert(errMsg);
+      return;
+    }
+
     setIsConfirmOpen(false);
     setSubmitting(true);
     setFormError("");
     try {
-      const payload = {
+      const payload: any = {
         purpose,
         destination_city: destinationCity,
         destination_place: destinationPlace,
@@ -220,6 +284,8 @@ export default function CreateRequestPage({ onNavigate }: Props) {
           department_id: p.department_id ? Number(p.department_id) : null,
           user_id: p.user_id || null
         })),
+        itineraries: itineraries.length > 0 ? itineraries : undefined,
+        itinerary_file: (files && files.length > 0) ? files[0] : undefined,
       };
 
       const response = await requestService.create(payload);
@@ -264,7 +330,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
       onNavigate={p => onNavigate?.(p)}
       topbarTitle="Create Fleet Request"
       userName={user?.name || "Employee"}
-      userRole="Employee"
+      userRole={user?.role === "approver" ? "Manager Approver" : "Employee"}
       searchPlaceholder="Search requests, vehicles..."
     >
       <div className="p-4 sm:p-6 animate-fadeup">
@@ -365,6 +431,98 @@ export default function CreateRequestPage({ onNavigate }: Props) {
               </div>
             </div>
 
+            {/* Multi-Day Daily Itinerary Builder & Upload Attachment (Only if multi-day) */}
+            {itineraries.length > 0 && (
+              <div className="bg-white rounded-2xl border border-blue-200 shadow-sm p-5 space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-blue-100 text-[#00236f] rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Icon name="calendar_month" className="text-[22px]" />
+                    </div>
+                    <div>
+                      <h3 className="text-[15px] font-bold text-[#0f172a] flex items-center gap-2">
+                        Rincian Itinerary Per-Hari
+                        <span className="text-[10px] bg-blue-600 text-white font-extrabold px-2 py-0.5 rounded-full uppercase">
+                          {itineraries.length} Hari
+                        </span>
+                      </h3>
+                      <p className="text-[12px] text-[#64748b]">Atur rincian waktu dan tujuan per-sesi untuk setiap tanggal perjalanan.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Daily Rows */}
+                <div className="space-y-3 pt-1">
+                  {itineraries.map((it, idx) => (
+                    <div key={it.date} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <span className="text-[12px] font-extrabold text-[#00236f] uppercase tracking-wider flex items-center gap-1.5">
+                          <Icon name="event" className="text-base text-blue-600" />
+                          Hari ke-{idx + 1}: {new Date(it.date).toLocaleDateString("id-ID", { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
+                        {/* Schedule 1 */}
+                        <div className="space-y-1.5 bg-white p-2.5 rounded-lg border border-slate-200">
+                          <div className="font-bold text-slate-700 text-[11.5px]">
+                            Jadwal / Sesi 1
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <input
+                              type="time"
+                              value={it.morning_time}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setItineraries(prev => prev.map((item, i) => i === idx ? { ...item, morning_time: val } : item));
+                              }}
+                              className="col-span-1 h-8 px-2 border border-slate-200 rounded-md text-[11.5px] bg-white text-slate-800 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                            <input
+                              type="text"
+                              value={it.morning_destination}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setItineraries(prev => prev.map((item, i) => i === idx ? { ...item, morning_destination: val } : item));
+                              }}
+                              placeholder="Tujuan 1 (misal: Pabrik / Site)"
+                              className="col-span-2 h-8 px-2 border border-slate-200 rounded-md text-[11.5px] bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
+                        {/* Schedule 2 */}
+                        <div className="space-y-1.5 bg-white p-2.5 rounded-lg border border-slate-200">
+                          <div className="font-bold text-slate-700 text-[11.5px]">
+                            Jadwal / Sesi 2
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <input
+                              type="time"
+                              value={it.afternoon_time}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setItineraries(prev => prev.map((item, i) => i === idx ? { ...item, afternoon_time: val } : item));
+                              }}
+                              className="col-span-1 h-8 px-2 border border-slate-200 rounded-md text-[11.5px] bg-white text-slate-800 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                            <input
+                              type="text"
+                              value={it.afternoon_destination}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setItineraries(prev => prev.map((item, i) => i === idx ? { ...item, afternoon_destination: val } : item));
+                              }}
+                              placeholder="Tujuan 2 (misal: Hotel / Bandara)"
+                              className="col-span-2 h-8 px-2 border border-slate-200 rounded-md text-[11.5px] bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* 3. Passengers */}
             <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
@@ -381,18 +539,22 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                 {passengers.length === 0 ? (
                   <p className="text-[12px] text-[#94a3b8] text-center py-4">No passengers added yet.</p>
                 ) : (
-                  passengers.map((p, i) => (
-                    <div key={i} className="flex items-center gap-3 bg-[#f8fafc] p-3 rounded-xl border border-[#e2e8f0]">
-                      <div className="flex-1 relative">
-                        <input
-                          type="text"
-                          value={p.name}
-                          onChange={e => handlePassengerNameChange(i, e.target.value)}
-                          onFocus={() => {
-                            if (p.name.trim()) {
-                              handlePassengerNameChange(i, p.name);
-                            }
-                          }}
+                  passengers.map((p, i) => {
+                    const filteredSuggestions = suggestions.filter(
+                      (item) => !passengers.some((pOther, idx) => idx !== i && pOther.name.trim().toLowerCase() === item.name.trim().toLowerCase())
+                    );
+                    return (
+                      <div key={i} className="flex items-center gap-3 bg-[#f8fafc] p-3 rounded-xl border border-[#e2e8f0]">
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            value={p.name}
+                            onChange={e => handlePassengerNameChange(i, e.target.value)}
+                            onFocus={() => {
+                              if (p.name.trim()) {
+                                handlePassengerNameChange(i, p.name);
+                              }
+                            }}
                           onBlur={() => {
                             setTimeout(() => {
                               setActivePassengerIndex(null);
@@ -402,7 +564,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                           placeholder="Passenger Full Name"
                           className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20"
                         />
-                        {activePassengerIndex === i && (suggestions.length > 0 || searchLoading) && (
+                        {activePassengerIndex === i && (filteredSuggestions.length > 0 || searchLoading) && (
                           <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#e2e8f0] rounded-xl shadow-lg max-h-48 overflow-y-auto z-50">
                             {searchLoading ? (
                               <div className="p-3 text-xs text-slate-400 text-center flex items-center justify-center gap-2">
@@ -410,11 +572,12 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                                 Searching...
                               </div>
                             ) : (
-                              suggestions.map((item) => (
+                              filteredSuggestions.map((item) => (
                                 <div
                                   key={item.id}
                                   onClick={() => handleSelectSuggestion(i, item)}
                                   className="px-3 py-2 text-[12px] text-slate-700 hover:bg-blue-50/50 hover:text-[#00236f] cursor-pointer flex justify-between items-center transition-all border-b border-slate-50 last:border-0"
+                                  title={item.name}
                                 >
                                   <span className="font-semibold">{item.name}</span>
                                   <span className="text-[10px] bg-blue-100/60 text-[#00236f] px-1.5 py-0.5 rounded-md font-bold uppercase">
@@ -447,7 +610,8 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                         <Icon name="close" className="text-[16px]" />
                       </button>
                     </div>
-                  ))
+                  );
+                })
                 )}
               </div>
               {passengers.length < 12 && (

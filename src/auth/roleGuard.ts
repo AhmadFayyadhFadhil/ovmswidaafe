@@ -60,6 +60,7 @@ export function canAccessRoute(user: AuthUser | null, route: string): GuardResul
     '/gahrd/history': ['gahrd', 'admin'],
     '/gahrd/notifications': ['gahrd', 'admin'],
     '/gahrd/driver': ['gahrd', 'admin'],
+    '/gahrd/calendar': ['gahrd', 'admin'],
     '/gahrd/profile': ['gahrd', 'admin'],
     '/gahrd/users': ['gahrd', 'admin'],
 
@@ -155,6 +156,7 @@ export function getAllowedRoutes(user: AuthUser | null): string[] {
       '/gahrd/history',
       '/gahrd/notifications',
       '/gahrd/driver',
+      '/gahrd/calendar',
       '/gahrd/users',
       '/gahrd/profile',
       '/admin/vehicles',

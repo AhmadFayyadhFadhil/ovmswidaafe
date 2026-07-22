@@ -31,6 +31,8 @@ export default function MyProfilePage({ onNavigate }: Props) {
   const [department, setDepartment] = useState("");
   const [position, setPosition] = useState("");
   const [location, setLocation] = useState("Jakarta Head Office");
+  const [simPhotoUrl, setSimPhotoUrl] = useState<string | null>(null);
+  const [showSimLightbox, setShowSimLightbox] = useState(false);
 
   // Alert preferences
   const [emergency, setEmergency] = useState(true);
@@ -89,6 +91,7 @@ export default function MyProfilePage({ onNavigate }: Props) {
         setPosition(u.position || (u.roles?.[0] ? u.roles[0].toUpperCase() : "Staff"));
         setLocation(u.location || "Jakarta Head Office");
         setAvatar(u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || "User")}&background=00236f&color=fff&size=120`);
+        setSimPhotoUrl(u.sim_a_photo_url || null);
       }
 
       // Fetch requests data for stats and activity log
@@ -403,7 +406,47 @@ export default function MyProfilePage({ onNavigate }: Props) {
                   </div>
                 </div>
 
+                {/* Dedicated SIM A Section for Driver (Read-Only) */}
+                {(user?.role === "driver" || displayRole === "Driver" || simPhotoUrl) && (
+                  <div className="mt-5 pt-5 border-t border-[#f1f5f9]">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Icon name="badge" className="text-[18px] text-[#00236f]" />
+                        <h4 className="text-[13px] font-bold text-[#0f172a]">Dokumen SIM A Driver</h4>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-600 border border-slate-200">
+                        🔒 Read-Only (Hanya Lihat)
+                      </span>
+                    </div>
 
+                    {simPhotoUrl ? (
+                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-16 h-12 rounded-lg bg-slate-900 overflow-hidden flex items-center justify-center border border-slate-200 shrink-0">
+                            <img src={simPhotoUrl} alt="SIM A" className="w-full h-full object-cover" />
+                          </div>
+                          <div>
+                            <div className="text-[12.5px] font-bold text-slate-800">Kartu SIM A Pengemudi</div>
+                            <div className="text-[11px] text-slate-400 font-medium mt-0.5">Dokumen resmi pengemudi operasional PT Widatra Bhakti</div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowSimLightbox(true)}
+                          className="px-4 py-2 bg-[#00236f] hover:bg-[#1e3a8a] text-white rounded-xl text-[11.5px] font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5 shrink-0"
+                        >
+                          <Icon name="visibility" className="text-[14px]" /> Lihat Foto SIM A
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center space-y-1">
+                        <div className="text-[12px] font-bold text-slate-700">Foto SIM A Belum Diunggah</div>
+                        <p className="text-[11px] text-slate-400">Dokumen SIM A dikelola langsung oleh Administrator di menu Management Driver.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Right: Smart Alerts + Activity */}
@@ -464,6 +507,41 @@ export default function MyProfilePage({ onNavigate }: Props) {
           </>
         )}
       </div>
+
+      {/* SIM A Lightbox Modal */}
+      {showSimLightbox && simPhotoUrl && (
+        <div className="fixed inset-0 bg-black/75 z-[99999] flex items-center justify-center p-4 animate-fadein" onClick={() => setShowSimLightbox(false)}>
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative animate-fadein" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-800">Pratinjau SIM A Driver</h3>
+                <p className="text-xs text-slate-400">{name} ({email})</p>
+              </div>
+              <button onClick={() => setShowSimLightbox(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-200 cursor-pointer">
+                <Icon name="close" className="text-lg" />
+              </button>
+            </div>
+
+            <div className="bg-slate-900 rounded-2xl overflow-hidden flex items-center justify-center p-2 min-h-[220px]">
+              <img
+                src={simPhotoUrl}
+                alt={`SIM A ${name}`}
+                className="max-h-[380px] w-auto object-contain rounded-lg shadow-md"
+              />
+            </div>
+
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-[11px] text-slate-400 italic">🔒 Dokumen dikelola & diunggah oleh Administrator.</span>
+              <button
+                onClick={() => setShowSimLightbox(false)}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

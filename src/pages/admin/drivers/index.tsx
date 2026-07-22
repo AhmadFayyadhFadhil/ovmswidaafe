@@ -16,9 +16,8 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const getAvatarUrl = (id: string, gender: 'men' | 'women' = 'men') => {
-  const num = parseInt(id.replace(/\D/g, '')) || 1;
-  return `https://randomuser.me/api/portraits/thumb/${gender}/${num % 100}.jpg`;
+const getAvatarUrl = (name: string) => {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'Driver')}&background=1e3a8a&color=ffffff&bold=true`;
 };
 
 export default function Driver({ onNavigate }: { onNavigate?: (p: string) => void }) {
@@ -46,6 +45,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
+    nik: "",
     name: "",
     email: "",
     password: "password",
@@ -56,10 +56,12 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
   const [simPreview, setSimPreview] = useState("");
   const [formError, setFormError] = useState("");
 
-  // Edit States
+  // Edit & View States
+  const [viewingSimDriver, setViewingSimDriver] = useState<any | null>(null);
   const [editingDriver, setEditingDriver] = useState<any | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({
+    nik: "",
     name: "",
     email: "",
     password: "",
@@ -100,13 +102,14 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
   const handleEditClick = (d: any) => {
     setEditingDriver(d);
     setEditFormData({
+      nik: d.nik || "",
       name: d.name,
       email: d.email || "",
       password: "", // dikosongkan kecuali ingin ganti
       department: d.department_id ? String(d.department_id) : "",
     });
     setEditSimFile(null);
-    setEditSimPreview(d.avatarUrl || "");
+    setEditSimPreview(d.simPhotoUrl || "");
     setEditFormError("");
     setIsEditModalOpen(true);
   };
@@ -132,6 +135,9 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     setEditFormError("");
     try {
       const data = new FormData();
+      if (editFormData.nik) {
+        data.append("nik", editFormData.nik);
+      }
       data.append("name", editFormData.name);
       data.append("email", editFormData.email);
       if (editFormData.password) {
@@ -170,6 +176,9 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     setFormError("");
     try {
       const data = new FormData();
+      if (formData.nik) {
+        data.append("nik", formData.nik);
+      }
       data.append("name", formData.name);
       data.append("email", formData.email);
       data.append("password", formData.password);
@@ -182,6 +191,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       await driverService.create(data);
       setIsModalOpen(false);
       setFormData({
+        nik: "",
         name: "",
         email: "",
         password: "password",
@@ -301,65 +311,140 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
           ) : error ? (
             <div className="p-8 text-center text-[14px] text-red-500">Failed to load drivers data.</div>
           ) : (
-            <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
-              <thead>
-                <tr className="bg-[#f8fafc]">
-                  {["DRIVER", "STATUS", "ASSIGNED VEHICLE", "SIM A", "ACTIONS"].map(h => (
-                    <th key={h} className="px-5 py-3 text-left text-[10.5px] font-bold text-[#94a3b8] uppercase tracking-wide">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {list.map(d => (
-                  <tr key={d.id} className="border-t border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors group">
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={d.avatarUrl || getAvatarUrl(d.id, d.name.includes("Sarah") || d.name.includes("Elena") ? 'women' : 'men')}
-                          alt=""
-                          className="w-9 h-9 rounded-full object-cover border border-[#e2e8f0]"
-                        />
+            <>
+              {/* Desktop Table View (Hidden on mobile, visible on medium screens and up) */}
+              <div className="hidden md:block">
+                <div className="overflow-x-auto max-w-full">
+                  <table className="w-full min-w-[900px]">
+                  <thead>
+                    <tr className="bg-[#f8fafc]">
+                      {["DRIVER", "STATUS", "ASSIGNED VEHICLE", "SIM A", "ACTIONS"].map(h => (
+                        <th key={h} className="px-5 py-3 text-left text-[10.5px] font-bold text-[#94a3b8] uppercase tracking-wide">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {list.map(d => (
+                      <tr key={d.id} className="border-t border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors group">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={d.avatarUrl || getAvatarUrl(d.name)}
+                              alt={d.name}
+                              className="w-9 h-9 rounded-full object-cover border border-[#e2e8f0]"
+                            />
+                            <div>
+                              <div className="text-[13px] font-bold text-[#0f172a]">{d.name}</div>
+                              <div className="text-[11px] text-[#94a3b8]">{d.nik ? `NIK: ${d.nik}` : (d.email || `#${d.id}`)}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${getStatusColor(d.status)}`}>{d.status}</span>
+                        </td>
+                        <td className="px-5 py-3.5 text-[13px] font-semibold text-[#0f172a]">
+                          {d.assignedVehicleId || "Unassigned"}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {d.simPhotoUrl ? (
+                            <button
+                              onClick={() => setViewingSimDriver(d)}
+                              className="px-3 py-1 rounded-full text-[10px] font-bold bg-[#dcfce7] hover:bg-[#bbf7d0] text-[#15803d] border border-[#86efac] shadow-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                            >
+                              <Icon name="visibility" className="text-[13px]" />
+                              View Card
+                            </button>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#fee2e2] text-[#991b1b]">Not Uploaded</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleEditClick(d)}
+                              className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#eef2ff] text-[#1e3a8a] text-[12px] font-semibold hover:bg-[#dbeafe] transition"
+                            >
+                              <Icon name="edit" className="text-[14px]" />Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(d.id)}
+                              className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#fee2e2] text-[#b91c1c] text-[12px] font-semibold hover:bg-[#fecaca] transition"
+                            >
+                              <Icon name="delete" className="text-[14px]" />Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Mobile Card View (Visible on mobile, hidden on medium screens and up) */}
+              <div className="block md:hidden divide-y divide-[#f1f5f9]">
+                {list.length === 0 ? (
+                  <div className="p-8 text-center text-[13px] text-[#64748b]">
+                    No drivers found.
+                  </div>
+                ) : (
+                  list.map(d => (
+                    <div key={d.id} className="p-4 space-y-3.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={d.avatarUrl || getAvatarUrl(d.name)}
+                            alt={d.name}
+                            className="w-9 h-9 rounded-full object-cover border border-[#e2e8f0]"
+                          />
+                          <div>
+                            <div className="text-[13px] font-bold text-[#0f172a]">{d.name}</div>
+                            <div className="text-[11px] text-[#94a3b8]">{d.nik ? `NIK: ${d.nik}` : (d.email || `#${d.id}`)}</div>
+                          </div>
+                        </div>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase ${getStatusColor(d.status)}`}>{d.status}</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 pt-1">
                         <div>
-                          <div className="text-[13px] font-bold text-[#0f172a]">{d.name}</div>
-                          <div className="text-[11px] text-[#94a3b8]">{d.id}</div>
+                          <span className="text-[#94a3b8] block text-[10px] uppercase font-bold tracking-wider">Assigned Vehicle</span>
+                          <span className="text-[12.5px] font-semibold text-[#0f172a]">{d.assignedVehicleId || "Unassigned"}</span>
+                        </div>
+                        <div>
+                          <span className="text-[#94a3b8] block text-[10px] uppercase font-bold tracking-wider">SIM A Status</span>
+                          {d.simPhotoUrl ? (
+                            <button
+                              onClick={() => setViewingSimDriver(d)}
+                              className="text-[11.5px] font-bold text-[#15803d] flex items-center gap-1 hover:underline cursor-pointer"
+                            >
+                              <Icon name="visibility" className="text-[14px]" />
+                              View SIM Card
+                            </button>
+                          ) : (
+                            <span className="text-[11.5px] font-bold text-[#b91c1c]">Not Uploaded</span>
+                          )}
                         </div>
                       </div>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${getStatusColor(d.status)}`}>{d.status}</span>
-                    </td>
-                    <td className="px-5 py-3.5 text-[13px] font-semibold text-[#0f172a]">
-                      {d.assignedVehicleId || "Unassigned"}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {d.avatarUrl ? (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#dcfce7] text-[#16a34a]">✓ Uploaded</span>
-                      ) : (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#fee2e2] text-[#991b1b]">Not Uploaded</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
+
+                      <div className="flex items-center gap-2 pt-2">
                         <button
                           onClick={() => handleEditClick(d)}
-                          className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#eef2ff] text-[#1e3a8a] text-[12px] font-semibold hover:bg-[#dbeafe] transition"
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#eef2ff] text-[#1e3a8a] text-[12px] font-bold hover:bg-[#dbeafe] transition active:scale-95 cursor-pointer"
                         >
                           <Icon name="edit" className="text-[14px]" />Edit
                         </button>
                         <button
                           onClick={() => handleDelete(d.id)}
-                          className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#fee2e2] text-[#b91c1c] text-[12px] font-semibold hover:bg-[#fecaca] transition"
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#fee2e2] text-[#b91c1c] text-[12px] font-bold hover:bg-[#fecaca] transition active:scale-95 cursor-pointer"
                         >
                           <Icon name="delete" className="text-[14px]" />Delete
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
           )}
           {pagination.lastPage > 1 && (
             <div className="px-5 py-3 border-t border-[#f1f5f9] flex items-center justify-between bg-[#fafbfc]">
@@ -413,6 +498,17 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                   {formError}
                 </div>
               )}
+
+              <div>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">NIK (Nomor Induk Karyawan)</label>
+                <input
+                  type="text"
+                  value={formData.nik}
+                  onChange={e => setFormData({ ...formData, nik: e.target.value })}
+                  placeholder="e.g. 1002394"
+                  className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
+                />
+              </div>
 
               <div>
                 <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Full Name</label>
@@ -526,6 +622,17 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
               )}
 
               <div>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">NIK (Nomor Induk Karyawan)</label>
+                <input
+                  type="text"
+                  value={editFormData.nik}
+                  onChange={e => setEditFormData({ ...editFormData, nik: e.target.value })}
+                  placeholder="e.g. 1002394"
+                  className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
+                />
+              </div>
+
+              <div>
                 <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Full Name</label>
                 <input
                   type="text"
@@ -612,6 +719,40 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* SIM Card Lightbox Modal */}
+      {viewingSimDriver && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 animate-fadein" onClick={() => setViewingSimDriver(null)}>
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-800">Foto SIM A Driver</h3>
+                <p className="text-xs text-slate-500">{viewingSimDriver.name} ({viewingSimDriver.nik ? `NIK: ${viewingSimDriver.nik}` : viewingSimDriver.email})</p>
+              </div>
+              <button onClick={() => setViewingSimDriver(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 cursor-pointer">
+                <Icon name="close" className="text-[18px]" />
+              </button>
+            </div>
+
+            <div className="bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center p-2 min-h-[220px]">
+              <img
+                src={viewingSimDriver.simPhotoUrl}
+                alt={`SIM A ${viewingSimDriver.name}`}
+                className="max-h-[380px] w-auto object-contain rounded-lg shadow-md"
+              />
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setViewingSimDriver(null)}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

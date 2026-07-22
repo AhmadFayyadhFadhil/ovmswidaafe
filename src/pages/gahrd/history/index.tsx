@@ -3,13 +3,14 @@ import { Layout, Icon } from '@/components/layout/RoleLayout';
 import { requestService } from '@/services/modules/requestService';
 import { RequestDetailModal } from '@/components/ui/RequestDetailModal';
 
-function StatusBadge({ status }: { status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED' | 'ONGOING' }) {
+function StatusBadge({ status }: { status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED' | 'ONGOING' | 'CANCELLED' }) {
   const cfg: Record<string, string> = {
     APPROVED:  'bg-emerald-50 text-emerald-700 border-emerald-200',
     PENDING:   'bg-amber-50 text-amber-700 border-amber-200',
     REJECTED:  'bg-rose-50 text-rose-700 border-rose-200',
     COMPLETED: 'bg-sky-50 text-sky-700 border-sky-200',
     ONGOING:   'bg-indigo-50 text-indigo-700 border-indigo-200',
+    CANCELLED: 'bg-slate-50 text-slate-700 border-slate-200',
   };
   return (
     <span className={`text-[10.5px] font-bold px-2.5 py-1 rounded-full border inline-flex items-center gap-1.5 w-fit ${cfg[status] || cfg.PENDING}`}>
@@ -62,6 +63,7 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
   const completedCount = rawRequests.filter(r => r.status === 'COMPLETED').length;
   const approvedCount  = rawRequests.filter(r => r.status === 'APPROVED' || r.status === 'ONGOING').length;
   const rejectedCount  = rawRequests.filter(r => r.status === 'REJECTED').length;
+  const cancelledCount = rawRequests.filter(r => r.status === 'CANCELLED').length;
 
   return (
     <Layout
@@ -89,11 +91,12 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           {[
             { label: "Completed Trips", value: completedCount, color: "text-sky-600", bg: "bg-sky-50", border: "border-sky-100", icon: "task_alt" },
             { label: "Approved / Active", value: approvedCount, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100", icon: "check_circle" },
             { label: "Rejected Trips", value: rejectedCount, color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-100", icon: "cancel" },
+            { label: "Cancelled Trips", value: cancelledCount, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-100", icon: "block" },
           ].map((card, i) => (
             <div key={i} className="bg-white border border-slate-100 rounded-2xl p-5 flex items-center justify-between shadow-xs hover:shadow-md transition-all duration-300">
               <div className="flex items-center gap-4">
@@ -131,6 +134,7 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
             <option value="APPROVED">Status: Approved</option>
             <option value="ONGOING">Status: Ongoing</option>
             <option value="REJECTED">Status: Rejected</option>
+            <option value="CANCELLED">Status: Cancelled</option>
             <option value="PENDING">Status: Pending</option>
           </select>
           <button
@@ -145,7 +149,7 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
         {/* Table */}
         <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-2xs">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[750px] text-left text-[13px] table-fixed">
+            <table className="w-full min-w-[1080px] text-left text-[13px] table-fixed">
               <colgroup>
                 <col className="w-[100px]" />
                 <col className="w-[230px]" />

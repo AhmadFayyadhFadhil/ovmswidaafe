@@ -3,12 +3,14 @@ import type { FleetRequest } from '../../types';
 import type { ApiResponse } from '../../types/api';
 import { ENDPOINTS } from '../../constants/endpoints';
 
-function mapStatus(backendStatus: string): "APPROVED" | "PENDING" | "ONGOING" | "COMPLETED" | "REJECTED" {
+function mapStatus(backendStatus: string): "APPROVED" | "PENDING" | "ONGOING" | "COMPLETED" | "REJECTED" | "CANCELLED" {
   switch (backendStatus) {
     case 'completed':
       return 'COMPLETED';
     case 'rejected':
       return 'REJECTED';
+    case 'cancelled':
+      return 'CANCELLED';
     case 'on_going':
       return 'ONGOING';
     case 'driver_assigned':
@@ -89,7 +91,7 @@ function mapRequestFromBackend(r: any): FleetRequest {
     id: String(r.id),
     employee: r.requested_by?.name || 'Staff',
     email: r.requested_by?.email || '',
-    requestedById: r.requested_by?.id ? String(r.requested_by.id) : null,
+    requestedById: r.requested_by?.id ? String(r.requested_by.id) : (r.user_id ? String(r.user_id) : null),
     department: r.department_name || r.department_id || 'IT',
     destination: `${r.destination_city || ''}${r.destination_place ? ' - ' + r.destination_place : ''}`,
     vehicleModel: r.vehicle_model || r.operational_trip?.vehicle?.name || r.vehicle?.name || 'Not Assigned',
@@ -155,12 +157,32 @@ function mapRequestFromBackend(r: any): FleetRequest {
     external_return_photo_url_2: r.external_return_photo_url_2 || null,
     third_party_cost_2: r.third_party_cost_2 || 0,
 
+    itinerary_file_url: r.itinerary_file_url || null,
+    itineraries: r.itineraries || [],
+    is_overtime: !!r.is_overtime,
+    overtime_minutes: r.overtime_minutes || 0,
+    overtime_formatted: r.overtime_formatted || null,
+
+    assignments: r.assignments || [],
     operational_trips: r.operational_trips || [],
   } as any;
 }
 
+let requestCache: { data: ApiResponse<FleetRequest[]>; timestamp: number; key: string } | null = null;
+const REQUEST_CACHE_TTL_MS = 15000; // 15 seconds short TTL cache
+
 export const requestService = {
+  clearCache: () => {
+    requestCache = null;
+  },
   getAll: async (params?: any): Promise<ApiResponse<FleetRequest[]>> => {
+    const key = JSON.stringify(params || {});
+    const now = Date.now();
+
+    if (requestCache && requestCache.key === key && (now - requestCache.timestamp < REQUEST_CACHE_TTL_MS)) {
+      return requestCache.data;
+    }
+
     const res = await apiClient.get<any>(ENDPOINTS.REQUESTS, { params });
     const list = Array.isArray(res.data?.data) ? res.data.data : [];
     
@@ -180,10 +202,13 @@ export const requestService = {
       configurable: true
     });
 
-    return {
+    const response: ApiResponse<FleetRequest[]> = {
       data: mapped,
       message: res.data?.message
     };
+
+    requestCache = { data: response, timestamp: now, key };
+    return response;
   },
   getById: async (id: string): Promise<ApiResponse<FleetRequest>> => {
     const res = await apiClient.get<any>(`${ENDPOINTS.REQUESTS}/${id}`);
@@ -244,7 +269,28 @@ export const requestService = {
       };
     }
     
-    const res = await apiClient.post<any>(ENDPOINTS.REQUESTS, payload);
+    let finalPayload: any = payload;
+    const hasItineraryFile = request.itinerary_file && request.itinerary_file instanceof File;
+    if (hasItineraryFile) {
+      const formData = new FormData();
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === null || payload[key] === undefined) return;
+        if (key === 'passengers' || key === 'itineraries') {
+          formData.append(key, JSON.stringify(payload[key]));
+        } else if (key === 'itinerary_file') {
+          if (payload[key] instanceof File) {
+            formData.append(key, payload[key]);
+          }
+        } else {
+          formData.append(key, payload[key]);
+        }
+      });
+      finalPayload = formData;
+    } else {
+      delete payload.itinerary_file;
+    }
+    
+    const res = await apiClient.post<any>(ENDPOINTS.REQUESTS, finalPayload);
     const r = res.data?.data;
     
     return {
@@ -299,10 +345,21 @@ export const requestService = {
       message: res.data?.message
     };
   },
-  delete: async (id: string): Promise<ApiResponse<void>> => {
-    const res = await apiClient.delete<any>(`${ENDPOINTS.REQUESTS}/${id}`);
+  delete: async (id: string, reason?: string): Promise<ApiResponse<void>> => {
+    const res = await apiClient.delete<any>(`${ENDPOINTS.REQUESTS}/${id}`, {
+      data: { rejected_reason: reason || '' }
+    });
     return {
       data: undefined,
+      message: res.data?.message
+    };
+  },
+  storeDailyAssignments: async (id: string, dailyAssignments: any[]): Promise<ApiResponse<FleetRequest>> => {
+    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/daily-assignments`, {
+      daily_assignments: dailyAssignments
+    });
+    return {
+      data: mapRequestFromBackend(res.data?.data),
       message: res.data?.message
     };
   },

@@ -48,6 +48,7 @@ const GAHRDRequests = lazy(() => import("@/pages/gahrd/requests"));
 const GAHRDHistory = lazy(() => import("@/pages/gahrd/history"));
 const GAHRDNotifications = lazy(() => import("@/pages/gahrd/notifications"));
 const GAHRDDrivers = lazy(() => import("@/pages/gahrd/driver"));
+const GAHRDCalendar = lazy(() => import("@/pages/gahrd/calendar"));
 const GAHRDUsers = lazy(() => import("@/pages/gahrd/users"));
 const CreateUrgentRequest = lazy(() => import("@/pages/gahrd/urgentrequest"));
 
@@ -123,6 +124,7 @@ export default function AppRoutes() {
           <Route path="/gahrd/history" element={<GAHRDHistory onNavigate={(_p) => {}} />} />
           <Route path="/gahrd/notifications" element={<GAHRDNotifications onNavigate={(_p) => {}} />} />
           <Route path="/gahrd/driver" element={<GAHRDDrivers onNavigate={(_p) => {}} />} />
+          <Route path="/gahrd/calendar" element={<GAHRDCalendar />} />
           <Route path="/gahrd/users" element={<GAHRDUsers />} />
           <Route path="/gahrd/profile" element={<EmployeeProfile />} />
 

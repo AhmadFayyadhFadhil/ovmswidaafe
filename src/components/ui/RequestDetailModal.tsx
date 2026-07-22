@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Icon } from "./Icon";
 import { PriorityBadge } from "../layout/PriorityBadge";
 import type { FleetRequest } from "../../types";
+import { useAuthContext } from "@/auth/authContext";
 
 interface RequestDetailModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export function RequestDetailModal({
   onApprove,
   onReject,
 }: RequestDetailModalProps) {
+  const { user } = useAuthContext();
   const [isConfirmRejectOpen, setIsConfirmRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [previewFile, setPreviewFile] = useState<any | null>(null);
@@ -133,13 +135,30 @@ export function RequestDetailModal({
             <div class="row"><div class="label">Nama Pemohon</div><div class="value">${esc(request.employee)} (${esc(request.department)})</div></div>
             <div class="row"><div class="label">Tujuan Perjalanan</div><div class="value">${esc(request.destination)}</div></div>
             <div class="row"><div class="label">Jadwal Keberangkatan</div><div class="value">${esc(request.date)} ${esc(request.time || "09:00")}</div></div>
-            <div class="row"><div class="label">Penyedia Armada</div><div class="value">${request.is_external ? "Pihak Ketiga (Sewa Eksternal)" : "Armada Internal"}</div></div>
-            ${!request.is_external ? `
-              <div class="row"><div class="label">Driver Internal</div><div class="value">${esc(request.driverName || "-")}</div></div>
-              <div class="row"><div class="label">Kendaraan Internal</div><div class="value">${esc(request.vehicleModel || "-")}</div></div>
+            
+            ${Array.isArray(request.itineraries) && request.itineraries.length > 0 ? `
+              <div class="row"><div class="label">Tipe Request</div><div class="value" style="color: #1e3a8a; font-weight: bold;">MULTI-DAY ITINERARY (${request.itineraries.length} HARI)</div></div>
+              <div style="margin-top: 15px; margin-bottom: 15px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
+                <div style="font-weight: bold; font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">Rincian Penugasan Daily Itinerary:</div>
+                ${request.itineraries.map((it: any, idx: number) => `
+                  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 12px;">
+                    <div style="font-weight: bold; color: #1e3a8a;">Hari ${idx + 1} (${esc(it.date)}):</div>
+                    <div style="margin-top: 4px;">Sesi 1: ${esc(it.morning_time || "-")} - ${esc(it.morning_destination || "-")}</div>
+                    <div>Sesi 2: ${esc(it.afternoon_time || "-")} - ${esc(it.afternoon_destination || "-")}</div>
+                    <div style="margin-top: 4px; font-weight: bold; color: #334155;">Armada: ${esc(it.is_external ? `Pihak Ke-3 (${it.external_driver_name || "Sewa"})` : (it.driver_name ? `${it.driver_name} (${it.vehicle_name || ""})` : "Belum Ditugaskan"))}</div>
+                  </div>
+                `).join('')}
+              </div>
             ` : `
-              <div class="row"><div class="label">Estimasi Biaya Sewa</div><div class="value">Rp ${Number(request.third_party_cost || 0).toLocaleString('id-ID')}</div></div>
+              <div class="row"><div class="label">Penyedia Armada</div><div class="value">${request.is_external ? "Pihak Ketiga (Sewa Eksternal)" : "Armada Internal"}</div></div>
+              ${!request.is_external ? `
+                <div class="row"><div class="label">Driver Internal</div><div class="value">${esc(request.driverName || "-")}</div></div>
+                <div class="row"><div class="label">Kendaraan Internal</div><div class="value">${esc(request.vehicleModel || "-")}</div></div>
+              ` : `
+                <div class="row"><div class="label">Estimasi Biaya Sewa</div><div class="value">Rp ${Number(request.third_party_cost || 0).toLocaleString('id-ID')}</div></div>
+              `}
             `}
+
             <div class="row"><div class="label">Tujuan / Keperluan</div><div class="value">${esc(request.purpose)}</div></div>
             <div class="row"><div class="label">Jumlah Penumpang</div><div class="value">${esc(request.passengerCount)} Orang</div></div>
             <div class="row"><div class="label">Estimasi Lama Perjalanan</div><div class="value">${esc(request.estimated_duration ? `${request.estimated_duration} Jam` : "-")}</div></div>
@@ -173,32 +192,44 @@ export function RequestDetailModal({
   const approvals = request.approvals || [];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadein">
-      <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-slate-100 relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-2 sm:p-4 md:p-6 animate-fadein">
+      <div className="bg-white w-full max-w-4xl lg:max-w-5xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-slate-100 relative my-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center gap-2">
-            <span className="text-[18px] font-bold text-slate-800">Detail Permintaan</span>
-            <span className="text-[12px] font-extrabold text-blue-800 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[16px] sm:text-[18px] font-extrabold text-slate-800">Detail Permintaan</span>
+            <span className="text-[11px] sm:text-[12px] font-extrabold text-blue-800 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md">
               #REQ-{request.id}
             </span>
+            {Array.isArray(request.itineraries) && request.itineraries.length > 0 ? (
+              <span className="text-[10px] sm:text-[11px] font-extrabold text-purple-800 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-md flex items-center gap-1">
+                <Icon name="event_repeat" className="text-[14px]" /> MULTI-DAY ({request.itineraries.length} HARI)
+              </span>
+            ) : (
+              <span className="text-[10px] sm:text-[11px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                Reguler (1 Hari)
+              </span>
+            )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {/* Print Button */}
-            {request.qr_code_token && ["driver_assigned", "on_going", "completed"].includes(request.rawStatus) && (
+            {request.qr_code_token && (
+              ["driver_assigned", "on_going", "completed"].includes(request.rawStatus) ||
+              (request.is_external && request.rawStatus === "assigned_by_ga")
+            ) && (
               <button
                 onClick={handlePrint}
                 title="Cetak Tiket / Surat Tugas"
                 className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors flex items-center justify-center cursor-pointer"
               >
-                <Icon name="print" className="text-[20px]" />
+                <Icon name="print" className="text-[19px]" />
               </button>
             )}
             <button
               onClick={onClose}
               className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center cursor-pointer"
             >
-              <Icon name="close" className="text-[20px]" />
+              <Icon name="close" className="text-[19px]" />
             </button>
           </div>
         </div>
@@ -251,9 +282,12 @@ export function RequestDetailModal({
                     </div>
 
                     <div>
-                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Penyedia Fleet</div>
+                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Penyedia Fleet / Tipe</div>
                       <div className="text-[13px] font-semibold text-slate-800 mt-0.5">
-                        {request.is_external ? "Pihak Ketiga (Sewa)" : "Armada Internal"}
+                        {Array.isArray(request.itineraries) && request.itineraries.length > 0 
+                          ? `Multi-Day Itinerary (${request.itineraries.length} Hari)`
+                          : (request.is_external ? "Pihak Ketiga (Sewa)" : "Armada Internal")
+                        }
                       </div>
                     </div>
                   </div>
@@ -267,9 +301,17 @@ export function RequestDetailModal({
                     </div>
 
                     <div>
-                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Catatan Tambahan (Notes)</div>
+                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                        {user?.role === "driver" ? "Catatan Penugasan (GA Notes)" : "Catatan Tambahan (Notes)"}
+                      </div>
                       <div className="text-[13px] font-semibold text-slate-700 mt-0.5">
-                        {request.notes || "-"}
+                        {(() => {
+                          if (user?.role === "driver" && request.assignments) {
+                            const myAsg = request.assignments.find((a: any) => String(a.driver_id) === String(user.id));
+                            if (myAsg) return myAsg.notes || "-";
+                          }
+                          return request.notes || "-";
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -298,164 +340,297 @@ export function RequestDetailModal({
                           </div>
                         ));
                       })()}
+
+                      {request.itinerary_file_url && (
+                        <a
+                          href={request.itinerary_file_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1.5 text-[11px] text-blue-700 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors font-bold"
+                        >
+                          <Icon name="assignment" className="text-[14px]" />
+                          <span>Lihat Form Physical Itinerary</span>
+                        </a>
+                      )}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 pt-1 border-t border-slate-100 pt-3">
-                    <div>
-                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">Kendaraan & Driver</div>
-                      {request.is_external ? (
-                        <div className="space-y-3">
-                          <div className="text-[12px] font-bold text-slate-700">
-                            Penyedia Pihak Ketiga (Sewa) - {request.external_provider || "Provider Tidak Diketahui"}
-                          </div>
-                          
-                          {request.external_trip_type === "round_trip" ? (
-                            /* PP: Round Trip vehicles list */
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
-                              {/* Mobil 1 */}
-                              <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1.5">
-                                <div className="font-extrabold text-blue-900">Mobil 1 (Cost: Rp {Number(request.third_party_cost || 0).toLocaleString('id-ID')})</div>
-                                <div className="font-semibold text-slate-600 space-y-0.5 pl-1.5">
-                                  {request.external_driver_name && <div>Driver: {request.external_driver_name}</div>}
-                                  {request.external_license_plate && <div>Plat: {request.external_license_plate}</div>}
-                                  {request.external_fleet_info && <div className="text-slate-500 font-medium">Detail: {request.external_fleet_info}</div>}
+                  {/* Overtime Badge if present */}
+                  {request.is_overtime && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-amber-900 text-[12px]">
+                      <div className="flex items-center gap-2 font-bold">
+                        <Icon name="more_time" className="text-amber-600 text-lg" />
+                        <span>Perjalanan Ini Memiliki Jam Lembur (Terhitung Setelah 16:30 WIB)</span>
+                      </div>
+                      <span className="bg-amber-600 text-white px-2.5 py-1 rounded-lg text-[11px] font-extrabold uppercase">
+                        {request.overtime_formatted}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Multi-Day Itinerary List Breakdown */}
+                  {Array.isArray(request.itineraries) && request.itineraries.length > 0 && (
+                    <div className="pt-2 border-t border-slate-100 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-[11px] text-blue-900 font-extrabold uppercase tracking-wider flex items-center gap-1.5">
+                          <Icon name="calendar_month" className="text-base text-blue-600" /> Rincian Itinerary Multi-Hari ({request.itineraries.length} Hari)
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {request.itineraries.map((it: any, idx: number) => {
+                          const isOverallCompleted = request.rawStatus === 'completed' || request.status === 'completed';
+                          const mStatus = isOverallCompleted ? 'completed' : (it.morning_status || (it.status === 'completed' ? 'completed' : 'scheduled'));
+                          const aStatus = isOverallCompleted ? 'completed' : (it.afternoon_status || (it.status === 'completed' ? 'completed' : 'scheduled'));
+
+                          return (
+                          <div key={it.id || idx} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-[12px]">
+                            <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                              <span className="font-extrabold text-[#00236f] flex items-center gap-1">
+                                📅 Hari ke-{idx + 1}: {it.date ? new Date(it.date).toLocaleDateString("id-ID", { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' }) : `Hari ${idx+1}`}
+                              </span>
+                              {it.is_overtime && (
+                                <span className="text-[10px] bg-red-600 text-white font-extrabold px-2 py-0.5 rounded-full uppercase flex items-center gap-1">
+                                  <Icon name="schedule" className="text-[11px]" /> Lembur {it.overtime_formatted}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {/* Schedule 1 */}
+                              <div className="p-2 bg-white rounded-lg border border-slate-100 space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <div className="text-[10px] text-slate-400 font-bold uppercase">Jadwal / Sesi 1 (Pagi)</div>
+                                  <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded ${
+                                    mStatus === 'completed' ? 'bg-emerald-100 text-emerald-800' :
+                                    mStatus === 'on_going' ? 'bg-amber-100 text-amber-800 animate-pulse' :
+                                    'bg-slate-100 text-slate-500'
+                                  }`}>
+                                    {mStatus === 'completed' ? 'Completed' : mStatus === 'on_going' ? 'On Going' : 'Scheduled'}
+                                  </span>
                                 </div>
-                                {request.external_photo_url && (
-                                  <a href={request.external_photo_url} target="_blank" rel="noreferrer" className="text-[11px] text-blue-700 hover:underline font-bold inline-flex items-center gap-1 pl-1.5 mt-1">
-                                    <Icon name="image" className="text-sm" /> Lihat Foto
-                                  </a>
+                                <div className="font-semibold text-slate-700">{it.morning_time || "N.A"} - {it.morning_destination || "N.A"}</div>
+                              </div>
+                              {/* Schedule 2 */}
+                              <div className="p-2 bg-white rounded-lg border border-slate-100 space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <div className="text-[10px] text-slate-400 font-bold uppercase">Jadwal / Sesi 2 (Sore)</div>
+                                  {it.afternoon_destination ? (
+                                    <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded ${
+                                      aStatus === 'completed' ? 'bg-emerald-100 text-emerald-800' :
+                                      aStatus === 'on_going' ? 'bg-amber-100 text-amber-800 animate-pulse' :
+                                      'bg-slate-100 text-slate-500'
+                                    }`}>
+                                      {aStatus === 'completed' ? 'Completed' : aStatus === 'on_going' ? 'On Going' : 'Scheduled'}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] text-slate-400 italic">N/A</span>
+                                  )}
+                                </div>
+                                <div className="font-semibold text-slate-700">{it.afternoon_time || "N.A"} - {it.afternoon_destination || "-"}</div>
+                              </div>
+                            </div>
+
+                            <div className="pt-2 text-[11.5px] border-t border-slate-100 flex justify-between items-center text-slate-600">
+                              <div>
+                                <span className="font-bold text-slate-500 uppercase text-[10px]">Armada: </span>
+                                {it.is_external ? (
+                                  <span className="font-bold text-purple-700">Pihak Ke-3 ({it.external_driver_name || "Sewa"}{it.external_license_plate ? ` - ${it.external_license_plate}` : ""})</span>
+                                ) : it.driver_name ? (
+                                  <span className="font-bold text-blue-900">
+                                    {it.driver_name} {it.vehicle_name && it.vehicle_name.replace(/\s*\(\s*\)/g, '').trim() ? `• ${it.vehicle_name.replace(/\s*\(\s*\)/g, '').trim()}` : ""}
+                                  </span>
+                                ) : (
+                                  <span className="italic text-slate-400">Belum Ditugaskan GA</span>
                                 )}
                               </div>
-                              
-                              {/* Mobil 2 if passengerCount > 6 */}
-                              {request.passengerCount > 6 && (
+                            </div>
+                          </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {(!Array.isArray(request.itineraries) || request.itineraries.length === 0) && (
+                    <div className="grid grid-cols-1 gap-4 pt-1 border-t border-slate-100 pt-3">
+                      <div>
+                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">Kendaraan & Driver</div>
+                        {request.is_external ? (
+                          <div className="space-y-3">
+                            <div className="text-[12px] font-bold text-slate-700">
+                              Penyedia Pihak Ketiga (Sewa) - {request.external_provider || "Provider Tidak Diketahui"}
+                            </div>
+                            
+                            {request.external_trip_type === "round_trip" ? (
+                              /* PP: Round Trip vehicles list */
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
+                                {/* Mobil 1 */}
                                 <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1.5">
-                                  <div className="font-extrabold text-blue-900">Mobil 2 (Cost: Rp {Number(request.third_party_cost_2 || 0).toLocaleString('id-ID')})</div>
+                                  <div className="font-extrabold text-blue-900">Mobil 1 (Cost: Rp {Number(request.third_party_cost || 0).toLocaleString('id-ID')})</div>
                                   <div className="font-semibold text-slate-600 space-y-0.5 pl-1.5">
-                                    {request.external_driver_name_2 && <div>Driver: {request.external_driver_name_2}</div>}
-                                    {request.external_license_plate_2 && <div>Plat: {request.external_license_plate_2}</div>}
-                                    {request.external_fleet_info_2 && <div className="text-slate-500 font-medium">Detail: {request.external_fleet_info_2}</div>}
-                                    {!request.external_driver_name_2 && !request.external_license_plate_2 && !request.external_fleet_info_2 && <div className="text-slate-400 italic">Belum ditugaskan.</div>}
+                                    {request.external_driver_name && <div>Driver: {request.external_driver_name}</div>}
+                                    {request.external_license_plate && <div>Plat: {request.external_license_plate}</div>}
+                                    {request.external_fleet_info && <div className="text-slate-500 font-medium">Detail: {request.external_fleet_info}</div>}
                                   </div>
-                                  {request.external_photo_url_2 && (
-                                    <a href={request.external_photo_url_2} target="_blank" rel="noreferrer" className="text-[11px] text-blue-700 hover:underline font-bold inline-flex items-center gap-1 pl-1.5 mt-1">
+                                  {request.external_photo_url && (
+                                    <a href={request.external_photo_url} target="_blank" rel="noreferrer" className="text-[11px] text-blue-700 hover:underline font-bold inline-flex items-center gap-1 pl-1.5 mt-1">
                                       <Icon name="image" className="text-sm" /> Lihat Foto
                                     </a>
                                   )}
                                 </div>
-                              )}
-                            </div>
-                          ) : (
-                            /* Sekali Jalan: Departure & Return fleets */
-                            <div className="space-y-3">
-                              {/* Keberangkatan */}
-                              <div className="p-3 bg-white border border-blue-100 rounded-xl space-y-2">
-                                <div className="font-extrabold text-blue-900 text-[12px] border-b border-blue-50 pb-1 flex items-center gap-1">
-                                  <span>🚙</span> Keberangkatan
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
-                                  <div className="p-2.5 bg-slate-50/50 border border-slate-100 rounded-lg space-y-1">
-                                    <div className="font-extrabold text-blue-900 text-[11px]">Mobil 1 (Cost: Rp {Number(request.external_departure_cost || 0).toLocaleString('id-ID')})</div>
-                                    <div className="font-semibold text-slate-600 space-y-0.5 pl-1">
-                                      {request.external_driver_name && <div>Driver: {request.external_driver_name}</div>}
-                                      {request.external_license_plate && <div>Plat: {request.external_license_plate}</div>}
-                                      {request.external_fleet_info && <div className="text-slate-500 font-medium">Detail: {request.external_fleet_info}</div>}
+                                
+                                {/* Mobil 2 if passengerCount > 6 */}
+                                {request.passengerCount > 6 && (
+                                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1.5">
+                                    <div className="font-extrabold text-blue-900">Mobil 2 (Cost: Rp {Number(request.third_party_cost_2 || 0).toLocaleString('id-ID')})</div>
+                                    <div className="font-semibold text-slate-600 space-y-0.5 pl-1.5">
+                                      {request.external_driver_name_2 && <div>Driver: {request.external_driver_name_2}</div>}
+                                      {request.external_license_plate_2 && <div>Plat: {request.external_license_plate_2}</div>}
+                                      {request.external_fleet_info_2 && <div className="text-slate-500 font-medium">Detail: {request.external_fleet_info_2}</div>}
+                                      {!request.external_driver_name_2 && !request.external_license_plate_2 && !request.external_fleet_info_2 && <div className="text-slate-400 italic">Belum ditugaskan.</div>}
                                     </div>
-                                    {request.external_photo_url && (
-                                      <a href={request.external_photo_url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 hover:underline font-bold inline-flex items-center gap-1 mt-0.5">
-                                        <Icon name="image" className="text-xs" /> Lihat Foto
+                                    {request.external_photo_url_2 && (
+                                      <a href={request.external_photo_url_2} target="_blank" rel="noreferrer" className="text-[11px] text-blue-700 hover:underline font-bold inline-flex items-center gap-1 pl-1.5 mt-1">
+                                        <Icon name="image" className="text-sm" /> Lihat Foto
                                       </a>
                                     )}
                                   </div>
-                                  
-                                  {request.passengerCount > 6 && (
+                                )}
+                              </div>
+                            ) : (
+                              /* Sekali Jalan: Departure & Return fleets */
+                              <div className="space-y-3">
+                                {/* Keberangkatan */}
+                                <div className="p-3 bg-white border border-blue-100 rounded-xl space-y-2">
+                                  <div className="font-extrabold text-blue-900 text-[12px] border-b border-blue-50 pb-1 flex items-center gap-1">
+                                    <span>🚙</span> Keberangkatan
+                                  </div>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
                                     <div className="p-2.5 bg-slate-50/50 border border-slate-100 rounded-lg space-y-1">
-                                      <div className="font-extrabold text-blue-900 text-[11px]">Mobil 2 (Cost: Rp {Number(request.external_departure_cost_2 || 0).toLocaleString('id-ID')})</div>
+                                      <div className="font-extrabold text-blue-900 text-[11px]">Mobil 1 (Cost: Rp {Number(request.external_departure_cost || 0).toLocaleString('id-ID')})</div>
                                       <div className="font-semibold text-slate-600 space-y-0.5 pl-1">
-                                        {request.external_driver_name_2 && <div>Driver: {request.external_driver_name_2}</div>}
-                                        {request.external_license_plate_2 && <div>Plat: {request.external_license_plate_2}</div>}
-                                        {request.external_fleet_info_2 && <div className="text-slate-500 font-medium">Detail: {request.external_fleet_info_2}</div>}
-                                        {!request.external_driver_name_2 && !request.external_license_plate_2 && !request.external_fleet_info_2 && <div className="text-slate-400 italic">Belum ditugaskan.</div>}
+                                        {request.external_driver_name && <div>Driver: {request.external_driver_name}</div>}
+                                        {request.external_license_plate && <div>Plat: {request.external_license_plate}</div>}
+                                        {request.external_fleet_info && <div className="text-slate-500 font-medium">Detail: {request.external_fleet_info}</div>}
                                       </div>
-                                      {request.external_photo_url_2 && (
-                                        <a href={request.external_photo_url_2} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 hover:underline font-bold inline-flex items-center gap-1 mt-0.5">
+                                      {request.external_photo_url && (
+                                        <a href={request.external_photo_url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 hover:underline font-bold inline-flex items-center gap-1 mt-0.5">
                                           <Icon name="image" className="text-xs" /> Lihat Foto
                                         </a>
                                       )}
                                     </div>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              {/* Penjemputan / Pulang */}
-                              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                                <div className="font-extrabold text-slate-700 text-[12px] border-b border-slate-200 pb-1 flex items-center gap-1">
-                                  <span>🔄</span> Penjemputan / Pulang
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
-                                  <div className="p-2.5 bg-white border border-slate-100 rounded-lg space-y-1">
-                                    <div className="font-extrabold text-slate-700 text-[11px]">Mobil 1 (Cost: Rp {Number(request.external_return_cost || 0).toLocaleString('id-ID')})</div>
-                                    <div className="font-semibold text-slate-600 space-y-0.5 pl-1">
-                                      {request.external_return_driver_name && <div>Driver: {request.external_return_driver_name}</div>}
-                                      {request.external_return_license_plate && <div>Plat: {request.external_return_license_plate}</div>}
-                                      {request.external_return_fleet_info && <div className="text-slate-500 font-medium">Detail: {request.external_return_fleet_info}</div>}
-                                      {!request.external_return_driver_name && !request.external_return_license_plate && !request.external_return_fleet_info && <div className="text-slate-400 italic">Belum ditugaskan.</div>}
-                                    </div>
-                                    {request.external_return_photo_url && (
-                                      <a href={request.external_return_photo_url} target="_blank" rel="noreferrer" className="text-[10px] text-slate-600 hover:underline font-bold inline-flex items-center gap-1 mt-0.5">
-                                        <Icon name="image" className="text-xs" /> Lihat Foto
-                                      </a>
+                                    
+                                    {request.passengerCount > 6 && (
+                                      <div className="p-2.5 bg-slate-50/50 border border-slate-100 rounded-lg space-y-1">
+                                        <div className="font-extrabold text-blue-900 text-[11px]">Mobil 2 (Cost: Rp {Number(request.external_departure_cost_2 || 0).toLocaleString('id-ID')})</div>
+                                        <div className="font-semibold text-slate-600 space-y-0.5 pl-1">
+                                          {request.external_driver_name_2 && <div>Driver: {request.external_driver_name_2}</div>}
+                                          {request.external_license_plate_2 && <div>Plat: {request.external_license_plate_2}</div>}
+                                          {request.external_fleet_info_2 && <div className="text-slate-500 font-medium">Detail: {request.external_fleet_info_2}</div>}
+                                          {!request.external_driver_name_2 && !request.external_license_plate_2 && !request.external_fleet_info_2 && <div className="text-slate-400 italic">Belum ditugaskan.</div>}
+                                        </div>
+                                        {request.external_photo_url_2 && (
+                                          <a href={request.external_photo_url_2} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 hover:underline font-bold inline-flex items-center gap-1 mt-0.5">
+                                            <Icon name="image" className="text-xs" /> Lihat Foto
+                                          </a>
+                                        )}
+                                      </div>
                                     )}
                                   </div>
-                                  
-                                  {request.passengerCount > 6 && (
+                                </div>
+                                
+                                {/* Penjemputan / Pulang */}
+                                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                                  <div className="font-extrabold text-slate-700 text-[12px] border-b border-slate-200 pb-1 flex items-center gap-1">
+                                    <span>🔄</span> Penjemputan / Pulang
+                                  </div>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
                                     <div className="p-2.5 bg-white border border-slate-100 rounded-lg space-y-1">
-                                      <div className="font-extrabold text-slate-700 text-[11px]">Mobil 2 (Cost: Rp {Number(request.external_return_cost_2 || 0).toLocaleString('id-ID')})</div>
+                                      <div className="font-extrabold text-slate-700 text-[11px]">Mobil 1 (Cost: Rp {Number(request.external_return_cost || 0).toLocaleString('id-ID')})</div>
                                       <div className="font-semibold text-slate-600 space-y-0.5 pl-1">
-                                        {request.external_return_driver_name_2 && <div>Driver: {request.external_return_driver_name_2}</div>}
-                                        {request.external_return_license_plate_2 && <div>Plat: {request.external_return_license_plate_2}</div>}
-                                        {request.external_return_fleet_info_2 && <div className="text-slate-500 font-medium">Detail: {request.external_return_fleet_info_2}</div>}
-                                        {!request.external_return_driver_name_2 && !request.external_return_license_plate_2 && !request.external_return_fleet_info_2 && <div className="text-slate-400 italic">Belum ditugaskan.</div>}
+                                        {request.external_return_driver_name && <div>Driver: {request.external_return_driver_name}</div>}
+                                        {request.external_return_license_plate && <div>Plat: {request.external_return_license_plate}</div>}
+                                        {request.external_return_fleet_info && <div className="text-slate-500 font-medium">Detail: {request.external_return_fleet_info}</div>}
+                                        {!request.external_return_driver_name && !request.external_return_license_plate && !request.external_return_fleet_info && <div className="text-slate-400 italic">Belum ditugaskan.</div>}
                                       </div>
-                                      {request.external_return_photo_url_2 && (
-                                        <a href={request.external_return_photo_url_2} target="_blank" rel="noreferrer" className="text-[10px] text-slate-600 hover:underline font-bold inline-flex items-center gap-1 mt-0.5">
+                                      {request.external_return_photo_url && (
+                                        <a href={request.external_return_photo_url} target="_blank" rel="noreferrer" className="text-[10px] text-slate-600 hover:underline font-bold inline-flex items-center gap-1 mt-0.5">
                                           <Icon name="image" className="text-xs" /> Lihat Foto
                                         </a>
                                       )}
                                     </div>
-                                  )}
+                                    
+                                    {request.passengerCount > 6 && (
+                                      <div className="p-2.5 bg-white border border-slate-100 rounded-lg space-y-1">
+                                        <div className="font-extrabold text-slate-700 text-[11px]">Mobil 2 (Cost: Rp {Number(request.external_return_cost_2 || 0).toLocaleString('id-ID')})</div>
+                                        <div className="font-semibold text-slate-600 space-y-0.5 pl-1">
+                                          {request.external_return_driver_name_2 && <div>Driver: {request.external_return_driver_name_2}</div>}
+                                          {request.external_return_license_plate_2 && <div>Plat: {request.external_return_license_plate_2}</div>}
+                                          {request.external_return_fleet_info_2 && <div className="text-slate-500 font-medium">Detail: {request.external_return_fleet_info_2}</div>}
+                                          {!request.external_return_driver_name_2 && !request.external_return_license_plate_2 && !request.external_return_fleet_info_2 && <div className="text-slate-400 italic">Belum ditugaskan.</div>}
+                                        </div>
+                                        {request.external_return_photo_url_2 && (
+                                          <a href={request.external_return_photo_url_2} target="_blank" rel="noreferrer" className="text-[10px] text-slate-600 hover:underline font-bold inline-flex items-center gap-1 mt-0.5">
+                                            <Icon name="image" className="text-xs" /> Lihat Foto
+                                          </a>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
+                            )}
+                            
+                            <div className="text-[11px] font-extrabold text-blue-900 border-t border-slate-100 pt-2 flex justify-between">
+                              <span>Total Biaya Sewa:</span>
+                              <span>Rp {(Number(request.third_party_cost || 0) + Number(request.third_party_cost_2 || 0)).toLocaleString('id-ID')}</span>
                             </div>
-                          )}
-                          
-                          <div className="text-[11px] font-extrabold text-blue-900 border-t border-slate-100 pt-2 flex justify-between">
-                            <span>Total Biaya Sewa:</span>
-                            <span>Rp {(Number(request.third_party_cost || 0) + Number(request.third_party_cost_2 || 0)).toLocaleString('id-ID')}</span>
                           </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="text-[13px] font-semibold text-slate-800 mt-0.5 flex items-center gap-1">
-                            <Icon name="directions_car" className="text-[15px] text-slate-500" />
-                            {request.vehicleModel}
-                          </div>
-                          <div className="text-[11px] font-medium text-slate-500 pl-5">
-                            Driver: {request.driverName}
-                          </div>
-                        </>
-                      )}
-                    </div>
+                        ) : (
+                          <div className="space-y-2 mt-1">
+                            {(() => {
+                              const rawDriverName = request.driverName || "Belum Ditugaskan";
+                              const driverNames = rawDriverName.includes(',') ? rawDriverName.split(',').map((s: string) => s.trim()) : [rawDriverName];
+                              const vName = (request.vehicleModel || "Armada Belum Dipilih").replace(/\s*\(\s*\)/g, '').trim();
 
-                    <div className="pt-3 border-t border-slate-100">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Estimasi Kembali (Durasi)</div>
-                      <div className="text-[13px] font-semibold text-slate-800 mt-0.5 flex items-center gap-1">
-                        <Icon name="timer" className="text-[15px] text-slate-500" />
-                        {request.estimated_duration ? `${request.estimated_duration} Jam` : "-"}
+                              return driverNames.map((dName: string, dIdx: number) => {
+                                const dInitials = dName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+
+                                return (
+                                  <div key={dIdx} className="p-3 bg-gradient-to-r from-slate-50 to-blue-50/30 border border-slate-200/80 rounded-xl flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <div className="w-9 h-9 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-xs font-extrabold shrink-0 shadow-sm border border-blue-900">
+                                        {dInitials}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="text-[12.5px] font-bold text-slate-800 truncate">{dName}</div>
+                                        <div className="text-[11px] font-medium text-slate-600 truncate flex items-center gap-1 mt-0.5">
+                                          <Icon name="directions_car" className="text-xs text-slate-400" />
+                                          <span>{vName}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <span className="text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-200 shrink-0">
+                                      Driver Internal
+                                    </span>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-100">
+                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Estimasi Kembali (Durasi)</div>
+                        <div className="text-[13px] font-semibold text-slate-800 mt-0.5 flex items-center gap-1">
+                          <Icon name="timer" className="text-[15px] text-slate-500" />
+                          {request.estimated_duration ? `${request.estimated_duration} Jam` : "-"}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -503,7 +678,10 @@ export function RequestDetailModal({
                   </span>
                 </div>
               </div>
-               {request.qr_code_token && ["driver_assigned", "on_going"].includes(request.rawStatus) && (
+               {request.qr_code_token && (
+                ["driver_assigned", "on_going"].includes(request.rawStatus) ||
+                (request.is_external && request.rawStatus === "assigned_by_ga")
+              ) && (
                 <div className="bg-white border-2 border-dashed border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-xs">
                   <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">QR Code Tiket</div>
                   <div 
@@ -527,44 +705,158 @@ export function RequestDetailModal({
               )}
 
               {/* Security Logs checkin/out if checked */}
-              {(request.security_checked_out_at || request.security_checked_in_at) && (
-                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                    <Icon name="verified" className="text-sm text-emerald-600" />
-                    Log Keamanan Security
-                  </div>
-                  <div className="text-xs space-y-2">
-                    {request.security_checked_out_at && (
-                      <div className="bg-white p-2 border border-slate-100 rounded-lg">
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="font-bold text-amber-700 text-[12.5px] leading-tight">Scan Berangkat (Checkout)</div>
-                          <span className="text-[10.5px] text-slate-400 font-bold font-mono whitespace-nowrap flex-shrink-0 mt-0.5">
-                            {formatScanTime(request.security_checked_out_at)}
-                          </span>
-                        </div>
-                        <div className="text-slate-500 font-medium mt-0.5">Petugas: {request.security_checkout_by}</div>
-                        {request.security_checkout_notes && (
-                          <div className="mt-1 text-[11px] text-slate-600 italic">" {request.security_checkout_notes} "</div>
-                        )}
+              {(() => {
+                const isMultiDay = Array.isArray(request.itineraries) && request.itineraries.length > 0;
+                
+                if (isMultiDay) {
+                  return (
+                    <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-2.5">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                        <Icon name="verified" className="text-sm text-emerald-600" />
+                        Log Keamanan Security ({request.itineraries.length} Hari)
                       </div>
-                    )}
-                    {request.security_checked_in_at && (
-                      <div className="bg-white p-2 border border-slate-100 rounded-lg">
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="font-bold text-emerald-700 text-[12.5px] leading-tight">Scan Kembali (Checkin)</div>
-                          <span className="text-[10.5px] text-slate-400 font-bold font-mono whitespace-nowrap flex-shrink-0 mt-0.5">
-                            {formatScanTime(request.security_checked_in_at)}
-                          </span>
-                        </div>
-                        <div className="text-slate-500 font-medium mt-0.5">Petugas: {request.security_checkin_by}</div>
-                        {request.security_checkin_notes && (
-                          <div className="mt-1 text-[11px] text-slate-600 italic">" {request.security_checkin_notes} "</div>
-                        )}
+                      
+                      <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                        {request.itineraries.map((it: any, idx: number) => {
+                          const dateFormatted = it.date ? new Date(it.date).toLocaleDateString("id-ID", { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+                          const dayLabel = `Hari ke-${idx + 1}${dateFormatted ? ` (${dateFormatted})` : ''}`;
+                          
+                          const isDone = it.status === 'completed' || (it.morning_status === 'completed' && (!it.afternoon_destination || it.afternoon_status === 'completed'));
+                          const isOngoing = it.morning_status === 'on_going' || it.afternoon_status === 'on_going';
+                          
+                          const logs: any[] = [];
+                          if (it.morning_checked_out_at) {
+                            logs.push({
+                              type: 'checkout',
+                              title: 'Scan Berangkat Sesi 1 (Pagi)',
+                              time: it.morning_checked_out_at,
+                              by: it.morning_checkout_by || request.security_checkout_by,
+                              notes: it.morning_checkout_notes || request.security_checkout_notes,
+                            });
+                          }
+                          if (it.morning_checked_in_at || it.morning_status === 'completed') {
+                            logs.push({
+                              type: 'checkin',
+                              title: 'Scan Kembali Sesi 1 (Pagi)',
+                              time: it.morning_checked_in_at || it.security_checked_in_at || it.updated_at || request.completed_at || new Date().toISOString(),
+                              by: it.morning_checkin_by || it.security_checkin_by || request.security_checkin_by || "System",
+                              notes: it.morning_checkin_notes || it.security_checkin_notes || request.security_checkin_notes,
+                            });
+                          }
+                          if (it.afternoon_checked_out_at) {
+                            logs.push({
+                              type: 'checkout',
+                              title: 'Scan Berangkat Sesi 2 (Sore)',
+                              time: it.afternoon_checked_out_at,
+                              by: it.afternoon_checkout_by || request.security_checkout_by,
+                              notes: it.afternoon_checkout_notes || request.security_checkout_notes,
+                            });
+                          }
+                          if (it.afternoon_checked_in_at || it.afternoon_status === 'completed') {
+                            logs.push({
+                              type: 'checkin',
+                              title: 'Scan Kembali Sesi 2 (Sore)',
+                              time: it.afternoon_checked_in_at || it.security_checked_in_at || it.updated_at || request.completed_at || new Date().toISOString(),
+                              by: it.afternoon_checkin_by || it.security_checkin_by || request.security_checkin_by || "System",
+                              notes: it.afternoon_checkin_notes || it.security_checkin_notes || request.security_checkin_notes,
+                            });
+                          }
+
+                          return (
+                            <div key={it.id || idx} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+                              {/* Day Header */}
+                              <div className="px-3 py-2 bg-slate-100/70 border-b border-slate-200/80 flex items-center justify-between">
+                                <span className="font-bold text-xs text-slate-800 flex items-center gap-1">
+                                  <span>📅</span> {dayLabel}
+                                </span>
+                                <span className={`text-[9.5px] font-extrabold px-2 py-0.5 rounded-md ${
+                                  isDone ? 'bg-emerald-100 text-emerald-800' :
+                                  isOngoing ? 'bg-amber-100 text-amber-800 animate-pulse' :
+                                  'bg-slate-200 text-slate-600'
+                                }`}>
+                                  {isDone ? '✓ Completed' : isOngoing ? '⚡ On Going' : 'Scheduled'}
+                                </span>
+                              </div>
+
+                              {/* Log List for this day */}
+                              <div className="p-2 space-y-1.5 text-xs">
+                                {logs.length > 0 ? (
+                                  logs.map((log: any, li: number) => (
+                                    <div key={li} className="p-2 bg-slate-50/80 border border-slate-100 rounded-lg space-y-0.5">
+                                      <div className="flex justify-between items-start gap-2">
+                                        <div className={`font-bold text-[11.5px] flex items-center gap-1 ${log.type === 'checkout' ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                          <span>{log.type === 'checkout' ? '🛫' : '🛬'}</span>
+                                          {log.title}
+                                        </div>
+                                        <span className="text-[10px] text-slate-500 font-bold font-mono whitespace-nowrap shrink-0">
+                                          {formatScanTime(log.time)}
+                                        </span>
+                                      </div>
+                                      {log.by && (
+                                        <div className="text-[10.5px] text-slate-600 font-medium pl-4">
+                                          Petugas: <span className="font-bold text-slate-700">{log.by}</span>
+                                        </div>
+                                      )}
+                                      {log.notes && (
+                                        <div className="text-[10px] text-slate-500 italic pl-4">"{log.notes}"</div>
+                                      )}
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="py-2 text-center text-[10.5px] text-slate-400 italic">
+                                    Belum ada aktivitas scan security
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    )}
+                    </div>
+                  );
+                }
+
+                if (!request.security_checked_out_at && !request.security_checked_in_at) return null;
+
+                return (
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                      <Icon name="verified" className="text-sm text-emerald-600" />
+                      Log Keamanan Security
+                    </div>
+                    <div className="text-xs space-y-2">
+                      {request.security_checked_out_at && (
+                        <div className="bg-white p-2 border border-slate-100 rounded-lg">
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="font-bold text-amber-700 text-[12.5px] leading-tight">Scan Berangkat (Checkout)</div>
+                            <span className="text-[10.5px] text-slate-400 font-bold font-mono whitespace-nowrap flex-shrink-0 mt-0.5">
+                              {formatScanTime(request.security_checked_out_at)}
+                            </span>
+                          </div>
+                          <div className="text-slate-500 font-medium mt-0.5">Petugas: {request.security_checkout_by}</div>
+                          {request.security_checkout_notes && (
+                            <div className="mt-1 text-[11px] text-slate-600 italic">" {request.security_checkout_notes} "</div>
+                          )}
+                        </div>
+                      )}
+                      {request.security_checked_in_at && (
+                        <div className="bg-white p-2 border border-slate-100 rounded-lg">
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="font-bold text-emerald-700 text-[12.5px] leading-tight">Scan Kembali (Checkin)</div>
+                            <span className="text-[10.5px] text-slate-400 font-bold font-mono whitespace-nowrap flex-shrink-0 mt-0.5">
+                              {formatScanTime(request.security_checked_in_at)}
+                            </span>
+                          </div>
+                          <div className="text-slate-500 font-medium mt-0.5">Petugas: {request.security_checkin_by}</div>
+                          {request.security_checkin_notes && (
+                            <div className="mt-1 text-[11px] text-slate-600 italic">" {request.security_checkin_notes} "</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Approval Workflow timeline */}
               <div>

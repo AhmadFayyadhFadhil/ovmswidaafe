@@ -17,6 +17,15 @@ import type { Vehicle } from "./vahicle";
 import CalendarView from "./CalendarView";
 import type { CalendarEvent } from "./CalendarView";
 
+function getMonthNameIndo(monthStr: string): string {
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  const idx = parseInt(monthStr, 10) - 1;
+  return months[idx] || monthStr;
+}
+
 function PriBadge({ p }: { p: string }) {
   const map: Record<string, string> = {
     URGENT:   "bg-[#fff7ed] text-[#c2410c] border border-[#fed7aa]",
@@ -158,12 +167,20 @@ export default function DriverDashboard() {
       const res = await requestService.getById(reqId);
       if (res.data) {
         setSelectedRequestForDetail(res.data);
+        setDetailLoading(false);
+        return;
       }
     } catch (err: any) {
-      alert("Gagal memuat detail permintaan: " + (err.response?.data?.message || err.message));
-    } finally {
-      setDetailLoading(false);
+      console.warn("Gagal memuat detail via API, menggunakan fallback data lokal", err);
     }
+
+    const found = rawRequests.find((r) => String(r.id) === String(reqId));
+    if (found) {
+      setSelectedRequestForDetail(found);
+    } else {
+      alert("Gagal memuat detail permintaan.");
+    }
+    setDetailLoading(false);
   };
   
   const [confirmModal, setConfirmModal] = useState<{
@@ -181,20 +198,19 @@ export default function DriverDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [assignRes, requestRes, vehicleRes] = await Promise.all([
+      const [assignRes, requestRes, vehicleRes, profileRes] = await Promise.all([
         assignmentService.getAll(),
         requestService.getAll(),
         vehicleService.getAll(),
+        import.meta.env.VITE_ENABLE_MOCK !== "true" ? apiClient.get("/profile").catch(() => null) : Promise.resolve(null),
       ]);
+
       setRawAssignments(assignRes.data || []);
       setRawRequests(requestRes.data || []);
       setRawVehicles(vehicleRes.data || []);
 
-      if (import.meta.env.VITE_ENABLE_MOCK !== "true") {
-        const profileRes = await apiClient.get("/profile");
-        if (profileRes.data?.status === "success" && profileRes.data.data) {
-          updateUser({ availability_status: profileRes.data.data.availability_status });
-        }
+      if (profileRes?.data?.status === "success" && profileRes.data.data) {
+        updateUser({ availability_status: profileRes.data.data.availability_status });
       }
     } catch (err: any) {
       console.error(err);
@@ -275,7 +291,7 @@ export default function DriverDashboard() {
       id: a.id,
       avatar,
       requesterName: name,
-      department: req.department_id || "IT Department",
+      department: req.department_name || req.department_id || "IT Department",
       priority,
       reqId: `#REQ-${req.id || a.request_id}`,
       destination: req.destination_city && req.destination_place ? `${req.destination_city} - ${req.destination_place}` : req.destination_city || "",
@@ -303,7 +319,7 @@ export default function DriverDashboard() {
       passengerAvatar: avatar,
       vehicleType: r.vehicleModel || "Unassigned",
       route: `${r.destination_city || ""} - ${r.destination_place || ""}`,
-      status: r.rawStatus === "completed" ? "Completed" : r.rawStatus === "rejected" ? "Rejected" : r.status,
+      status: r.rawStatus === "completed" ? "Completed" : r.rawStatus === "rejected" ? "Rejected" : r.rawStatus === "cancelled" ? "Cancelled" : r.status,
     };
   };
 
@@ -351,18 +367,67 @@ export default function DriverDashboard() {
   );
   
   const historyTrips = rawRequests
-    .filter((r) => r.rawStatus === "completed" || r.rawStatus === "rejected")
+    .filter((r) => r.rawStatus === "completed" || r.rawStatus === "rejected" || r.rawStatus === "cancelled")
     .map(mapTripHistory);
 
   const mappedVehicles = rawVehicles.map(mapVehicle);
 
-  const calendarEvents: CalendarEvent[] = [
-    ...activeTrips.map(r => {
+  const calendarEvents: CalendarEvent[] = [];
+
+  rawRequests.forEach(r => {
+    if (r.rawStatus === "rejected" || r.rawStatus === "cancelled") return;
+
+    if (Array.isArray(r.itineraries) && r.itineraries.length > 0) {
+      r.itineraries.forEach((it: any, idx: number) => {
+        const isMyDay = String(it.driver_id) === String(user?.id) || String(r.driverId) === String(user?.id);
+        if (!isMyDay) return;
+
+        let status = "Scheduled";
+        if (it.morning_status === "completed" && (it.afternoon_status === "completed" || !it.afternoon_destination)) {
+          status = "Completed";
+        } else if (it.morning_status === "on_going" || it.afternoon_status === "on_going") {
+          status = "On Going";
+        } else if (r.rawStatus === "completed" || it.status === "completed") {
+          status = "Completed";
+        }
+
+        const sessionTexts = [];
+        if (it.morning_destination) sessionTexts.push(`Pagi: ${it.morning_time || '08:00'} (${it.morning_destination})`);
+        if (it.afternoon_destination) sessionTexts.push(`Sore: ${it.afternoon_time || '16:00'} (${it.afternoon_destination})`);
+        const sessionInfo = sessionTexts.length > 0 ? sessionTexts.join(" | ") : undefined;
+
+        calendarEvents.push({
+          id: String(r.id),
+          tripId: `#REQ-${r.id} (Hari ${idx + 1})`,
+          title: `Trip to ${it.morning_destination || it.afternoon_destination || r.destination}`,
+          datetime: `${it.date} (${it.morning_time || it.afternoon_time || '08:00'})`,
+          dateStr: it.date,
+          route: `${r.destination} - Hari ${idx + 1}`,
+          passenger: r.employee || "Staff",
+          status: status,
+          driverName: user?.name || "Saya",
+          sessionDetails: sessionInfo,
+        });
+      });
+    } else {
+      const isMyTrip = String(r.driverId) === String(user?.id);
+      if (!isMyTrip) return;
+
       let dateStr = "";
       if (r.startTime) {
         dateStr = r.startTime.includes('T') ? r.startTime.split('T')[0] : r.startTime.split(" ")[0];
+      } else if (r.date) {
+        dateStr = r.date;
       }
-      return {
+
+      let status = "Scheduled";
+      if (r.rawStatus === "on_going") {
+        status = "On Going";
+      } else if (r.rawStatus === "completed") {
+        status = "Completed";
+      }
+
+      calendarEvents.push({
         id: String(r.id),
         tripId: `#REQ-${r.id}`,
         title: `Trip to ${r.destination}`,
@@ -370,26 +435,11 @@ export default function DriverDashboard() {
         dateStr: dateStr,
         route: r.destination,
         passenger: r.employee || "Staff",
-        status: r.rawStatus === "on_going" ? "Sedang Berjalan" : "Terjadwal",
-      };
-    }),
-    ...rawRequests.filter(r => r.rawStatus === "completed" || r.rawStatus === "rejected").map(r => {
-      let dateStr = "";
-      if (r.startTime) {
-        dateStr = r.startTime.includes('T') ? r.startTime.split('T')[0] : r.startTime.split(" ")[0];
-      }
-      return {
-        id: String(r.id),
-        tripId: `#REQ-${r.id}`,
-        title: `Trip to ${r.destination}`,
-        datetime: r.startTime ? r.startTime.substring(0, 16).replace('T', ' ') : `${r.date} ${r.time}`,
-        dateStr: dateStr,
-        route: r.destination,
-        passenger: r.employee || "Staff",
-        status: r.rawStatus === "completed" ? "Completed" : "Rejected",
-      };
-    })
-  ];
+        status: status,
+        driverName: user?.name || "Saya",
+      });
+    }
+  });
 
   const activeAssignments = activeTrips.map(r => {
     const asg = rawAssignments.find(
@@ -398,19 +448,62 @@ export default function DriverDashboard() {
     const name = r.employee || "Staff";
     const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1e3a8a&color=fff`;
     
+    let dateVal = r.date || "";
+    let timeVal = r.time || "";
+    let destinationVal = r.destination || "";
+    let vehicleVal = r.vehicleModel || "Unassigned";
+    let tripStatusVal = r.rawStatus;
+
+    if (Array.isArray(r.itineraries) && r.itineraries.length > 0) {
+      let myIt = r.itineraries.find((it: any) => String(it.driver_id) === String(user?.id) && it.status !== 'completed');
+      if (!myIt) {
+        myIt = r.itineraries.find((it: any) => String(it.driver_id) === String(user?.id));
+      }
+
+      if (myIt) {
+        if (myIt.date) {
+          const dateParts = myIt.date.split('-');
+          dateVal = dateParts.length === 3 ? `${parseInt(dateParts[2], 10)} ${getMonthNameIndo(dateParts[1])} ${dateParts[0]}` : myIt.date;
+        }
+        
+        const timeParts = [];
+        const destParts = [];
+        if (myIt.morning_destination) {
+          timeParts.push(myIt.morning_time || "08:00");
+          destParts.push(myIt.morning_destination);
+        }
+        if (myIt.afternoon_destination) {
+          timeParts.push(myIt.afternoon_time || "16:00");
+          destParts.push(myIt.afternoon_destination);
+        }
+        timeVal = timeParts.join(" & ");
+        destinationVal = destParts.join(" & ") || r.destination || "";
+
+        vehicleVal = myIt.vehicle_name || myIt.vehicle_model || r.vehicleModel || "Unassigned";
+
+        if (myIt.status === 'completed' || (myIt.morning_status === 'completed' && (myIt.afternoon_status === 'completed' || !myIt.afternoon_destination))) {
+          tripStatusVal = 'completed';
+        } else if (myIt.status === 'on_going' || myIt.morning_status === 'on_going' || myIt.afternoon_status === 'on_going') {
+          tripStatusVal = 'on_going';
+        } else {
+          tripStatusVal = 'driver_assigned';
+        }
+      }
+    }
+
     return {
       id: asg?.id || String(r.id),
       avatar,
       requesterName: name,
-      department: r.department || "IT Department",
+      department: r.department_name || r.department || "IT Department",
       priority: (r.priority === "URGENT" || r.priority === "HIGH" ? "URGENT" : "NORMAL") as "URGENT" | "NORMAL" | "CRITICAL",
       reqId: `#REQ-${r.id}`,
-      destination: r.destination || "",
-      date: r.date || "",
-      time: r.time || "",
-      vehicleType: r.vehicleModel || "Unassigned",
+      destination: destinationVal,
+      date: dateVal,
+      time: timeVal,
+      vehicleType: vehicleVal,
       purpose: r.purpose || "Operational Trip",
-      tripStatus: r.rawStatus,
+      tripStatus: tripStatusVal,
       requestId: String(r.id),
     };
   });
@@ -464,8 +557,23 @@ export default function DriverDashboard() {
           }
         };
 
+        const activeItineraryForDriver = (() => {
+          if (!currentTrip || !Array.isArray(currentTrip.itineraries) || currentTrip.itineraries.length === 0) return null;
+          return currentTrip.itineraries.find((it: any) => String(it.driver_id) === String(user?.id) && it.status !== 'completed')
+            || currentTrip.itineraries.find((it: any) => String(it.driver_id) === String(user?.id));
+        })();
+
         const driverTripStatus = (() => {
           if (!currentTrip) return null;
+          if (activeItineraryForDriver) {
+            if (activeItineraryForDriver.status === 'completed' || (activeItineraryForDriver.morning_status === 'completed' && (activeItineraryForDriver.afternoon_status === 'completed' || !activeItineraryForDriver.afternoon_destination))) {
+              return 'completed';
+            } else if (activeItineraryForDriver.status === 'on_going' || activeItineraryForDriver.morning_status === 'on_going' || activeItineraryForDriver.afternoon_status === 'on_going') {
+              return 'on_going';
+            } else {
+              return 'driver_assigned';
+            }
+          }
           if (currentTrip.is_external) {
             return currentTrip.rawStatus;
           }
@@ -473,12 +581,32 @@ export default function DriverDashboard() {
             (ot: any) => String(ot.driver?.id) === String(user?.id)
           );
           if (myTripDetails) {
-            return myTripDetails.status; // 'pending' / 'on_going' / 'completed'
+            return myTripDetails.status;
           }
           return currentTrip.rawStatus;
         })();
 
         const heroStatus = currentTrip ? getHeroStatusConfig(driverTripStatus || currentTrip.rawStatus) : null;
+
+        const displayDestination = (() => {
+          if (activeItineraryForDriver) {
+            const dests = [];
+            if (activeItineraryForDriver.morning_destination) dests.push(activeItineraryForDriver.morning_destination);
+            if (activeItineraryForDriver.afternoon_destination) dests.push(activeItineraryForDriver.afternoon_destination);
+            return dests.join(" & ") || currentTrip.destination;
+          }
+          return currentTrip?.destination || "";
+        })();
+
+        const displayTime = (() => {
+          if (activeItineraryForDriver) {
+            const times = [];
+            if (activeItineraryForDriver.morning_destination) times.push(activeItineraryForDriver.morning_time || "08:00");
+            if (activeItineraryForDriver.afternoon_destination) times.push(activeItineraryForDriver.afternoon_time || "16:00");
+            return times.join(" & ") || currentTrip.time || "09:00";
+          }
+          return currentTrip?.time || "09:00";
+        })();
 
         return (
           <div className="p-4 sm:p-8 space-y-6">
@@ -508,8 +636,8 @@ export default function DriverDashboard() {
                           <Icon name="location_on" className="text-[14px]" />
                           Destination
                         </div>
-                        <div className="text-[14px] font-bold truncate max-w-[150px]" title={currentTrip.destination}>
-                          {currentTrip.destination}
+                        <div className="text-[14px] font-bold truncate max-w-[150px]" title={displayDestination}>
+                          {displayDestination}
                         </div>
                       </div>
                       <div>
@@ -517,7 +645,7 @@ export default function DriverDashboard() {
                           <Icon name="schedule" className="text-[14px]" />
                           Departure
                         </div>
-                        <div className="text-[14px] font-bold">{currentTrip.time || "09:00"}</div>
+                        <div className="text-[14px] font-bold">{displayTime}</div>
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1">
@@ -815,6 +943,32 @@ export default function DriverDashboard() {
                           response: "rejected",
                           reject_reason: confirmModal.rejectReason,
                         });
+                        
+                        try {
+                          const matchedAsg = rawAssignments.find((a: any) => String(a.id) === String(id));
+                          const reqId = matchedAsg?.request?.id || matchedAsg?.request_id || "1";
+                          
+                          const GAHRD_NOTIFS_KEY = 'ovms_gahrd_notifications';
+                          const stored = localStorage.getItem(GAHRD_NOTIFS_KEY);
+                          let notifs: any[] = [];
+                          if (stored) {
+                            try { notifs = JSON.parse(stored); } catch {}
+                          }
+                          const newNotif = {
+                            id: 'NTF-' + Date.now(),
+                            category: 'assignment',
+                            priority: 'CRITICAL',
+                            title: 'Penugasan Ditolak oleh Pengemudi',
+                            description: `Driver ${user?.name || 'Driver'} menolak penugasan untuk Request #${reqId}. Alasan: "${confirmModal.rejectReason}"`,
+                            time: 'Baru saja',
+                            unread: true,
+                            requestId: String(reqId),
+                          };
+                          notifs.unshift(newNotif);
+                          localStorage.setItem(GAHRD_NOTIFS_KEY, JSON.stringify(notifs));
+                        } catch (notifErr) {
+                          console.error("Gagal menyimpan notifikasi penolakan driver:", notifErr);
+                        }
                       }
                       setConfirmModal({ isOpen: false, type: "start", targetId: "" });
                       await fetchData();

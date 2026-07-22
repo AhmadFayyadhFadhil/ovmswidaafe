@@ -355,10 +355,12 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                     <td className="px-4 py-3.5 text-[12px] font-medium text-[#475569]">{e.nik || "-"}</td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-[#e2e8f0] flex items-center justify-center text-[11px] font-bold text-[#475569] flex-shrink-0">
-                          {e.fullName.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                        <div className="w-8 h-8 rounded-full bg-[#e2e8f0] flex items-center justify-center text-[11px] font-bold text-[#475569] flex-shrink-0 uppercase">
+                          {e.fullName.split(" ").filter(Boolean).map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                         </div>
-                        <span className="text-[13px] font-semibold text-[#0f172a]">{e.fullName}</span>
+                        <span className="text-[13px] font-semibold text-[#0f172a] capitalize whitespace-nowrap">
+                          {e.fullName.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                        </span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5 text-[12px] text-[#64748b]">{e.email}</td>

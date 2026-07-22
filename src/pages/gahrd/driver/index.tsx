@@ -156,6 +156,7 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
   const [driversList, setDriversList] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     driverId: string | null;
@@ -201,6 +202,7 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
   }, []);
 
   const handleToggleClick = (driverId: string, driverName: string, currentStatus: DriverStatus) => {
+    setValidationError(null);
     setConfirmModal({
       isOpen: true,
       driverId,
@@ -214,6 +216,7 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
     const { driverId, currentStatus } = confirmModal;
     const nextStatus = currentStatus === "AVAILABLE" ? "unavailable" : "available";
     setActionLoading(true);
+    setValidationError(null);
     try {
       await apiClient.post(`/users/${driverId}/driver-duty`, {
         availability_status: nextStatus
@@ -232,7 +235,7 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
       setConfirmModal({ isOpen: false, driverId: null, driverName: "", currentStatus: null });
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || "Gagal mengubah status tugas driver.");
+      setValidationError(err.response?.data?.message || "Gagal mengubah status tugas driver.");
     } finally {
       setActionLoading(false);
     }
@@ -354,7 +357,10 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm animate-fadein p-4">
           <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 w-full max-w-md shadow-2xl relative">
             <button 
-              onClick={() => setConfirmModal({ isOpen: false, driverId: null, driverName: "", currentStatus: null })}
+              onClick={() => {
+                setConfirmModal({ isOpen: false, driverId: null, driverName: "", currentStatus: null });
+                setValidationError(null);
+              }}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer"
             >
               <Icon name="close" className="text-xl" />
@@ -373,10 +379,23 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
               </p>
             </div>
 
+            {validationError && (
+              <div className="mb-5 p-4 bg-rose-50/80 border border-rose-100 rounded-2xl flex items-start gap-2.5 text-rose-800 text-[12.5px] leading-relaxed text-left animate-slidein">
+                <Icon name="error" className="text-[18px] text-rose-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-extrabold block mb-0.5 text-rose-900">Gagal Mengubah Status</span>
+                  {validationError}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => setConfirmModal({ isOpen: false, driverId: null, driverName: "", currentStatus: null })}
+                onClick={() => {
+                  setConfirmModal({ isOpen: false, driverId: null, driverName: "", currentStatus: null });
+                  setValidationError(null);
+                }}
                 className="flex-1 py-3 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer text-sm"
               >
                 Kembali

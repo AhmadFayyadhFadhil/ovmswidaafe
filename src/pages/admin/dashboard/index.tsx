@@ -396,7 +396,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto hidden md:block">
             {reqLoading && (
               <div className="px-6 py-4 text-[13px] text-[#475569] flex items-center gap-2">
                 <Icon name="hourglass_top" className="text-[18px] text-[#1e3a8a]" />
@@ -458,6 +458,66 @@ export default function Dashboard() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View (Visible on mobile, hidden on desktop) */}
+          <div className="block md:hidden divide-y divide-[#f1f5f9]">
+            {reqLoading && (
+              <div className="p-6 text-center text-[13px] text-[#475569] flex items-center justify-center gap-2">
+                <Icon name="hourglass_top" className="text-[18px] text-[#1e3a8a] animate-spin" />
+                Loading requests...
+              </div>
+            )}
+            {reqError && (
+              <div className="p-6 text-center text-[13px] text-[#b91c1c] space-y-2">
+                <div className="flex items-center justify-center gap-2"><Icon name="error" className="text-red-600 text-[18px]" />Failed loading requests.</div>
+                <button onClick={() => refetch()} className="px-4 py-1.5 bg-[#1e3a8a] text-white rounded-xl text-[12px] font-semibold">Retry</button>
+              </div>
+            )}
+            {!reqLoading && !reqError && paginatedRequests.length === 0 ? (
+              <div className="p-8 text-center text-[13px] text-[#64748b]">
+                No active requests found.
+              </div>
+            ) : (
+              !reqLoading && !reqError && paginatedRequests.map((req, index) => (
+                <div key={req.id || index} className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-[#e2e8f0] flex items-center justify-center text-[11px] font-bold text-[#475569] flex-shrink-0">
+                        {req.initials}
+                      </div>
+                      <div>
+                        <div className="text-[13px] font-bold text-[#1e293b]">{req.name}</div>
+                        <div className="text-[11px] text-[#94a3b8]">{req.id}</div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <StatusBadge status={req.status} />
+                      <PriorityBadge priority={req.priority} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-1">
+                    <div>
+                      <span className="text-[#94a3b8] block text-[9.5px] uppercase font-bold tracking-wider">Destination</span>
+                      <span className="text-[12.5px] text-[#475569] font-semibold">{req.destination}</span>
+                    </div>
+                    <div>
+                      <span className="text-[#94a3b8] block text-[9.5px] uppercase font-bold tracking-wider">Vehicle / Driver</span>
+                      <div className="text-[12.5px] font-semibold text-[#1e293b]">{req.vehicle}</div>
+                      <div className="text-[10px] text-[#94a3b8] mt-0.5">
+                        {req.vehicle === "Unassigned" ? req.driver : `Driver: ${req.driver}`}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between text-[11px] text-[#64748b]">
+                    <span className="font-semibold uppercase tracking-wider text-[#94a3b8] text-[9.5px]">Request Date</span>
+                    <span className="font-bold text-[#0f172a] bg-[#f8fafc] px-2.5 py-1 rounded-lg border border-[#f1f5f9]">{req.date}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           {totalPages > 1 && (

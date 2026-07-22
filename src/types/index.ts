@@ -28,10 +28,12 @@ export interface Vehicle {
   photoUrl?: string;
   backendStatus?: string;
   capacity?: number;
+  stnkPhotoUrl?: string;
 }
 
 export interface Driver {
   id: string;
+  nik?: string;
   name: string;
   status: "AVAILABLE" | "ON DUTY" | "OFF DUTY" | "ASSIGNED";
   licenseType: "Class A" | "Class B" | "Class C";
@@ -39,6 +41,7 @@ export interface Driver {
   performance: number; // e.g. 4.8
   assignedVehicleId?: string;
   avatarUrl?: string;
+  simPhotoUrl?: string;
   phone?: string;
   email?: string;
 }
@@ -54,7 +57,7 @@ export interface FleetRequest {
   driverName: string;
   date: string;
   time?: string;
-  status: "APPROVED" | "PENDING" | "ONGOING" | "COMPLETED" | "REJECTED";
+  status: "APPROVED" | "PENDING" | "ONGOING" | "COMPLETED" | "REJECTED" | "CANCELLED";
   priority: "HIGH" | "URGENT" | "NORMAL" | "LOW";
   canApprove?: boolean;
   canReject?: boolean;
@@ -102,7 +105,37 @@ export interface FleetRequest {
   external_return_photo_url_2?: string | null;
   third_party_cost_2?: number;
 
+  itinerary_file_url?: string | null;
+  itineraries?: RequestItinerary[];
+  is_overtime?: boolean;
+  overtime_minutes?: number;
+  overtime_formatted?: string | null;
   operational_trips?: OperationalTrip[];
+}
+
+export interface RequestItinerary {
+  id?: number | string;
+  date: string;
+  morning_time?: string | null;
+  morning_destination?: string | null;
+  afternoon_time?: string | null;
+  afternoon_destination?: string | null;
+  passengers_notes?: string | null;
+  driver_id?: number | string | null;
+  driver_name?: string | null;
+  vehicle_id?: number | string | null;
+  vehicle_name?: string | null;
+  is_external?: boolean;
+  external_driver_name?: string | null;
+  external_license_plate?: string | null;
+  external_fleet_info?: string | null;
+  third_party_cost?: number;
+  security_checked_out_at?: string | null;
+  security_checked_in_at?: string | null;
+  status?: string;
+  is_overtime?: boolean;
+  overtime_minutes?: number;
+  overtime_formatted?: string | null;
 }
 
 export interface OperationalTrip {

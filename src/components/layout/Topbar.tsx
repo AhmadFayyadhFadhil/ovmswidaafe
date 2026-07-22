@@ -1,4 +1,8 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuthContext } from "@/auth/authContext";
 import { Icon } from "@/components/ui/Icon";
+import { apiClient } from "@/services/api/api";
 
 export function Topbar({ 
   title, 
@@ -21,6 +25,95 @@ export function Topbar({
   onMenuClick?: () => void;
   onProfileClick?: () => void;
 }) {
+  const navigate = useNavigate();
+  const { user } = useAuthContext();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user?.role) return;
+
+    const fetchUnreadCount = async () => {
+      const role = user.role.toLowerCase();
+      try {
+        if (role === "gahrd") {
+          const stored = localStorage.getItem("ovms_gahrd_notifications");
+          if (stored) {
+            const list = JSON.parse(stored);
+            if (Array.isArray(list)) {
+              setUnreadCount(list.filter((n: any) => n.unread).length);
+              return;
+            }
+          }
+          setUnreadCount(0);
+        } else if (role === "admin") {
+          const stored = localStorage.getItem("ovms_admin_notifications");
+          if (stored) {
+            const list = JSON.parse(stored);
+            if (Array.isArray(list)) {
+              setUnreadCount(list.filter((n: any) => !n.isRead).length);
+              return;
+            }
+          }
+          setUnreadCount(0);
+        } else if (role === "driver") {
+          const res = await apiClient.get("/assignments");
+          if (res.data?.status === "success" && Array.isArray(res.data?.data)) {
+            const pending = res.data.data.filter(
+              (a: any) => a.status === "pending_driver" && String(a.driver_id) === String(user.id)
+            );
+            setUnreadCount(pending.length);
+          }
+        } else if (role === "approver") {
+          const res = await apiClient.get("/requests");
+          if (res.data?.status === "success" && Array.isArray(res.data?.data)) {
+            const pending = res.data.data.filter((r: any) => r.can_approve);
+            setUnreadCount(pending.length);
+          }
+        } else if (role === "employee") {
+          const res = await apiClient.get("/requests");
+          if (res.data?.status === "success" && Array.isArray(res.data?.data)) {
+            const allRequests = res.data.data;
+            // Compare current statuses vs what was last seen on notifications page
+            const seenRaw = localStorage.getItem('ovms_employee_notif_seen');
+            const seen: Record<string, string> = seenRaw ? JSON.parse(seenRaw) : {};
+            const unseen = allRequests.filter((r: any) => {
+              const currentStatus = r.rawStatus || r.status;
+              return !seen[String(r.id)] || seen[String(r.id)] !== currentStatus;
+            });
+            setUnreadCount(unseen.length);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch unread count for", role, err);
+      }
+    };
+
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 8000);
+
+    // Re-fetch immediately when user returns to tab (e.g. navigates back from notifications page)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') fetchUnreadCount();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Re-fetch immediately when any notification is marked as read (custom event)
+    const handleNotifRead = () => fetchUnreadCount();
+    window.addEventListener('ovms-notif-read', handleNotifRead);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('ovms-notif-read', handleNotifRead);
+    };
+  }, [user]);
+
+  const handleNotificationClick = () => {
+    if (!user?.role) return;
+    const role = user.role.toLowerCase();
+    if (role === "security") return;
+    navigate(`/${role}/notifications`);
+  };
   return (
     <header className="bg-white border-b border-[#e2e8f0] px-4 sm:px-8 h-[68px] flex items-center justify-between flex-shrink-0 shadow-sm">
       <div className="flex items-center gap-3 sm:gap-6 min-w-0">
@@ -41,7 +134,22 @@ export function Topbar({
             className="h-9 pl-9 pr-4 bg-[#f8fafc] border border-[#e2e8f0] rounded-full text-[13px] text-[#475569] placeholder:text-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 w-56" />
         </div>
       </div>
-      <div className="flex items-center gap-3 flex-shrink-0">
+      <div className="flex items-center gap-4 flex-shrink-0">
+        {user && user.role?.toLowerCase() !== "security" && (
+          <button 
+            onClick={handleNotificationClick}
+            className="p-2 text-slate-500 hover:text-[#1e3a8a] hover:bg-slate-100 rounded-xl relative cursor-pointer transition-all flex items-center justify-center"
+            title="Notifications"
+          >
+            <Icon name="notifications" className="text-[22px]" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 w-4.5 h-4.5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border border-white">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        )}
+
         <button 
           onClick={onProfileClick}
           className="flex items-center gap-2.5 cursor-pointer text-left hover:opacity-80 transition-opacity focus:outline-none"

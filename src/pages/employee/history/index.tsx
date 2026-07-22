@@ -7,7 +7,7 @@ import type { FleetRequest } from '@/types';
 import { useAuthContext } from "@/auth/authContext";
 
 type Priority = "URGENT" | "NORMAL" | "CRITICAL";
-type HistoryStatus = "COMPLETED" | "REJECTED";
+type HistoryStatus = "COMPLETED" | "REJECTED" | "CANCELLED";
 
 interface HistoryItem {
   id: string;
@@ -91,10 +91,12 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
       >
         {/* Status icon */}
         <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
-          isCompleted ? 'bg-[#f0fdf4]' : 'bg-[#fef2f2]'
+          isCompleted ? 'bg-[#f0fdf4]' : item.status === 'CANCELLED' ? 'bg-[#f1f5f9]' : 'bg-[#fef2f2]'
         }`}>
           {isCompleted
             ? <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="m9 12 2 2 4-4" stroke="#15803d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="9" stroke="#15803d" strokeWidth="2"/></svg>
+            : item.status === 'CANCELLED'
+            ? <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             : <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="m15 9-6 6M9 9l6 6" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/><circle cx="12" cy="12" r="9" stroke="#dc2626" strokeWidth="2"/></svg>
           }
         </div>
@@ -158,7 +160,7 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
 }
 
 // ── Tab filter ─────────────────────────────────────────────────────────────────
-type TabFilter = 'All History' | 'Completed' | 'Rejected';
+type TabFilter = 'All History' | 'Completed' | 'Rejected' | 'Cancelled';
 
 export default function EmployeeHistoryPage() {
   const { user } = useAuthContext();
@@ -176,11 +178,12 @@ export default function EmployeeHistoryPage() {
 
   const requestsList = fetchedRequests || [];
 
-  // Filter completed and rejected requests for the logged-in employee
+  // Filter completed, rejected, and cancelled requests for the logged-in employee
   const historyItems: HistoryItem[] = requestsList
-    .filter(r => ["completed", "rejected"].includes(r.rawStatus || ""))
+    .filter(r => ["completed", "rejected", "cancelled"].includes(r.rawStatus || ""))
     .map(r => {
       const isCompleted = r.rawStatus === "completed";
+      const isCancelled = r.rawStatus === "cancelled";
       const lastApproval = r.approvals && r.approvals.length > 0 
         ? r.approvals[r.approvals.length - 1] 
         : null;
@@ -193,8 +196,8 @@ export default function EmployeeHistoryPage() {
         requester: r.employee || user?.name || "Staff",
         datetime: `${r.date} ${r.time}`,
         priority: (r.priority === "URGENT" || r.priority === "HIGH" ? "URGENT" : "NORMAL") as Priority,
-        status: (isCompleted ? "COMPLETED" : "REJECTED") as HistoryStatus,
-        statusLabel: isCompleted ? "Finished Successfully" : "Request Rejected",
+        status: (isCompleted ? "COMPLETED" : isCancelled ? "CANCELLED" : "REJECTED") as HistoryStatus,
+        statusLabel: isCompleted ? "Finished Successfully" : isCancelled ? "Request Cancelled" : "Request Rejected",
         notes: notes
       };
     });
@@ -211,7 +214,8 @@ export default function EmployeeHistoryPage() {
     const matchTab =
       tab === 'All History' ||
       (tab === 'Completed' && item.status === 'COMPLETED') ||
-      (tab === 'Rejected' && item.status === 'REJECTED');
+      (tab === 'Rejected' && item.status === 'REJECTED') ||
+      (tab === 'Cancelled' && item.status === 'CANCELLED');
     const matchSearch =
       item.reqId.toLowerCase().includes(search.toLowerCase()) ||
       item.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -226,12 +230,13 @@ export default function EmployeeHistoryPage() {
   const totalCount = historyItems.length;
   const completedCount = historyItems.filter(h => h.status === 'COMPLETED').length;
   const rejectedCount = historyItems.filter(h => h.status === 'REJECTED').length;
+  const cancelledCount = historyItems.filter(h => h.status === 'CANCELLED').length;
 
   return (
     <Layout
       activeNav="History"
       topbarTitle="My Requests History"
-      userRole="Employee"
+      userRole={user?.role === "approver" ? "Manager Approver" : "Employee"}
       searchPlaceholder="Search history..."
       searchValue={search}
       onSearchChange={(v) => {
@@ -247,7 +252,7 @@ export default function EmployeeHistoryPage() {
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-7">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-5 mb-7">
           <StatCard
             icon={<svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
             label="Total Requests"
@@ -263,6 +268,11 @@ export default function EmployeeHistoryPage() {
             label="Rejected"
             value={String(rejectedCount)}
           />
+          <StatCard
+            icon={<svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+            label="Cancelled"
+            value={String(cancelledCount)}
+          />
         </div>
 
         {/* Filters and List */}
@@ -276,7 +286,7 @@ export default function EmployeeHistoryPage() {
 
             {/* Tabs */}
             <div className="flex bg-[#f1f5f9] p-1 rounded-xl w-fit self-start sm:self-auto">
-              {(['All History', 'Completed', 'Rejected'] as TabFilter[]).map((t) => (
+              {(['All History', 'Completed', 'Rejected', 'Cancelled'] as TabFilter[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => {

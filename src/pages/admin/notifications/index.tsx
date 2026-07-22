@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Bell,
   CheckCircle,
@@ -38,13 +38,81 @@ const MOCK_NOTIFICATIONS: SystemNotification[] = [
 ];
 
 export default function Notification({
-  notifications = MOCK_NOTIFICATIONS,
-  onMarkAsRead = () => {},
-  onMarkAllAsRead = () => {},
-  onDeleteNotification = () => {},
+  notifications: propNotifications,
+  onMarkAsRead: propOnMarkAsRead,
+  onMarkAllAsRead: propOnMarkAllAsRead,
+  onDeleteNotification: propOnDeleteNotification,
   onNavigate
 }: NotificationProps) {
+  const ADMIN_NOTIFS_KEY = "ovms_admin_notifications";
+
+  const [internalNotifs, setInternalNotifs] = useState<SystemNotification[]>(() => {
+    const stored = localStorage.getItem(ADMIN_NOTIFS_KEY);
+    if (stored) {
+      try { return JSON.parse(stored); } catch {}
+    }
+    return MOCK_NOTIFICATIONS;
+  });
+
+  const notifications = propNotifications || internalNotifs;
+
+  const saveNotifications = (newNotifs: SystemNotification[]) => {
+    setInternalNotifs(newNotifs);
+    localStorage.setItem(ADMIN_NOTIFS_KEY, JSON.stringify(newNotifs));
+    // Signal Topbar to immediately re-check unread count
+    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+  };
+
+  const handleMarkAsRead = (id: string) => {
+    if (propOnMarkAsRead) {
+      propOnMarkAsRead(id);
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+    } else {
+      saveNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n));
+    }
+  };
+
+  const handleMarkAllAsRead = () => {
+    if (propOnMarkAllAsRead) {
+      propOnMarkAllAsRead();
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+    } else {
+      saveNotifications(notifications.map(n => ({ ...n, isRead: true })));
+    }
+  };
+
+  const handleDeleteNotification = (id: string) => {
+    if (propOnDeleteNotification) {
+      propOnDeleteNotification(id);
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+    } else {
+      saveNotifications(notifications.filter(n => n.id !== id));
+    }
+  };
+
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("All Categories");
+
+  // Auto-mark all as read when user opens the notifications page (like WhatsApp/Gmail)
+  useEffect(() => {
+    const stored = localStorage.getItem(ADMIN_NOTIFS_KEY);
+    if (stored) {
+      try {
+        const list: SystemNotification[] = JSON.parse(stored);
+        if (Array.isArray(list) && list.some(n => !n.isRead)) {
+          const updated = list.map(n => ({ ...n, isRead: true }));
+          localStorage.setItem(ADMIN_NOTIFS_KEY, JSON.stringify(updated));
+          setInternalNotifs(updated);
+          window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+        }
+      } catch {}
+    } else {
+      // First time: save mock data as all-read and signal Topbar
+      const updated = MOCK_NOTIFICATIONS.map(n => ({ ...n, isRead: true }));
+      localStorage.setItem(ADMIN_NOTIFS_KEY, JSON.stringify(updated));
+      setInternalNotifs(updated);
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const categories = ["All Categories", "Operational", "Approvals", "Security", "System"];
 
@@ -78,7 +146,7 @@ export default function Notification({
           </div>
 
           <button
-            onClick={onMarkAllAsRead}
+            onClick={handleMarkAllAsRead}
             className="flex items-center gap-1.5 text-xs font-bold text-[#00236f] hover:underline cursor-pointer"
           >
             <MailOpen className="w-4 h-4" /> Mark All as Read
@@ -146,7 +214,7 @@ export default function Notification({
               <div className="flex items-center gap-2 shrink-0 self-center">
                 {!not.isRead && (
                   <button
-                    onClick={() => onMarkAsRead(not.id)}
+                    onClick={() => handleMarkAsRead(not.id)}
                     className="bg-[#00236f]/10 text-[#00236f] hover:bg-[#00236f] hover:text-white p-1.5 rounded-lg text-xs font-bold font-mono transition-colors cursor-pointer"
                     title="Mark as Read"
                   >
@@ -154,7 +222,7 @@ export default function Notification({
                   </button>
                 )}
                 <button
-                  onClick={() => onDeleteNotification(not.id)}
+                  onClick={() => handleDeleteNotification(not.id)}
                   className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
                   title="Delete"
                 >

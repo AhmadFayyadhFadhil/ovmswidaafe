@@ -1,5 +1,5 @@
 // src/pages/employee/my-requests/index.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/RoleLayout";
 import { Icon } from "@/components/ui/Icon";
@@ -7,21 +7,28 @@ import { useApi } from "@/hooks/useApi";
 import { requestService } from "@/services/modules/requestService";
 import { useAuthContext } from "@/auth/authContext";
 
-interface StepState { done: boolean; active?: boolean }
+interface StepState { 
+  done: boolean; 
+  active?: boolean;
+  activeColor?: "blue" | "yellow" | "orange";
+  label?: string;
+  icon?: string;
+}
 
-const STEP_LABELS = ["Submitted", "GA Koor", "Konfirmasi Driver", "In Progress", "Selesai"];
-const STEP_ICONS  = ["send", "commute", "person_pin", "hourglass_empty", "flag"];
+const STEP_LABELS = ["Submitted", "K.Dep Asal", "GA Koor", "Assignment driver", "Terjadwal", "Selesai"];
+const STEP_ICONS  = ["send", "how_to_reg", "commute", "person_pin", "schedule", "flag"];
 
 function getRequestSteps(rawStatus: string): StepState[] {
-  const isRejected = rawStatus === "rejected";
+  const isRejected = rawStatus === "rejected" || rawStatus === "cancelled";
   
   if (isRejected) {
     return [
-      { done: true },
-      { done: false },
-      { done: false },
-      { done: false },
-      { done: false }
+      { done: true, active: false },
+      { done: false, active: false },
+      { done: false, active: false },
+      { done: false, active: false },
+      { done: false, active: false },
+      { done: false, active: false }
     ];
   }
 
@@ -29,37 +36,51 @@ function getRequestSteps(rawStatus: string): StepState[] {
   const step0Done = true;
   const step0Active = rawStatus === "submitted";
 
-  // 2. GA Koor (GA assigned driver/vehicle)
+  // 2. K.Dep Asal
   const step1Done = [
+    "approved_department",
     "waiting_driver",
     "driver_assigned",
     "on_going",
     "completed"
   ].includes(rawStatus);
-  const step1Active = rawStatus === "submitted" || rawStatus === "approved_department";
+  const step1Active = rawStatus === "submitted";
 
-  // 3. Konfirmasi Driver (Driver confirms assignment)
+  // 3. GA Koor
   const step2Done = [
+    "waiting_driver",
     "driver_assigned",
     "on_going",
     "completed"
   ].includes(rawStatus);
-  const step2Active = rawStatus === "waiting_driver";
+  const step2Active = rawStatus === "approved_department";
 
-  // 4. In Progress (Trip en route)
-  const step3Done = ["on_going", "completed"].includes(rawStatus);
-  const step3Active = rawStatus === "driver_assigned" || rawStatus === "on_going";
+  // 4. Assignment driver
+  const step3Done = [
+    "driver_assigned",
+    "on_going",
+    "completed"
+  ].includes(rawStatus);
+  const step3Active = rawStatus === "waiting_driver";
 
-  // 5. Selesai
+  // 5. Terjadwal / In Progress
   const step4Done = rawStatus === "completed";
-  const step4Active = rawStatus === "completed";
+  const step4Active = rawStatus === "driver_assigned" || rawStatus === "on_going";
+  const step4Color = rawStatus === "driver_assigned" ? "blue" : "yellow";
+  const step4Label = rawStatus === "on_going" ? "In Progress" : "Terjadwal";
+  const step4Icon = rawStatus === "on_going" ? "hourglass_empty" : "schedule";
+
+  // 6. Selesai
+  const step5Done = rawStatus === "completed";
+  const step5Active = false;
 
   return [
     { done: step0Done, active: step0Active },
     { done: step1Done, active: step1Active },
     { done: step2Done, active: step2Active },
     { done: step3Done, active: step3Active },
-    { done: step4Done, active: step4Active }
+    { done: step4Done, active: step4Active, activeColor: step4Color, label: step4Label, icon: step4Icon },
+    { done: step5Done, active: step5Active }
   ];
 }
 
@@ -205,6 +226,14 @@ export default function MyRequestsPage() {
     isOpen: false,
     requestId: null,
   });
+  const [cancelReason, setCancelReason] = useState('');
+  const [contactDriverModal, setContactDriverModal] = useState<{
+    isOpen: boolean;
+    request: any | null;
+  }>({
+    isOpen: false,
+    request: null,
+  });
 
   const { data: requestsData, loading, error, refetch } = useApi(async () => {
     const res = await requestService.getAll({ per_page: 1000 });
@@ -230,9 +259,9 @@ export default function MyRequestsPage() {
     }
   }, []);
 
-  const filtered = requests.filter(r => {
+  const filtered = useMemo(() => requests.filter(r => {
     // Only show active or pending requests (not completed or rejected)
-    const isActiveOrPending = !["completed", "rejected"].includes(r.rawStatus);
+    const isActiveOrPending = !["completed", "rejected", "cancelled"].includes(r.rawStatus);
     if (!isActiveOrPending) return false;
 
     const matchSearch =
@@ -249,30 +278,36 @@ export default function MyRequestsPage() {
       return matchSearch && ["submitted", "approved_department", "waiting_driver"].includes(r.rawStatus);
     }
     return matchSearch;
-  });
+  }), [requests, search, statusFilter]);
 
   const totalCount = requests.length;
-  const pendingCount = requests.filter(r => ["submitted", "approved_department"].includes(r.rawStatus)).length;
-  const activeCount = requests.filter(r => r.rawStatus === "on_going").length;
-  const completedCount = requests.filter(r => r.rawStatus === "completed").length;
+  const pendingCount = useMemo(() => requests.filter(r => ["submitted", "approved_department"].includes(r.rawStatus)).length, [requests]);
+  const activeCount = useMemo(() => requests.filter(r => r.rawStatus === "on_going").length, [requests]);
+  const completedCount = useMemo(() => requests.filter(r => r.rawStatus === "completed").length, [requests]);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleCancelClick = (id: string) => {
+    setCancelReason('');
     setCancelModal({ isOpen: true, requestId: id });
   };
 
   const handleConfirmCancel = async () => {
     if (!cancelModal.requestId) return;
+    if (!cancelReason.trim() || cancelReason.trim().length < 5) {
+      alert('Alasan pembatalan wajib diisi minimal 5 karakter.');
+      return;
+    }
     setActionLoading(true);
     try {
-      await requestService.delete(cancelModal.requestId);
+      await requestService.delete(cancelModal.requestId, cancelReason.trim());
       setCancelModal({ isOpen: false, requestId: null });
+      setCancelReason('');
       refetch();
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || "Gagal membatalkan permintaan.");
+      alert(err.response?.data?.message || err.response?.data?.errors?.rejected_reason?.[0] || 'Gagal membatalkan permintaan.');
     } finally {
       setActionLoading(false);
     }
@@ -283,7 +318,7 @@ export default function MyRequestsPage() {
       activeNav="My Requests"
       topbarTitle="Employee Dashboard"
       userName={user?.name || "Andi Sullivan"}
-      userRole="Employee"
+      userRole={user?.role === "approver" ? "Manager Approver" : "Employee"}
       searchPlaceholder="Search requests, vehicles..."
       searchValue={search}
       onSearchChange={setSearch}
@@ -371,9 +406,6 @@ export default function MyRequestsPage() {
             {paginated.map(r => {
               const isExpanded = expanded === r.id;
               const steps = getRequestSteps(r.rawStatus);
-              const currentStep = steps.findIndex(s => s.active) !== -1
-                ? steps.findIndex(s => s.active)
-                : steps.filter(s => s.done).length - 1;
 
               const sc = getStatusConfig(r.rawStatus);
 
@@ -385,7 +417,7 @@ export default function MyRequestsPage() {
                 >
                   <div className="p-5">
                     {/* Top row */}
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1.5">
                           <span className="text-[10px] font-bold text-[#00236f] bg-[#e5eeff] px-2 py-0.5 rounded-full">#{r.id}</span>
@@ -404,34 +436,6 @@ export default function MyRequestsPage() {
                         </div>
                       </div>
 
-                      {/* Stepper */}
-                      <div className="overflow-x-auto hidden xl:block">
-                        <div className="flex items-center gap-0 relative mx-4" style={{ minWidth: 420 }}>
-                          <div className="absolute top-4 left-5 right-5 h-0.5 bg-[#e2e8f0]" />
-                          {steps.map((s, si) => (
-                            <div key={si} className="flex flex-col items-center relative z-10" style={{ width: 70 }}>
-                              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
-                                (s.done && !s.active) || (si === STEP_LABELS.length - 1 && s.done)
-                                  ? "bg-[#1a6e3c] border-[#1a6e3c] shadow-sm"
-                                  : s.active
-                                  ? "bg-white border-[#ff8c00] ring-4 ring-[#ffd9b0]"
-                                  : "bg-white border-[#e2e8f0]"
-                              }`}>
-                                {(s.done && !s.active) || (si === STEP_LABELS.length - 1 && s.done)
-                                  ? <Icon name="check" className="text-white text-[14px]" />
-                                  : s.active
-                                  ? <Icon name={STEP_ICONS[si]} className="text-[#ff8c00] text-[14px]" />
-                                  : <Icon name={STEP_ICONS[si]} className="text-[#e2e8f0] text-[14px]" />
-                                }
-                              </div>
-                              <div className={`text-[8px] font-bold mt-1.5 uppercase tracking-wider text-center ${
-                                s.done || s.active ? (si <= currentStep ? "text-[#1a6e3c]" : "text-[#64748b]") : "text-[#e2e8f0]"
-                              }`}>{STEP_LABELS[si]}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
                       {/* Right: status + actions */}
                       <div className="flex flex-col items-end gap-2 flex-shrink-0">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${sc.color}`}>{sc.label}</span>
@@ -439,12 +443,81 @@ export default function MyRequestsPage() {
                           {r.priority !== "NORMAL" && <Icon name="warning" className="text-[12px]" />}
                           {r.priority}
                         </span>
-                        <button
-                          onClick={() => setExpanded(isExpanded ? null : r.id)}
-                          className="text-[12px] font-bold text-[#00236f] border border-[#00236f]/20 px-3 py-1.5 rounded-lg hover:bg-[#e5eeff] transition-colors cursor-pointer"
-                        >
-                          {isExpanded ? "Hide Detail" : "View Details"}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {!["on_going", "completed", "cancelled"].includes(r.rawStatus) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCancelClick(r.id);
+                              }}
+                              disabled={actionLoading}
+                              className="text-[12px] font-bold text-[#ba1a1a] bg-[#fff1f2] border border-[#fecdd3] px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors cursor-pointer flex items-center gap-1"
+                              title="Batalkan Pengajuan Ini"
+                            >
+                              <Icon name={r.rawStatus === "rejected" ? "delete" : "cancel"} className="text-[14px]" />
+                              {r.rawStatus === "rejected" ? "Hapus" : "Batalkan Request"}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setExpanded(isExpanded ? null : r.id)}
+                            className="text-[12px] font-bold text-[#00236f] border border-[#00236f]/20 px-3 py-1.5 rounded-lg hover:bg-[#e5eeff] transition-colors cursor-pointer"
+                          >
+                            {isExpanded ? "Hide Detail" : "View Details"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stepper Row (Always visible and responsive) */}
+                    <div className="w-full max-w-[480px] mt-5 pt-4 border-t border-slate-50">
+                      <div className="flex items-center justify-between gap-0 relative w-full">
+                        {/* Connection Line */}
+                        <div className="absolute top-4 left-[8.3%] right-[8.3%] h-0.5 bg-[#e2e8f0]" />
+                        
+                        {steps.map((s, si) => (
+                          <div key={si} className="flex-1 flex flex-col items-center relative z-10">
+                            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
+                              (s.done && !s.active) || (si === STEP_LABELS.length - 1 && s.done)
+                                ? "bg-[#1a6e3c] border-[#1a6e3c] shadow-sm"
+                                : s.active
+                                ? s.activeColor === "blue"
+                                  ? "bg-white border-[#2563eb] ring-4 ring-[#dbeafe]"
+                                  : s.activeColor === "yellow"
+                                  ? "bg-white border-[#d97706] ring-4 ring-[#fef9c3]"
+                                  : "bg-white border-[#ff8c00] ring-4 ring-[#ffd9b0]"
+                                : "bg-white border-[#e2e8f0]"
+                            }`}>
+                              {(s.done && !s.active) || (si === STEP_LABELS.length - 1 && s.done)
+                                ? <Icon name="check" className="text-white text-[14px]" />
+                                : s.active
+                                ? <Icon 
+                                    name={s.icon || STEP_ICONS[si]} 
+                                    className={`${
+                                      s.activeColor === "blue"
+                                        ? "text-[#2563eb]"
+                                        : s.activeColor === "yellow"
+                                        ? "text-[#d97706]"
+                                        : "text-[#ff8c00]"
+                                    } text-[14px]`} 
+                                  />
+                                : <Icon name={s.icon || STEP_ICONS[si]} className="text-[#e2e8f0] text-[14px]" />
+                              }
+                            </div>
+                            <div className={`text-[8px] font-bold mt-1.5 uppercase tracking-wider text-center px-1 break-words ${
+                              s.active
+                                ? s.activeColor === "blue"
+                                  ? "text-[#2563eb]"
+                                  : s.activeColor === "yellow"
+                                  ? "text-[#d97706]"
+                                  : "text-[#ff8c00]"
+                                : s.done
+                                ? "text-[#1a6e3c]"
+                                : "text-[#e2e8f0]"
+                            }`}>
+                              {s.label || STEP_LABELS[si]}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
@@ -616,16 +689,87 @@ export default function MyRequestsPage() {
                               )}
                             </div>
                           ) : (
-                            <>
-                              <div>
-                                <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">Driver</div>
-                                <div className="font-semibold text-[#0f172a]">{r.driverName || "Not Assigned"}</div>
+                            /* Driver & Vehicle Info Card Section */
+                            <div className="col-span-2 space-y-1.5">
+                              <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">
+                                Informasi Driver & Armada
                               </div>
-                              <div>
-                                <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">Vehicle</div>
-                                <div className="font-semibold text-[#0f172a]">{r.vehicleModel || "Not Assigned"}</div>
-                              </div>
-                            </>
+
+                              {Array.isArray(r.itineraries) && r.itineraries.length > 0 ? (
+                                /* Case Spesial: Multi-Day Driver Info Cards */
+                                <div className="space-y-2">
+                                  {r.itineraries.map((it: any, idx: number) => {
+                                    const dName = it.driver_name || r.driverName || "Belum Ditugaskan";
+                                    const vName = (it.vehicle_name || it.vehicle_model || r.vehicleModel || "Armada Belum Dipilih").replace(/\s*\(\s*\)/g, '').trim();
+                                    const dInitials = dName.split(',')[0].trim().split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+
+                                    return (
+                                      <div key={idx} className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                          <div className="w-8 h-8 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-xs">
+                                            {dInitials}
+                                          </div>
+                                          <div className="min-w-0">
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                              <span className="text-[9.5px] font-bold uppercase bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded">
+                                                Hari ke-{idx + 1}
+                                              </span>
+                                              <span className="text-[12px] font-bold text-slate-800 truncate">{dName}</span>
+                                            </div>
+                                            <div className="text-[10.5px] font-medium text-slate-500 truncate flex items-center gap-1 mt-0.5">
+                                              <Icon name="directions_car" className="text-xs text-slate-400" />
+                                              <span>{vName}</span>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 ${
+                                          it.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
+                                          it.status === 'on_going' ? 'bg-amber-100 text-amber-800 animate-pulse' :
+                                          'bg-slate-100 text-slate-600'
+                                        }`}>
+                                          {it.status === 'completed' ? '✓ Completed' : it.status === 'on_going' ? '⚡ On Going' : 'Scheduled'}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                /* Case Normal: Single-Day Driver Info Card(s) */
+                                <div className="space-y-2">
+                                  {(() => {
+                                    const rawDriverName = r.driverName || "Belum Ditugaskan";
+                                    const driverNames = rawDriverName.includes(',') ? rawDriverName.split(',').map((s: string) => s.trim()) : [rawDriverName];
+                                    const vName = (r.vehicleModel || "Armada Belum Dipilih").replace(/\s*\(\s*\)/g, '').trim();
+
+                                    return driverNames.map((dName: string, dIdx: number) => {
+                                      const dInitials = dName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+
+                                      return (
+                                        <div key={dIdx} className="p-2.5 bg-gradient-to-r from-slate-50 to-blue-50/30 border border-slate-200/80 rounded-xl flex items-center justify-between gap-3">
+                                          <div className="flex items-center gap-2.5 min-w-0">
+                                            <div className="w-8.5 h-8.5 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-xs font-extrabold shrink-0 shadow-sm border border-blue-900">
+                                              {dInitials}
+                                            </div>
+                                            <div className="min-w-0">
+                                              <div className="text-[12px] font-bold text-slate-800 truncate">{dName}</div>
+                                              <div className="text-[10.5px] font-medium text-slate-600 truncate flex items-center gap-1 mt-0.5">
+                                                <Icon name="directions_car" className="text-xs text-slate-400" />
+                                                <span>{vName}</span>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-200 shrink-0">
+                                            Driver Internal
+                                          </span>
+                                        </div>
+                                      );
+                                    });
+                                  })()}
+                                </div>
+                              )}
+                            </div>
                           )}
                           <div>
                             <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">Passengers</div>
@@ -724,11 +868,14 @@ export default function MyRequestsPage() {
                               <Icon name="track_changes" className="text-[14px]" /> Track Real-time
                             </button>
                             {r.driverName && r.driverName !== "Not Assigned" && (
-                              <button className="h-8 px-4 border border-[#e2e8f0] text-[#475569] rounded-lg text-[11px] font-bold hover:bg-[#f8fafc] transition-colors flex items-center gap-1 cursor-pointer">
+                              <button
+                                onClick={() => setContactDriverModal({ isOpen: true, request: r })}
+                                className="h-8 px-4 border border-[#e2e8f0] text-[#475569] rounded-lg text-[11px] font-bold hover:bg-[#f8fafc] transition-colors flex items-center gap-1 cursor-pointer"
+                              >
                                 <Icon name="chat" className="text-[14px]" /> Contact Driver
                               </button>
                             )}
-                            {!["on_going", "completed"].includes(r.rawStatus) && String(user?.id) === String(r.requestedById) && (
+                            {!["on_going", "completed", "cancelled"].includes(r.rawStatus) && (
                               <button
                                 onClick={() => handleCancelClick(r.id)}
                                 disabled={actionLoading}
@@ -864,35 +1011,50 @@ export default function MyRequestsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm animate-fadein p-4">
           <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 w-full max-w-md shadow-2xl relative animate-fadein">
             <button 
-              onClick={() => setCancelModal({ isOpen: false, requestId: null })}
+              onClick={() => { setCancelModal({ isOpen: false, requestId: null }); setCancelReason(''); }}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer"
             >
               <Icon name="close" className="text-xl" />
             </button>
             
-            <div className="text-center mb-6">
+            <div className="text-center mb-5">
               <div className="w-14 h-14 bg-red-50 text-[#ba1a1a] rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Icon name="warning" className="text-3xl" />
               </div>
               <h3 className="text-[18px] font-extrabold text-slate-800">Batalkan Permintaan?</h3>
               <p className="text-sm text-slate-400 mt-2 leading-relaxed">
-                Apakah Anda yakin ingin membatalkan permintaan kendaraan ini? Tindakan ini bersifat permanen dan tidak dapat dibatalkan kembali.
+                Tindakan ini bersifat permanen. Mohon berikan alasan pembatalan agar tercatat di sistem.
               </p>
             </div>
 
-            <div className="flex gap-3 pt-2">
+            {/* Reason textarea — required */}
+            <div className="mb-5">
+              <label className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5">
+                Alasan Pembatalan <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={e => setCancelReason(e.target.value)}
+                placeholder="Contoh: Perjalanan dibatalkan karena rapat ditunda..."
+                rows={3}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 resize-none"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">{cancelReason.trim().length}/500 karakter (min. 5)</p>
+            </div>
+
+            <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setCancelModal({ isOpen: false, requestId: null })}
+                onClick={() => { setCancelModal({ isOpen: false, requestId: null }); setCancelReason(''); }}
                 className="flex-1 py-3 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer text-xs sm:text-sm"
               >
                 Kembali
               </button>
               <button
                 type="button"
-                disabled={actionLoading}
+                disabled={actionLoading || cancelReason.trim().length < 5}
                 onClick={handleConfirmCancel}
-                className="flex-1 py-3 bg-[#ba1a1a] text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 text-xs sm:text-sm"
+                className="flex-1 py-3 bg-[#ba1a1a] text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
               >
                 {actionLoading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -992,6 +1154,127 @@ export default function MyRequestsPage() {
             
             <div className="text-[11px] text-slate-400 font-semibold mt-4 text-center">
               Klik tombol silang atau di luar area untuk menutup pratinjau.
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Contact Driver Modal (Sesuai Sketsa) */}
+      {contactDriverModal.isOpen && contactDriverModal.request && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[99999] flex items-center justify-center p-4 animate-fadein" onClick={() => setContactDriverModal({ isOpen: false, request: null })}>
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl relative animate-fadein" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3.5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                  <Icon name="chat" className="text-xl" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-800">Kontak Driver</h3>
+                  <p className="text-xs text-slate-400 font-medium">Permohonan #{contactDriverModal.request.id}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setContactDriverModal({ isOpen: false, request: null })}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-200 transition cursor-pointer"
+              >
+                <Icon name="close" className="text-base" />
+              </button>
+            </div>
+
+            {/* List Kartu Driver */}
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+              {(() => {
+                const req = contactDriverModal.request;
+                let driverCards: Array<{ title: string; name: string; phone: string; email: string }> = [];
+
+                if (Array.isArray(req.itineraries) && req.itineraries.length > 0) {
+                  req.itineraries.forEach((it: any, idx: number) => {
+                    const name = it.driver_name || req.driverName || `Driver Hari ke-${idx + 1}`;
+                    const phone = it.driver_phone || req.driver?.phone || "081234567890";
+                    const email = it.driver_email || req.driver?.email || `${name.toLowerCase().replace(/\s+/g, '')}@widatra.com`;
+                    driverCards.push({
+                      title: `Driver Hari ke-${idx + 1}`,
+                      name,
+                      phone,
+                      email,
+                    });
+                  });
+                } else {
+                  const rawName = req.driverName || req.driver?.name || "Driver Utama";
+                  const names = rawName.includes(',') ? rawName.split(',').map((s: string) => s.trim()) : [rawName];
+                  names.forEach((name: string, idx: number) => {
+                    const phone = req.driver?.phone || (idx === 0 ? "081234567890" : "081398765432");
+                    const email = req.driver?.email || `${name.toLowerCase().replace(/\s+/g, '')}@widatra.com`;
+                    driverCards.push({
+                      title: names.length > 1 ? `Driver ${idx + 1}` : "Driver Pengemudi",
+                      name,
+                      phone,
+                      email,
+                    });
+                  });
+                }
+
+                return driverCards.map((card, idx) => {
+                  const digits = card.phone.replace(/\D/g, '');
+                  let formattedPhone = card.phone;
+                  if (digits.startsWith('62')) {
+                    formattedPhone = '0' + digits.slice(2);
+                  } else if (digits.startsWith('0')) {
+                    formattedPhone = digits;
+                  } else if (digits.length > 0) {
+                    formattedPhone = '0' + digits;
+                  }
+                  
+                  const waNumber = digits.startsWith('62') ? digits : digits.startsWith('0') ? `62${digits.slice(1)}` : `62${digits}`;
+                  const waLink = `https://wa.me/${waNumber}?text=${encodeURIComponent(`Halo ${card.name}, saya pemohon dari permohonan kendaraan #${req.id} PT Widatra Bhakti.`)}`;
+                  const initials = card.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+                  return (
+                    <div key={idx} className="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-4 space-y-3 shadow-xs hover:border-blue-300 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#1e3a8a] text-white flex items-center justify-center text-xs font-black shadow-xs shrink-0">
+                          {initials}
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-extrabold uppercase tracking-wider text-blue-900">{card.title}</div>
+                          <div className="text-sm font-bold text-slate-800">{card.name}</div>
+                        </div>
+                      </div>
+
+                      {/* Detail Box (No HP & Email) */}
+                      <div className="bg-white border border-slate-100 rounded-xl p-3 space-y-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 font-bold text-[11px]">No. HP / WA:</span>
+                          <span className="font-bold font-mono text-slate-800">{formattedPhone}</span>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-slate-50 pt-1.5">
+                          <span className="text-slate-400 font-bold text-[11px]">Email:</span>
+                          <span className="font-semibold text-slate-700 truncate max-w-[200px]" title={card.email}>{card.email}</span>
+                        </div>
+                      </div>
+
+                      {/* Tombol Terhubung Langsung ke WhatsApp */}
+                      <a
+                        href={waLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full h-10 bg-[#25D366] hover:bg-[#20bd5a] text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer active:scale-98"
+                      >
+                        <Icon name="chat" className="text-base" />
+                        Chat via WhatsApp
+                      </a>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={() => setContactDriverModal({ isOpen: false, request: null })}
+                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Tutup
+              </button>
             </div>
           </div>
         </div>

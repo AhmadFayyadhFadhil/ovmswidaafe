@@ -10,6 +10,9 @@ export interface CalendarEvent {
   route: string;
   passenger: string;
   status: string;
+  driverName?: string;
+  driverId?: string;
+  sessionDetails?: string;
 }
 
 interface CalendarViewProps {
@@ -161,32 +164,51 @@ export default function CalendarView({ events, onViewDetail }: CalendarViewProps
                     {isToday && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" title="Hari Ini" />}
                   </div>
 
-                  {/* Event indicators */}
-                  {hasEvents && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {dateEvents.slice(0, 2).map((ev) => {
-                        const statusLower = ev.status.toLowerCase();
-                        const dotColor = statusLower.includes("complete")
-                          ? "bg-green-500"
-                          : statusLower.includes("reject")
-                          ? "bg-red-500"
-                          : "bg-blue-500";
-                        return (
+                  {/* Event indicators - max 3 unique status dots (Scheduled, On Going, Completed) */}
+                  {hasEvents && (() => {
+                    const statuses = dateEvents.map(e => e.status.toLowerCase());
+                    const uniqueDots = [];
+
+                    const hasScheduled = statuses.some(s => !s.includes("complete") && !s.includes("ongoing") && !s.includes("on going") && !s.includes("reject"));
+                    const hasOngoing = statuses.some(s => s.includes("ongoing") || s.includes("on going"));
+                    const hasCompleted = statuses.some(s => s.includes("complete"));
+
+                    if (hasScheduled) uniqueDots.push({ key: 'scheduled', color: 'bg-blue-500', title: 'Terjadwal (Scheduled)' });
+                    if (hasOngoing) uniqueDots.push({ key: 'ongoing', color: 'bg-amber-500', title: 'Sedang Jalan (On Going)' });
+                    if (hasCompleted) uniqueDots.push({ key: 'completed', color: 'bg-green-500', title: 'Selesai (Completed)' });
+
+                    return (
+                      <div className="flex items-center gap-1 mt-1">
+                        {uniqueDots.map((dot) => (
                           <div
-                            key={ev.id}
-                            className={`h-1.5 w-1.5 rounded-full ${dotColor}`}
-                            title={`${ev.tripId}: ${ev.route}`}
+                            key={dot.key}
+                            className={`h-1.5 w-1.5 rounded-full ${dot.color}`}
+                            title={dot.title}
                           />
-                        );
-                      })}
-                      {dateEvents.length > 2 && (
-                        <span className="text-[9px] font-bold text-[#64748b]">+{dateEvents.length - 2}</span>
-                      )}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
+          </div>
+
+          {/* Legenda Status */}
+          <div className="mt-4 pt-4 border-t border-[#f1f5f9] flex flex-wrap gap-x-5 gap-y-1.5 text-[11px] text-[#64748b]">
+            <span className="font-extrabold uppercase tracking-wide text-[9px] text-slate-400 w-full mb-0.5">Keterangan Warna:</span>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+              <span className="font-semibold text-slate-700">Scheduled (Terjadwal)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+              <span className="font-semibold text-slate-700">On Going (Sedang Jalan)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
+              <span className="font-semibold text-slate-700">Completed (Selesai)</span>
+            </div>
           </div>
         </div>
 
@@ -215,6 +237,8 @@ export default function CalendarView({ events, onViewDetail }: CalendarViewProps
                 const statusLower = ev.status.toLowerCase();
                 const badgeClass = statusLower.includes("complete")
                   ? "bg-[#dcfce7] text-[#15803d] border-[#bbf7d0]"
+                  : statusLower.includes("ongoing") || statusLower.includes("on going")
+                  ? "bg-[#fff7ed] text-[#c2410c] border-[#fed7aa]"
                   : statusLower.includes("reject")
                   ? "bg-[#fee2e2] text-[#991b1b] border-[#fecaca]"
                   : "bg-[#eff6ff] text-[#1e3a8a] border-[#bfdbfe]";
@@ -232,7 +256,15 @@ export default function CalendarView({ events, onViewDetail }: CalendarViewProps
 
                     <div className="flex flex-col gap-0.5 text-[11px] text-[#64748b] mt-1">
                       <div>Waktu: <span className="font-semibold text-slate-700">{ev.datetime}</span></div>
+                      {ev.sessionDetails && (
+                        <div className="text-[10.5px] text-blue-900 bg-blue-50/70 p-1.5 rounded-md border border-blue-100 font-semibold my-1">
+                          📌 {ev.sessionDetails}
+                        </div>
+                      )}
                       <div>Pemohon: <span className="font-semibold text-slate-700">{ev.passenger}</span></div>
+                      {ev.driverName && (
+                        <div>Driver: <span className="font-semibold text-slate-700">{ev.driverName}</span></div>
+                      )}
                     </div>
 
                     <button

@@ -99,6 +99,17 @@ export default function CreateUrgentRequestPage() {
   };
 
   const handleSelectSuggestion = (passengerIndex: number, userItem: { id: number; name: string; department_id: string | number }) => {
+    const isDuplicate = passengers.some((p, idx) => idx !== passengerIndex && p.name.trim().toLowerCase() === userItem.name.trim().toLowerCase());
+    if (isDuplicate) {
+      const next = [...passengers];
+      next[passengerIndex] = { name: "", department_id: "" };
+      setPassengers(next);
+      setSuggestions([]);
+      setActivePassengerIndex(null);
+      alert("Penumpang tersebut sudah dipilih.");
+      return;
+    }
+
     const next = [...passengers];
     next[passengerIndex] = {
       name: userItem.name,
@@ -142,6 +153,14 @@ export default function CreateUrgentRequestPage() {
       const endTime = `${todayDate} 16:30:00`;
 
       const validPassengers = passengers.filter(p => p.name.trim() !== "");
+      const passengerNames = validPassengers.map(p => p.name.trim().toLowerCase());
+      const hasDuplicateName = passengerNames.some((val, i) => passengerNames.indexOf(val) !== i);
+      if (hasDuplicateName) {
+        setFormError("Nama penumpang tidak boleh diduplikasi dalam satu pengajuan.");
+        setSubmitting(false);
+        return;
+      }
+      
       const payload = {
         purpose,
         destination_city: destinationCity,
@@ -335,16 +354,20 @@ export default function CreateUrgentRequestPage() {
               {passengers.length === 0 ? (
                 <p className="text-[12px] text-[#94a3b8] text-center py-4">Belum ada penumpang ditambahkan.</p>
               ) : (
-                passengers.map((p, i) => (
-                  <div key={i} className="flex items-center gap-3 bg-[#f8fafc] p-3 rounded-xl border border-[#e2e8f0]">
-                    <div className="flex-1 relative">
-                      <input
-                        type="text"
-                        value={p.name}
-                        onChange={e => handlePassengerNameChange(i, e.target.value)}
-                        onFocus={() => {
-                          if (p.name.trim()) handlePassengerNameChange(i, p.name);
-                        }}
+                passengers.map((p, i) => {
+                  const filteredSuggestions = suggestions.filter(
+                    (item) => !passengers.some((pOther, idx) => idx !== i && pOther.name.trim().toLowerCase() === item.name.trim().toLowerCase())
+                  );
+                  return (
+                    <div key={i} className="flex items-center gap-3 bg-[#f8fafc] p-3 rounded-xl border border-[#e2e8f0]">
+                      <div className="flex-1 relative">
+                        <input
+                          type="text"
+                          value={p.name}
+                          onChange={e => handlePassengerNameChange(i, e.target.value)}
+                          onFocus={() => {
+                            if (p.name.trim()) handlePassengerNameChange(i, p.name);
+                          }}
                         onBlur={() => {
                           setTimeout(() => {
                             setActivePassengerIndex(null);
@@ -354,7 +377,7 @@ export default function CreateUrgentRequestPage() {
                         placeholder="Nama Lengkap Penumpang"
                         className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none"
                       />
-                      {activePassengerIndex === i && (suggestions.length > 0 || searchLoading) && (
+                      {activePassengerIndex === i && (filteredSuggestions.length > 0 || searchLoading) && (
                         <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#e2e8f0] rounded-xl shadow-lg max-h-48 overflow-y-auto z-50">
                           {searchLoading ? (
                             <div className="p-3 text-xs text-slate-400 text-center flex items-center justify-center gap-2">
@@ -362,11 +385,12 @@ export default function CreateUrgentRequestPage() {
                               Mencari...
                             </div>
                           ) : (
-                            suggestions.map((item) => (
+                            filteredSuggestions.map((item) => (
                               <div
                                 key={item.id}
                                 onClick={() => handleSelectSuggestion(i, item)}
                                 className="px-3 py-2 text-[12px] text-slate-700 hover:bg-blue-50/50 hover:text-[#1e3a8a] cursor-pointer flex justify-between items-center transition-all border-b border-slate-50 last:border-0"
+                                title={item.name}
                               >
                                 <span className="font-semibold">{item.name}</span>
                                 <span className="text-[10px] bg-blue-100/60 text-[#1e3a8a] px-1.5 py-0.5 rounded-md font-bold uppercase">
@@ -392,14 +416,15 @@ export default function CreateUrgentRequestPage() {
                         {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                       </select>
                     </div>
-                    <button
+                     <button
                       onClick={() => setPassengers(prev => prev.filter((_, j) => j !== i))}
                       className="text-[#94a3b8] hover:text-[#ef4444] transition-colors"
                     >
                       <Icon name="close" className="text-[16px]" />
                     </button>
                   </div>
-                ))
+                );
+              })
               )}
             </div>
           </div>

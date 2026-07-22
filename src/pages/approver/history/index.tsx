@@ -7,7 +7,7 @@ import type { FleetRequest } from '@/types';
 import { useAuthContext } from "@/auth/authContext";
 
 type Priority = "URGENT" | "NORMAL" | "CRITICAL";
-type HistoryStatus = "APPROVED" | "REJECTED";
+type HistoryStatus = "APPROVED" | "REJECTED" | "CANCELLED";
 
 interface HistoryItem {
   id: string;
@@ -114,6 +114,7 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
 function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (id: string) => void }) {
   const [open, setOpen] = useState(false);
   const isApproved = item.status === 'APPROVED';
+  const isCancelled = item.status === 'CANCELLED';
   const pri = PRI_MAP[item.priority] || PRI_MAP.NORMAL;
 
   return (
@@ -122,14 +123,16 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center gap-4 px-6 py-4 hover:bg-[#f8faff] transition-colors text-left cursor-pointer"
       >
-        {/* Status icon */}
         <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
-          isApproved ? 'bg-[#f0fdf4]' : 'bg-[#fef2f2]'
+          isApproved ? 'bg-[#f0fdf4]' : isCancelled ? 'bg-[#f1f5f9]' : 'bg-[#fef2f2]'
         }`}>
-          {isApproved
-            ? <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="m9 12 2 2 4-4" stroke="#15803d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="9" stroke="#15803d" strokeWidth="2"/></svg>
-            : <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="m15 9-6 6M9 9l6 6" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/><circle cx="12" cy="12" r="9" stroke="#dc2626" strokeWidth="2"/></svg>
-          }
+          {isApproved ? (
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="m9 12 2 2 4-4" stroke="#15803d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="9" stroke="#15803d" strokeWidth="2"/></svg>
+          ) : isCancelled ? (
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          ) : (
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="m15 9-6 6M9 9l6 6" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/><circle cx="12" cy="12" r="9" stroke="#dc2626" strokeWidth="2"/></svg>
+          )}
         </div>
 
         {/* Info */}
@@ -148,7 +151,7 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
         {/* Status + chevron */}
         <div className="flex items-center gap-3 flex-shrink-0">
           <div className="text-right">
-            <div className={`text-[14px] font-extrabold tracking-wide ${isApproved ? 'text-[#15803d]' : 'text-[#dc2626]'}`}>
+            <div className={`text-[14px] font-extrabold tracking-wide ${isApproved ? 'text-[#15803d]' : isCancelled ? 'text-[#64748b]' : 'text-[#dc2626]'}`}>
               {item.status}
             </div>
             <div className="text-[11px] text-[#94a3b8] hidden sm:block">{item.statusLabel}</div>
@@ -197,7 +200,7 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
 }
 
 // ── Tab filter ─────────────────────────────────────────────────────────────────
-type TabFilter = 'All History' | 'Approved' | 'Rejected';
+type TabFilter = 'All History' | 'Approved' | 'Rejected' | 'Cancelled';
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function HistoryPage() {
@@ -224,8 +227,8 @@ export default function HistoryPage() {
   const historyItems: HistoryItem[] = requestsList
     .filter(r => {
       if (isHrGaHead) {
-        // Only show completed or rejected requests in history for HRD & GA Head
-        return ["completed", "rejected"].includes(r.rawStatus || "");
+        // Only show completed, rejected, and cancelled requests in history for HRD & GA Head
+        return ["completed", "rejected", "cancelled"].includes(r.rawStatus || "");
       }
       return !r.canApprove;
     })
@@ -235,8 +238,19 @@ export default function HistoryPage() {
         (a: any) => String(a.approver?.id) === String(user?.id)
       ) || (r.approvals && r.approvals.length > 0 ? r.approvals[r.approvals.length - 1] : null);
 
+      const isCancelled = r.rawStatus === "cancelled";
       const isRejected = r.rawStatus === "rejected" || (userApproval && userApproval.status === "rejected");
-      const isApproved = !isRejected;
+      
+      let status: HistoryStatus = "APPROVED";
+      let statusLabel = "Workflow Approved";
+      
+      if (isCancelled) {
+        status = "CANCELLED";
+        statusLabel = "Request Cancelled";
+      } else if (isRejected) {
+        status = "REJECTED";
+        statusLabel = "Action Rejected";
+      }
 
       let decisionDate = `${r.date} ${r.time}`;
       if (userApproval && userApproval.created_at) {
@@ -261,8 +275,8 @@ export default function HistoryPage() {
         requester: r.employee || "Staff",
         datetime: decisionDate,
         priority: (r.priority === "URGENT" || r.priority === "HIGH" ? "URGENT" : "NORMAL") as Priority,
-        status: (isApproved ? "APPROVED" : "REJECTED") as HistoryStatus,
-        statusLabel: isApproved ? "Workflow Approved" : "Action Rejected",
+        status,
+        statusLabel,
         decidedBy: userApproval?.approver?.name || "Manager Approver",
         notes: userApproval?.notes || "Processed via OVMS platform."
       };
@@ -280,7 +294,8 @@ export default function HistoryPage() {
     const matchTab =
       tab === 'All History' ||
       (tab === 'Approved' && item.status === 'APPROVED') ||
-      (tab === 'Rejected' && item.status === 'REJECTED');
+      (tab === 'Rejected' && item.status === 'REJECTED') ||
+      (tab === 'Cancelled' && item.status === 'CANCELLED');
     const matchSearch =
       item.reqId.toLowerCase().includes(search.toLowerCase()) ||
       item.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -341,7 +356,7 @@ export default function HistoryPage() {
         {/* Tab bar */}
         <div className="overflow-x-auto max-w-full mb-6">
           <div className="bg-white border border-[#e2e8f0] rounded-2xl p-2 flex gap-1 w-fit">
-            {(['All History', 'Approved', 'Rejected'] as TabFilter[]).map((t) => (
+            {(['All History', 'Approved', 'Rejected', 'Cancelled'] as TabFilter[]).map((t) => (
               <button
                 key={t}
                 onClick={() => { setTab(t); setCurrentPage(1); }}

@@ -23,10 +23,22 @@ export default function SecurityDashboard() {
   const [showNameModal, setShowNameModal] = useState(false);
   const [confirmingType, setConfirmingType] = useState<"checkout" | "checkin" | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+  const [selectedItineraryId, setSelectedItineraryId] = useState<number | null>(null);
+  const [selectedSession, setSelectedSession] = useState<'morning' | 'afternoon' | null>(null);
+  const [activeItineraryIndex, setActiveItineraryIndex] = useState<number>(0);
 
   const handleConfirmTripScanClick = (tripId: number, type: "checkout" | "checkin") => {
     setSelectedTripId(tripId);
+    setSelectedItineraryId(null);
+    setSelectedSession(null);
     setConfirmingType(type);
+    setShowNameModal(true);
+  };
+
+  const handleConfirmScanClick = (type: "checkout" | "checkin", itId?: number, session?: 'morning' | 'afternoon') => {
+    setConfirmingType(type);
+    if (itId) setSelectedItineraryId(itId);
+    if (session) setSelectedSession(session);
     setShowNameModal(true);
   };
 
@@ -38,12 +50,28 @@ export default function SecurityDashboard() {
   const [cameraActive, setCameraActive] = useState(false);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isCameraManuallyOff, setIsCameraManuallyOff] = useState(false);
 
   // Request search logic
   const handleSearchRequest = async (e?: React.FormEvent, manualValue?: string) => {
     if (e) e.preventDefault();
     
     let finalId = manualValue;
+
+    if (finalId && (finalId.startsWith("http://") || finalId.startsWith("https://") || finalId.includes("?token="))) {
+      try {
+        const urlObj = new URL(finalId);
+        const tokenParam = urlObj.searchParams.get("token");
+        if (tokenParam) {
+          finalId = tokenParam;
+        }
+      } catch (err) {
+        const match = finalId.match(/[?&]token=([^&]+)/);
+        if (match) {
+          finalId = match[1];
+        }
+      }
+    }
 
     setActionLoading(true);
     setError(null);
@@ -89,6 +117,27 @@ export default function SecurityDashboard() {
     }
   };
 
+  // Real-time polling auto-refresh every 5 seconds for active scanned request
+  useEffect(() => {
+    if (!scannedRequest?.qr_code_token && !scannedRequest?.id) return;
+    
+    const token = scannedRequest.qr_code_token || `REQ-${scannedRequest.id}`;
+    const interval = setInterval(async () => {
+      try {
+        const res = await apiClient.get('/security/lookup', {
+          params: { qr_code_token: token }
+        });
+        if (res.data && res.data.status === "success") {
+          setScannedRequest(res.data.data);
+        }
+      } catch (err) {
+        // silent catch for background polling
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [scannedRequest?.qr_code_token, scannedRequest?.id]);
+
   // Camera controls
   const startCamera = async () => {
     try {
@@ -118,6 +167,16 @@ export default function SecurityDashboard() {
       setStream(null);
     }
     setCameraActive(false);
+  };
+
+  const handleScanUlang = () => {
+    setError(null);
+    setSuccessMsg(null);
+    setScannedRequest(null);
+    setCapturedPhoto(null);
+    setIsScanning(false);
+    setIsCameraManuallyOff(false);
+    startCamera();
   };
 
   // Load security guards list from database on mount
@@ -156,7 +215,7 @@ export default function SecurityDashboard() {
 
   // Auto start/stop camera on mount and state changes
   useEffect(() => {
-    if (!scannedRequest) {
+    if (!scannedRequest && !isCameraManuallyOff) {
       startCamera();
     } else {
       stopCamera();
@@ -164,7 +223,7 @@ export default function SecurityDashboard() {
     return () => {
       stopCamera();
     };
-  }, [scannedRequest]);
+  }, [scannedRequest, isCameraManuallyOff]);
 
   // Real-time scan loop using jsQR
   useEffect(() => {
@@ -179,25 +238,48 @@ export default function SecurityDashboard() {
         const canvas = canvasRef.current;
         
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
-          canvas.width = 300;
-          canvas.height = 300;
+          canvas.width = video.videoWidth || 640;
+          canvas.height = video.videoHeight || 480;
           const ctx = canvas.getContext("2d");
           if (ctx) {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             
             // Attempt to decode QR code using jsQR
-            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            let code = jsQR(imageData.data, imageData.width, imageData.height, {
               inversionAttempts: "dontInvert",
             });
+            
+            let finalPhotoUrl = "";
+            
+            if (code && code.data) {
+              finalPhotoUrl = canvas.toDataURL("image/jpeg");
+            } else {
+              // Try with horizontally flipped image (for mirrored webcams)
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+              ctx.translate(canvas.width, 0);
+              ctx.scale(-1, 1);
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              
+              const flippedData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              code = jsQR(flippedData.data, flippedData.width, flippedData.height, {
+                inversionAttempts: "dontInvert",
+              });
+              
+              if (code && code.data) {
+                finalPhotoUrl = canvas.toDataURL("image/jpeg");
+              }
+              
+              // Restore canvas transform context
+              ctx.setTransform(1, 0, 0, 1, 0, 0);
+            }
             
             if (code && code.data) {
               console.log("QR Code detected in real-time:", code.data);
               active = false;
               
-              // Capture photo scan proof
-              const photoUrl = canvas.toDataURL("image/jpeg");
-              setCapturedPhoto(photoUrl);
+              // Capture photo scan proof (either normal or flipped correctly)
+              setCapturedPhoto(finalPhotoUrl || canvas.toDataURL("image/jpeg"));
               setIsScanning(true);
               
               // Stop camera
@@ -241,10 +323,31 @@ export default function SecurityDashboard() {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         
         // Check if QR code exists in frame
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        let code = jsQR(imageData.data, imageData.width, imageData.height);
+        let finalPhotoUrl = "";
+        
         if (code && code.data) {
-          const photoUrl = canvas.toDataURL("image/jpeg");
-          setCapturedPhoto(photoUrl);
+          finalPhotoUrl = canvas.toDataURL("image/jpeg");
+        } else {
+          // Try with horizontally flipped image (for mirrored webcams)
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.translate(canvas.width, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          
+          const flippedData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          code = jsQR(flippedData.data, flippedData.width, flippedData.height);
+          
+          if (code && code.data) {
+            finalPhotoUrl = canvas.toDataURL("image/jpeg");
+          }
+          
+          // Restore canvas transform context
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+        }
+
+        if (code && code.data) {
+          setCapturedPhoto(finalPhotoUrl || canvas.toDataURL("image/jpeg"));
           setIsScanning(true);
           stopCamera();
           setTimeout(() => {
@@ -310,10 +413,7 @@ export default function SecurityDashboard() {
     }
   };
 
-  const handleConfirmScanClick = (type: "checkout" | "checkin") => {
-    setConfirmingType(type);
-    setShowNameModal(true);
-  };
+
 
   const handleSaveScan = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -337,6 +437,12 @@ export default function SecurityDashboard() {
       if (selectedTripId) {
         payload.trip_id = selectedTripId;
       }
+      if (selectedItineraryId) {
+        payload.itinerary_id = selectedItineraryId;
+      }
+      if (selectedSession) {
+        payload.session = selectedSession;
+      }
 
       const res = await apiClient.post("/security/scan", payload);
 
@@ -346,19 +452,18 @@ export default function SecurityDashboard() {
         setConfirmingType(null);
         setCapturedPhoto(null);
 
-        // If scanning a specific trip, refresh request data so they can scan the other trip on the same screen
-        if (selectedTripId) {
-          setSelectedTripId(null);
+        // Refresh request data so security sees updated session status (Sesi 1 completed, Driver Available, Sesi 2 pending)
+        try {
           const refreshRes = await apiClient.get('/security/lookup', {
             params: { qr_code_token: scannedRequest.qr_code_token || `REQ-${scannedRequest.id}` }
           });
-          if (refreshRes.data && refreshRes.data.status === "success") {
+          if (refreshRes.data && refreshRes.data.status === "success" && refreshRes.data.data.status !== "completed") {
             setScannedRequest(refreshRes.data.data);
           } else {
             setScannedRequest(null);
           }
-        } else {
-          setScannedRequest(null); // Reset back to scan page
+        } catch (e) {
+          setScannedRequest(null);
         }
       } else {
         setError("Gagal mengonfirmasi scan.");
@@ -410,7 +515,7 @@ export default function SecurityDashboard() {
                     ref={videoRef} 
                     autoPlay 
                     playsInline 
-                    className="w-full h-full object-cover" 
+                    className="w-full h-full object-cover scale-x-[-1]" 
                   />
                 )}
 
@@ -423,14 +528,28 @@ export default function SecurityDashboard() {
                   />
                 )}
 
-                {/* 3. Camera Off Placeholder / Loading Camera */}
+                 {/* 3. Camera Off Placeholder / Loading Camera */}
                 {!cameraActive && !capturedPhoto && (
                   <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center gap-3">
-                    <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                    <div>
-                      <span className="text-xs text-slate-300 font-semibold block">Menginisialisasi Kamera...</span>
-                      <span className="text-[10px] text-slate-500 block mt-1">Harap izinkan akses kamera di browser Anda</span>
-                    </div>
+                    {isCameraManuallyOff ? (
+                      <>
+                        <div className="w-10 h-10 bg-slate-900 text-slate-400 rounded-full flex items-center justify-center mb-1">
+                          <Icon name="videocam_off" className="text-xl" />
+                        </div>
+                        <div>
+                          <span className="text-xs text-slate-300 font-semibold block">Kamera Dinonaktifkan</span>
+                          <span className="text-[10px] text-slate-500 block mt-1">Aktifkan kembali untuk mulai memindai</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                        <div>
+                          <span className="text-xs text-slate-300 font-semibold block">Menginisialisasi Kamera...</span>
+                          <span className="text-[10px] text-slate-500 block mt-1">Harap izinkan akses kamera di browser Anda</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -457,18 +576,45 @@ export default function SecurityDashboard() {
               {/* Action Buttons for Scan Input */}
               <div className="flex flex-col sm:flex-row gap-2.5 w-full mb-6">
                 {cameraActive && !capturedPhoto && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleTriggerScan}
+                      className="flex-1 h-12 bg-[#059669] hover:bg-[#047857] text-white text-xs font-bold rounded-xl shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Icon name="photo_camera" className="text-base" /> Ambil Foto Scan
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsCameraManuallyOff(true)}
+                      className="flex-1 h-12 bg-[#e11d48] hover:bg-[#be123c] text-white text-xs font-bold rounded-xl shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Icon name="videocam_off" className="text-base" /> Matikan Kamera
+                    </button>
+                  </>
+                )}
+                {!cameraActive && !capturedPhoto && isCameraManuallyOff && (
                   <button
                     type="button"
-                    onClick={handleTriggerScan}
-                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    onClick={() => setIsCameraManuallyOff(false)}
+                    className="flex-1 h-12 bg-[#059669] hover:bg-[#047857] text-white text-xs font-bold rounded-xl shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <Icon name="photo_camera" className="text-base" /> Pindai Sekarang (Ambil Foto)
+                    <Icon name="videocam" className="text-base" /> Nyalakan Kamera
+                  </button>
+                )}
+                {capturedPhoto && (
+                  <button
+                    type="button"
+                    onClick={handleScanUlang}
+                    className="flex-1 h-12 bg-[#1e3a8a] hover:bg-[#1e40af] text-white text-xs font-bold rounded-xl shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer animate-fadein"
+                  >
+                    <Icon name="refresh" className="text-base" /> Pindai Ulang
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="flex-1 h-12 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Icon name="image" className="text-base" /> Upload Foto Scan
                 </button>
@@ -476,10 +622,21 @@ export default function SecurityDashboard() {
 
 
 
-              {error && (
-                <div className="w-full mt-4 p-3.5 bg-red-50 text-red-700 text-xs rounded-xl flex items-center gap-2 text-left">
-                  <Icon name="error" className="text-base flex-shrink-0" />
-                  <span>{error}</span>
+               {error && (
+                <div className="w-full mt-4 p-3.5 bg-red-50 text-red-700 text-xs rounded-xl flex flex-col gap-2.5 text-left animate-fadein">
+                  <div className="flex items-center gap-2">
+                    <Icon name="error" className="text-base flex-shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                  {capturedPhoto && (
+                    <button
+                      type="button"
+                      onClick={handleScanUlang}
+                      className="self-start px-3.5 py-1.5 bg-[#dc2626] hover:bg-[#b91c1c] text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <Icon name="refresh" className="text-[13px]" /> Pindai Ulang
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -514,15 +671,28 @@ export default function SecurityDashboard() {
                     {scannedRequest.destination_city} - {scannedRequest.destination_place}
                   </h4>
                 </div>
-                <span className={`px-4 py-1.5 rounded-full text-xs font-bold capitalize self-start sm:self-auto ${
-                  scannedRequest.status === "on_going" ? "bg-amber-100 text-amber-800 animate-pulse" :
-                  scannedRequest.status === "completed" ? "bg-emerald-100 text-emerald-800" :
-                  "bg-blue-100 text-blue-800"
-                }`}>
-                  {scannedRequest.status === "driver_assigned" ? "Siap Berangkat" :
-                   scannedRequest.status === "on_going" ? "Sedang Jalan" :
-                   scannedRequest.status === "completed" ? "Selesai" : scannedRequest.status}
-                </span>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <span className={`px-4 py-1.5 rounded-full text-xs font-bold capitalize ${
+                    scannedRequest.status === "on_going" ? "bg-amber-100 text-amber-800 animate-pulse" :
+                    scannedRequest.status === "completed" ? "bg-emerald-100 text-emerald-800" :
+                    "bg-blue-100 text-blue-800"
+                  }`}>
+                    {scannedRequest.status === "driver_assigned" ? "Siap Berangkat" :
+                     scannedRequest.status === "on_going" ? "Sedang Jalan" :
+                     scannedRequest.status === "completed" ? "Selesai" : scannedRequest.status}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSearchRequest(undefined, scannedRequest.qr_code_token || `REQ-${scannedRequest.id}`)}
+                    disabled={actionLoading}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer border border-slate-200 active:scale-95"
+                    title="Refresh data real-time"
+                  >
+                    <Icon name="refresh" className={`text-sm ${actionLoading ? 'animate-spin text-blue-600' : ''}`} />
+                    Refresh
+                  </button>
+                </div>
               </div>
 
               {/* Data Detail Perjalanan & Scanned Proof */}
@@ -578,81 +748,327 @@ export default function SecurityDashboard() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                          Daftar Unit Armada ({scannedRequest.operational_trips?.length || 0} Kendaraan)
-                        </div>
-                        {scannedRequest.operational_trips?.map((trip: any) => {
-                          const hasCheckout = !!trip.security_checked_out_at;
-                          const hasCheckin = !!trip.security_checked_in_at;
+                        {/* Multi-Day Itinerary Today Segment Highlight & Security Scan Actions */}
+                        {Array.isArray(scannedRequest.itineraries) && scannedRequest.itineraries.length > 0 && (() => {
+                          const currentItinerary = scannedRequest.itineraries[activeItineraryIndex] || scannedRequest.itineraries[0];
+                          
+                          const isReqCompleted = scannedRequest.status === 'completed';
+                          const morningCompleted = currentItinerary.morning_status === 'completed' || isReqCompleted;
+                          const morningOngoing = currentItinerary.morning_status === 'on_going' && !isReqCompleted;
+                          const afternoonCompleted = currentItinerary.afternoon_status === 'completed' || isReqCompleted;
+                          const afternoonOngoing = currentItinerary.afternoon_status === 'on_going' && !isReqCompleted;
+                          const hasAfternoon = !!currentItinerary.afternoon_destination;
+                          const hasMorning = !!currentItinerary.morning_destination;
+
+                          const isPreviousDayPending = scannedRequest.itineraries.slice(0, activeItineraryIndex).some((prevIt: any) => {
+                            const prevMorningDone = !prevIt.morning_destination || prevIt.morning_status === 'completed';
+                            const prevAfternoonDone = !prevIt.afternoon_destination || prevIt.afternoon_status === 'completed';
+                            return prevIt.status !== 'completed' && (!prevMorningDone || !prevAfternoonDone);
+                          });
+
+                          const isMorningIncomplete = hasMorning && !morningCompleted;
+
                           return (
-                            <div key={trip.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 space-y-3">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <div className="font-bold text-slate-800 text-xs flex items-center gap-1">
-                                    <span>🚙</span> {trip.vehicle?.name || "Kendaraan"} ({trip.vehicle?.plate_number || ""})
-                                  </div>
-                                  <div className="text-[11px] text-slate-500 font-medium mt-0.5">
-                                    Driver: {trip.driver?.name || "Driver"}
-                                  </div>
-                                </div>
-                                <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
-                                  hasCheckin ? "bg-emerald-100 text-emerald-800" :
-                                  hasCheckout ? "bg-amber-100 text-amber-800 animate-pulse" :
-                                  "bg-blue-100 text-blue-800"
-                                }`}>
-                                  {hasCheckin ? "Selesai" : hasCheckout ? "Sedang Jalan" : "Scheduled"}
-                                </span>
+                            <div className="space-y-3">
+                              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                                Daftar Unit Armada (Request Istimewa Multi-Hari - {scannedRequest.itineraries.length} Hari)
                               </div>
 
-                              <div className="grid grid-cols-2 gap-2 text-[10px]">
-                                <div className="bg-white p-2 rounded-lg border border-slate-100">
-                                  <span className="font-bold text-slate-400 block mb-0.5">Berangkat</span>
-                                  {hasCheckout ? (
-                                    <div className="text-slate-600">
-                                      <span className="font-semibold">{new Date(trip.security_checked_out_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
-                                      <span className="text-slate-400 text-[9px] block">Oleh: {trip.security_checkout_by}</span>
-                                      {trip.security_checkout_notes && <span className="text-slate-500 italic block mt-0.5">"{trip.security_checkout_notes}"</span>}
-                                    </div>
-                                  ) : (
-                                    <span className="text-slate-400 italic">Belum berangkat</span>
-                                  )}
-                                </div>
-                                <div className="bg-white p-2 rounded-lg border border-slate-100">
-                                  <span className="font-bold text-slate-400 block mb-0.5">Kembali</span>
-                                  {hasCheckin ? (
-                                    <div className="text-slate-600">
-                                      <span className="font-semibold">{new Date(trip.security_checked_in_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
-                                      <span className="text-slate-400 text-[9px] block">Oleh: {trip.security_checkin_by}</span>
-                                      {trip.security_checkin_notes && <span className="text-slate-500 italic block mt-0.5">"{trip.security_checkin_notes}"</span>}
-                                    </div>
-                                  ) : (
-                                    <span className="text-slate-400 italic">Belum kembali</span>
-                                  )}
-                                </div>
+                              {/* Day Selector Tabs - Horizontal Scrollable Row */}
+                              <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 pt-0.5 no-scrollbar scroll-smooth">
+                                {scannedRequest.itineraries.map((it: any, idx: number) => {
+                                  const isSelected = idx === activeItineraryIndex;
+                                  const isDone = it.status === 'completed' || (it.morning_status === 'completed' && (!it.afternoon_destination || it.afternoon_status === 'completed'));
+                                  const isOngoing = it.morning_status === 'on_going' || it.afternoon_status === 'on_going';
+
+                                  return (
+                                    <button
+                                      key={it.id || idx}
+                                      type="button"
+                                      onClick={() => setActiveItineraryIndex(idx)}
+                                      className={`px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all border cursor-pointer flex items-center gap-1 shrink-0 ${
+                                        isSelected
+                                          ? 'bg-[#1e3a8a] text-white border-[#1e3a8a] shadow-md scale-[1.02]'
+                                          : isDone
+                                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                                          : isOngoing
+                                          ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 animate-pulse'
+                                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                                      }`}
+                                    >
+                                      <span>Hari {idx + 1} ({it.date})</span>
+                                      {isDone ? <span className="text-emerald-600 font-black">✓</span> : isOngoing ? <span className="text-amber-600 font-black">⚡</span> : null}
+                                    </button>
+                                  );
+                                })}
                               </div>
 
-                              {(!hasCheckout || !hasCheckin) && (
-                                <div className="flex gap-2">
-                                  {!hasCheckout ? (
-                                    <button
-                                      onClick={() => handleConfirmTripScanClick(trip.id, "checkout")}
-                                      className="flex-1 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                                    >
-                                      <Icon name="done_all" className="text-xs" /> Berangkat
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => handleConfirmTripScanClick(trip.id, "checkin")}
-                                      className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                                    >
-                                      <Icon name="done_all" className="text-xs" /> Kembali
-                                    </button>
+                              {/* Active Day Card - Stacked layout for full width */}
+                              <div className="p-3.5 sm:p-4 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-3 shadow-xs">
+                                <div className="flex items-center justify-between border-b border-blue-200 pb-2">
+                                  <span className="font-extrabold text-[#00236f] text-xs sm:text-sm flex items-center gap-1.5">
+                                    <span>📅</span> Schedule Hari ke-{activeItineraryIndex + 1} ({currentItinerary.date})
+                                  </span>
+                                  {currentItinerary.is_overtime && (
+                                    <span className="text-[9px] bg-red-600 text-white font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                      Lembur {currentItinerary.overtime_formatted}
+                                    </span>
                                   )}
                                 </div>
-                              )}
+
+                                {/* Sessions - Stacked full width rows for clean button layout */}
+                                <div className="flex flex-col gap-2.5 text-[11.5px]">
+                                  {/* Sesi 1 (Pagi) */}
+                                  <div className="bg-white p-3 rounded-xl border border-blue-100/80 shadow-2xs space-y-2">
+                                    <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                                        <span>🌅</span> Sesi 1 (Pagi)
+                                      </div>
+                                      <span className={`text-[9.5px] font-extrabold px-2 py-0.5 rounded-md ${
+                                        morningCompleted ? 'bg-emerald-100 text-emerald-800' :
+                                        morningOngoing ? 'bg-amber-100 text-amber-800 animate-pulse' :
+                                        'bg-slate-100 text-slate-600'
+                                      }`}>
+                                        {morningCompleted ? 'Completed' : morningOngoing ? 'On Going' : 'Scheduled'}
+                                      </span>
+                                    </div>
+                                    <div className="font-bold text-slate-800 text-xs sm:text-sm">
+                                      {currentItinerary.morning_time || "08:00"} <span className="text-slate-400 font-normal">➔</span> {currentItinerary.morning_destination || "Tujuan Pagi"}
+                                    </div>
+                                    
+                                    <div className="pt-1">
+                                      {!morningCompleted && !morningOngoing && (
+                                        isPreviousDayPending ? (
+                                          <div className="p-2 bg-slate-100 border border-slate-200 text-slate-500 rounded-xl text-center text-[11px] font-bold flex items-center justify-center gap-1.5">
+                                            <Icon name="lock" className="text-sm text-slate-400" />
+                                            <span>⚠️ Perjalanan Hari Sebelumnya Belum Selesai</span>
+                                          </div>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleConfirmScanClick("checkout", currentItinerary.id, "morning")}
+                                            className="w-full py-2 px-3 bg-amber-600 hover:bg-amber-700 active:scale-[0.99] text-white font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                          >
+                                            <Icon name="done_all" className="text-base" />
+                                            <span>Berangkat (Checkout Sesi 1)</span>
+                                          </button>
+                                        )
+                                      )}
+                                      {morningOngoing && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleConfirmScanClick("checkin", currentItinerary.id, "morning")}
+                                          className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                        >
+                                          <Icon name="done_all" className="text-base" />
+                                          <span>Kembali (Checkin Sesi 1)</span>
+                                        </button>
+                                      )}
+                                      {morningCompleted && (
+                                        <div className="p-1.5 bg-emerald-50 text-emerald-800 rounded-lg text-center text-[10.5px] font-bold border border-emerald-200/60 flex items-center justify-center gap-1">
+                                          <span>✓ Sesi 1 Selesai</span>
+                                          <span className="font-semibold text-slate-500">
+                                            ({new Date(currentItinerary.morning_checked_in_at || currentItinerary.security_checked_in_at || scannedRequest.completed_at || Date.now()).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})})
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Sesi 2 (Sore) */}
+                                  <div className="bg-white p-3 rounded-xl border border-blue-100/80 shadow-2xs space-y-2">
+                                    <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                                        <span>🌇</span> Sesi 2 (Sore)
+                                      </div>
+                                      {hasAfternoon ? (
+                                        <span className={`text-[9.5px] font-extrabold px-2 py-0.5 rounded-md ${
+                                          afternoonCompleted ? 'bg-emerald-100 text-emerald-800' :
+                                          afternoonOngoing ? 'bg-amber-100 text-amber-800 animate-pulse' :
+                                          'bg-slate-100 text-slate-600'
+                                        }`}>
+                                          {afternoonCompleted ? 'Completed' : afternoonOngoing ? 'On Going' : 'Scheduled'}
+                                        </span>
+                                      ) : (
+                                        <span className="text-[9.5px] text-slate-400 italic">N/A</span>
+                                      )}
+                                    </div>
+                                    <div className="font-bold text-slate-800 text-xs sm:text-sm">
+                                      {currentItinerary.afternoon_time || "-"} <span className="text-slate-400 font-normal">➔</span> {currentItinerary.afternoon_destination || "-"}
+                                    </div>
+
+                                    <div className="pt-1">
+                                      {hasAfternoon && !afternoonCompleted && !afternoonOngoing && (
+                                        (isPreviousDayPending || isMorningIncomplete) ? (
+                                          <div className="p-2 bg-slate-100 border border-slate-200 text-slate-500 rounded-xl text-center text-[11px] font-bold flex items-center justify-center gap-1.5">
+                                            <Icon name="lock" className="text-sm text-slate-400" />
+                                            <span>
+                                              {isPreviousDayPending 
+                                                ? "⚠️ Perjalanan Hari Sebelumnya Belum Selesai" 
+                                                : "⚠️ Sesi 1 (Pagi) Harus Selesai Terlebih Dahulu"}
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleConfirmScanClick("checkout", currentItinerary.id, "afternoon")}
+                                            className="w-full py-2 px-3 bg-amber-600 hover:bg-amber-700 active:scale-[0.99] text-white font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                          >
+                                            <Icon name="done_all" className="text-base" />
+                                            <span>Berangkat (Checkout Sesi 2)</span>
+                                          </button>
+                                        )
+                                      )}
+                                      {hasAfternoon && afternoonOngoing && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleConfirmScanClick("checkin", currentItinerary.id, "afternoon")}
+                                          className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                        >
+                                          <Icon name="done_all" className="text-base" />
+                                          <span>Kembali (Checkin Sesi 2)</span>
+                                        </button>
+                                      )}
+                                      {hasAfternoon && afternoonCompleted && (
+                                        <div className="p-1.5 bg-emerald-50 text-emerald-800 rounded-lg text-center text-[10.5px] font-bold border border-emerald-200/60 flex items-center justify-center gap-1">
+                                          <span>✓ Sesi 2 Selesai</span>
+                                          <span className="font-semibold text-slate-500">
+                                            ({new Date(currentItinerary.afternoon_checked_in_at || currentItinerary.security_checked_in_at || scannedRequest.completed_at || Date.now()).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})})
+                                          </span>
+                                        </div>
+                                      )}
+                                      {!hasAfternoon && (
+                                        <div className="text-[10.5px] text-slate-400 italic py-1">Hanya 1 Sesi permohonan</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Armada Info */}
+                                <div className="bg-white p-3 rounded-xl border border-blue-100/80 text-[11.5px] font-semibold text-slate-700 flex items-center gap-2">
+                                  <span className="text-base">🚘</span>
+                                  <div>
+                                    {currentItinerary.is_external ? (
+                                      <span className="text-purple-700 font-bold">Armada Pihak Ke-3: {currentItinerary.external_driver_name || "Driver Sewa"}{currentItinerary.external_license_plate ? ` (${currentItinerary.external_license_plate})` : ""}</span>
+                                    ) : currentItinerary.driver_name ? (
+                                      <span className="text-blue-900 font-bold">Armada Internal: {currentItinerary.driver_name} {currentItinerary.vehicle_name && currentItinerary.vehicle_name.replace(/\s*\(\s*\)/g, '').trim() ? `- ${currentItinerary.vehicle_name.replace(/\s*\(\s*\)/g, '').trim()}` : ""}</span>
+                                    ) : (
+                                      <span className="italic text-slate-400">Belum Ditugaskan GA</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           );
-                        })}
+                        })()}
+
+                        {(!Array.isArray(scannedRequest.itineraries) || scannedRequest.itineraries.length === 0) && (
+                          <div className="space-y-3">
+                            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                              Daftar Unit Armada ({scannedRequest.operational_trips?.length || 0} Kendaraan)
+                            </div>
+                            {scannedRequest.operational_trips && scannedRequest.operational_trips.length > 0 ? (
+                              scannedRequest.operational_trips.map((trip: any) => {
+                                const hasCheckout = !!trip.security_checked_out_at;
+                                const hasCheckin = !!trip.security_checked_in_at;
+                                return (
+                                  <div key={trip.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 space-y-3">
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <div className="font-bold text-slate-800 text-xs flex items-center gap-1">
+                                          <span>🚙</span> {trip.vehicle?.name || "Kendaraan"} ({trip.vehicle?.plate_number || ""})
+                                        </div>
+                                        <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                                          Driver: {trip.driver?.name || "Driver"}
+                                        </div>
+                                      </div>
+                                      <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                                        hasCheckin ? "bg-emerald-100 text-emerald-800" :
+                                        hasCheckout ? "bg-amber-100 text-amber-800 animate-pulse" :
+                                        "bg-blue-100 text-blue-800"
+                                      }`}>
+                                        {hasCheckin ? "Selesai" : hasCheckout ? "Sedang Jalan" : "Scheduled"}
+                                      </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                      <div className="bg-white p-2 rounded-lg border border-slate-100">
+                                        <span className="font-bold text-slate-400 block mb-0.5">Berangkat</span>
+                                        {hasCheckout ? (
+                                          <div className="text-slate-600">
+                                            <span className="font-semibold">{new Date(trip.security_checked_out_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
+                                            <span className="text-slate-400 text-[9px] block">Oleh: {trip.security_checkout_by}</span>
+                                            {trip.security_checkout_notes && <span className="text-slate-500 italic block mt-0.5">"{trip.security_checkout_notes}"</span>}
+                                          </div>
+                                        ) : (
+                                          <span className="text-slate-400 italic">Belum berangkat</span>
+                                        )}
+                                      </div>
+                                      <div className="bg-white p-2 rounded-lg border border-slate-100">
+                                        <span className="font-bold text-slate-400 block mb-0.5">Kembali</span>
+                                        {hasCheckin ? (
+                                          <div className="text-slate-600">
+                                            <span className="font-semibold">{new Date(trip.security_checked_in_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
+                                            <span className="text-slate-400 text-[9px] block">Oleh: {trip.security_checkin_by}</span>
+                                            {trip.security_checkin_notes && <span className="text-slate-500 italic block mt-0.5">"{trip.security_checkin_notes}"</span>}
+                                          </div>
+                                        ) : (
+                                          <span className="text-slate-400 italic">Belum kembali</span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {(!hasCheckout || !hasCheckin) && (
+                                      <div className="flex gap-2">
+                                        {!hasCheckout ? (
+                                          <button
+                                            onClick={() => handleConfirmTripScanClick(trip.id, "checkout")}
+                                            className="flex-1 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                                          >
+                                            <Icon name="done_all" className="text-xs" /> Berangkat
+                                          </button>
+                                        ) : (
+                                          <button
+                                            onClick={() => handleConfirmTripScanClick(trip.id, "checkin")}
+                                            className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                                          >
+                                            <Icon name="done_all" className="text-xs" /> Kembali
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              !scannedRequest.is_external && (
+                                <div className="pt-1">
+                                  {!scannedRequest.security_checked_out_at ? (
+                                    <button
+                                      onClick={() => handleConfirmScanClick("checkout")}
+                                      className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                    >
+                                      <Icon name="done_all" className="text-base" />
+                                      Berangkat (Checkout)
+                                    </button>
+                                  ) : !scannedRequest.security_checked_in_at ? (
+                                    <button
+                                      onClick={() => handleConfirmScanClick("checkin")}
+                                      className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                    >
+                                      <Icon name="done_all" className="text-base" />
+                                      Kembali (Checkin)
+                                    </button>
+                                  ) : (
+                                    <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl text-center text-xs font-bold border border-emerald-200">
+                                      Perjalanan Ini Telah Selesai (Completed)
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
  
