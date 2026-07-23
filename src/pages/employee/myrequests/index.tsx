@@ -316,7 +316,7 @@ export default function MyRequestsPage() {
   return (
     <Layout
       activeNav="My Requests"
-      topbarTitle="Employee Dashboard"
+      topbarTitle="My Requests"
       userName={user?.name || "Andi Sullivan"}
       userRole={user?.role === "approver" ? "Manager Approver" : "Employee"}
       searchPlaceholder="Search requests, vehicles..."
@@ -344,7 +344,7 @@ export default function MyRequestsPage() {
             { icon: "receipt_long", iconBg: "bg-[#e5eeff]", iconColor: "text-[#00236f]", value: String(totalCount), label: "Total Requests", sub: "Across all time" },
             { icon: "pending_actions", iconBg: "bg-[#ffd9d5]", iconColor: "text-[#ba1a1a]", value: String(pendingCount), label: "Pending Approval", sub: "Action required", live: pendingCount > 0 },
             { icon: "commute", iconBg: "bg-[#e5eeff]", iconColor: "text-[#4059aa]", value: String(activeCount), label: "Active Requests", sub: "Currently en route", active: activeCount > 0 },
-            { icon: "task_alt", iconBg: "bg-[#f1f5f9]", iconColor: "text-[#64748b]", value: String(completedCount), label: "Completed Requests", sub: "Successfully closed" },
+            { icon: "check_circle", iconBg: "bg-emerald-50 border border-emerald-100", iconColor: "text-emerald-600", value: String(completedCount), label: "Completed Requests", sub: "Successfully closed" },
           ].map((c, i) => (
             <div key={i} className="bg-white rounded-2xl p-5 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
               <div className="flex items-center justify-between mb-3">
@@ -417,9 +417,9 @@ export default function MyRequestsPage() {
                 >
                   <div className="p-5">
                     {/* Top row */}
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                           <span className="text-[10px] font-bold text-[#00236f] bg-[#e5eeff] px-2 py-0.5 rounded-full">#{r.id}</span>
                           {r.rawStatus === "on_going" && (
                             <span className="text-[10px] font-bold text-[#4059aa] flex items-center gap-1">
@@ -430,20 +430,20 @@ export default function MyRequestsPage() {
                         </div>
                         <h4 className="text-[16px] font-bold text-[#0f172a]">{r.purpose || "Vehicle Request"}</h4>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1.5 mt-2 text-[12.5px] text-[#64748b] flex-wrap">
-                          <span className="flex items-center gap-1.5"><Icon name="location_on" className="text-[14px]" />{r.destination}</span>
-                          <span className="flex items-center gap-1.5"><Icon name="schedule" className="text-[14px]" />{formatDateTime(r.startTime || (r.date + " " + r.time))}</span>
-                          <span className="flex items-center gap-1.5"><Icon name="groups" className="text-[14px]" />{r.passengerCount || 1} Pax</span>
+                          <span className="flex items-center gap-1.5 whitespace-nowrap"><Icon name="location_on" className="text-[14px]" />{r.destination}</span>
+                          <span className="flex items-center gap-1.5 whitespace-nowrap"><Icon name="schedule" className="text-[14px]" />{formatDateTime(r.startTime || (r.date + " " + r.time))}</span>
+                          <span className="flex items-center gap-1.5 whitespace-nowrap"><Icon name="groups" className="text-[14px]" />{r.passengerCount || 1} Pax</span>
                         </div>
                       </div>
 
                       {/* Right: status + actions */}
-                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                      <div className="flex flex-wrap sm:flex-col items-center sm:items-end gap-2 flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${sc.color}`}>{sc.label}</span>
                         <span className={`text-[10px] font-bold flex items-center gap-1 ${getPriorityColor(r.priority)}`}>
                           {r.priority !== "NORMAL" && <Icon name="warning" className="text-[12px]" />}
                           {r.priority}
                         </span>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                           {!["on_going", "completed", "cancelled"].includes(r.rawStatus) && (
                             <button
                               onClick={(e) => {
@@ -451,7 +451,7 @@ export default function MyRequestsPage() {
                                 handleCancelClick(r.id);
                               }}
                               disabled={actionLoading}
-                              className="text-[12px] font-bold text-[#ba1a1a] bg-[#fff1f2] border border-[#fecdd3] px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors cursor-pointer flex items-center gap-1"
+                              className="text-[12px] font-bold text-[#ba1a1a] bg-[#fff1f2] border border-[#fecdd3] px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap"
                               title="Batalkan Pengajuan Ini"
                             >
                               <Icon name={r.rawStatus === "rejected" ? "delete" : "cancel"} className="text-[14px]" />
@@ -460,7 +460,7 @@ export default function MyRequestsPage() {
                           )}
                           <button
                             onClick={() => setExpanded(isExpanded ? null : r.id)}
-                            className="text-[12px] font-bold text-[#00236f] border border-[#00236f]/20 px-3 py-1.5 rounded-lg hover:bg-[#e5eeff] transition-colors cursor-pointer"
+                            className="text-[12px] font-bold text-[#00236f] border border-[#00236f]/20 px-3 py-1.5 rounded-lg hover:bg-[#e5eeff] transition-colors cursor-pointer whitespace-nowrap"
                           >
                             {isExpanded ? "Hide Detail" : "View Details"}
                           </button>
@@ -863,25 +863,25 @@ export default function MyRequestsPage() {
                         )}
 
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-4 pt-4 border-t border-[#f1f5f9]">
-                          <div className="flex gap-2">
-                            <button className="h-8 px-4 bg-[#0f2a5e] text-white rounded-lg text-[11px] font-bold hover:bg-[#1e3a8a] transition-colors flex items-center gap-1 cursor-pointer">
-                              <Icon name="track_changes" className="text-[14px]" /> Track Real-time
+                          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                            <button className="h-9 px-3.5 bg-[#0f2a5e] text-white rounded-xl text-[11px] sm:text-[12px] font-bold hover:bg-[#1e3a8a] transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap flex-1 sm:flex-initial shadow-xs">
+                              <Icon name="track_changes" className="text-[15px]" /> Track Real-time
                             </button>
                             {r.driverName && r.driverName !== "Not Assigned" && (
                               <button
                                 onClick={() => setContactDriverModal({ isOpen: true, request: r })}
-                                className="h-8 px-4 border border-[#e2e8f0] text-[#475569] rounded-lg text-[11px] font-bold hover:bg-[#f8fafc] transition-colors flex items-center gap-1 cursor-pointer"
+                                className="h-9 px-3.5 border border-[#e2e8f0] text-[#475569] bg-white rounded-xl text-[11px] sm:text-[12px] font-bold hover:bg-[#f8fafc] transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap flex-1 sm:flex-initial shadow-xs"
                               >
-                                <Icon name="chat" className="text-[14px]" /> Contact Driver
+                                <Icon name="chat" className="text-[15px]" /> Contact Driver
                               </button>
                             )}
                             {!["on_going", "completed", "cancelled"].includes(r.rawStatus) && (
                               <button
                                 onClick={() => handleCancelClick(r.id)}
                                 disabled={actionLoading}
-                                className="h-8 px-4 border border-[#fecdd3] text-[#ba1a1a] rounded-lg text-[11px] font-bold hover:bg-[#fff1f2] transition-colors flex items-center gap-1 disabled:opacity-50 cursor-pointer"
+                                className="h-9 px-3.5 border border-[#fecdd3] text-[#ba1a1a] bg-[#fff1f2] rounded-xl text-[11px] sm:text-[12px] font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer whitespace-nowrap flex-1 sm:flex-initial shadow-xs"
                               >
-                                <Icon name={r.rawStatus === "rejected" ? "delete" : "cancel"} className="text-[14px]" />
+                                <Icon name={r.rawStatus === "rejected" ? "delete" : "cancel"} className="text-[15px]" />
                                 {r.rawStatus === "rejected" ? "Delete Request" : "Cancel Request"}
                               </button>
                             )}

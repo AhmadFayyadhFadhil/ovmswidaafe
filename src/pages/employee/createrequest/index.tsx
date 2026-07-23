@@ -544,7 +544,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                       (item) => !passengers.some((pOther, idx) => idx !== i && pOther.name.trim().toLowerCase() === item.name.trim().toLowerCase())
                     );
                     return (
-                      <div key={i} className="flex items-center gap-3 bg-[#f8fafc] p-3 rounded-xl border border-[#e2e8f0]">
+                      <div key={i} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 bg-[#f8fafc] p-3 rounded-xl border border-[#e2e8f0]">
                         <div className="flex-1 relative">
                           <input
                             type="text"
@@ -589,7 +589,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                           </div>
                         )}
                       </div>
-                      <div className="w-1/3">
+                      <div className="w-full sm:w-1/3 flex items-center gap-2">
                         <select
                           value={p.department_id}
                           onChange={e => {
@@ -597,18 +597,19 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                             next[i] = { ...next[i], department_id: e.target.value };
                             setPassengers(next);
                           }}
-                          className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none"
+                          className="flex-1 h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none"
                         >
                           <option value="">Pilih Departemen</option>
                           {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
+                        <button
+                          onClick={() => setPassengers(prev => prev.filter((_, j) => j !== i))}
+                          className="p-1.5 text-[#94a3b8] hover:text-[#ef4444] rounded-lg hover:bg-red-50 transition-colors flex-shrink-0"
+                          title="Hapus Penumpang"
+                        >
+                          <Icon name="close" className="text-[18px]" />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => setPassengers(prev => prev.filter((_, j) => j !== i))}
-                        className="text-[#94a3b8] hover:text-[#ef4444] transition-colors"
-                      >
-                        <Icon name="close" className="text-[16px]" />
-                      </button>
                     </div>
                   );
                 })

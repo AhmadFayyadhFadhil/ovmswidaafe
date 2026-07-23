@@ -285,7 +285,7 @@ export default function EmployeeHistoryPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex bg-[#f1f5f9] p-1 rounded-xl w-fit self-start sm:self-auto">
+            <div className="flex bg-[#f1f5f9] p-1 rounded-xl w-full sm:w-auto max-w-full overflow-x-auto no-scrollbar scrollbar-none flex-nowrap self-start sm:self-auto">
               {(['All History', 'Completed', 'Rejected', 'Cancelled'] as TabFilter[]).map((t) => (
                 <button
                   key={t}
@@ -293,7 +293,7 @@ export default function EmployeeHistoryPage() {
                     setTab(t);
                     setCurrentPage(1);
                   }}
-                  className={`px-4 py-2 text-[12px] font-bold rounded-lg transition-all cursor-pointer ${
+                  className={`whitespace-nowrap flex-shrink-0 px-3.5 sm:px-4 py-2 text-[12px] font-bold rounded-lg transition-all cursor-pointer ${
                     tab === t ? 'bg-white text-[#1e3a8a] shadow-sm' : 'text-[#64748b] hover:text-[#0f172a]'
                   }`}
                 >
