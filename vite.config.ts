@@ -1,12 +1,17 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import legacy from "@vitejs/plugin-legacy";
 import path from "path";
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    legacy({
+      targets: ["chrome >= 50", "android >= 4.4", "defaults", "not IE 11"],
+      renderModernChunks: true,
+    }),
   ],
 
   server: {
