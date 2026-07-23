@@ -9,8 +9,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     legacy({
-      targets: ["chrome >= 50", "android >= 4.4", "defaults", "not IE 11"],
-      renderModernChunks: true,
+      targets: ["chrome >= 50", "android >= 4.4"],
+      renderModernChunks: false,
     }),
   ],
 
@@ -36,6 +36,7 @@ export default defineConfig({
   },
 
   build: {
+    target: ["es2015", "chrome50"],
     sourcemap: false,
     cssCodeSplit: true,
     reportCompressedSize: true,
