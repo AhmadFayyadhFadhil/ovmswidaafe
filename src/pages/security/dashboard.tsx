@@ -142,9 +142,17 @@ export default function SecurityDashboard() {
   const startCamera = async () => {
     try {
       setError(null);
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }
-      });
+      let mediaStream: MediaStream;
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" }
+        });
+      } catch (e) {
+        // Fallback if environment camera constraint is overconstrained or not found
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: true
+        });
+      }
       setStream(mediaStream);
       setCameraActive(true);
       setCapturedPhoto(null);
@@ -156,7 +164,7 @@ export default function SecurityDashboard() {
       }, 100);
     } catch (err) {
       console.error("Gagal mengakses kamera:", err);
-      setError("Kamera tidak dapat diakses. Silakan gunakan opsi upload foto atau input manual.");
+      setError("Kamera tidak dapat diakses. Silakan periksa izin kamera di pengaturan browser Anda, atau gunakan opsi upload foto.");
       setCameraActive(false);
     }
   };

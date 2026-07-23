@@ -551,7 +551,7 @@ export default function DriverDashboard() {
             case "assigned_by_ga":
               return { label: "Menunggu Head HRD", color: "bg-blue-400 animate-pulse" };
             case "waiting_driver":
-              return { label: "Menunggu Driver Lain", color: "bg-amber-400 animate-pulse" };
+              return { label: "Menunggu Konfirmasi Driver", color: "bg-amber-400 animate-pulse" };
             default:
               return { label: "Terjadwal", color: "bg-gray-400" };
           }
@@ -710,7 +710,7 @@ export default function DriverDashboard() {
                     {currentTrip.rawStatus === "waiting_driver" && (
                       <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-[#1a2d4f]/60 border border-[#2a4a7f] px-3.5 py-2 rounded-xl">
                         <Icon name="hourglass_empty" className="text-[15px] text-amber-400 animate-spin" />
-                        <span className="font-semibold text-amber-300">Menunggu persetujuan driver kedua</span>
+                        <span className="font-semibold text-amber-300">Menunggu konfirmasi tugas driver</span>
                       </div>
                     )}
 
