@@ -453,7 +453,11 @@ export default function GAHRDRequestsPage() {
       await fetchData();
     } catch (err: any) {
       console.error(err);
-      setAssignError(err.response?.data?.message || "Gagal menugaskan driver.");
+      const serverMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+      const displayMsg = (serverMsg === "Server Error" || !serverMsg)
+        ? "Gagal menugaskan driver. Pastikan driver & kendaraan yang dipilih sedang tersedia dan belum memiliki penugasan di jam yang sama."
+        : serverMsg;
+      setAssignError(displayMsg);
     } finally {
       setActionLoading(false);
     }
