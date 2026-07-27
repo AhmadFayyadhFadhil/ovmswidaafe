@@ -86,8 +86,14 @@ function DriverCard({
               <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${cfg.badge}`}>{cfg.label}</span>
             </div>
             
-            <div className="flex items-center gap-2 text-[11px] font-semibold text-[#94a3b8] uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-[11px] font-semibold text-[#94a3b8] uppercase tracking-wider flex-wrap">
               <span>ID: {driver.driverId}</span>
+              <span>•</span>
+              <span className="flex items-center gap-1 text-amber-600 font-extrabold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                <span>⭐</span> {driver.rating ? Number(driver.rating).toFixed(1) : "5.0"}
+              </span>
+              <span>•</span>
+              <span className="text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-md">{driver.trips || 0} Trips</span>
               {driver.licenseType && (
                 <>
                   <span>•</span>
