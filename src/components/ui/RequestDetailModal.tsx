@@ -31,22 +31,16 @@ export function RequestDetailModal({
     if (!dtStr) return "";
     try {
       if (/^\d{2}-\d{2}-\d{4} \d{2}:\d{2}/.test(dtStr)) return dtStr;
-      let date: Date;
-      if (dtStr.includes('Z') || dtStr.includes('+')) {
-        date = new Date(dtStr);
-      } else {
-        date = new Date(dtStr.replace(' ', 'T'));
+      const cleanStr = String(dtStr).replace('Z', '').replace('T', ' ');
+      const [datePart, timePart] = cleanStr.split(' ');
+      if (datePart && timePart) {
+        const [y, m, d] = datePart.split('-');
+        const [h, min] = timePart.split(':');
+        if (y && m && d && h && min) {
+          return `${d}-${m}-${y} ${h}:${min}`;
+        }
       }
-      if (isNaN(date.getTime())) {
-        return dtStr;
-      }
-      const pad = (n: number) => String(n).padStart(2, '0');
-      const d = pad(date.getDate());
-      const m = pad(date.getMonth() + 1);
-      const y = date.getFullYear();
-      const h = pad(date.getHours());
-      const min = pad(date.getMinutes());
-      return `${d}-${m}-${y} ${h}:${min}`;
+      return dtStr;
     } catch (e) {
       return dtStr;
     }
