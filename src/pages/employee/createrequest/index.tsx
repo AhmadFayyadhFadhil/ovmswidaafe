@@ -604,8 +604,6 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                                 : 'bg-white text-slate-500 border border-[#e2e8f0] hover:bg-amber-50/50 hover:text-amber-700'
                             }`}
                             title="Tunjuk sebagai PIC Penanggung Jawab Penumpang"
-                          >
-                            <span className={(p.is_pic || (!passengers.some(px => px.is_pic) && i === 0)) ? 'text-amber-500' : 'text-slate-400'}>⭐</span>
                             {(p.is_pic || (!passengers.some(px => px.is_pic) && i === 0)) ? 'PIC Penumpang' : 'Set PIC'}
                           </button>
                           <select

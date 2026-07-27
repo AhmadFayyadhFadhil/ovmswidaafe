@@ -697,7 +697,7 @@ export function RequestDetailModal({
                             {p.name}
                             {isPicPassenger && (
                               <span className="bg-amber-100 text-amber-800 border border-amber-300 text-[9.5px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                                ⭐ PIC Penumpang
+                                PIC Penumpang
                               </span>
                             )}
                           </span>
