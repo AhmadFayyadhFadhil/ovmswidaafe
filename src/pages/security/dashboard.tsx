@@ -435,11 +435,16 @@ export default function SecurityDashboard() {
     setShowNameModal(false);
 
     try {
+      const nowDevice = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const scannedAtStr = `${nowDevice.getFullYear()}-${pad(nowDevice.getMonth() + 1)}-${pad(nowDevice.getDate())} ${pad(nowDevice.getHours())}:${pad(nowDevice.getMinutes())}:${pad(nowDevice.getSeconds())}`;
+
       const payload: any = {
         qr_code_token: scannedRequest.qr_code_token || `REQ-${scannedRequest.id}`,
         security_name: guardName.trim(),
         type: confirmingType,
-        notes: securityNotes
+        notes: securityNotes,
+        scanned_at: scannedAtStr
       };
 
       if (selectedTripId) {
