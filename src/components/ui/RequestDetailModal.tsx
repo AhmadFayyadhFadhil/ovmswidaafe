@@ -30,8 +30,13 @@ export function RequestDetailModal({
   const formatScanTime = (dtStr: string | null | undefined) => {
     if (!dtStr) return "";
     try {
-      const utcStr = dtStr.includes('Z') ? dtStr : `${dtStr.replace(' ', 'T')}Z`;
-      const date = new Date(utcStr);
+      if (/^\d{2}-\d{2}-\d{4} \d{2}:\d{2}/.test(dtStr)) return dtStr;
+      let date: Date;
+      if (dtStr.includes('Z') || dtStr.includes('+')) {
+        date = new Date(dtStr);
+      } else {
+        date = new Date(dtStr.replace(' ', 'T'));
+      }
       if (isNaN(date.getTime())) {
         return dtStr;
       }
