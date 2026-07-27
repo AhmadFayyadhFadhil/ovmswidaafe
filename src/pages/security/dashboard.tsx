@@ -55,6 +55,23 @@ export default function SecurityDashboard() {
     setShowNameModal(true);
   };
 
+  useEffect(() => {
+    if (showNameModal) {
+      if (guardName) {
+        if (predefinedGuards.length > 0 && predefinedGuards.includes(guardName)) {
+          setSelectedGuardOption(guardName);
+        } else {
+          setSelectedGuardOption("custom");
+        }
+      } else if (predefinedGuards.length > 0) {
+        setSelectedGuardOption(predefinedGuards[0]);
+        setGuardName(predefinedGuards[0]);
+      } else {
+        setSelectedGuardOption("custom");
+      }
+    }
+  }, [showNameModal, predefinedGuards]);
+
   // Camera and Photo Scan states
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
