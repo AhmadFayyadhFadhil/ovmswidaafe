@@ -697,6 +697,26 @@ export default function SecurityDashboard() {
         {/* State 2: Request Detail Check Screen */}
         {scannedRequest && (
           <div className="space-y-6 animate-fadein">
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm font-bold rounded-2xl flex items-center justify-between gap-3 animate-fadein shadow-xs">
+                <div className="flex items-center gap-2">
+                  <Icon name="error" className="text-lg flex-shrink-0 text-red-600" />
+                  <span>{error}</span>
+                </div>
+                <button type="button" onClick={() => setError(null)} className="text-red-500 hover:text-red-700 font-bold text-xs cursor-pointer">✕</button>
+              </div>
+            )}
+
+            {successMsg && (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-bold rounded-2xl flex items-center justify-between gap-3 animate-fadein shadow-xs">
+                <div className="flex items-center gap-2">
+                  <Icon name="check_circle" className="text-lg flex-shrink-0 text-emerald-600" />
+                  <span>{successMsg}</span>
+                </div>
+                <button type="button" onClick={() => setSuccessMsg(null)} className="text-emerald-700 hover:text-emerald-900 font-bold text-xs cursor-pointer">✕</button>
+              </div>
+            )}
+
             <div className="bg-white rounded-3xl border border-slate-100 shadow-md p-4 sm:p-8 space-y-6">
               
               {/* Header Info */}
