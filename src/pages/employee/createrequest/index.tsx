@@ -270,19 +270,23 @@ export default function CreateRequestPage({ onNavigate }: Props) {
     setSubmitting(true);
     setFormError("");
     try {
+      const formattedStartTime = departure ? (departure.includes('T') ? departure.replace('T', ' ') + (departure.length === 16 ? ':00' : '') : departure) : '';
+      const formattedEndTime = estReturn ? (estReturn.includes('T') ? estReturn.replace('T', ' ') + (estReturn.length === 16 ? ':00' : '') : estReturn) : null;
+
       const payload: any = {
         purpose,
         destination_city: destinationCity,
         destination_place: destinationPlace,
-        start_time: departure.replace('T', ' ') + ':00',
-        end_time: estReturn.replace('T', ' ') + ':00',
+        start_time: formattedStartTime,
+        end_time: formattedEndTime,
         passenger_count: validPassengers.length,
         priority,
         notes: notes || null,
-        passengers: validPassengers.map(p => ({
+        passengers: validPassengers.map((p, idx) => ({
           name: p.name,
           department_id: p.department_id ? Number(p.department_id) : null,
-          user_id: p.user_id || null
+          user_id: p.user_id || null,
+          is_pic: p.is_pic || (!validPassengers.some(px => px.is_pic) && idx === 0)
         })),
         itineraries: itineraries.length > 0 ? itineraries : undefined,
         itinerary_file: (files && files.length > 0) ? files[0] : undefined,
