@@ -473,24 +473,25 @@ export default function SecurityDashboard() {
       const res = await apiClient.post("/security/scan", payload);
 
       if (res.data && res.data.status === "success") {
-        setSuccessMsg(res.data.message);
+        const successMessage = res.data.message;
         setSecurityNotes("");
         setConfirmingType(null);
         setCapturedPhoto(null);
 
-        // Refresh request data so security sees updated session status (Sesi 1 completed, Driver Available, Sesi 2 pending)
+        // Refresh request data so security sees updated status
         try {
           const refreshRes = await apiClient.get('/security/lookup', {
             params: { qr_code_token: scannedRequest.qr_code_token || `REQ-${scannedRequest.id}` }
           });
-          if (refreshRes.data && refreshRes.data.status === "success" && refreshRes.data.data.status !== "completed") {
+          if (refreshRes.data && refreshRes.data.status === "success") {
+            // Always show refreshed data (including completed status) so user can see updated scan log
             setScannedRequest(refreshRes.data.data);
-          } else {
-            setScannedRequest(null);
           }
         } catch (e) {
-          setScannedRequest(null);
+          // silently ignore refresh errors, keep showing current data
         }
+        // Set success message after data is refreshed
+        setSuccessMsg(successMessage);
       } else {
         setError("Gagal mengonfirmasi scan.");
       }
