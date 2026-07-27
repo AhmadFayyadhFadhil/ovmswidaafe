@@ -286,12 +286,12 @@ export default function NotificationsPage({ onNavigate }: { onNavigate: (p: stri
           {/* Left: notifications list */}
           <div className="space-y-5">
             {/* Filter + sort bar */}
-            <div className="bg-white border border-[#e2e8f0] rounded-2xl p-2 flex flex-wrap items-center gap-1.5">
+            <div className="bg-white border border-[#e2e8f0] rounded-2xl p-2 flex flex-nowrap sm:flex-wrap items-center gap-1.5 max-w-full overflow-x-auto no-scrollbar scrollbar-none">
               {FILTERS.map(f => (
                 <button
                   key={f.key}
                   onClick={() => setFilter(f.key)}
-                  className={`px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all ${
+                  className={`px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all whitespace-nowrap shrink-0 ${
                     filter === f.key
                       ? 'bg-[#1e3a8a] text-white'
                       : 'text-[#64748b] hover:bg-[#f1f5f9]'

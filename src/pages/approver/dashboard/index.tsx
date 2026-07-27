@@ -334,20 +334,20 @@ export default function DashboardPage() {
         {/* Two-column lower */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
           {/* Latest pending */}
-          <div className="bg-white border border-[#e2e8f0] rounded-2xl p-6">
-            <div className="flex items-start justify-between mb-5">
+          <div className="bg-white border border-[#e2e8f0] rounded-2xl p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 mb-5">
               <div>
-                <div className="text-[16px] font-bold text-[#0f172a]">Latest Pending Requests</div>
-                <div className="text-[12px] text-[#64748b] mt-0.5">
+                <div className="text-[15px] sm:text-[16px] font-bold text-[#0f172a]">Latest Pending Requests</div>
+                <div className="text-[11.5px] sm:text-[12px] text-[#64748b] mt-0.5 leading-snug">
                   Immediate action required for next 24h operational cycle
                 </div>
               </div>
               <button
                 onClick={() => navigate("/approver/requests")}
-                className="text-[13px] font-semibold text-[#1e3a8a] hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-[12px] sm:text-[13px] font-bold text-[#1e3a8a] hover:underline flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0 self-start sm:self-auto"
               >
                 View All Requests
-                <Icon name="arrow_forward" className="text-[16px]" />
+                <Icon name="arrow_forward" className="text-[15px]" />
               </button>
             </div>
             <div className="flex flex-col gap-4">

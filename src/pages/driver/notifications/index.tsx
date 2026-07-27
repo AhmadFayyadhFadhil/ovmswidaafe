@@ -185,10 +185,10 @@ export default function DriverNotificationsPage({ onNavigate }: Props) {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-[#f1f5f9] p-1 rounded-2xl w-fit">
+        <div className="flex gap-1 bg-[#f1f5f9] p-1 rounded-2xl w-full sm:w-fit max-w-full overflow-x-auto no-scrollbar scrollbar-none flex-nowrap">
           {TABS.map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-xl text-[12px] font-bold transition-all cursor-pointer ${
+              className={`whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-xl text-[12px] font-bold transition-all cursor-pointer ${
                 activeTab === tab ? "bg-[#0f2a5e] text-white shadow-sm" : "text-[#64748b] hover:text-[#0f172a]"
               }`}>{tab}</button>
           ))}

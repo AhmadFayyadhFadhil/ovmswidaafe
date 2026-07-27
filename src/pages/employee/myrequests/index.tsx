@@ -898,14 +898,14 @@ export default function MyRequestsPage() {
                         )}
 
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-4 pt-4 border-t border-[#f1f5f9]">
-                          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                            <button className="h-9 px-3.5 bg-[#0f2a5e] text-white rounded-xl text-[11px] sm:text-[12px] font-bold hover:bg-[#1e3a8a] transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap flex-1 sm:flex-initial shadow-xs">
+                          <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                            <button className="min-h-[38px] px-3.5 bg-[#0f2a5e] text-white rounded-xl text-[11.5px] sm:text-[12px] font-bold hover:bg-[#1e3a8a] transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs">
                               <Icon name="track_changes" className="text-[15px]" /> Track Real-time
                             </button>
                             {r.driverName && r.driverName !== "Not Assigned" && (
                               <button
                                 onClick={() => setContactDriverModal({ isOpen: true, request: r })}
-                                className="h-9 px-3.5 border border-[#e2e8f0] text-[#475569] bg-white rounded-xl text-[11px] sm:text-[12px] font-bold hover:bg-[#f8fafc] transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap flex-1 sm:flex-initial shadow-xs"
+                                className="min-h-[38px] px-3.5 border border-[#e2e8f0] text-[#475569] bg-white rounded-xl text-[11.5px] sm:text-[12px] font-bold hover:bg-[#f8fafc] transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs"
                               >
                                 <Icon name="chat" className="text-[15px]" /> Contact Driver
                               </button>
@@ -913,7 +913,7 @@ export default function MyRequestsPage() {
                             {r.rawStatus === "completed" && (
                               <button
                                 onClick={() => setRatingModal({ isOpen: true, request: r, rating: r.rating || 5, notes: r.ratingNotes || "" })}
-                                className={`h-9 px-3.5 rounded-xl text-[11px] sm:text-[12px] font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap flex-1 sm:flex-initial shadow-xs ${
+                                className={`min-h-[38px] px-3.5 rounded-xl text-[11.5px] sm:text-[12px] font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs ${
                                   r.rating ? 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100' : 'bg-amber-500 text-white hover:bg-amber-600'
                                 }`}
                               >
@@ -925,7 +925,7 @@ export default function MyRequestsPage() {
                               <button
                                 onClick={() => handleCancelClick(r.id)}
                                 disabled={actionLoading}
-                                className="h-9 px-3.5 border border-[#fecdd3] text-[#ba1a1a] bg-[#fff1f2] rounded-xl text-[11px] sm:text-[12px] font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer whitespace-nowrap flex-1 sm:flex-initial shadow-xs"
+                                className="min-h-[38px] px-3.5 border border-[#fecdd3] text-[#ba1a1a] bg-[#fff1f2] rounded-xl text-[11.5px] sm:text-[12px] font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer whitespace-nowrap shadow-2xs"
                               >
                                 <Icon name={r.rawStatus === "rejected" ? "delete" : "cancel"} className="text-[15px]" />
                                 {r.rawStatus === "rejected" ? "Delete Request" : "Cancel Request"}
