@@ -88,13 +88,14 @@ function HistoryRow({ item, onViewDetail, onRateClick }: { item: HistoryItem; on
   const pri = PRI_MAP[item.priority] || PRI_MAP.NORMAL;
 
   return (
-    <div className="bg-white border border-[#e2e8f0] rounded-xl overflow-hidden transition-all">
+    <div className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden transition-all shadow-2xs hover:shadow-sm">
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-4 px-6 py-4 hover:bg-[#f8faff] transition-colors text-left cursor-pointer"
+        className="w-full flex items-center gap-2.5 sm:gap-4 p-3.5 sm:px-6 sm:py-4 hover:bg-[#f8faff] transition-colors text-left cursor-pointer"
       >
         {/* Status icon */}
-        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
+        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 ${
           isCompleted ? 'bg-[#f0fdf4]' : item.status === 'CANCELLED' ? 'bg-[#f1f5f9]' : 'bg-[#fef2f2]'
         }`}>
           {isCompleted
@@ -106,27 +107,28 @@ function HistoryRow({ item, onViewDetail, onRateClick }: { item: HistoryItem; on
         </div>
 
         {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-            <span className="text-[13px] font-bold text-[#1e3a8a]">{item.reqId}</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${pri.cls}`}>{pri.label}</span>
+        <div className="flex-1 min-w-0 pr-1">
+          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+            <span className="text-[12px] sm:text-[14px] font-black text-[#1e3a8a] whitespace-nowrap">{item.reqId}</span>
+            <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-md whitespace-nowrap ${pri.cls}`}>
+              {item.priority}
+            </span>
           </div>
-          <div className="text-[14px] font-semibold text-[#0f172a] truncate">{item.title}</div>
-          <div className="flex items-center gap-1 mt-0.5 text-[12px] text-[#94a3b8]">
-            <IconUser />
+          <div className="text-[13px] sm:text-[15px] font-bold text-[#0f172a] truncate">{item.title}</div>
+          <div className="text-[10.5px] sm:text-[12px] text-[#94a3b8] truncate mt-0.5">
             {item.requester} • {item.datetime}
           </div>
         </div>
 
         {/* Status + chevron */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="text-right">
-            <div className={`text-[14px] font-extrabold tracking-wide ${isCompleted ? 'text-[#15803d]' : 'text-[#dc2626]'}`}>
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto text-right">
+          <div>
+            <div className={`text-[11px] sm:text-[14px] font-extrabold whitespace-nowrap ${isCompleted ? 'text-[#15803d]' : 'text-[#dc2626]'}`}>
               {item.status}
             </div>
-            <div className="text-[11px] text-[#94a3b8] hidden sm:block">{item.statusLabel}</div>
+            <div className="text-[10px] sm:text-[11px] text-[#94a3b8] hidden sm:block">{item.statusLabel}</div>
           </div>
-          <div className={`transition-transform ${open ? 'rotate-180' : ''}`}>
+          <div className={`transition-transform duration-200 text-slate-400 ${open ? 'rotate-180 text-blue-900' : ''}`}>
             <IconChevronDown />
           </div>
         </div>
@@ -134,41 +136,43 @@ function HistoryRow({ item, onViewDetail, onRateClick }: { item: HistoryItem; on
 
       {/* Expanded detail */}
       {open && (
-        <div className="border-t border-[#f1f5f9] px-6 py-4 bg-[#f8faff]">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-[13px]">
+        <div className="border-t border-[#f1f5f9] p-4 sm:px-6 sm:py-4 bg-[#f8faff] animate-fadein">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[12px] sm:text-[13px]">
             <div>
-              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1">Requester</div>
+              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Requester</div>
               <div className="font-semibold text-[#0f172a]">{item.requester}</div>
             </div>
             <div>
-              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1">DateTime</div>
+              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">DateTime</div>
               <div className="font-semibold text-[#0f172a]">{item.datetime}</div>
             </div>
             <div>
-              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1">Decision Process</div>
-              <div className="font-semibold text-[#0f172a]">{item.notes || 'Processed via OVMS Platform.'}</div>
+              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Decision Process</div>
+              <div className="font-semibold text-[#0f172a] leading-snug">{item.notes || 'Processed via OVMS Platform.'}</div>
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200/60">
+          <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-slate-200/60">
             <button 
+              type="button"
               onClick={() => onViewDetail(item.id)}
-              className="h-9 px-4 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-xl hover:bg-[#1e40af] transition-colors cursor-pointer"
+              className="w-full sm:w-auto h-9 px-4 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-xl hover:bg-[#1e40af] transition-colors cursor-pointer text-center"
             >
               View Full Detail
             </button>
 
             {isCompleted && (
               item.rating ? (
-                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-900">
+                <div className="flex items-center justify-center gap-2 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl text-xs font-bold text-amber-900 w-full sm:w-auto">
                   <span className="text-amber-500 text-sm">{"★".repeat(item.rating)}{"☆".repeat(5 - item.rating)}</span>
                   <span>({item.rating}/5)</span>
-                  {item.ratingNotes && <span className="text-slate-600 font-normal italic truncate max-w-[200px]">"{item.ratingNotes}"</span>}
+                  {item.ratingNotes && <span className="text-slate-600 font-normal italic truncate max-w-[150px] sm:max-w-[200px]">"{item.ratingNotes}"</span>}
                 </div>
               ) : (
                 <button
+                  type="button"
                   onClick={() => onRateClick(item.rawRequest)}
-                  className="h-9 px-4 bg-amber-500 hover:bg-amber-600 text-white text-[12px] font-extrabold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  className="w-full sm:w-auto h-9 px-4 bg-amber-500 hover:bg-amber-600 text-white text-[12px] font-extrabold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                 >
                   <span>⭐</span> Beri Rating & Ulasan Driver
                 </button>
@@ -311,7 +315,7 @@ export default function EmployeeHistoryPage() {
         setCurrentPage(1);
       }}
     >
-      <div className="flex-1 overflow-y-auto bg-[#f8f9ff] p-4 sm:p-8">
+      <div className="flex-1 overflow-y-auto bg-[#f8f9ff] p-2.5 sm:p-8">
         {/* Page header */}
         <div className="mb-6">
           <h2 className="text-[26px] font-bold text-[#0f172a]">My Requests History</h2>
@@ -371,7 +375,7 @@ export default function EmployeeHistoryPage() {
           </div>
 
           {/* List content */}
-          <div className="p-6 space-y-4">
+          <div className="p-2.5 sm:p-6 space-y-3.5">
             {loading ? (
               <div className="py-12 text-center text-slate-400 font-medium">Loading history...</div>
             ) : error ? (
