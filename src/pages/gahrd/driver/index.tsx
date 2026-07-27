@@ -136,11 +136,13 @@ function DriverCard({
           )}
           {driver.phone && (
             <a 
-              href={`tel:${driver.phone}`}
-              className="w-full sm:w-auto h-9 px-5 bg-white border border-[#e2e8f0] text-[#334155] text-[12px] font-bold rounded-xl hover:bg-[#f8fafc] active:scale-95 transition-all flex items-center justify-center gap-1"
+              href={`https://wa.me/${driver.phone.replace(/[^0-9]/g, '')}`}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full sm:w-auto h-9 px-4 bg-[#25D366] text-white text-[12px] font-bold rounded-xl hover:bg-[#20bd5a] active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs"
             >
-              <Icon name="call" className="text-[14px]" />
-              Call Driver
+              <Icon name="chat" className="text-[14px]" />
+              WhatsApp
             </a>
           )}
         </div>

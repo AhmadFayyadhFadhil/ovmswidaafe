@@ -91,12 +91,17 @@ function mapRequestFromBackend(r: any): FleetRequest {
     id: String(r.id),
     employee: r.requested_by?.name || 'Staff',
     email: r.requested_by?.email || '',
+    userPhone: r.requested_by?.phone || '',
     requestedById: r.requested_by?.id ? String(r.requested_by.id) : (r.user_id ? String(r.user_id) : null),
     department: r.department_name || r.department_id || 'IT',
     destination: `${r.destination_city || ''}${r.destination_place ? ' - ' + r.destination_place : ''}`,
     vehicleModel: r.vehicle_model || r.operational_trip?.vehicle?.name || r.vehicle?.name || 'Not Assigned',
     driverName: r.driver_name || r.operational_trip?.driver?.name || r.driver?.name || 'Not Assigned',
+    driverPhone: r.driver?.phone || r.operational_trip?.driver?.phone || '',
     driverId: r.driver?.id || r.operational_trip?.driver?.id || null,
+    rating: r.rating || null,
+    ratingNotes: r.rating_notes || '',
+    ratedAt: r.rated_at || null,
     vehicleId: r.vehicle?.id || r.operational_trip?.vehicle?.id || null,
     date: start.date,
     time: start.time,
@@ -358,6 +363,13 @@ export const requestService = {
     const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/daily-assignments`, {
       daily_assignments: dailyAssignments
     });
+    return {
+      data: mapRequestFromBackend(res.data?.data),
+      message: res.data?.message
+    };
+  },
+  rateDriver: async (id: string | number, ratingData: { rating: number; rating_notes?: string }): Promise<ApiResponse<FleetRequest>> => {
+    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/rate-driver`, ratingData);
     return {
       data: mapRequestFromBackend(res.data?.data),
       message: res.data?.message

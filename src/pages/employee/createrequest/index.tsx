@@ -37,7 +37,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
     afternoon_destination: string;
     passengers_notes: string;
   }[]>([]);
-  const [passengers, setPassengers] = useState<{ name: string; department_id: string | number; user_id?: number | null }[]>([]);
+  const [passengers, setPassengers] = useState<{ name: string; department_id: string | number; user_id?: number | null; is_pic?: boolean }[]>([]);
   const [suggestions, setSuggestions] = useState<{ id: number; name: string; email: string; department_id: string | number; department_name?: string }[]>([]);
   const [activePassengerIndex, setActivePassengerIndex] = useState<number | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -589,27 +589,45 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                           </div>
                         )}
                       </div>
-                      <div className="w-full sm:w-1/3 flex items-center gap-2">
-                        <select
-                          value={p.department_id}
-                          onChange={e => {
-                            const next = [...passengers];
-                            next[i] = { ...next[i], department_id: e.target.value };
-                            setPassengers(next);
-                          }}
-                          className="flex-1 h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none"
-                        >
-                          <option value="">Pilih Departemen</option>
-                          {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                        </select>
-                        <button
-                          onClick={() => setPassengers(prev => prev.filter((_, j) => j !== i))}
-                          className="p-1.5 text-[#94a3b8] hover:text-[#ef4444] rounded-lg hover:bg-red-50 transition-colors flex-shrink-0"
-                          title="Hapus Penumpang"
-                        >
-                          <Icon name="close" className="text-[18px]" />
-                        </button>
-                      </div>
+                        <div className="w-full sm:w-1/2 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPassengers(prev => prev.map((item, idx) => ({
+                                ...item,
+                                is_pic: idx === i
+                              })));
+                            }}
+                            className={`px-2.5 h-9 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all flex-shrink-0 cursor-pointer ${
+                              (p.is_pic || (!passengers.some(px => px.is_pic) && i === 0))
+                                ? 'bg-amber-50 text-amber-800 border border-amber-300 shadow-sm'
+                                : 'bg-white text-slate-500 border border-[#e2e8f0] hover:bg-amber-50/50 hover:text-amber-700'
+                            }`}
+                            title="Tunjuk sebagai PIC Penanggung Jawab Penumpang"
+                          >
+                            <span className={(p.is_pic || (!passengers.some(px => px.is_pic) && i === 0)) ? 'text-amber-500' : 'text-slate-400'}>⭐</span>
+                            {(p.is_pic || (!passengers.some(px => px.is_pic) && i === 0)) ? 'PIC Penumpang' : 'Set PIC'}
+                          </button>
+                          <select
+                            value={p.department_id}
+                            onChange={e => {
+                              const next = [...passengers];
+                              next[i] = { ...next[i], department_id: e.target.value };
+                              setPassengers(next);
+                            }}
+                            className="flex-1 h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none"
+                          >
+                            <option value="">Pilih Departemen</option>
+                            {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                          </select>
+                          <button
+                            onClick={() => setPassengers(prev => prev.filter((_, j) => j !== i))}
+                            className="p-1.5 text-[#94a3b8] hover:text-[#ef4444] rounded-lg hover:bg-red-50 transition-colors flex-shrink-0"
+                            title="Hapus Penumpang"
+                          >
+                            <Icon name="close" className="text-[18px]" />
+                          </button>
+                        </div>
                     </div>
                   );
                 })

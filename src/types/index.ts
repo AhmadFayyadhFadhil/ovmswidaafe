@@ -50,6 +50,11 @@ export interface FleetRequest {
   id: string;
   employee: string;
   email?: string;
+  userPhone?: string;
+  driverPhone?: string;
+  rating?: number | null;
+  ratingNotes?: string;
+  ratedAt?: string | null;
   requestedById?: string | null;
   department: string;
   destination: string;

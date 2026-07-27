@@ -234,6 +234,36 @@ export default function MyRequestsPage() {
     isOpen: false,
     request: null,
   });
+  const [ratingModal, setRatingModal] = useState<{
+    isOpen: boolean;
+    request: any | null;
+    rating: number;
+    notes: string;
+  }>({
+    isOpen: false,
+    request: null,
+    rating: 5,
+    notes: "",
+  });
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+
+  const handleRatingSubmit = async () => {
+    if (!ratingModal.request) return;
+    setRatingSubmitting(true);
+    try {
+      await requestService.rateDriver(ratingModal.request.id, {
+        rating: ratingModal.rating,
+        rating_notes: ratingModal.notes,
+      });
+      requestService.clearCache();
+      refetch();
+      setRatingModal({ isOpen: false, request: null, rating: 5, notes: "" });
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Gagal menyimpan rating driver.");
+    } finally {
+      setRatingSubmitting(false);
+    }
+  };
 
   const { data: requestsData, loading, error, refetch } = useApi(async () => {
     const res = await requestService.getAll({ per_page: 1000 });
@@ -875,6 +905,17 @@ export default function MyRequestsPage() {
                                 <Icon name="chat" className="text-[15px]" /> Contact Driver
                               </button>
                             )}
+                            {r.rawStatus === "completed" && (
+                              <button
+                                onClick={() => setRatingModal({ isOpen: true, request: r, rating: r.rating || 5, notes: r.ratingNotes || "" })}
+                                className={`h-9 px-3.5 rounded-xl text-[11px] sm:text-[12px] font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap flex-1 sm:flex-initial shadow-xs ${
+                                  r.rating ? 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100' : 'bg-amber-500 text-white hover:bg-amber-600'
+                                }`}
+                              >
+                                <span>⭐</span>
+                                {r.rating ? `Rating: ${r.rating} ⭐ (Edit)` : "Beri Rating Driver"}
+                              </button>
+                            )}
                             {!["on_going", "completed", "cancelled"].includes(r.rawStatus) && (
                               <button
                                 onClick={() => handleCancelClick(r.id)}
@@ -1274,6 +1315,88 @@ export default function MyRequestsPage() {
                 className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition cursor-pointer"
               >
                 Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Rating Driver Modal */}
+      {ratingModal.isOpen && ratingModal.request && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[99999] flex items-center justify-center p-4 animate-fadein" onClick={() => setRatingModal({ isOpen: false, request: null, rating: 5, notes: "" })}>
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl relative animate-fadein" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl">⭐</span>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-800">Rating & Evaluasi Driver</h3>
+                  <p className="text-xs text-slate-500">Request #{ratingModal.request.id} • {ratingModal.request.driverName}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setRatingModal({ isOpen: false, request: null, rating: 5, notes: "" })}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-200 transition cursor-pointer"
+              >
+                <Icon name="close" className="text-base" />
+              </button>
+            </div>
+
+            <div className="space-y-4 py-2">
+              <div className="text-center space-y-2">
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">
+                  Beri Rating Pelayanan Driver
+                </label>
+                <div className="flex justify-center items-center gap-2 text-3xl cursor-pointer">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      type="button"
+                      key={star}
+                      onClick={() => setRatingModal(prev => ({ ...prev, rating: star }))}
+                      className="hover:scale-125 transition-transform cursor-pointer focus:outline-none"
+                    >
+                      <span className={star <= ratingModal.rating ? "text-amber-400 drop-shadow-xs" : "text-slate-200"}>
+                        ★
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <div className="text-xs font-extrabold text-amber-800">
+                  {ratingModal.rating === 5 && "Sangat Memuaskan (5/5)"}
+                  {ratingModal.rating === 4 && "Memuaskan (4/5)"}
+                  {ratingModal.rating === 3 && "Cukup (3/5)"}
+                  {ratingModal.rating === 2 && "Kurang Memuaskan (2/5)"}
+                  {ratingModal.rating === 1 && "Buruk (1/5)"}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Ulasan & Catatan/Saran (Opsional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={ratingModal.notes}
+                  onChange={e => setRatingModal(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Tuliskan masukan atau pujian untuk driver..."
+                  className="w-full p-3 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setRatingModal({ isOpen: false, request: null, rating: 5, notes: "" })}
+                className="flex-1 h-10 border border-slate-200 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-50 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleRatingSubmit}
+                disabled={ratingSubmitting}
+                className="flex-1 h-10 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl shadow-xs disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                {ratingSubmitting ? "Menyimpan..." : "Kirim Rating ⭐"}
               </button>
             </div>
           </div>

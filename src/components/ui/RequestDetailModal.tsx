@@ -254,6 +254,16 @@ export function RequestDetailModal({
                     <div className="text-[11px] font-semibold text-slate-400 mt-0.5">
                       Departemen: {request.department}
                     </div>
+                    {request.userPhone && (
+                      <a
+                        href={`https://wa.me/${request.userPhone.replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-[11px] font-bold transition-colors mt-1.5"
+                      >
+                        💬 Hubungi WA ({request.userPhone})
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
@@ -608,6 +618,16 @@ export function RequestDetailModal({
                                           <Icon name="directions_car" className="text-xs text-slate-400" />
                                           <span>{vName}</span>
                                         </div>
+                                        {request.driverPhone && (
+                                          <a
+                                            href={`https://wa.me/${request.driverPhone.replace(/[^0-9]/g, '')}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-md text-[10.5px] font-bold transition-colors mt-1"
+                                          >
+                                            💬 Hubungi WA ({request.driverPhone})
+                                          </a>
+                                        )}
                                       </div>
                                     </div>
 
@@ -634,6 +654,27 @@ export function RequestDetailModal({
                 </div>
               </div>
 
+              {/* Rating & Review Driver section if rated */}
+              {request.rating && (
+                <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl space-y-1">
+                  <div className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider flex items-center justify-between">
+                    <span>Evaluasi & Rating Driver</span>
+                    {request.ratedAt && (
+                      <span className="text-[10px] text-amber-600 font-semibold">{new Date(request.ratedAt).toLocaleDateString('id-ID')}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 text-amber-500 font-extrabold text-base">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <span key={star} className={star <= request.rating ? "text-amber-500" : "text-slate-300"}>★</span>
+                    ))}
+                    <span className="text-amber-900 text-xs font-bold ml-1.5">{request.rating} / 5.0</span>
+                  </div>
+                  {request.ratingNotes && (
+                    <p className="text-[12px] text-slate-700 italic font-medium pt-0.5">"{request.ratingNotes}"</p>
+                  )}
+                </div>
+              )}
+
               {/* Passengers */}
               <div>
                 <h4 className="text-[11px] font-extrabold tracking-wider text-slate-400 uppercase mb-2">
@@ -645,19 +686,27 @@ export function RequestDetailModal({
                   </div>
                 ) : (
                   <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                    {passengers.map((p: any, idx: number) => (
-                      <div key={p.id || idx} className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-lg text-[13px] transition-colors">
-                        <span className="font-semibold text-slate-700 flex items-center gap-1.5">
-                          <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold">
-                            {idx + 1}
+                    {passengers.map((p: any, idx: number) => {
+                      const isPicPassenger = p.is_pic || (!passengers.some((px: any) => px.is_pic) && idx === 0);
+                      return (
+                        <div key={p.id || idx} className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-lg text-[13px] transition-colors">
+                          <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                            <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold">
+                              {idx + 1}
+                            </span>
+                            {p.name}
+                            {isPicPassenger && (
+                              <span className="bg-amber-100 text-amber-800 border border-amber-300 text-[9.5px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                                ⭐ PIC Penumpang
+                              </span>
+                            )}
                           </span>
-                          {p.name}
-                        </span>
-                        <span className="text-[11px] font-semibold text-slate-400 uppercase">
-                          {p.department_name || p.department_id || request.department}
-                        </span>
-                      </div>
-                    ))}
+                          <span className="text-[11px] font-semibold text-slate-400 uppercase">
+                            {p.department_name || p.department_id || request.department}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
