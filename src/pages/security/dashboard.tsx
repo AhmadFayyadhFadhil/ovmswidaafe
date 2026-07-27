@@ -4,6 +4,19 @@ import { Icon } from "@/components/ui/Icon";
 import { apiClient } from "@/services/api/api";
 import jsQR from "jsqr";
 
+// Parse time from datetime string directly (no JS timezone conversion)
+const parseTimeStr = (dtStr: string | null | undefined): string => {
+  if (!dtStr) return "";
+  // Remove Z suffix to prevent UTC interpretation, then take HH:mm
+  const clean = String(dtStr).replace('Z', '').replace('T', ' ');
+  const timePart = clean.split(' ')[1];
+  if (timePart) {
+    const parts = timePart.split(':');
+    if (parts.length >= 2) return `${parts[0]}.${parts[1]}`;
+  }
+  return dtStr;
+};
+
 export default function SecurityDashboard() {
   const [guardName, setGuardName] = useState(() => {
     return localStorage.getItem("ovms_security_guard_name") || "";
@@ -881,7 +894,7 @@ export default function SecurityDashboard() {
                                         <div className="p-1.5 bg-emerald-50 text-emerald-800 rounded-lg text-center text-[10.5px] font-bold border border-emerald-200/60 flex items-center justify-center gap-1">
                                           <span>✓ Sesi 1 Selesai</span>
                                           <span className="font-semibold text-slate-500">
-                                            ({new Date(currentItinerary.morning_checked_in_at || currentItinerary.security_checked_in_at || scannedRequest.completed_at || Date.now()).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})})
+                                            ({parseTimeStr(currentItinerary.morning_checked_in_at || currentItinerary.security_checked_in_at || scannedRequest.completed_at) || "--"})
                                           </span>
                                         </div>
                                       )}
@@ -946,7 +959,7 @@ export default function SecurityDashboard() {
                                         <div className="p-1.5 bg-emerald-50 text-emerald-800 rounded-lg text-center text-[10.5px] font-bold border border-emerald-200/60 flex items-center justify-center gap-1">
                                           <span>✓ Sesi 2 Selesai</span>
                                           <span className="font-semibold text-slate-500">
-                                            ({new Date(currentItinerary.afternoon_checked_in_at || currentItinerary.security_checked_in_at || scannedRequest.completed_at || Date.now()).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})})
+                                            ({parseTimeStr(currentItinerary.afternoon_checked_in_at || currentItinerary.security_checked_in_at || scannedRequest.completed_at) || "--"})
                                           </span>
                                         </div>
                                       )}
@@ -1009,7 +1022,7 @@ export default function SecurityDashboard() {
                                         <span className="font-bold text-slate-400 block mb-0.5">Berangkat</span>
                                         {hasCheckout ? (
                                           <div className="text-slate-600">
-                                            <span className="font-semibold">{new Date(trip.security_checked_out_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
+                                            <span className="font-semibold">{parseTimeStr(trip.security_checked_out_at)}</span>
                                             <span className="text-slate-400 text-[9px] block">Oleh: {trip.security_checkout_by}</span>
                                             {trip.security_checkout_notes && <span className="text-slate-500 italic block mt-0.5">"{trip.security_checkout_notes}"</span>}
                                           </div>
@@ -1021,7 +1034,7 @@ export default function SecurityDashboard() {
                                         <span className="font-bold text-slate-400 block mb-0.5">Kembali</span>
                                         {hasCheckin ? (
                                           <div className="text-slate-600">
-                                            <span className="font-semibold">{new Date(trip.security_checked_in_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
+                                            <span className="font-semibold">{parseTimeStr(trip.security_checked_in_at)}</span>
                                             <span className="text-slate-400 text-[9px] block">Oleh: {trip.security_checkin_by}</span>
                                             {trip.security_checkin_notes && <span className="text-slate-500 italic block mt-0.5">"{trip.security_checkin_notes}"</span>}
                                           </div>
