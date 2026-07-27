@@ -20,8 +20,8 @@ interface HistoryItem {
   statusLabel: string;
   decidedBy?: string;
   notes?: string;
-  rating?: number;
-  ratingNotes?: string;
+  rating?: number | null;
+  ratingNotes?: string | null;
   driverName?: string;
   rawRequest?: any;
 }
@@ -254,7 +254,7 @@ export default function EmployeeHistoryPage() {
         statusLabel: isCompleted ? "Finished Successfully" : isCancelled ? "Request Cancelled" : "Request Rejected",
         notes: notes,
         rating: r.rating,
-        ratingNotes: r.rating_notes,
+        ratingNotes: (r as any).rating_notes ?? r.ratingNotes,
         driverName: r.driverName || "Driver",
         rawRequest: r,
       };
