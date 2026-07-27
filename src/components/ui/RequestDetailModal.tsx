@@ -922,6 +922,34 @@ export function RequestDetailModal({
                 );
               })()}
 
+              {/* Rating & Evaluasi Driver Section */}
+              {(request.rawStatus === "completed" || request.rating) && (
+                <div className="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-4 space-y-2.5 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[11px] font-extrabold tracking-wider text-amber-900 uppercase flex items-center gap-1.5">
+                      <span>⭐</span> Evaluasi & Rating Driver
+                    </div>
+                    {request.rating ? (
+                      <div className="text-amber-500 text-sm font-black flex items-center gap-1">
+                        {"★".repeat(request.rating)}{"☆".repeat(5 - request.rating)}
+                        <span className="text-xs text-amber-900 font-bold ml-1">({request.rating}/5)</span>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-amber-700 font-semibold italic bg-amber-100/70 px-2.5 py-0.5 rounded-full">
+                        Belum Diisi Pemohon
+                      </span>
+                    )}
+                  </div>
+                  {request.rating_notes ? (
+                    <div className="text-xs text-slate-700 font-medium italic bg-white p-3 rounded-xl border border-amber-100 shadow-2xs">
+                      "{request.rating_notes}"
+                    </div>
+                  ) : request.rating ? (
+                    <div className="text-xs text-slate-500 italic">Tidak ada catatan ulasan tambahan.</div>
+                  ) : null}
+                </div>
+              )}
+
               {/* Approval Workflow timeline */}
               <div>
                 <h4 className="text-[11px] font-extrabold tracking-wider text-slate-400 uppercase mb-3">

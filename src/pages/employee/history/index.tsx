@@ -20,6 +20,10 @@ interface HistoryItem {
   statusLabel: string;
   decidedBy?: string;
   notes?: string;
+  rating?: number;
+  ratingNotes?: string;
+  driverName?: string;
+  rawRequest?: any;
 }
 
 // ── Icons ────────────────────────────────────────────────────────────────────
@@ -78,7 +82,7 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
 }
 
 // ── History row ───────────────────────────────────────────────────────────────
-function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (id: string) => void }) {
+function HistoryRow({ item, onViewDetail, onRateClick }: { item: HistoryItem; onViewDetail: (id: string) => void; onRateClick: (req: any) => void }) {
   const [open, setOpen] = useState(false);
   const isCompleted = item.status === 'COMPLETED';
   const pri = PRI_MAP[item.priority] || PRI_MAP.NORMAL;
@@ -145,13 +149,31 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
               <div className="font-semibold text-[#0f172a]">{item.notes || 'Processed via OVMS Platform.'}</div>
             </div>
           </div>
-          <div className="mt-4 flex gap-2">
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200/60">
             <button 
               onClick={() => onViewDetail(item.id)}
-              className="h-8 px-4 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-lg hover:bg-[#1e40af] transition-colors cursor-pointer"
+              className="h-9 px-4 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-xl hover:bg-[#1e40af] transition-colors cursor-pointer"
             >
               View Full Detail
             </button>
+
+            {isCompleted && (
+              item.rating ? (
+                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-900">
+                  <span className="text-amber-500 text-sm">{"★".repeat(item.rating)}{"☆".repeat(5 - item.rating)}</span>
+                  <span>({item.rating}/5)</span>
+                  {item.ratingNotes && <span className="text-slate-600 font-normal italic truncate max-w-[200px]">"{item.ratingNotes}"</span>}
+                </div>
+              ) : (
+                <button
+                  onClick={() => onRateClick(item.rawRequest)}
+                  className="h-9 px-4 bg-amber-500 hover:bg-amber-600 text-white text-[12px] font-extrabold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                  <span>⭐</span> Beri Rating & Ulasan Driver
+                </button>
+              )
+            )}
           </div>
         </div>
       )}
@@ -169,12 +191,44 @@ export default function EmployeeHistoryPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<FleetRequest | null>(null);
+
+  const [ratingModal, setRatingModal] = useState<{
+    isOpen: boolean;
+    request: any | null;
+    rating: number;
+    notes: string;
+  }>({
+    isOpen: false,
+    request: null,
+    rating: 5,
+    notes: "",
+  });
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+
   const PER_PAGE = 5;
 
-  const { data: fetchedRequests, loading, error } = useApi(async () => {
+  const { data: fetchedRequests, loading, error, refetch } = useApi(async () => {
     const res = await requestService.getAll({ per_page: 1000 });
     return { data: res.data || [] };
   }, true, []);
+
+  const handleRatingSubmit = async () => {
+    if (!ratingModal.request) return;
+    setRatingSubmitting(true);
+    try {
+      await requestService.rateDriver(ratingModal.request.id, {
+        rating: ratingModal.rating,
+        rating_notes: ratingModal.notes,
+      });
+      requestService.clearCache();
+      refetch();
+      setRatingModal({ isOpen: false, request: null, rating: 5, notes: "" });
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Gagal menyimpan rating driver.");
+    } finally {
+      setRatingSubmitting(false);
+    }
+  };
 
   const requestsList = fetchedRequests || [];
 
@@ -198,7 +252,11 @@ export default function EmployeeHistoryPage() {
         priority: (r.priority === "URGENT" || r.priority === "HIGH" ? "URGENT" : "NORMAL") as Priority,
         status: (isCompleted ? "COMPLETED" : isCancelled ? "CANCELLED" : "REJECTED") as HistoryStatus,
         statusLabel: isCompleted ? "Finished Successfully" : isCancelled ? "Request Cancelled" : "Request Rejected",
-        notes: notes
+        notes: notes,
+        rating: r.rating,
+        ratingNotes: r.rating_notes,
+        driverName: r.driverName || "Driver",
+        rawRequest: r,
       };
     });
 
@@ -208,6 +266,15 @@ export default function EmployeeHistoryPage() {
       setSelectedRequest(found);
       setDetailModalOpen(true);
     }
+  };
+
+  const handleRateClick = (req: any) => {
+    setRatingModal({
+      isOpen: true,
+      request: req,
+      rating: 5,
+      notes: "",
+    });
   };
 
   const filtered = historyItems.filter((item) => {
@@ -313,7 +380,7 @@ export default function EmployeeHistoryPage() {
               <div className="py-12 text-center text-slate-400 font-medium">No history items match the filters.</div>
             ) : (
               paginatedHistory.map((item) => (
-                <HistoryRow key={item.id} item={item} onViewDetail={handleViewDetail} />
+                <HistoryRow key={item.id} item={item} onViewDetail={handleViewDetail} onRateClick={handleRateClick} />
               ))
             )}
           </div>
@@ -357,6 +424,89 @@ export default function EmployeeHistoryPage() {
           }}
           request={selectedRequest}
         />
+      )}
+
+      {/* Rating Driver Modal */}
+      {ratingModal.isOpen && ratingModal.request && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[99999] flex items-center justify-center p-4 animate-fadein" onClick={() => setRatingModal({ isOpen: false, request: null, rating: 5, notes: "" })}>
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl relative animate-fadein" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl">⭐</span>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-800">Rating & Evaluasi Driver</h3>
+                  <p className="text-xs text-slate-500">Request #{ratingModal.request.id} • {ratingModal.request.driverName || "Driver"}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setRatingModal({ isOpen: false, request: null, rating: 5, notes: "" })}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-200 transition cursor-pointer font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4 py-2">
+              <div className="text-center space-y-2">
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">
+                  Beri Rating Pelayanan Driver
+                </label>
+                <div className="flex justify-center items-center gap-2 text-3xl cursor-pointer">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      type="button"
+                      key={star}
+                      onClick={() => setRatingModal(prev => ({ ...prev, rating: star }))}
+                      className="hover:scale-125 transition-transform cursor-pointer focus:outline-none"
+                    >
+                      <span className={star <= ratingModal.rating ? "text-amber-400 drop-shadow-xs" : "text-slate-200"}>
+                        ★
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <div className="text-xs font-extrabold text-amber-800">
+                  {ratingModal.rating === 5 && "Sangat Memuaskan (5/5)"}
+                  {ratingModal.rating === 4 && "Memuaskan (4/5)"}
+                  {ratingModal.rating === 3 && "Cukup (3/5)"}
+                  {ratingModal.rating === 2 && "Kurang Memuaskan (2/5)"}
+                  {ratingModal.rating === 1 && "Buruk (1/5)"}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Ulasan & Catatan/Saran (Opsional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={ratingModal.notes}
+                  onChange={e => setRatingModal(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Tuliskan masukan atau pujian untuk driver..."
+                  className="w-full p-3 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setRatingModal({ isOpen: false, request: null, rating: 5, notes: "" })}
+                className="flex-1 h-10 border border-slate-200 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-50 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleRatingSubmit}
+                disabled={ratingSubmitting}
+                className="flex-1 h-10 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl shadow-xs disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                {ratingSubmitting ? "Menyimpan..." : "Kirim Rating ⭐"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </Layout>
   );
