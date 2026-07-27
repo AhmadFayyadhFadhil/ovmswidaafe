@@ -397,7 +397,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
               },
               { 
                 label: "TIMEZONE", 
-                value: statsData?.timezone ? (statsData.timezone.includes("GMT") ? "GMT +7" : "UTC") : "-", 
+                value: statsData?.timezone ? (statsData.timezone.includes("Asia/Jakarta") || statsData.timezone.includes("GMT") ? "WIB (GMT+7)" : statsData.timezone) : "WIB (GMT+7)", 
                 sub: "Zona Waktu Sistem", 
                 valueColor: "text-[#0f172a]", 
                 subColor: "text-[#16a34a]", 
