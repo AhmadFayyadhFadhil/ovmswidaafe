@@ -261,7 +261,7 @@ export function RequestDetailModal({
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-[11px] font-bold transition-colors mt-1.5"
                       >
-                        💬 Hubungi WA ({request.userPhone})
+                        💬 Hubungi WA Pemohon ({request.userPhone})
                       </a>
                     )}
                   </div>
@@ -699,6 +699,17 @@ export function RequestDetailModal({
                               <span className="bg-amber-100 text-amber-800 border border-amber-300 text-[9.5px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-0.5">
                                 PIC Penumpang
                               </span>
+                            )}
+                            {isPicPassenger && (p.phone || request.userPhone) && (
+                              <a
+                                href={`https://wa.me/${(p.phone || request.userPhone).replace(/[^0-9]/g, '')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-md text-[10px] font-bold transition-colors"
+                                title="Hubungi WhatsApp PIC Penumpang"
+                              >
+                                💬 WA PIC
+                              </a>
                             )}
                           </span>
                           <span className="text-[11px] font-semibold text-slate-400 uppercase">
