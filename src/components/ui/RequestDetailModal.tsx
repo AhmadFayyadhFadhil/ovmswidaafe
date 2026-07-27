@@ -605,6 +605,7 @@ export function RequestDetailModal({
 
                               return driverNames.map((dName: string, dIdx: number) => {
                                 const dInitials = dName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+                                const isAssigned = dName !== "Not Assigned" && dName !== "Belum Ditugaskan" && dName.trim() !== "";
 
                                 return (
                                   <div key={dIdx} className="p-3 bg-gradient-to-r from-slate-50 to-blue-50/30 border border-slate-200/80 rounded-xl flex items-center justify-between gap-3">
@@ -631,8 +632,12 @@ export function RequestDetailModal({
                                       </div>
                                     </div>
 
-                                    <span className="text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-200 shrink-0">
-                                      Driver Internal
+                                    <span className={`text-[9.5px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${
+                                      isAssigned 
+                                        ? "bg-blue-100 text-blue-900 border border-blue-200" 
+                                        : "bg-slate-100 text-slate-500 border border-slate-200"
+                                    }`}>
+                                      {isAssigned ? "Driver Internal" : "Menunggu Penugasan"}
                                     </span>
                                   </div>
                                 );
