@@ -518,6 +518,12 @@ export default function DriverDashboard() {
   const totalCompletedCount = rawRequests.filter(r => r.rawStatus === "completed").length;
   const upcomingCount = activeTrips.length;
 
+  // Calculate Driver Average Rating & Rating Reviews List
+  const ratedTrips = rawRequests.filter(r => r.rating && r.rating > 0);
+  const totalRatingSum = ratedTrips.reduce((acc: number, r: any) => acc + Number(r.rating || 0), 0);
+  const driverAvgRating = ratedTrips.length > 0 ? (totalRatingSum / ratedTrips.length).toFixed(1) : "5.0";
+  const ratedCount = ratedTrips.length;
+
   const renderActiveTabContent = () => {
     if (loading) {
       return (
@@ -774,7 +780,7 @@ export default function DriverDashboard() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {ratedTrips.slice(0, 4).map((r, idx) => (
+                  {ratedTrips.slice(0, 4).map((r: any, idx: number) => (
                     <div key={r.id || idx} className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 space-y-2 hover:bg-slate-50 transition-colors">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1 text-amber-500 font-extrabold text-sm">
