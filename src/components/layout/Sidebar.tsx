@@ -23,13 +23,27 @@ export function Sidebar({
     companyName: "Enterprise Fleet",
     companyLogo: ""
   });
+  const [logoError, setLogoError] = useState(false);
+
+  const getValidLogoUrl = (url: string | undefined | null) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+      return url;
+    }
+    if (url.startsWith("/")) {
+      return `${window.location.origin}${url}`;
+    }
+    return `${window.location.origin}/${url}`;
+  };
 
   useEffect(() => {
     const loadBrandingFromCache = () => {
       const cached = localStorage.getItem("ovms_branding_config");
       if (cached) {
         try {
-          setBranding(JSON.parse(cached));
+          const parsed = JSON.parse(cached);
+          setBranding(parsed);
+          setLogoError(false);
         } catch (e) {
           // ignore
         }
@@ -41,14 +55,6 @@ export function Sidebar({
 
     // 2. Fetch fresh config in background
     const fetchBranding = async () => {
-      const lastFetch = localStorage.getItem("ovms_branding_last_fetch");
-      const cached = localStorage.getItem("ovms_branding_config");
-      const now = Date.now();
-      
-      if (cached && lastFetch && (now - parseInt(lastFetch, 10) < 10 * 60 * 1000)) {
-        return;
-      }
-
       try {
         const res = await systemConfigService.get();
         if (res && res.data) {
@@ -58,8 +64,9 @@ export function Sidebar({
             companyLogo: res.data.companyLogo || ""
           };
           setBranding(newBranding);
+          setLogoError(false);
           localStorage.setItem("ovms_branding_config", JSON.stringify(newBranding));
-          localStorage.setItem("ovms_branding_last_fetch", now.toString());
+          localStorage.setItem("ovms_branding_last_fetch", Date.now().toString());
         }
       } catch (err) {
         console.error("Failed to load branding in sidebar", err);
@@ -212,9 +219,14 @@ export function Sidebar({
         {/* Logo Section */}
         <div className="flex items-center justify-between px-5 pt-6 pb-6">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0 overflow-hidden ${branding.companyLogo ? "bg-white border border-[#e2e8f0]" : "bg-[#1e3a8a]"}`}>
-              {branding.companyLogo ? (
-                <img src={branding.companyLogo} alt="Logo" className="w-full h-full object-contain p-0.5" />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0 overflow-hidden ${branding.companyLogo && !logoError ? "bg-white border border-[#e2e8f0]" : "bg-[#1e3a8a]"}`}>
+              {branding.companyLogo && !logoError ? (
+                <img 
+                  src={getValidLogoUrl(branding.companyLogo)} 
+                  alt="Logo" 
+                  className="w-full h-full object-contain p-0.5" 
+                  onError={() => setLogoError(true)}
+                />
               ) : (
                 <Icon name="directions_car" className="text-white text-[22px]" />
               )}
