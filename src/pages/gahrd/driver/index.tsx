@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useAuthContext } from "@/auth/authContext";
 import { driverService } from "@/services/modules/driverService";
-import { apiClient } from "@/services/api/api";
+import { requestService } from "@/services/modules/requestService";
 
 export type DriverStatus = "AVAILABLE" | "ON TRIP" | "OFF DUTY";
 export interface Driver {
@@ -49,10 +49,12 @@ const STATUS_CONFIG: Record<DriverStatus, { label: string; badge: string; dot: s
 
 function DriverCard({ 
   driver, 
-  onToggleDuty 
+  onToggleDuty,
+  onViewReviews,
 }: { 
   driver: Driver; 
-  onToggleDuty: (id: string, name: string, status: DriverStatus) => void 
+  onToggleDuty: (id: string, name: string, status: DriverStatus) => void;
+  onViewReviews: (driver: Driver) => void;
 }) {
   const cfg = STATUS_CONFIG[driver.status];
   const isAvailable = driver.status === "AVAILABLE";
@@ -127,7 +129,13 @@ function DriverCard({
           </div>
         </div>
 
-        <div className="flex sm:flex-col gap-2 w-full sm:w-auto flex-shrink-0 pt-2 sm:pt-0">
+        <div className="flex flex-wrap sm:flex-col gap-2 w-full sm:w-auto flex-shrink-0 pt-2 sm:pt-0">
+          <button
+            onClick={() => onViewReviews(driver)}
+            className="w-full sm:w-auto h-9 px-4 bg-slate-100 text-slate-700 hover:bg-slate-200 text-[12px] font-bold rounded-xl active:scale-95 transition-all flex items-center justify-center shadow-xs cursor-pointer"
+          >
+            Detail Ulasan
+          </button>
           {canToggle && (
             <button
               onClick={() => onToggleDuty(driver.id, driver.name, driver.status)}
@@ -159,9 +167,11 @@ function DriverCard({
 
 export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => void }) {
   const { user } = useAuthContext();
+  const [activeSection, setActiveSection] = useState<"status" | "performance">("status");
   const [tab, setTab] = useState<TabFilter>("All");
   const [search, setSearch] = useState("");
   const [driversList, setDriversList] = useState<Driver[]>([]);
+  const [allRequests, setAllRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -177,27 +187,56 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
     currentStatus: null,
   });
 
+  const [reviewsModal, setReviewsModal] = useState<{
+    isOpen: boolean;
+    driver: Driver | null;
+    reviews: any[];
+    loading: boolean;
+  }>({
+    isOpen: false,
+    driver: null,
+    reviews: [],
+    loading: false,
+  });
+
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
-    const fetchDrivers = async () => {
+    const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await driverService.getAll({ per_page: 1000 });
-        const mapped = (res.data || []).map((d: any) => ({
-          id: d.id,
-          name: d.name,
-          status: d.status === "AVAILABLE" ? "AVAILABLE" : (d.status === "ON TRIP" || d.status === "ON DUTY" || d.status === "ASSIGNED" ? "ON TRIP" : "OFF DUTY"),
-          avatar: d.avatarUrl || d.avatar,
-          driverId: `DRV-${String(d.id).padStart(3, "0")}`,
-          trips: d.trips_count || 0,
-          rating: d.rating || 5.0,
-          email: d.email || "",
-          phone: d.phone || "",
-          location: d.location || "Pandaan Head Office",
-          licenseType: d.sim_a_photo ? "SIM A Aktif" : "No SIM A",
-        } as Driver));
+        const [driversRes, reqsRes] = await Promise.all([
+          driverService.getAll({ per_page: 1000 }),
+          requestService.getAll({ per_page: 1000 }).catch(() => ({ data: [] })),
+        ]);
+        
+        const reqs = reqsRes.data || [];
+        setAllRequests(reqs);
+
+        const mapped = (driversRes.data || []).map((d: any) => {
+          const driverRatedReqs = reqs.filter((r: any) => 
+            (String(r.driver_id || r.driver?.id) === String(d.id) || String(r.driver_name).toLowerCase().includes(String(d.name).toLowerCase())) &&
+            (r.rating && Number(r.rating) > 0)
+          );
+
+          const ratingSum = driverRatedReqs.reduce((acc: number, r: any) => acc + Number(r.rating || 0), 0);
+          const computedRating = driverRatedReqs.length > 0 ? Number((ratingSum / driverRatedReqs.length).toFixed(1)) : Number(d.rating || 5.0);
+
+          return {
+            id: d.id,
+            name: d.name,
+            status: d.status === "AVAILABLE" ? "AVAILABLE" : (d.status === "ON TRIP" || d.status === "ON DUTY" || d.status === "ASSIGNED" ? "ON TRIP" : "OFF DUTY"),
+            avatar: d.avatarUrl || d.avatar,
+            driverId: `DRV-${String(d.id).padStart(3, "0")}`,
+            trips: d.trips_count || 0,
+            rating: computedRating,
+            email: d.email || "",
+            phone: d.phone || "",
+            location: d.location || "Pandaan Head Office",
+            licenseType: d.sim_a_photo ? "SIM A Aktif" : "No SIM A",
+          } as Driver;
+        });
         setDriversList(mapped);
       } catch (err: any) {
         console.error(err);
@@ -206,8 +245,17 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
         setLoading(false);
       }
     };
-    fetchDrivers();
+    fetchData();
   }, []);
+
+  const handleOpenReviews = (driver: Driver) => {
+    setReviewsModal({ isOpen: true, driver, reviews: [], loading: true });
+    const driverReviews = allRequests.filter((r: any) => 
+      (String(r.driver_id || r.driver?.id) === String(driver.id) || String(r.driver_name).toLowerCase().includes(driver.name.toLowerCase())) &&
+      (r.rating && Number(r.rating) > 0)
+    );
+    setReviewsModal({ isOpen: true, driver, reviews: driverReviews, loading: false });
+  };
 
   const handleToggleClick = (driverId: string, driverName: string, currentStatus: DriverStatus) => {
     setValidationError(null);
@@ -224,48 +272,82 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
     const { driverId, currentStatus } = confirmModal;
     const nextStatus = currentStatus === "AVAILABLE" ? "unavailable" : "available";
     setActionLoading(true);
-    setValidationError(null);
+
     try {
-      await apiClient.post(`/users/${driverId}/driver-duty`, {
-        availability_status: nextStatus
-      });
-      
-      // Update local list
+      if (nextStatus === "unavailable") {
+        await driverService.setUnavailable(driverId);
+      } else {
+        await driverService.setAvailable(driverId);
+      }
+
       setDriversList(prev => prev.map(d => {
         if (d.id === driverId) {
           return {
             ...d,
-            status: nextStatus === "unavailable" ? "OFF DUTY" : "AVAILABLE"
+            status: nextStatus === "available" ? "AVAILABLE" : "OFF DUTY"
           };
         }
         return d;
       }));
+
       setConfirmModal({ isOpen: false, driverId: null, driverName: "", currentStatus: null });
     } catch (err: any) {
       console.error(err);
-      setValidationError(err.response?.data?.message || "Gagal mengubah status tugas driver.");
+      const apiMsg = err.response?.data?.message || err.message;
+      setValidationError(apiMsg || "Gagal memperbarui status pengemudi di server.");
     } finally {
       setActionLoading(false);
     }
   };
 
-  const filtered = driversList.filter((d) => {
-    const matchTab =
-      tab === "All" ||
-      (tab === "Available" && d.status === "AVAILABLE") ||
-      (tab === "On Trip" && d.status === "ON TRIP") ||
-      (tab === "Off Duty" && d.status === "OFF DUTY");
-    const q = search.toLowerCase();
-    const matchQ = d.name.toLowerCase().includes(q) || d.driverId.toLowerCase().includes(q);
-    return matchTab && matchQ;
-  });
+  const filtered = useMemo(() => {
+    return driversList.filter((d) => {
+      const matchesTab =
+        tab === "All"
+          ? true
+          : tab === "Available"
+          ? d.status === "AVAILABLE"
+          : tab === "On Trip"
+          ? d.status === "ON TRIP"
+          : d.status === "OFF DUTY";
 
+      const matchesSearch =
+        search === "" ||
+        d.name.toLowerCase().includes(search.toLowerCase()) ||
+        d.driverId.toLowerCase().includes(search.toLowerCase()) ||
+        (d.email && d.email.toLowerCase().includes(search.toLowerCase())) ||
+        (d.phone && d.phone.includes(search));
+
+      return matchesTab && matchesSearch;
+    });
+  }, [driversList, tab, search]);
+
+  // Overall Fleet Statistics & Top Rated Driver
   const total = driversList.length;
   const available = driversList.filter((d) => d.status === "AVAILABLE").length;
   const onTrip = driversList.filter((d) => d.status === "ON TRIP").length;
   const offDuty = driversList.filter((d) => d.status === "OFF DUTY").length;
 
-  const isApprover = user?.role === "approver";
+  const topDriver = useMemo(() => {
+    if (driversList.length === 0) return null;
+    return [...driversList].sort((a, b) => (b.rating || 0) - (a.rating || 0))[0];
+  }, [driversList]);
+
+  const fleetAvgRating = useMemo(() => {
+    if (driversList.length === 0) return "5.0";
+    const sum = driversList.reduce((acc, d) => acc + (d.rating || 5.0), 0);
+    return (sum / driversList.length).toFixed(1);
+  }, [driversList]);
+
+  const totalReviewsCount = useMemo(() => {
+    return allRequests.filter(r => r.rating && Number(r.rating) > 0).length;
+  }, [allRequests]);
+
+  const totalCompletedTrips = useMemo(() => {
+    return driversList.reduce((acc, d) => acc + (d.trips || 0), 0);
+  }, [driversList]);
+
+  const isApprover = user?.role?.toLowerCase() === "approver";
 
   return (
     <Layout
@@ -280,8 +362,32 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
       <div className="flex-1 overflow-y-auto bg-[#f8f9ff] p-4 sm:p-8">
 
         <div className="text-[18px] font-bold text-[#0f172a] mb-1">Driver Availability Center</div>
-        <div className="text-[13px] text-[#64748b] mb-7 max-w-2xl">
-          Monitor driver readiness, operational schedules, and transportation workload across activities.
+        <div className="text-[13px] text-[#64748b] mb-6 max-w-2xl">
+          Monitor driver readiness, operational schedules, ratings, and transportation workload across activities.
+        </div>
+
+        {/* Section Navigation Switcher */}
+        <div className="flex items-center gap-2 mb-7 border-b border-[#e2e8f0] pb-3">
+          <button
+            onClick={() => setActiveSection("status")}
+            className={`px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all cursor-pointer ${
+              activeSection === "status"
+                ? "bg-[#1e3a8a] text-white shadow-sm"
+                : "bg-white text-[#64748b] border border-[#e2e8f0] hover:bg-slate-50"
+            }`}
+          >
+            Status & Ketersediaan
+          </button>
+          <button
+            onClick={() => setActiveSection("performance")}
+            className={`px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all cursor-pointer ${
+              activeSection === "performance"
+                ? "bg-[#1e3a8a] text-white shadow-sm"
+                : "bg-white text-[#64748b] border border-[#e2e8f0] hover:bg-slate-50"
+            }`}
+          >
+            Performa & Rating Driver
+          </button>
         </div>
 
         {loading ? (
@@ -294,7 +400,7 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
             <Icon name="error" className="text-[20px]" />
             {error}
           </div>
-        ) : (
+        ) : activeSection === "status" ? (
           <>
             {/* Stat cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
@@ -353,12 +459,219 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
                   <p className="text-[13px] text-[#64748b] mt-1">Try changing the filter or search term.</p>
                 </div>
               ) : (
-                filtered.map((d) => <DriverCard key={d.id} driver={d} onToggleDuty={handleToggleClick} />)
+                filtered.map((d) => (
+                  <DriverCard 
+                    key={d.id} 
+                    driver={d} 
+                    onToggleDuty={handleToggleClick} 
+                    onViewReviews={handleOpenReviews} 
+                  />
+                ))
               )}
             </div>
           </>
+        ) : (
+          /* SECTION: Performance & Rating Module */
+          <div className="space-y-6">
+            {/* Overview Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 shadow-2xs">
+                <div className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-wider mb-2">Driver Terbaik (Top Rated)</div>
+                {topDriver ? (
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={topDriver.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(topDriver.name)}&background=1e3a8a&color=fff`}
+                      alt={topDriver.name}
+                      className="w-11 h-11 rounded-full object-cover border-2 border-amber-300"
+                    />
+                    <div>
+                      <div className="text-sm font-bold text-slate-800">{topDriver.name}</div>
+                      <div className="text-xs font-black text-amber-600">⭐ {Number(topDriver.rating).toFixed(1)} / 5.0</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-slate-400 italic">Belum ada data driver</div>
+                )}
+              </div>
+
+              <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 shadow-2xs">
+                <div className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-wider mb-2">Rating Rata-rata Armada</div>
+                <div className="text-2xl font-black text-slate-800 mb-1">⭐ {fleetAvgRating} <span className="text-xs text-slate-400 font-semibold">/ 5.0</span></div>
+                <div className="text-xs text-slate-500 font-medium">Kualitas pelayanan driver</div>
+              </div>
+
+              <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 shadow-2xs">
+                <div className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-wider mb-2">Total Ulasan Masuk</div>
+                <div className="text-2xl font-black text-slate-800 mb-1">{totalReviewsCount} <span className="text-xs text-slate-400 font-semibold">Ulasan</span></div>
+                <div className="text-xs text-slate-500 font-medium">Ulasan bintang dari penumpang</div>
+              </div>
+
+              <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 shadow-2xs">
+                <div className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-wider mb-2">Total Trip Selesai</div>
+                <div className="text-2xl font-black text-slate-800 mb-1">{totalCompletedTrips} <span className="text-xs text-slate-400 font-semibold">Trips</span></div>
+                <div className="text-xs text-slate-500 font-medium">Akumulasi perjalanan dinas</div>
+              </div>
+            </div>
+
+            {/* Performance Leaderboard Table */}
+            <div className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden shadow-2xs">
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800">Leaderboard Performa Driver</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Rekapitulasi rating rata-rata dan kepuasan pelayanan pengemudi</p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-700">
+                  <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                      <th className="py-3.5 px-5">Driver</th>
+                      <th className="py-3.5 px-5">Status</th>
+                      <th className="py-3.5 px-5">Total Trips</th>
+                      <th className="py-3.5 px-5">Rating Rata-rata</th>
+                      <th className="py-3.5 px-5">Tingkat Kepuasan</th>
+                      <th className="py-3.5 px-5 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {driversList.map((d) => {
+                      const ratingVal = d.rating || 5.0;
+                      const satisfactionLabel = ratingVal >= 4.5 ? "Sangat Baik" : ratingVal >= 4.0 ? "Baik" : "Cukup";
+                      const satisfactionColor = ratingVal >= 4.5 ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ratingVal >= 4.0 ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-amber-50 text-amber-700 border-amber-200";
+
+                      return (
+                        <tr key={d.id} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="py-3.5 px-5">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={d.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1e3a8a&color=fff`}
+                                alt={d.name}
+                                className="w-9 h-9 rounded-full object-cover border border-slate-200"
+                              />
+                              <div>
+                                <div className="font-bold text-slate-800">{d.name}</div>
+                                <div className="text-[10px] font-semibold text-slate-400 uppercase">{d.driverId}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-5">
+                            <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${STATUS_CONFIG[d.status].badge}`}>
+                              {STATUS_CONFIG[d.status].label}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-5 font-bold text-slate-700">{d.trips || 0} Perjalanan</td>
+                          <td className="py-3.5 px-5 font-extrabold text-amber-600">
+                            ⭐ {Number(ratingVal).toFixed(1)} / 5.0
+                          </td>
+                          <td className="py-3.5 px-5">
+                            <span className={`text-[10.5px] font-extrabold px-2.5 py-1 rounded-md border ${satisfactionColor}`}>
+                              {satisfactionLabel}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-5 text-right">
+                            <button
+                              onClick={() => handleOpenReviews(d)}
+                              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                            >
+                              Detail Ulasan
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         )}
       </div>
+
+      {/* Modal Detail Ulasan Driver (100% Anonim) */}
+      {reviewsModal.isOpen && reviewsModal.driver && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm animate-fadein p-4">
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 w-full max-w-2xl shadow-2xl relative max-h-[85vh] flex flex-col">
+            <button 
+              onClick={() => setReviewsModal({ isOpen: false, driver: null, reviews: [], loading: false })}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <Icon name="close" className="text-xl" />
+            </button>
+
+            {/* Modal Header */}
+            <div className="flex items-center gap-4 pb-5 border-b border-slate-100 flex-shrink-0">
+              <img
+                src={reviewsModal.driver.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(reviewsModal.driver.name)}&background=1e3a8a&color=fff`}
+                alt={reviewsModal.driver.name}
+                className="w-14 h-14 rounded-full object-cover border-2 border-slate-200"
+              />
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">{reviewsModal.driver.name}</h3>
+                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium mt-0.5">
+                  <span>ID: {reviewsModal.driver.driverId}</span>
+                  <span>•</span>
+                  <span className="text-amber-600 font-extrabold">⭐ {Number(reviewsModal.driver.rating).toFixed(1)} / 5.0</span>
+                  <span>•</span>
+                  <span>{reviewsModal.reviews.length} Ulasan</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Content: Reviews List */}
+            <div className="flex-1 overflow-y-auto py-5 space-y-3">
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Riwayat Ulasan Pelayanan (Anonim)</div>
+              {reviewsModal.loading ? (
+                <div className="py-12 text-center text-slate-400 text-xs font-medium">Memuat ulasan...</div>
+              ) : reviewsModal.reviews.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-xs font-semibold border border-dashed rounded-2xl border-slate-200">
+                  Belum ada catatan ulasan dari perjalanan dinas untuk pengemudi ini.
+                </div>
+              ) : (
+                reviewsModal.reviews.map((r: any, idx: number) => (
+                  <div key={r.id || idx} className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-amber-500 font-bold text-sm">
+                        ⭐ <span className="text-slate-800 font-black">{r.rating} / 5.0</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-extrabold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-100">
+                          Anonim (Penumpang)
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-400">
+                          {r.rated_at ? new Date(r.rated_at).toLocaleDateString('id-ID') : r.date || 'Tugas Perjalanan'}
+                        </span>
+                      </div>
+                    </div>
+                    {r.destination && (
+                      <div className="text-[11px] font-semibold text-slate-500">
+                        Tujuan: {r.destination}
+                      </div>
+                    )}
+                    {r.rating_notes || r.ratingNotes ? (
+                      <p className="text-xs text-slate-700 font-medium italic bg-white p-3 rounded-xl border border-slate-200/70">
+                        "{r.rating_notes || r.ratingNotes}"
+                      </p>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic">"Tidak ada catatan ulasan tambahan."</p>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 flex justify-end flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setReviewsModal({ isOpen: false, driver: null, reviews: [], loading: false })}
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Custom Confirmation Modal */}
       {confirmModal.isOpen && (
