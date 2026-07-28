@@ -49,10 +49,45 @@ const STATUS_CONFIG: Record<DriverStatus, { label: string; badge: string; dot: s
 
 const isDriverForReq = (r: any, driverId: string, driverName: string) => {
   if (!r || !driverId) return false;
-  const reqDriverId = String(r.driver_id || r.driver?.id || r.operationalTrip?.driver_id || r.operationalTrip?.driver?.id || r.assignment?.driver_id || "");
-  const reqDriverName = String(r.driver_name || r.driver?.name || "").toLowerCase();
-  const targetName = String(driverName || "").toLowerCase();
-  return (reqDriverId !== "" && reqDriverId === String(driverId)) || (reqDriverName !== "" && targetName !== "" && reqDriverName.includes(targetName));
+  const did = String(driverId);
+  const dname = String(driverName || "").toLowerCase();
+
+  // 1. Check direct driverId field (camelCase from requestService mapping)
+  const reqDriverId = String(r.driverId || r.driver_id || r.driver?.id || "");
+  if (reqDriverId !== "" && reqDriverId === did) return true;
+
+  // 2. Check driverName field (string match)
+  const reqDriverName = String(r.driverName || r.driver_name || r.driver?.name || "").toLowerCase();
+  if (reqDriverName !== "" && dname !== "" && (reqDriverName.includes(dname) || dname.includes(reqDriverName))) return true;
+
+  // 3. Check assignments array
+  if (Array.isArray(r.assignments)) {
+    for (const a of r.assignments) {
+      if (String(a.driver_id || "") === did) return true;
+      const aName = String(a.driver_name || "").toLowerCase();
+      if (aName !== "" && dname !== "" && (aName.includes(dname) || dname.includes(aName))) return true;
+    }
+  }
+
+  // 4. Check operational_trips array
+  if (Array.isArray(r.operational_trips)) {
+    for (const ot of r.operational_trips) {
+      if (String(ot.driver_id || ot.driver?.id || "") === did) return true;
+      const otName = String(ot.driver?.name || "").toLowerCase();
+      if (otName !== "" && dname !== "" && (otName.includes(dname) || dname.includes(otName))) return true;
+    }
+  }
+
+  // 5. Check itineraries array
+  if (Array.isArray(r.itineraries)) {
+    for (const it of r.itineraries) {
+      if (String(it.driver_id || "") === did) return true;
+      const itName = String(it.driver_name || "").toLowerCase();
+      if (itName !== "" && dname !== "" && (itName.includes(dname) || dname.includes(itName))) return true;
+    }
+  }
+
+  return false;
 };
 
 function DriverCard({ 
@@ -227,15 +262,17 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
             isDriverForReq(r, d.id, d.name) && (r.rating && Number(r.rating) > 0)
           );
 
-          const driverCompletedReqs = reqs.filter((r: any) => 
-            isDriverForReq(r, d.id, d.name) && 
-            (r.rawStatus === "completed" || r.status === "completed" || r.status === "COMPLETED")
+          const driverAllReqs = reqs.filter((r: any) => isDriverForReq(r, d.id, d.name));
+
+          const driverCompletedReqs = driverAllReqs.filter((r: any) => 
+            r.rawStatus === "completed" || r.status === "completed" || r.status === "COMPLETED"
           );
 
           const ratingSum = driverRatedReqs.reduce((acc: number, r: any) => acc + Number(r.rating || 0), 0);
-          const computedRating = driverRatedReqs.length > 0 ? Number((ratingSum / driverRatedReqs.length).toFixed(1)) : Number(d.rating || 5.0);
+          const computedRating = driverRatedReqs.length > 0 ? Number((ratingSum / driverRatedReqs.length).toFixed(1)) : 0;
 
-          const computedTrips = d.trips_count || driverCompletedReqs.length || driverRatedReqs.length || 0;
+          // Use completed trips count, fallback to all associated requests count
+          const computedTrips = d.trips_count || driverCompletedReqs.length || driverAllReqs.length || 0;
 
           return {
             id: d.id,
