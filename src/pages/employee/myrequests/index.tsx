@@ -275,8 +275,10 @@ export default function MyRequestsPage() {
   const requests = rawList.filter((r: any) => {
     // If no user object available yet, fallback to rawList
     if (!user?.id) return true;
-    const isCreator = String(r.user_id || r.requested_by?.id || r.employee_id) === String(user.id);
-    const isPassenger = Array.isArray(r.passengers) && r.passengers.some((p: any) => String(p.user_id || p.id) === String(user.id));
+    const targetUserId = String(user.id);
+    const creatorId = String(r.userId || r.user_id || r.requestedById || r.requested_by?.id || r.requested_by_id || r.employee_id || "");
+    const isCreator = creatorId !== "" && creatorId === targetUserId;
+    const isPassenger = Array.isArray(r.passengers) && r.passengers.some((p: any) => String(p.user_id || p.id) === targetUserId);
     return isCreator || isPassenger;
   });
 
@@ -298,24 +300,28 @@ export default function MyRequestsPage() {
   }, []);
 
   const filtered = useMemo(() => requests.filter(r => {
-    // Only show active or pending requests (not completed or rejected)
-    const isActiveOrPending = !["completed", "rejected", "cancelled"].includes(r.rawStatus);
-    if (!isActiveOrPending) return false;
-
     const matchSearch =
       search === "" ||
       r.destination.toLowerCase().includes(search.toLowerCase()) ||
       r.id.toLowerCase().includes(search.toLowerCase()) ||
       (r.purpose || "").toLowerCase().includes(search.toLowerCase());
 
-    if (statusFilter === "All Status") return matchSearch;
+    if (!matchSearch) return false;
+
+    if (statusFilter === "All Status") return true;
     if (statusFilter === "In Progress") {
-      return matchSearch && ["on_going", "driver_assigned", "approved_hrd_ga", "approved_hrd"].includes(r.rawStatus);
+      return ["on_going", "driver_assigned", "approved_hrd_ga", "approved_hrd"].includes(r.rawStatus);
     }
     if (statusFilter === "Pending") {
-      return matchSearch && ["submitted", "approved_department", "waiting_driver"].includes(r.rawStatus);
+      return ["submitted", "approved_department", "waiting_driver", "assigned_by_ga"].includes(r.rawStatus);
     }
-    return matchSearch;
+    if (statusFilter === "Completed") {
+      return r.rawStatus === "completed";
+    }
+    if (statusFilter === "Rejected") {
+      return ["rejected", "cancelled"].includes(r.rawStatus);
+    }
+    return true;
   }), [requests, search, statusFilter]);
 
   const totalCount = requests.length;
