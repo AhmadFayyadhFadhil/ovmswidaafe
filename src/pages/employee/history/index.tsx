@@ -36,14 +36,6 @@ function IconList() {
     </svg>
   );
 }
-function IconUser() {
-  return (
-    <svg width="13" height="13" fill="none" viewBox="0 0 24 24">
-      <circle cx="12" cy="8" r="4" stroke="#94a3b8" strokeWidth="2"/>
-      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"/>
-    </svg>
-  );
-}
 function IconChevronDown() {
   return (
     <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
