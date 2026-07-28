@@ -163,4 +163,20 @@ export const driverService = {
       message: res.data?.message
     };
   },
+  setAvailable: async (id: string): Promise<ApiResponse<any>> => {
+    driverCache = null;
+    const res = await apiClient.put<any>(`/users/${id}/status`, { availability_status: 'available' });
+    return {
+      data: res.data?.data,
+      message: res.data?.message
+    };
+  },
+  setUnavailable: async (id: string): Promise<ApiResponse<any>> => {
+    driverCache = null;
+    const res = await apiClient.put<any>(`/users/${id}/status`, { availability_status: 'unavailable' });
+    return {
+      data: res.data?.data,
+      message: res.data?.message
+    };
+  },
 };
