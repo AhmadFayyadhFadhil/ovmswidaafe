@@ -119,7 +119,7 @@ function getStatusConfig(rawStatus: string) {
     case "completed":
       return {
         label: "Completed",
-        color: "bg-[#f1f5f9] text-[#64748b]",
+        color: "bg-[#dcfce7] text-[#15803d] border border-[#bbf7d0]",
       };
     case "rejected":
       return {

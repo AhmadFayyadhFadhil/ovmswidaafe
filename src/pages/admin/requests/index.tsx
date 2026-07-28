@@ -17,7 +17,7 @@ const getStatusColor = (status: string) => {
     case "PENDING":
       return "bg-[#fef3c7] text-[#d97706]";
     case "COMPLETED":
-      return "bg-[#e2e8f0] text-[#475569]";
+      return "bg-[#dcfce7] text-[#15803d] border border-[#bbf7d0]";
     case "REJECTED":
       return "bg-[#fee2e2] text-[#991b1b]";
     default:

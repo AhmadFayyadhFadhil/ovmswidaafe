@@ -57,7 +57,7 @@ function getStatusBadgeClass(status: string) {
     case "PENDING":
       return "bg-[#fef3c7] text-[#d97706] border border-[#fde68a]";
     case "COMPLETED":
-      return "bg-[#e2e8f0] text-[#475569] border border-[#cbd5e1]";
+      return "bg-[#dcfce7] text-[#15803d] border border-[#bbf7d0]";
     case "REJECTED":
       return "bg-[#fee2e2] text-[#991b1b] border border-[#fecaca]";
     default:
