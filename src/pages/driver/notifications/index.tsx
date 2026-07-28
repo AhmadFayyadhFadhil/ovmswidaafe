@@ -56,7 +56,7 @@ const STATIC_NOTIFS: NotifItem[] = [
 const LIVE_ACTIVITY = [
   { dot: "bg-[#1e3a8a]",  title: "Tugas Diterima",     desc: "Anda menerima tugas Surabaya",     time: "NOW"      },
   { dot: "bg-[#64748b]",  title: "BBM Diisi",          desc: "Mobil Avanza diisi pertalite",      time: "Kemarin"  },
-  { dot: "bg-[#64748b]",  title: "Perjalanan Selesai", desc: "Tugas mengantar tamu diselesaikan", time: "2 hari lalu" },
+  { dot: "bg-emerald-500", title: "Perjalanan Selesai", desc: "Tugas mengantar tamu diselesaikan", time: "2 hari lalu" },
 ];
 
 interface Props { onNavigate?: (page: string) => void; }

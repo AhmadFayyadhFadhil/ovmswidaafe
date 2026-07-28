@@ -48,7 +48,7 @@ export default function EmployeeDashboard() {
     { icon: "receipt_long", iconBg: "bg-[#e5eeff]", iconColor: "text-[#00236f]", value: String(totalRequests), label: "Total Requests", sub: "Across all time" },
     { icon: "pending_actions", iconBg: "bg-[#ffd9d5]", iconColor: "text-[#ba1a1a]", value: String(pendingApproval), label: "Pending Approval", sub: "Action required" },
     { icon: "commute", iconBg: "bg-[#e5eeff]", iconColor: "text-[#4059aa]", value: String(activeRequests), label: "Active Requests", sub: "Currently en route" },
-    { icon: "task_alt", iconBg: "bg-[#f1f5f9]", iconColor: "text-[#64748b]", value: String(completedRequests), label: "Completed Requests", sub: "Successfully closed" },
+    { icon: "task_alt", iconBg: "bg-emerald-50 border border-emerald-100", iconColor: "text-emerald-600", value: String(completedRequests), label: "Completed Requests", sub: "Successfully closed" },
   ];
 
   // Map to upcoming trips (Approved or Pending trips)

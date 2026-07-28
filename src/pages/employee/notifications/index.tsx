@@ -81,8 +81,8 @@ export default function NotificationsPage({ onNavigate }: { onNavigate?: (page: 
     if (req.status === "COMPLETED") {
       type = "TRIP COMPLETED";
       typeIcon = "task_alt";
-      typeBg = "bg-sky-50";
-      typeColor = "text-sky-700";
+      typeBg = "bg-emerald-50 border border-emerald-100";
+      typeColor = "text-emerald-700";
       body = `Perjalanan dinas ke ${req.destination} telah selesai. Driver: ${req.driverName && req.driverName !== 'Not Assigned' ? req.driverName : 'Internal/Eksternal'}.`;
     } else if (req.status === "REJECTED") {
       type = "REQUEST REJECTED";
@@ -150,7 +150,7 @@ export default function NotificationsPage({ onNavigate }: { onNavigate?: (page: 
     let desc = `Status request ke ${req.destination} diperbarui`;
 
     if (req.status === "COMPLETED") {
-      dot = "bg-sky-500";
+      dot = "bg-emerald-500";
       title = "Trip Completed";
       desc = `Tiba di tujuan ${req.destination}`;
     } else if (req.status === "ONGOING") {
