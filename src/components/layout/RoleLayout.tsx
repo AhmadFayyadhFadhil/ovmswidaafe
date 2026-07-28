@@ -183,6 +183,7 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
           searchPlaceholder={searchPlaceholder} 
           searchValue={searchValue} 
           onSearchChange={onSearchChange} 
+          showSearch={activeNav === "History" || window.location.pathname.includes('/history') || window.location.pathname.includes('/audit')}
           onMenuClick={() => setSidebarOpen(true)}
           onProfileClick={() => {
             const role = user?.role || "employee";

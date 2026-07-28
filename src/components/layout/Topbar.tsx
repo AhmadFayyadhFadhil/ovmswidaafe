@@ -12,6 +12,7 @@ export function Topbar({
   searchPlaceholder = "Quick search...", 
   searchValue, 
   onSearchChange,
+  showSearch = false,
   onMenuClick,
   onProfileClick
 }: { 
@@ -22,6 +23,7 @@ export function Topbar({
   searchPlaceholder?: string; 
   searchValue?: string; 
   onSearchChange?: (value: string) => void;
+  showSearch?: boolean;
   onMenuClick?: () => void;
   onProfileClick?: () => void;
 }) {
@@ -128,7 +130,7 @@ export function Topbar({
         <h1 className="text-[16px] sm:text-[18px] font-bold text-[#0f172a] truncate">{title}</h1>
         
         {/* Render search bar ONLY on History / Audit pages */}
-        {(window.location.pathname.includes('/history') || window.location.pathname.includes('/audit') || title.toLowerCase().includes('history') || title.toLowerCase().includes('audit')) && (
+        {(showSearch || window.location.pathname.includes('/history') || window.location.pathname.includes('/audit')) && (
           <div className="relative hidden md:block">
             <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[18px]" />
             <input type="text" value={searchValue} onChange={e => onSearchChange?.(e.target.value)} placeholder={searchPlaceholder}
