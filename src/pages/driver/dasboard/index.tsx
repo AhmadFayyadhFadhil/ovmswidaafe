@@ -194,7 +194,11 @@ export default function DriverDashboard() {
     targetId: "",
   });
 
-  const fetchData = async () => {
+  const fetchData = async (clearCacheFirst = true) => {
+    if (clearCacheFirst) {
+      requestService.clearCache();
+      assignmentService.clearCache();
+    }
     setLoading(true);
     setError(null);
     try {

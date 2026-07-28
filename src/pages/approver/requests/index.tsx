@@ -354,9 +354,10 @@ export default function ApprovalManagement() {
 
   const handleApprove = async (id: string) => {
     try {
+      requestService.clearCache();
       await requestService.approve(id, "Disetujui");
       setActiveCardId(null);
-      refetch();
+      await refetch();
     } catch (err) {
       console.error("Gagal menyetujui request", err);
     }
@@ -364,9 +365,10 @@ export default function ApprovalManagement() {
 
   const handleReject = async (id: string, notes: string = "Ditolak") => {
     try {
+      requestService.clearCache();
       await requestService.reject(id, notes);
       setActiveCardId(null);
-      refetch();
+      await refetch();
     } catch (err) {
       console.error("Gagal menolak request", err);
     }

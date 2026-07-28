@@ -223,6 +223,7 @@ export const requestService = {
     };
   },
   create: async (request: any): Promise<ApiResponse<FleetRequest>> => {
+    requestCache = null;
     let payload: any;
     if (request.destination_city && request.start_time) {
       // It's already the detailed/raw payload format
@@ -304,6 +305,7 @@ export const requestService = {
     };
   },
   update: async (id: string, request: any): Promise<ApiResponse<FleetRequest>> => {
+    requestCache = null;
     let payload: any = {};
     if (request.destination_city && request.start_time) {
       payload = request;
@@ -323,6 +325,7 @@ export const requestService = {
     };
   },
   approve: async (id: string, notes?: string): Promise<ApiResponse<void>> => {
+    requestCache = null;
     const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/approve`, { notes });
     return {
       data: undefined,
@@ -330,6 +333,7 @@ export const requestService = {
     };
   },
   reject: async (id: string, notes?: string): Promise<ApiResponse<void>> => {
+    requestCache = null;
     const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/reject`, { notes });
     return {
       data: undefined,
@@ -337,6 +341,7 @@ export const requestService = {
     };
   },
   start: async (id: string): Promise<ApiResponse<void>> => {
+    requestCache = null;
     const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/start`);
     return {
       data: undefined,
@@ -344,6 +349,7 @@ export const requestService = {
     };
   },
   complete: async (id: string): Promise<ApiResponse<void>> => {
+    requestCache = null;
     const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/complete`);
     return {
       data: undefined,
@@ -351,6 +357,7 @@ export const requestService = {
     };
   },
   delete: async (id: string, reason?: string): Promise<ApiResponse<void>> => {
+    requestCache = null;
     const res = await apiClient.delete<any>(`${ENDPOINTS.REQUESTS}/${id}`, {
       data: { rejected_reason: reason || '' }
     });
@@ -360,6 +367,7 @@ export const requestService = {
     };
   },
   storeDailyAssignments: async (id: string, dailyAssignments: any[]): Promise<ApiResponse<FleetRequest>> => {
+    requestCache = null;
     const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/daily-assignments`, {
       daily_assignments: dailyAssignments
     });
@@ -369,6 +377,7 @@ export const requestService = {
     };
   },
   rateDriver: async (id: string | number, ratingData: { rating: number; rating_notes?: string }): Promise<ApiResponse<FleetRequest>> => {
+    requestCache = null;
     const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/rate-driver`, ratingData);
     return {
       data: mapRequestFromBackend(res.data?.data),
