@@ -68,13 +68,13 @@ export default function LoginPage() {
         const mockUser = { id: "1", name: "", email: "", role: userRole };
         const accessCheck = canAccessRoute(mockUser as any, redirectUrl);
         if (accessCheck === "allowed") {
-          navigate(redirectUrl, { replace: true });
+          window.location.href = redirectUrl;
         } else {
           // If not allowed, fallback safely to default role dashboard
-          navigate(defaultRoute, { replace: true });
+          window.location.href = defaultRoute;
         }
       } else {
-        navigate(defaultRoute, { replace: true });
+        window.location.href = defaultRoute;
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login gagal");
