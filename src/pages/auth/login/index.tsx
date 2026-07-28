@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/auth/authContext";
 import { apiClient } from "@/services/api/api";
+import { canAccessRoute } from "@/auth/roleGuard";
 
 export default function LoginPage() {
 
@@ -56,14 +57,24 @@ export default function LoginPage() {
         security: "/security/dashboard",
       };
 
+      const defaultRoute = dashboards[userRole] || "/employee/dashboard";
+
       // Check for redirect URL in query parameters
       const params = new URLSearchParams(window.location.search);
       const redirectUrl = params.get("redirect");
 
       if (redirectUrl) {
-        navigate(redirectUrl);
+        // Validate if the newly logged-in user role is allowed to access the redirectUrl
+        const mockUser = { id: "1", name: "", email: "", role: userRole };
+        const accessCheck = canAccessRoute(mockUser as any, redirectUrl);
+        if (accessCheck === "allowed") {
+          navigate(redirectUrl, { replace: true });
+        } else {
+          // If not allowed, fallback safely to default role dashboard
+          navigate(defaultRoute, { replace: true });
+        }
       } else {
-        navigate(dashboards[userRole] || "/admin/dashboard");
+        navigate(defaultRoute, { replace: true });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login gagal");

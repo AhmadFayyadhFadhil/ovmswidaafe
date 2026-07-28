@@ -35,8 +35,9 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
     const role = user?.role?.toLowerCase() || userRole?.toLowerCase() || "employee";
 
     if (page === "Logout") {
-      logout();
-      navigate("/login");
+      Promise.resolve(logout()).finally(() => {
+        window.location.href = "/login";
+      });
       return;
     }
 

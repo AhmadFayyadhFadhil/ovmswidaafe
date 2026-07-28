@@ -3,8 +3,7 @@ import type { ReactNode } from "react";
 import { AuthContext } from "./authContext";
 import type { AuthContextType, AuthUser, UserRole } from "./authContext";
 import { apiClient } from "../services/api/api";
-
-
+import { requestService } from "../services/modules/requestService";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -147,9 +146,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Gagal logout dari API backend:", error);
       }
     }
+    try {
+      requestService.clearCache();
+    } catch {}
     setUser(null);
-    sessionStorage.removeItem("auth_user");
-    sessionStorage.removeItem("token");
+    sessionStorage.clear();
   };
 
   const updateUser = (updated: Partial<AuthUser>) => {

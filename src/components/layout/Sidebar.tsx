@@ -89,9 +89,11 @@ export function Sidebar({
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {}
+    window.location.href = "/login";
   };
 
   const btn = (item: { icon: string; label: string }, path: string) => (
