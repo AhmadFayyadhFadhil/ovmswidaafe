@@ -47,6 +47,14 @@ const STATUS_CONFIG: Record<DriverStatus, { label: string; badge: string; dot: s
   },
 };
 
+const isDriverForReq = (r: any, driverId: string, driverName: string) => {
+  if (!r || !driverId) return false;
+  const reqDriverId = String(r.driver_id || r.driver?.id || r.operationalTrip?.driver_id || r.operationalTrip?.driver?.id || r.assignment?.driver_id || "");
+  const reqDriverName = String(r.driver_name || r.driver?.name || "").toLowerCase();
+  const targetName = String(driverName || "").toLowerCase();
+  return (reqDriverId !== "" && reqDriverId === String(driverId)) || (reqDriverName !== "" && targetName !== "" && reqDriverName.includes(targetName));
+};
+
 function DriverCard({ 
   driver, 
   onToggleDuty,
@@ -216,12 +224,18 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
 
         const mapped = (driversRes.data || []).map((d: any) => {
           const driverRatedReqs = reqs.filter((r: any) => 
-            (String(r.driver_id || r.driver?.id) === String(d.id) || String(r.driver_name).toLowerCase().includes(String(d.name).toLowerCase())) &&
-            (r.rating && Number(r.rating) > 0)
+            isDriverForReq(r, d.id, d.name) && (r.rating && Number(r.rating) > 0)
+          );
+
+          const driverCompletedReqs = reqs.filter((r: any) => 
+            isDriverForReq(r, d.id, d.name) && 
+            (r.rawStatus === "completed" || r.status === "completed" || r.status === "COMPLETED")
           );
 
           const ratingSum = driverRatedReqs.reduce((acc: number, r: any) => acc + Number(r.rating || 0), 0);
           const computedRating = driverRatedReqs.length > 0 ? Number((ratingSum / driverRatedReqs.length).toFixed(1)) : Number(d.rating || 5.0);
+
+          const computedTrips = d.trips_count || driverCompletedReqs.length || driverRatedReqs.length || 0;
 
           return {
             id: d.id,
@@ -229,7 +243,7 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
             status: d.status === "AVAILABLE" ? "AVAILABLE" : (d.status === "ON TRIP" || d.status === "ON DUTY" || d.status === "ASSIGNED" ? "ON TRIP" : "OFF DUTY"),
             avatar: d.avatarUrl || d.avatar,
             driverId: `DRV-${String(d.id).padStart(3, "0")}`,
-            trips: d.trips_count || 0,
+            trips: computedTrips,
             rating: computedRating,
             email: d.email || "",
             phone: d.phone || "",
@@ -251,7 +265,7 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
   const handleOpenReviews = (driver: Driver) => {
     setReviewsModal({ isOpen: true, driver, reviews: [], loading: true });
     const driverReviews = allRequests.filter((r: any) => 
-      (String(r.driver_id || r.driver?.id) === String(driver.id) || String(r.driver_name).toLowerCase().includes(driver.name.toLowerCase())) &&
+      isDriverForReq(r, driver.id, driver.name) &&
       (r.rating && Number(r.rating) > 0)
     );
     setReviewsModal({ isOpen: true, driver, reviews: driverReviews, loading: false });
@@ -334,18 +348,27 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
   }, [driversList]);
 
   const fleetAvgRating = useMemo(() => {
-    if (driversList.length === 0) return "5.0";
-    const sum = driversList.reduce((acc, d) => acc + (d.rating || 5.0), 0);
-    return (sum / driversList.length).toFixed(1);
-  }, [driversList]);
+    const ratedReqs = allRequests.filter(r => r.rating && Number(r.rating) > 0);
+    if (ratedReqs.length === 0) {
+      if (driversList.length === 0) return "5.0";
+      const sum = driversList.reduce((acc, d) => acc + (d.rating || 5.0), 0);
+      return (sum / driversList.length).toFixed(1);
+    }
+    const sum = ratedReqs.reduce((acc: number, r: any) => acc + Number(r.rating || 0), 0);
+    return (sum / ratedReqs.length).toFixed(1);
+  }, [allRequests, driversList]);
 
   const totalReviewsCount = useMemo(() => {
     return allRequests.filter(r => r.rating && Number(r.rating) > 0).length;
   }, [allRequests]);
 
   const totalCompletedTrips = useMemo(() => {
-    return driversList.reduce((acc, d) => acc + (d.trips || 0), 0);
-  }, [driversList]);
+    const completedReqs = allRequests.filter((r: any) => 
+      r.rawStatus === "completed" || r.status === "completed" || r.status === "COMPLETED"
+    );
+    const sumFromDrivers = driversList.reduce((acc, d) => acc + (d.trips || 0), 0);
+    return Math.max(completedReqs.length, sumFromDrivers);
+  }, [allRequests, driversList]);
 
   const isApprover = user?.role?.toLowerCase() === "approver";
 
