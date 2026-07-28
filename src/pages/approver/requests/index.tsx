@@ -394,7 +394,7 @@ export default function ApprovalManagement() {
 
   return (
     <Layout
-      activeNav="Requests"
+      activeNav="Pending Requests"
       topbarTitle="Approval Management"
       searchPlaceholder="Search requests..."
       searchValue={search}

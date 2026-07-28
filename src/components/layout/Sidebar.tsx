@@ -96,23 +96,30 @@ export function Sidebar({
     window.location.href = "/login";
   };
 
-  const btn = (item: { icon: string; label: string }, path: string) => (
-    <button
-      key={item.label}
-      onClick={() => go(item.label, path)}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 ${
-        activeNav === item.label
-          ? "bg-[#1e3a8a] text-white shadow-sm scale-[1.01]"
-          : "text-[#475569] hover:bg-[#f1f5f9] hover:text-[#1e293b] hover:translate-x-0.5"
-      }`}
-    >
-      <Icon
-        name={item.icon}
-        className={`text-[21px] flex-shrink-0 ${activeNav === item.label ? "text-white" : "text-[#64748b]"}`}
-      />
-      <span className="text-[13.5px] font-semibold truncate">{item.label}</span>
-    </button>
-  );
+  const btn = (item: { icon: string; label: string }, path: string) => {
+    const currentPath = window.location.pathname;
+    const cleanPath = path.split('?')[0];
+    const isPathMatch = cleanPath !== "" && (currentPath === cleanPath || (cleanPath !== "/" && currentPath.startsWith(cleanPath) && cleanPath !== "/employee/myrequests"));
+    const isActive = activeNav === item.label || isPathMatch;
+
+    return (
+      <button
+        key={item.label}
+        onClick={() => go(item.label, path)}
+        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 ${
+          isActive
+            ? "bg-[#1e3a8a] text-white shadow-sm scale-[1.01]"
+            : "text-[#475569] hover:bg-[#f1f5f9] hover:text-[#1e293b] hover:translate-x-0.5"
+        }`}
+      >
+        <Icon
+          name={item.icon}
+          className={`text-[21px] flex-shrink-0 ${isActive ? "text-white" : "text-[#64748b]"}`}
+        />
+        <span className="text-[13.5px] font-semibold truncate">{item.label}</span>
+      </button>
+    );
+  };
 
   // Employee menu
   const employeeMenu = [
