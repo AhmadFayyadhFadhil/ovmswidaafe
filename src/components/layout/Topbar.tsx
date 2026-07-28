@@ -127,12 +127,14 @@ export function Topbar({
 
         <h1 className="text-[16px] sm:text-[18px] font-bold text-[#0f172a] truncate">{title}</h1>
         
-        {/* Hide search bar on mobile/tablet */}
-        <div className="relative hidden md:block">
-          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[18px]" />
-          <input type="text" value={searchValue} onChange={e => onSearchChange?.(e.target.value)} placeholder={searchPlaceholder}
-            className="h-9 pl-9 pr-4 bg-[#f8fafc] border border-[#e2e8f0] rounded-full text-[13px] text-[#475569] placeholder:text-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 w-56" />
-        </div>
+        {/* Render search bar ONLY on History / Audit pages */}
+        {(window.location.pathname.includes('/history') || window.location.pathname.includes('/audit') || title.toLowerCase().includes('history') || title.toLowerCase().includes('audit')) && (
+          <div className="relative hidden md:block">
+            <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[18px]" />
+            <input type="text" value={searchValue} onChange={e => onSearchChange?.(e.target.value)} placeholder={searchPlaceholder}
+              className="h-9 pl-9 pr-4 bg-[#f8fafc] border border-[#e2e8f0] rounded-full text-[13px] text-[#475569] placeholder:text-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 w-56" />
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-4 flex-shrink-0">
         {user && user.role?.toLowerCase() !== "security" && (
