@@ -266,11 +266,19 @@ export default function MyRequestsPage() {
   };
 
   const { data: requestsData, loading, error, refetch } = useApi(async () => {
-    const res = await requestService.getAll({ per_page: 1000 });
+    const res = await requestService.getAll({ per_page: 1000, my_requests_only: true });
     return { data: res.data || [] };
   }, true, []);
 
-  const requests = (requestsData || []) as any[];
+  // Filter requests to strictly ensure only items created by or involving the logged-in user are shown
+  const rawList = (requestsData || []) as any[];
+  const requests = rawList.filter((r: any) => {
+    // If no user object available yet, fallback to rawList
+    if (!user?.id) return true;
+    const isCreator = String(r.user_id || r.requested_by?.id || r.employee_id) === String(user.id);
+    const isPassenger = Array.isArray(r.passengers) && r.passengers.some((p: any) => String(p.user_id || p.id) === String(user.id));
+    return isCreator || isPassenger;
+  });
 
   // Reset pagination on filter change
   useEffect(() => {
