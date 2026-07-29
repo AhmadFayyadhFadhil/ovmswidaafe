@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Layout } from '@/components/layout/RoleLayout';
+import { Icon } from '@/components/ui/Icon';
 import { useApi } from '@/hooks/useApi';
 import { requestService } from '@/services/modules/requestService';
 import { RequestDetailModal } from '@/components/ui/RequestDetailModal';
@@ -142,10 +143,15 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
             <span className={`text-[9.5px] font-extrabold px-2 py-0.5 rounded-full ${pri.cls}`}>{pri.label}</span>
           </div>
           <div className="text-[13.5px] font-bold text-[#0f172a] truncate">{item.title}</div>
-          <div className="text-[11.5px] font-medium text-[#64748b] mt-1 leading-snug break-words flex items-center gap-1.5 flex-wrap">
-            <span className="flex items-center gap-1"><IconUser /> {item.requester}</span>
-            <span className="text-slate-300">•</span>
-            <span className="text-slate-400 text-[11px] font-normal">{item.datetime}</span>
+          <div className="text-[11.5px] font-medium text-slate-600 mt-1 space-y-0.5 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
+            <div className="flex items-center gap-1">
+              <IconUser />
+              <span className="truncate">{item.requester}</span>
+            </div>
+            <div className="text-slate-400 text-[11px] font-normal flex items-center gap-1">
+              <span className="sm:inline hidden">•</span>
+              <span>{item.datetime}</span>
+            </div>
           </div>
         </div>
 
@@ -165,33 +171,35 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
 
       {/* Expanded detail */}
       {open && (
-        <div className="border-t border-[#f1f5f9] px-6 py-4 bg-[#f8faff]">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-[13px]">
+        <div className="border-t border-[#f1f5f9] px-4 py-3.5 sm:px-6 sm:py-4 bg-[#f8faff]">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[13px]">
             <div>
-              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1">Requester</div>
+              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Requester</div>
               <div className="font-semibold text-[#0f172a]">{item.requester}</div>
             </div>
             <div>
-              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1">Decision Date</div>
+              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Decision Date</div>
               <div className="font-semibold text-[#0f172a]">{item.datetime}</div>
             </div>
             <div>
-              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1">Decision By</div>
+              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Decision By</div>
               <div className="font-semibold text-[#0f172a]">{item.decidedBy || 'Alex Rivera'}</div>
             </div>
           </div>
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex flex-col sm:flex-row gap-2.5">
             <button 
               onClick={() => onViewDetail(item.id)}
-              className="h-8 px-4 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-lg hover:bg-[#1e40af] transition-colors cursor-pointer"
+              className="w-full sm:w-auto h-9 px-4 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-xl hover:bg-[#1e40af] transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap active:scale-98"
             >
-              View Full Detail
+              <Icon name="visibility" className="text-sm" />
+              <span>View Full Detail</span>
             </button>
             <button 
               onClick={() => alert('Downloading PDF...')}
-              className="h-8 px-4 bg-white border border-[#e2e8f0] text-[#475569] text-[12px] font-bold rounded-lg hover:bg-[#f1f5f9] transition-colors cursor-pointer"
+              className="w-full sm:w-auto h-9 px-4 bg-white border border-slate-200 text-slate-700 text-[12px] font-bold rounded-xl hover:bg-slate-50 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap active:scale-98"
             >
-              Download PDF
+              <Icon name="picture_as_pdf" className="text-sm text-red-500" />
+              <span>Download PDF</span>
             </button>
           </div>
         </div>
