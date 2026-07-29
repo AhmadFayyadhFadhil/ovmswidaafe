@@ -10,18 +10,46 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const [stats, setStats] = useState({
     activeVehicles: 0,
     dailyRequests: 0,
     activeDrivers: 0,
     systemName: "",
+    companyName: "",
     companyLogo: "",
   });
+
+  const getValidLogoUrl = (url: string | undefined | null) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+      return url;
+    }
+    if (url.startsWith("/")) {
+      return `${window.location.origin}${url}`;
+    }
+    return `${window.location.origin}/${url}`;
+  };
 
   const navigate = useNavigate();
   const { login } = useAuthContext();
 
   useEffect(() => {
+    // 1. Load local cache for instant rendering
+    const cached = localStorage.getItem("ovms_branding_config");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setStats(prev => ({
+          ...prev,
+          systemName: parsed.systemName || prev.systemName,
+          companyName: parsed.companyName || prev.companyName,
+          companyLogo: parsed.companyLogo || prev.companyLogo,
+        }));
+      } catch (e) {}
+    }
+
+    // 2. Fetch live public stats & branding from backend
     apiClient.get("/public-stats")
       .then(res => {
         if (res.data?.status === "success" && res.data?.data) {
@@ -30,9 +58,17 @@ export default function LoginPage() {
             activeVehicles: d.active_vehicles ?? 0,
             dailyRequests: d.daily_requests ?? 0,
             activeDrivers: d.active_drivers ?? 0,
-            systemName: d.system_name ?? "",
+            systemName: d.system_name || "OVMS",
+            companyName: d.company_name || "Operational Vehicle Management",
             companyLogo: d.company_logo ?? "",
           });
+          setLogoError(false);
+          // Sync branding cache
+          localStorage.setItem("ovms_branding_config", JSON.stringify({
+            systemName: d.system_name || "OVMS",
+            companyName: d.company_name || "Operational Vehicle Management",
+            companyLogo: d.company_logo ?? "",
+          }));
         }
       })
       .catch(err => {
@@ -103,9 +139,14 @@ export default function LoginPage() {
 
           <div className="flex items-center gap-4">
 
-            {stats.companyLogo ? (
-              <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center p-2 shadow-sm overflow-hidden">
-                <img src={stats.companyLogo} alt="Logo" className="w-full h-full object-contain" />
+            {stats.companyLogo && !logoError ? (
+              <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center p-2 shadow-sm overflow-hidden border border-white/20">
+                <img 
+                  src={getValidLogoUrl(stats.companyLogo)} 
+                  alt="Logo" 
+                  className="w-full h-full object-contain" 
+                  onError={() => setLogoError(true)}
+                />
               </div>
             ) : (
               <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center border border-white/20">
@@ -122,7 +163,7 @@ export default function LoginPage() {
               </h1>
 
               <p className="text-blue-100">
-                Operational Vehicle Management
+                {stats.companyName || "Operational Vehicle Management"}
               </p>
 
             </div>
