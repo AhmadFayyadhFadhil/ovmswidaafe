@@ -117,8 +117,8 @@ export default function GAHRDDashboard({ onNavigate }: { onNavigate: (p: string)
             <div className="relative overflow-hidden bg-gradient-to-r from-[#1e3b8a] to-[#2563eb] rounded-2xl p-5 sm:p-8 mb-7 text-white">
               <div className="relative z-10">
                 <div className="text-[11px] font-bold uppercase tracking-widest opacity-70 mb-1">GA / HRD Portal</div>
-                <h2 className="text-[22px] sm:text-[28px] font-extrabold mb-1">Logistics Command Center</h2>
-                <p className="text-[13px] opacity-80 max-w-lg">Kelola permintaan kendaraan, penugasan driver, dan operasional logistik harian secara terpusat.</p>
+                <h2 className="text-[22px] sm:text-[28px] font-extrabold mb-1">Operational Command Center</h2>
+                <p className="text-[13px] opacity-80 max-w-lg">Kelola permintaan kendaraan, penugasan driver, dan operasional kendaraan dinas harian secara terpusat.</p>
                 <div className="flex flex-wrap gap-3 mt-5">
                   <button
                     onClick={() => handleNavigate("Requests")}

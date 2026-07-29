@@ -69,7 +69,7 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
     <Layout
       activeNav="History"
       onNavigate={onNavigate}
-      topbarTitle="Logistics History"
+      topbarTitle="Riwayat Operasional"
       userRole="GA/HRD"
       searchPlaceholder="Cari riwayat..."
       searchValue={search}
@@ -79,7 +79,7 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
         {/* Page header */}
         <div className="mb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
           <div>
-            <h2 className="text-[24px] font-extrabold text-[#0f172a] tracking-tight">Logistics History Log</h2>
+            <h2 className="text-[24px] font-extrabold text-[#0f172a] tracking-tight">Riwayat Operasional Kendaraan</h2>
             <p className="text-[13.5px] text-[#64748b] mt-0.5">Arsip riwayat perjalanan dinas, persetujuan, dan pengajuan yang selesai atau ditolak.</p>
           </div>
           <button 
