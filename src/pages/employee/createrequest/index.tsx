@@ -273,6 +273,16 @@ export default function CreateRequestPage({ onNavigate }: Props) {
       const formattedStartTime = departure ? (departure.includes('T') ? departure.replace('T', ' ') + (departure.length === 16 ? ':00' : '') : departure) : '';
       const formattedEndTime = estReturn ? (estReturn.includes('T') ? estReturn.replace('T', ' ') + (estReturn.length === 16 ? ':00' : '') : estReturn) : null;
 
+      const firstDeptId = validPassengers[0]?.department_id;
+      let parsedMainDeptId: any = 1;
+      if (firstDeptId) {
+        const num = Number(firstDeptId);
+        parsedMainDeptId = !isNaN(num) && num > 0 ? num : firstDeptId;
+      } else if ((user as any)?.department_id) {
+        const num = Number((user as any).department_id);
+        parsedMainDeptId = !isNaN(num) && num > 0 ? num : (user as any).department_id;
+      }
+
       const payload: any = {
         purpose,
         destination_city: destinationCity,
@@ -281,13 +291,21 @@ export default function CreateRequestPage({ onNavigate }: Props) {
         end_time: formattedEndTime,
         passenger_count: validPassengers.length,
         priority,
+        department_id: parsedMainDeptId,
         notes: notes || null,
-        passengers: validPassengers.map((p, idx) => ({
-          name: p.name,
-          department_id: p.department_id ? Number(p.department_id) : null,
-          user_id: p.user_id || null,
-          is_pic: p.is_pic || (!validPassengers.some(px => px.is_pic) && idx === 0)
-        })),
+        passengers: validPassengers.map((p, idx) => {
+          let deptIdVal: any = 1;
+          if (p.department_id) {
+            const num = Number(p.department_id);
+            deptIdVal = !isNaN(num) && num > 0 ? num : p.department_id;
+          }
+          return {
+            name: p.name,
+            department_id: deptIdVal,
+            user_id: p.user_id || null,
+            is_pic: p.is_pic || (!validPassengers.some(px => px.is_pic) && idx === 0)
+          };
+        }),
         itineraries: itineraries.length > 0 ? itineraries : undefined,
         itinerary_file: (files && files.length > 0) ? files[0] : undefined,
       };
