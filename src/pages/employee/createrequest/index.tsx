@@ -309,7 +309,16 @@ export default function CreateRequestPage({ onNavigate }: Props) {
       setTimeout(() => navigate("/employee/myrequests"), 1500);
     } catch (err: any) {
       console.error(err);
-      const errMsg = err.response?.data?.message || "Gagal mengirimkan pengajuan.";
+      let errMsg = err.response?.data?.message;
+      if (!errMsg || errMsg === "Server Error") {
+        if (err.response?.status === 401) {
+          errMsg = "Sesi Anda telah berakhir. Silakan re-login (keluar lalu masuk kembali) untuk melanjutkan pengajuan.";
+        } else if (err.response?.status === 422) {
+          errMsg = "Data pengajuan belum sesuai format. Silakan periksa kembali kelengkapan data penumpang dan tanggal.";
+        } else {
+          errMsg = "Terjadi kendala pada server API saat menyimpan pengajuan. Silakan pastikan profil & departemen akun Anda lengkap, atau coba beberapa saat lagi.";
+        }
+      }
       setFormError(errMsg);
       showAlert(errMsg);
     } finally {
