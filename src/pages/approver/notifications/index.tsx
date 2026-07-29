@@ -153,35 +153,39 @@ export default function ApproverNotificationsPage({ onNavigate }: Props) {
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           {[
-            { icon: "mail",           iconBg: "bg-[#e5eeff]", iconColor: "text-[#00236f]",  value: String(unreadCount).padStart(2, '0'),   label: "Belum Dibaca",          bar: "bg-[#00236f]",  barW: "33%", accent: false },
-            { icon: "pending_actions",iconBg: "bg-[#fff7ed]", iconColor: "text-[#c2410c]",  value: String(pendingCount).padStart(2, '0'),  label: "Persetujuan Tertunda", bar: "bg-[#c2410c]",  barW: "50%", accent: true },
-            { icon: "campaign",       iconBg: "bg-[#fee2e2]", iconColor: "text-[#991b1b]",  value: String(alertCount).padStart(2, '0'),    label: "System Alerts",         bar: "bg-[#991b1b]",  barW: "66%", accent: true },
+            { icon: "mail",           iconBg: "bg-[#e5eeff]", iconColor: "text-[#00236f]",  value: String(unreadCount).padStart(2, '0'),   label: "Belum Dibaca",          bar: "bg-[#00236f]",  barW: "w-1/3", accent: false },
+            { icon: "pending_actions",iconBg: "bg-[#fff7ed]", iconColor: "text-[#c2410c]",  value: String(pendingCount).padStart(2, '0'),  label: "Persetujuan Tertunda", bar: "bg-[#c2410c]",  barW: "w-1/2", accent: true },
+            { icon: "campaign",       iconBg: "bg-[#fee2e2]", iconColor: "text-[#991b1b]",  value: String(alertCount).padStart(2, '0'),    label: "System Alerts",         bar: "bg-[#991b1b]",  barW: "w-2/3", accent: true },
           ].map((c, i) => (
-            <div key={i} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-all">
-              <div className="flex items-center justify-between mb-3">
-                <div className={`w-9 h-9 ${c.iconBg} rounded-xl flex items-center justify-center`}>
-                  <Icon name={c.icon} className={`${c.iconColor} text-[18px]`} />
+            <div key={i} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className={`w-9 h-9 ${c.iconBg} rounded-xl flex items-center justify-center`}>
+                    <Icon name={c.icon} className={`${c.iconColor} text-[18px]`} />
+                  </div>
                 </div>
+                <div className={`text-[26px] font-bold ${c.accent ? "text-[#ba1a1a]" : "text-[#0f172a]"}`}>{c.value}</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mt-1">{c.label}</div>
               </div>
-              <div className={`text-[26px] font-bold ${c.accent ? "text-[#ba1a1a]" : "text-[#0f172a]"}`}>{c.value}</div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mt-1">{c.label}</div>
-              <div className="mt-2 h-[3px] bg-[#f1f5f9] rounded-full overflow-hidden">
-                <div className={`${c.bar} h-full rounded-full`} style={{ width: c.barW }} />
+              <div className="mt-3 h-[4px] bg-[#f1f5f9] rounded-full overflow-hidden w-full">
+                <div className={`${c.bar} h-full rounded-full ${c.barW}`} />
               </div>
             </div>
           ))}
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-[#f1f5f9] p-1 rounded-2xl w-fit">
-          {TABS.map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-xl text-[12px] font-bold transition-all cursor-pointer ${
-                activeTab === tab ? "bg-[#0f2a5e] text-white shadow-sm" : "text-[#64748b] hover:text-[#0f172a]"
-              }`}>{tab}</button>
-          ))}
+        <div className="overflow-x-auto max-w-full scrollbar-none">
+          <div className="flex gap-1 bg-[#f1f5f9] p-1 rounded-2xl w-fit">
+            {TABS.map(tab => (
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 rounded-xl text-[12px] font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  activeTab === tab ? "bg-[#0f2a5e] text-white shadow-xs" : "text-[#64748b] hover:text-[#0f172a]"
+                }`}>{tab}</button>
+            ))}
+          </div>
         </div>
 
         {/* Content Row */}

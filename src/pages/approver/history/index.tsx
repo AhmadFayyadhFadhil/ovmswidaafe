@@ -121,9 +121,9 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
     <div className="bg-white border border-[#e2e8f0] rounded-xl overflow-hidden transition-all">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-4 px-6 py-4 hover:bg-[#f8faff] transition-colors text-left cursor-pointer"
+        className="w-full flex items-start sm:items-center gap-3 sm:gap-4 px-4 py-3.5 sm:px-6 sm:py-4 hover:bg-[#f8faff] transition-colors text-left cursor-pointer"
       >
-        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
+        <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0 ${
           isApproved ? 'bg-[#f0fdf4]' : isCancelled ? 'bg-[#f1f5f9]' : 'bg-[#fef2f2]'
         }`}>
           {isApproved ? (
@@ -137,26 +137,27 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-            <span className="text-[13px] font-bold text-[#1e3a8a]">{item.reqId}</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${pri.cls}`}>{pri.label}</span>
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="text-[13px] font-extrabold text-[#1e3a8a]">{item.reqId}</span>
+            <span className={`text-[9.5px] font-extrabold px-2 py-0.5 rounded-full ${pri.cls}`}>{pri.label}</span>
           </div>
-          <div className="text-[14px] font-semibold text-[#0f172a] truncate">{item.title}</div>
-          <div className="flex items-center gap-1 mt-0.5 text-[12px] text-[#94a3b8]">
-            <IconUser />
-            {item.requester} • {item.datetime}
+          <div className="text-[13.5px] font-bold text-[#0f172a] truncate">{item.title}</div>
+          <div className="text-[11.5px] font-medium text-[#64748b] mt-1 leading-snug break-words flex items-center gap-1.5 flex-wrap">
+            <span className="flex items-center gap-1"><IconUser /> {item.requester}</span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-400 text-[11px] font-normal">{item.datetime}</span>
           </div>
         </div>
 
         {/* Status + chevron */}
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-1">
           <div className="text-right">
-            <div className={`text-[14px] font-extrabold tracking-wide ${isApproved ? 'text-[#15803d]' : isCancelled ? 'text-[#64748b]' : 'text-[#dc2626]'}`}>
+            <div className={`text-[12px] sm:text-[14px] font-black tracking-wide ${isApproved ? 'text-[#15803d]' : isCancelled ? 'text-[#64748b]' : 'text-[#dc2626]'}`}>
               {item.status}
             </div>
-            <div className="text-[11px] text-[#94a3b8] hidden sm:block">{item.statusLabel}</div>
+            <div className="text-[10.5px] text-[#94a3b8] hidden sm:block font-medium">{item.statusLabel}</div>
           </div>
-          <div className={`transition-transform ${open ? 'rotate-180' : ''}`}>
+          <div className={`transition-transform text-slate-400 ${open ? 'rotate-180' : ''}`}>
             <IconChevronDown />
           </div>
         </div>
