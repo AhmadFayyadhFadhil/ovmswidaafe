@@ -250,34 +250,34 @@ export default function NotificationsPage({ onNavigate }: { onNavigate: (p: stri
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-7">
-          <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5">
-            <div className="flex justify-between items-start mb-2">
-              <p className="text-[12px] text-[#64748b] font-bold">Unread</p>
-              <span className="text-[10px] text-[#94a3b8] font-semibold bg-[#f1f5f9] px-1.5 py-0.5 rounded">Total {notifications.length}</span>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-7">
+          <div className="bg-white border border-[#e2e8f0] rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 mb-1">
+              <p className="text-[11px] sm:text-[12px] text-[#64748b] font-bold leading-tight">Unread</p>
+              <span className="text-[9px] sm:text-[10px] text-[#94a3b8] font-semibold bg-[#f1f5f9] px-1.5 py-0.5 rounded self-start shrink-0">Total {notifications.length}</span>
             </div>
-            <h3 className="text-[32px] font-black text-[#1e3a8a]">{String(unreadCount).padStart(2, '0')}</h3>
+            <h3 className="text-[26px] sm:text-[32px] font-black text-[#1e3a8a] mt-1">{String(unreadCount).padStart(2, '0')}</h3>
           </div>
-          <div className="bg-white border border-[#e2e8f0] border-l-4 border-l-[#dc2626] rounded-2xl p-5">
-            <div className="flex justify-between items-start mb-2">
-              <p className="text-[12px] text-[#dc2626] font-bold">Urgent Alerts</p>
-              <span className="text-[10px] text-white font-black bg-[#dc2626] px-1.5 py-0.5 rounded animate-pulse">Urgent</span>
+          <div className="bg-white border border-[#e2e8f0] border-l-4 border-l-[#dc2626] rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 mb-1">
+              <p className="text-[11px] sm:text-[12px] text-[#dc2626] font-bold leading-tight">Urgent Alerts</p>
+              <span className="text-[9px] sm:text-[10px] text-white font-black bg-[#dc2626] px-1.5 py-0.5 rounded self-start shrink-0 animate-pulse">Urgent</span>
             </div>
-            <h3 className="text-[32px] font-black text-[#dc2626]">{String(urgentCount).padStart(2, '0')}</h3>
+            <h3 className="text-[26px] sm:text-[32px] font-black text-[#dc2626] mt-1">{String(urgentCount).padStart(2, '0')}</h3>
           </div>
-          <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5">
-            <div className="flex justify-between items-start mb-2">
-              <p className="text-[12px] text-[#64748b] font-bold">Schedule Updates</p>
-              <span className="text-[10px] text-[#94a3b8] font-semibold bg-[#f1f5f9] px-1.5 py-0.5 rounded">Last 24h</span>
+          <div className="bg-white border border-[#e2e8f0] rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 mb-1">
+              <p className="text-[11px] sm:text-[12px] text-[#64748b] font-bold leading-tight">Schedule Updates</p>
+              <span className="text-[9px] sm:text-[10px] text-[#94a3b8] font-semibold bg-[#f1f5f9] px-1.5 py-0.5 rounded self-start shrink-0">Last 24h</span>
             </div>
-            <h3 className="text-[32px] font-black text-[#0369a1]">{String(scheduleCount).padStart(2, '0')}</h3>
+            <h3 className="text-[26px] sm:text-[32px] font-black text-[#0369a1] mt-1">{String(scheduleCount).padStart(2, '0')}</h3>
           </div>
-          <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5">
-            <div className="flex justify-between items-start mb-2">
-              <p className="text-[12px] text-[#64748b] font-bold">Driver Assignments</p>
-              <span className="text-[10px] text-[#94a3b8] font-semibold bg-[#f1f5f9] px-1.5 py-0.5 rounded">Active Trips</span>
+          <div className="bg-white border border-[#e2e8f0] rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 mb-1">
+              <p className="text-[11px] sm:text-[12px] text-[#64748b] font-bold leading-tight">Driver Assignments</p>
+              <span className="text-[9px] sm:text-[10px] text-[#94a3b8] font-semibold bg-[#f1f5f9] px-1.5 py-0.5 rounded self-start shrink-0">Active Trips</span>
             </div>
-            <h3 className="text-[32px] font-black text-[#475569]">{String(assignCount).padStart(2, '0')}</h3>
+            <h3 className="text-[26px] sm:text-[32px] font-black text-[#475569] mt-1">{String(assignCount).padStart(2, '0')}</h3>
           </div>
         </div>
 
@@ -286,7 +286,7 @@ export default function NotificationsPage({ onNavigate }: { onNavigate: (p: stri
           {/* Left: notifications list */}
           <div className="space-y-5">
             {/* Filter + sort bar */}
-            <div className="bg-white border border-[#e2e8f0] rounded-2xl p-2 flex flex-nowrap sm:flex-wrap items-center gap-1.5 max-w-full overflow-x-auto no-scrollbar scrollbar-none">
+            <div className="bg-white border border-[#e2e8f0] rounded-2xl p-2 flex items-center gap-1.5 max-w-full overflow-x-auto scrollbar-none">
               {FILTERS.map(f => (
                 <button
                   key={f.key}

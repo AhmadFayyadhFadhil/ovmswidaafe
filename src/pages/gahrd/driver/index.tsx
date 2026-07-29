@@ -582,9 +582,9 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-slate-700">
-                  <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <div className="overflow-x-auto scrollbar-none">
+                <table className="w-full min-w-[650px] text-left text-xs text-slate-700">
+                  <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                     <tr>
                       <th className="py-3.5 px-5">Driver</th>
                       <th className="py-3.5 px-5">Status</th>
@@ -594,7 +594,7 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
                       <th className="py-3.5 px-5 text-right">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100 whitespace-nowrap">
                     {driversList.map((d) => {
                       const ratingVal = d.rating || 5.0;
                       const satisfactionLabel = ratingVal >= 4.5 ? "Sangat Baik" : ratingVal >= 4.0 ? "Baik" : "Cukup";
@@ -625,14 +625,14 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
                             ⭐ {Number(ratingVal).toFixed(1)} / 5.0
                           </td>
                           <td className="py-3.5 px-5">
-                            <span className={`text-[10.5px] font-extrabold px-2.5 py-1 rounded-md border ${satisfactionColor}`}>
+                            <span className={`text-[10.5px] font-extrabold px-2.5 py-1 rounded-md border inline-block ${satisfactionColor}`}>
                               {satisfactionLabel}
                             </span>
                           </td>
                           <td className="py-3.5 px-5 text-right">
                             <button
                               onClick={() => handleOpenReviews(d)}
-                              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors cursor-pointer inline-block"
                             >
                               Detail Ulasan
                             </button>

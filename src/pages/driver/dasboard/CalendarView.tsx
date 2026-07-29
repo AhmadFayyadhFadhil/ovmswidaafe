@@ -155,13 +155,13 @@ export default function CalendarView({ events, onViewDetail }: CalendarViewProps
                 <div
                   key={idx}
                   onClick={() => setSelectedDate(day.fullDateStr)}
-                  className={`min-h-[55px] p-1.5 rounded-xl border flex flex-col justify-between transition-all cursor-pointer relative ${bgClass} ${
+                  className={`min-h-[50px] sm:min-h-[55px] p-1 sm:p-1.5 rounded-xl border flex flex-col justify-between transition-all cursor-pointer relative ${bgClass} ${
                     isToday && !isSelected ? "ring-2 ring-blue-500/20 border-blue-400 font-extrabold" : ""
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-bold">{day.date}</span>
-                    {isToday && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" title="Hari Ini" />}
+                    <span className="text-[11.5px] sm:text-[12px] font-bold">{day.date}</span>
+                    {isToday && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" title="Hari Ini" />}
                   </div>
 
                   {/* Event indicators - max 3 unique status dots (Scheduled, On Going, Completed) */}
@@ -175,14 +175,14 @@ export default function CalendarView({ events, onViewDetail }: CalendarViewProps
 
                     if (hasScheduled) uniqueDots.push({ key: 'scheduled', color: 'bg-blue-500', title: 'Terjadwal (Scheduled)' });
                     if (hasOngoing) uniqueDots.push({ key: 'ongoing', color: 'bg-amber-500', title: 'Sedang Jalan (On Going)' });
-                    if (hasCompleted) uniqueDots.push({ key: 'completed', color: 'bg-green-500', title: 'Selesai (Completed)' });
+                    if (hasCompleted) uniqueDots.push({ key: 'completed', color: 'bg-emerald-500', title: 'Selesai (Completed)' });
 
                     return (
-                      <div className="flex items-center gap-1 mt-1">
+                      <div className="flex items-center justify-center gap-1 mt-0.5 pb-0.5">
                         {uniqueDots.map((dot) => (
                           <div
                             key={dot.key}
-                            className={`h-1.5 w-1.5 rounded-full ${dot.color}`}
+                            className={`h-1.5 w-1.5 rounded-full ${dot.color} shadow-2xs shrink-0`}
                             title={dot.title}
                           />
                         ))}
