@@ -149,7 +149,7 @@ function AssignmentCard({
             {isOngoing && onCompleteTrip && (
               <button
                 onClick={() => onCompleteTrip(cleanReqId)}
-                className="w-full sm:flex-1 h-9 bg-indigo-600 text-white text-[12px] font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all cursor-pointer"
+                className="w-full sm:flex-1 h-9 bg-[#16a34a] text-white text-[12px] font-bold rounded-xl hover:bg-[#15803d] active:scale-95 transition-all cursor-pointer"
               >
                 Selesaikan
               </button>
