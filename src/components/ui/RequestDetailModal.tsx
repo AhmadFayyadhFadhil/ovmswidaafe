@@ -607,18 +607,19 @@ export function RequestDetailModal({
                                 const isAssigned = dName !== "Not Assigned" && dName !== "Belum Ditugaskan" && dName.trim() !== "";
 
                                 return (
-                                  <div key={dIdx} className="p-3.5 bg-gradient-to-r from-slate-50 to-blue-50/30 border border-slate-200/80 rounded-xl space-y-2.5">
-                                    {/* Top Header: Avatar + Info on Left, Status Badge on Right */}
-                                    <div className="flex items-start justify-between gap-2.5">
-                                      <div className="flex items-start gap-3 min-w-0 flex-1">
-                                        <div className="w-9 h-9 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-xs font-extrabold shrink-0 shadow-sm border border-blue-900 mt-0.5">
+                                  <div key={dIdx} className="p-3.5 bg-slate-50/90 border border-slate-200/80 rounded-2xl space-y-2.5 shadow-2xs">
+                                    {/* Top Header: Avatar + Driver Name on Left, Status Badge on Right */}
+                                    <div className="flex items-center justify-between gap-2 border-b border-slate-200/60 pb-2.5">
+                                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                        <div className="w-10 h-10 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-xs font-black shrink-0 shadow-xs border border-blue-900">
                                           {dInitials}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                          <div className="text-[13px] font-bold text-slate-800 leading-snug break-words">{dName}</div>
-                                          <div className="text-[11.5px] font-semibold text-slate-600 flex items-center gap-1.5 mt-0.5 leading-snug break-words">
-                                            <Icon name="directions_car" className="text-xs text-slate-400 shrink-0" />
-                                            <span>{vName}</span>
+                                          <div className="text-[13.5px] font-extrabold text-slate-800 leading-tight truncate">
+                                            {dName}
+                                          </div>
+                                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                                            Driver Terdaftar
                                           </div>
                                         </div>
                                       </div>
@@ -632,20 +633,31 @@ export function RequestDetailModal({
                                       </span>
                                     </div>
 
-                                    {/* Bottom Row: Hubungi WA Button */}
-                                    {request.driverPhone && (
-                                      <div className="pt-1.5 border-t border-slate-200/60">
-                                        <a
-                                          href={`https://wa.me/${request.driverPhone.replace(/[^0-9]/g, '')}`}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-[11px] font-bold transition-all shadow-2xs"
-                                          title="Hubungi WhatsApp Driver"
-                                        >
-                                          <Icon name="chat" className="text-xs text-emerald-600" />
-                                          <span>Hubungi WA ({request.driverPhone})</span>
-                                        </a>
+                                    {/* Vehicle Info Row */}
+                                    <div className="flex items-center gap-2.5 px-3 py-2 bg-white border border-slate-200/60 rounded-xl text-xs">
+                                      <span className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600 shrink-0 text-sm">
+                                        🚘
+                                      </span>
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-[9.5px] text-slate-400 font-bold uppercase tracking-wider">Armada / Kendaraan</div>
+                                        <div className="text-[12.5px] font-extrabold text-slate-800 leading-snug break-words">
+                                          {vName}
+                                        </div>
                                       </div>
+                                    </div>
+
+                                    {/* WhatsApp Button Row */}
+                                    {request.driverPhone && (
+                                      <a
+                                        href={`https://wa.me/${request.driverPhone.replace(/[^0-9]/g, '')}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/90 rounded-xl text-[11.5px] font-extrabold transition-all shadow-2xs cursor-pointer active:scale-98"
+                                        title="Hubungi WhatsApp Driver"
+                                      >
+                                        <Icon name="chat" className="text-sm text-emerald-600" />
+                                        <span>Hubungi WA ({request.driverPhone})</span>
+                                      </a>
                                     )}
                                   </div>
                                 );
