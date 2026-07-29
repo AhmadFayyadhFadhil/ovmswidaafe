@@ -160,6 +160,7 @@ export default function DriverDashboard() {
   const [selectedRequestForDetail, setSelectedRequestForDetail] = useState<any | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [zoomedQrUrl, setZoomedQrUrl] = useState<string | null>(null);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   const handleViewDetail = async (reqId: string) => {
     setDetailLoading(true);
@@ -762,7 +763,44 @@ export default function DriverDashboard() {
               ))}
             </div>
 
-            {/* Rating & Anonymous Reviews Section */}
+            {/* 1. Daftar Tugas Baru (PRIORITAS UTAMA DRIVER) */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[17px] font-bold text-[#0f172a]">Daftar Tugas Baru</div>
+                  <div className="text-[13px] text-[#64748b]">Terima atau tolak penugasan kendaraan operasional</div>
+                </div>
+                {pendingAssignments.length > 0 && (
+                  <button
+                    onClick={() => setActiveNav("My Assignments")}
+                    className="text-[13px] font-semibold text-[#1e3a8a] hover:underline flex items-center gap-0.5 cursor-pointer"
+                  >
+                    Lihat Semua
+                    <Icon name="arrow_forward" className="text-[16px]" />
+                  </button>
+                )}
+              </div>
+
+              {pendingAssignments.length === 0 ? (
+                <div className="bg-white border border-[#e2e8f0] rounded-2xl py-10 flex flex-col items-center shadow-2xs">
+                  <Icon name="check_circle" className="text-[36px] text-green-500 mb-2" />
+                  <p className="font-bold text-[#0f172a] text-[14px]">Semua tugas baru telah diproses</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {pendingAssignments.slice(0, 2).map((req) => (
+                    <RequestCard
+                      key={req.id} req={req}
+                      onApprove={handleApproveClick}
+                      onReject={handleReject}
+                      onViewDetail={handleViewDetail}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 2. Rating & Anonymous Reviews Section (Dibatasi 2 ulasan awal + Tombol Lihat Semua) */}
             <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 space-y-4 shadow-2xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2.5">
@@ -783,68 +821,44 @@ export default function DriverDashboard() {
                   Belum ada ulasan yang masuk dari perjalanan dinas.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {ratedTrips.slice(0, 4).map((r: any, idx: number) => (
-                    <div key={r.id || idx} className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 space-y-2 hover:bg-slate-50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1 text-amber-500 font-extrabold text-sm">
-                          {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
-                          <span className="text-xs text-slate-700 font-bold ml-1">({r.rating}/5)</span>
+                <div className="space-y-3">
+                  <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 ${showAllReviews ? 'max-h-96 overflow-y-auto pr-1 scrollbar-none' : ''}`}>
+                    {(showAllReviews ? ratedTrips : ratedTrips.slice(0, 2)).map((r: any, idx: number) => (
+                      <div key={r.id || idx} className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 space-y-2 hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1 text-amber-500 font-extrabold text-sm">
+                            {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
+                            <span className="text-xs text-slate-700 font-bold ml-1">({r.rating}/5)</span>
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-400">
+                            {r.rated_at ? new Date(r.rated_at).toLocaleDateString('id-ID') : r.date || 'Tugas Perjalanan'}
+                          </span>
                         </div>
-                        <span className="text-[10px] font-bold text-slate-400">
-                          {r.rated_at ? new Date(r.rated_at).toLocaleDateString('id-ID') : r.date || 'Tugas Perjalanan'}
-                        </span>
+                        {r.rating_notes || r.ratingNotes ? (
+                          <p className="text-xs text-slate-700 font-medium italic bg-white p-2.5 rounded-lg border border-slate-200/60">
+                            "{r.rating_notes || r.ratingNotes}"
+                          </p>
+                        ) : (
+                          <p className="text-xs text-slate-400 italic">"Tidak ada catatan ulasan tambahan."</p>
+                        )}
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider pt-1 border-t border-slate-200/40">
+                          <span className="truncate max-w-[180px]">Tujuan: {r.destination}</span>
+                          <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md font-extrabold shrink-0">Anonim (Penumpang)</span>
+                        </div>
                       </div>
-                      {r.rating_notes || r.ratingNotes ? (
-                        <p className="text-xs text-slate-700 font-medium italic bg-white p-2.5 rounded-lg border border-slate-200/60">
-                          "{r.rating_notes || r.ratingNotes}"
-                        </p>
-                      ) : (
-                        <p className="text-xs text-slate-400 italic">"Tidak ada catatan ulasan tambahan."</p>
-                      )}
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider pt-1 border-t border-slate-200/40">
-                        <span className="truncate max-w-[180px]">Tujuan: {r.destination}</span>
-                        <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md font-extrabold shrink-0">Anonim (Penumpang)</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
 
-            {/* Recent requests */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-[17px] font-bold text-[#0f172a]">Daftar Tugas Baru</div>
-                  <div className="text-[13px] text-[#64748b]">Terima atau tolak penugasan kendaraan operasional</div>
-                </div>
-                {pendingAssignments.length > 0 && (
-                  <button
-                    onClick={() => setActiveNav("My Assignments")}
-                    className="text-[13px] font-semibold text-[#1e3a8a] hover:underline flex items-center gap-0.5 cursor-pointer"
-                  >
-                    Lihat Semua
-                    <Icon name="arrow_forward" className="text-[16px]" />
-                  </button>
-                )}
-              </div>
-
-              {pendingAssignments.length === 0 ? (
-                <div className="bg-white border border-[#e2e8f0] rounded-2xl py-12 flex flex-col items-center">
-                  <Icon name="check_circle" className="text-[36px] text-green-400 mb-2" />
-                  <p className="font-bold text-[#0f172a] text-[14px]">Semua tugas telah diproses</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {pendingAssignments.slice(0, 2).map((req) => (
-                    <RequestCard
-                      key={req.id} req={req}
-                      onApprove={handleApproveClick}
-                      onReject={handleReject}
-                      onViewDetail={handleViewDetail}
-                    />
-                  ))}
+                  {ratedTrips.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllReviews(!showAllReviews)}
+                      className="w-full py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-[#1e3a8a] flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs active:scale-98"
+                    >
+                      <span>{showAllReviews ? "Sembunyikan Ulasan" : `Lihat Semua Ulasan (${ratedTrips.length})`}</span>
+                      <Icon name={showAllReviews ? "expand_less" : "expand_more"} className="text-base" />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
