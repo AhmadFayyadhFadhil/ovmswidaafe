@@ -105,9 +105,27 @@ export function Sidebar({
 
   const btn = (item: { icon: string; label: string }, path: string) => {
     const currentPath = window.location.pathname;
-    const cleanPath = path.split('?')[0];
-    const isPathMatch = cleanPath !== "" && (currentPath === cleanPath || (cleanPath !== "/" && currentPath.startsWith(cleanPath) && cleanPath !== "/employee/myrequests"));
-    const isActive = activeNav === item.label || isPathMatch;
+    const currentSearch = window.location.search;
+    
+    let isActive = activeNav === item.label;
+
+    if (path.includes('?')) {
+      const [basePath, queryStr] = path.split('?');
+      if (currentPath === basePath) {
+        const tabVal = new URLSearchParams(queryStr).get('tab');
+        const currentTab = new URLSearchParams(currentSearch).get('tab');
+        
+        if (tabVal && currentTab) {
+          isActive = (tabVal === currentTab) || (activeNav === item.label);
+        } else if (!currentTab) {
+          isActive = (item.label === "Dashboard" && activeNav === "Dashboard");
+        }
+      }
+    } else if (!isActive) {
+      const isExactMatch = currentPath === path;
+      const isPrefixMatch = path !== "/" && currentPath.startsWith(path) && !["/driver/dashboard", "/employee/myrequests"].includes(path);
+      isActive = (isExactMatch || isPrefixMatch) && !currentSearch;
+    }
 
     return (
       <button
