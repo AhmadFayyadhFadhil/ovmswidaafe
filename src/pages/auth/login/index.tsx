@@ -121,7 +121,7 @@ export default function LoginPage() {
 
   return (
 
-    <div className="min-h-screen bg-[#f4f7fb] flex overflow-hidden">
+    <div className="min-h-screen bg-[#f4f7fb] flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
 
       {/* LEFT SIDE */}
 
@@ -246,30 +246,39 @@ export default function LoginPage() {
 
       {/* RIGHT SIDE */}
 
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-12 my-auto">
 
         <div className="w-full max-w-[480px]">
 
           {/* Mobile Logo */}
 
-          <div className="lg:hidden flex items-center gap-3 mb-10">
+          <div className="lg:hidden flex items-center gap-3 mb-6">
 
-            <div className="w-12 h-12 rounded-2xl bg-[#1e3a8a] flex items-center justify-center">
-
-              <span className="text-white text-xl">
-                🚘
-              </span>
-
-            </div>
+            {stats.companyLogo && !logoError ? (
+              <div className="w-11 h-11 rounded-2xl bg-white flex items-center justify-center p-1.5 shadow-sm border border-slate-200 overflow-hidden">
+                <img 
+                  src={getValidLogoUrl(stats.companyLogo)} 
+                  alt="Logo" 
+                  className="w-full h-full object-contain" 
+                  onError={() => setLogoError(true)}
+                />
+              </div>
+            ) : (
+              <div className="w-11 h-11 rounded-2xl bg-[#1e3a8a] flex items-center justify-center shadow-sm">
+                <span className="text-white text-lg">
+                  🚘
+                </span>
+              </div>
+            )}
 
             <div>
 
-              <h1 className="text-2xl font-bold text-slate-900">
-                OVMS
+              <h1 className="text-xl font-bold text-slate-900 leading-tight">
+                {stats.systemName || "OVMS"}
               </h1>
 
-              <p className="text-sm text-slate-500">
-                Operational Vehicle Management
+              <p className="text-xs text-slate-500 font-medium">
+                {stats.companyName || "Operational Vehicle Management"}
               </p>
 
             </div>
@@ -278,7 +287,7 @@ export default function LoginPage() {
 
           {/* Login Card */}
 
-          <div className="bg-white rounded-[32px] shadow-[0_20px_50px_rgba(15,23,42,0.08)] border border-slate-200/70 p-8 lg:p-10">
+          <div className="bg-white rounded-[24px] sm:rounded-[32px] shadow-[0_20px_50px_rgba(15,23,42,0.08)] border border-slate-200/70 p-6 sm:p-8 lg:p-10">
 
             <div className="mb-8">
 

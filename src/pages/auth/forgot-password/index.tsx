@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] flex overflow-hidden">
+    <div className="min-h-screen bg-[#f4f7fb] flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
       {/* LEFT SIDE (Hero) */}
       <div className="hidden lg:flex flex-1 relative overflow-hidden bg-gradient-to-br from-[#0f172a] via-[#1e3a8a] to-[#2563eb] p-12">
         <div className="absolute top-0 left-0 w-[400px] h-[400px] bg-blue-400/20 rounded-full blur-3xl" />
@@ -119,21 +119,21 @@ export default function ForgotPasswordPage() {
       </div>
 
       {/* RIGHT SIDE (Forms) */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-12 overflow-y-auto my-auto">
         <div className="w-full max-w-[480px]">
           {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-2xl bg-[#1e3a8a] flex items-center justify-center">
-              <span className="text-white text-xl">🚘</span>
+          <div className="lg:hidden flex items-center gap-3 mb-6">
+            <div className="w-11 h-11 rounded-2xl bg-[#1e3a8a] flex items-center justify-center shadow-sm">
+              <span className="text-white text-lg">🚘</span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">OVMS</h1>
-              <p className="text-sm text-slate-500">Operational Vehicle Management</p>
+              <h1 className="text-xl font-bold text-slate-900 leading-tight">OVMS</h1>
+              <p className="text-xs text-slate-500 font-medium">Operational Vehicle Management</p>
             </div>
           </div>
 
           {/* Card */}
-          <div className="bg-white rounded-[32px] shadow-[0_20px_50px_rgba(15,23,42,0.08)] border border-slate-200/70 p-8 lg:p-10">
+          <div className="bg-white rounded-[24px] sm:rounded-[32px] shadow-[0_20px_50px_rgba(15,23,42,0.08)] border border-slate-200/70 p-6 sm:p-8 lg:p-10">
             {step === 1 && (
               <div>
                 <div className="mb-6">

@@ -104,21 +104,21 @@ export default function RegisterPage() {
       </div>
 
       {/* RIGHT SIDE (Form) */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
-        <div className="w-full max-w-[480px] my-8">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-12 overflow-y-auto my-auto">
+        <div className="w-full max-w-[480px]">
           {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-2xl bg-[#1e3a8a] flex items-center justify-center">
-              <span className="text-white text-xl">🚘</span>
+          <div className="lg:hidden flex items-center gap-3 mb-6">
+            <div className="w-11 h-11 rounded-2xl bg-[#1e3a8a] flex items-center justify-center shadow-sm">
+              <span className="text-white text-lg">🚘</span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">OVMS</h1>
-              <p className="text-sm text-slate-500">Operational Vehicle Management</p>
+              <h1 className="text-xl font-bold text-slate-900 leading-tight">OVMS</h1>
+              <p className="text-xs text-slate-500 font-medium">Operational Vehicle Management</p>
             </div>
           </div>
 
           {/* Card */}
-          <div className="bg-white rounded-[32px] shadow-[0_20px_50px_rgba(15,23,42,0.08)] border border-slate-200/70 p-8 lg:p-10">
+          <div className="bg-white rounded-[24px] sm:rounded-[32px] shadow-[0_20px_50px_rgba(15,23,42,0.08)] border border-slate-200/70 p-6 sm:p-8 lg:p-10">
             {isSuccess ? (
               <div className="text-center py-4 space-y-4 animate-fadein">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600 text-3xl">
