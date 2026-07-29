@@ -693,14 +693,14 @@ export function RequestDetailModal({
                     {passengers.map((p: any, idx: number) => {
                       const isPicPassenger = p.is_pic || (!passengers.some((px: any) => px.is_pic) && idx === 0);
                       return (
-                        <div key={p.id || idx} className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-lg text-[13px] transition-colors">
-                          <span className="font-semibold text-slate-700 flex items-center gap-1.5">
-                            <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold">
+                        <div key={p.id || idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-lg text-[13px] transition-colors">
+                          <div className="font-semibold text-slate-700 flex flex-wrap items-center gap-1.5">
+                            <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
                               {idx + 1}
                             </span>
-                            {p.name}
+                            <span className="font-bold text-slate-800">{p.name}</span>
                             {isPicPassenger && (
-                              <span className="bg-amber-100 text-amber-800 border border-amber-300 text-[9.5px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                              <span className="bg-amber-100 text-amber-800 border border-amber-300 text-[9.5px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-0.5 flex-shrink-0">
                                 PIC Penumpang
                               </span>
                             )}
@@ -709,14 +709,14 @@ export function RequestDetailModal({
                                 href={`https://wa.me/${(p.phone || request.userPhone).replace(/[^0-9]/g, '')}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-md text-[10px] font-bold transition-colors"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-md text-[10px] font-bold transition-colors flex-shrink-0"
                                 title="Hubungi WhatsApp PIC Penumpang"
                               >
                                 WA PIC
                               </a>
                             )}
-                          </span>
-                          <span className="text-[11px] font-semibold text-slate-400 uppercase">
+                          </div>
+                          <span className="text-[11px] font-semibold text-slate-400 uppercase flex-shrink-0 self-start sm:self-auto">
                             {p.department_name || p.department_id || request.department}
                           </span>
                         </div>

@@ -513,13 +513,13 @@ export default function MyRequestsPage() {
                     </div>
 
                     {/* Stepper Row (Always visible and responsive) */}
-                    <div className="w-full max-w-[480px] mt-5 pt-4 border-t border-slate-50">
-                      <div className="flex items-center justify-between gap-0 relative w-full">
+                    <div className="w-full mt-4 pt-3 border-t border-slate-100 overflow-x-auto scrollbar-none">
+                      <div className="min-w-[450px] sm:min-w-full flex items-center justify-between gap-0 relative px-1 py-1">
                         {/* Connection Line */}
-                        <div className="absolute top-4 left-[8.3%] right-[8.3%] h-0.5 bg-[#e2e8f0]" />
+                        <div className="absolute top-[18px] left-[35px] right-[35px] h-0.5 bg-[#e2e8f0]" />
                         
                         {steps.map((s, si) => (
-                          <div key={si} className="flex-1 flex flex-col items-center relative z-10">
+                          <div key={si} className="flex-1 flex flex-col items-center relative z-10 min-w-[65px]">
                             <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
                               (s.done && !s.active) || (si === STEP_LABELS.length - 1 && s.done)
                                 ? "bg-[#1a6e3c] border-[#1a6e3c] shadow-sm"
@@ -547,7 +547,7 @@ export default function MyRequestsPage() {
                                 : <Icon name={s.icon || STEP_ICONS[si]} className="text-[#e2e8f0] text-[14px]" />
                               }
                             </div>
-                            <div className={`text-[8px] font-bold mt-1.5 uppercase tracking-wider text-center px-1 break-words ${
+                            <div className={`text-[8.5px] sm:text-[9px] font-extrabold mt-1.5 uppercase tracking-wider text-center px-0.5 leading-tight ${
                               s.active
                                 ? s.activeColor === "blue"
                                   ? "text-[#2563eb]"
@@ -556,7 +556,7 @@ export default function MyRequestsPage() {
                                   : "text-[#ff8c00]"
                                 : s.done
                                 ? "text-[#1a6e3c]"
-                                : "text-[#e2e8f0]"
+                                : "text-[#cbd5e1]"
                             }`}>
                               {s.label || STEP_LABELS[si]}
                             </div>
