@@ -741,8 +741,8 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                   </button>
                 </div>
                 <div className="space-y-2">                   {passengers.map((passenger, index) => (
-                    <div key={index} className="flex gap-3 items-center bg-[#f8fafc] p-3 rounded-xl border border-[#e2e8f0]">
-                      <div className="flex-1 relative">
+                    <div key={index} className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center bg-[#f8fafc] p-3 rounded-xl border border-[#e2e8f0]">
+                      <div className="flex-1 relative min-w-0">
                         <input
                           type="text"
                           required
@@ -783,25 +783,26 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                           </div>
                         )}
                       </div>
-                      <div className="w-1/3">
+                      <div className="flex items-center gap-2 min-w-0 flex-1 sm:flex-initial">
                         <select
                           value={passenger.department_id}
                           onChange={e => handlePassengerChange(index, "department_id", e.target.value)}
-                          className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none cursor-pointer"
+                          className="flex-1 min-w-0 h-9 px-2 border border-[#e2e8f0] rounded-lg text-[11.5px] text-[#0f172a] bg-white focus:outline-none truncate cursor-pointer"
                         >
                           <option value="">Pilih Departemen</option>
                           {departments.map(d => (
                             <option key={d.id} value={d.id}>{d.name}</option>
                           ))}
                         </select>
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePassenger(index)}
+                          className="p-1.5 text-[#94a3b8] hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors flex-shrink-0 cursor-pointer"
+                          title="Hapus Penumpang"
+                        >
+                          <Icon name="close" className="text-[18px]" />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePassenger(index)}
-                        className="text-[#94a3b8] hover:text-red-500 cursor-pointer"
-                      >
-                        <Icon name="close" className="text-[18px]" />
-                      </button>
                     </div>
                   ))}
                   {passengers.length === 0 && (

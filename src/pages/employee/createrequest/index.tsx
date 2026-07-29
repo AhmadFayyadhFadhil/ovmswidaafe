@@ -593,7 +593,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                           </div>
                         )}
                       </div>
-                        <div className="w-full sm:w-1/2 flex items-center gap-2">
+                        <div className="flex items-center gap-2 min-w-0 flex-1 sm:flex-initial">
                           <button
                             type="button"
                             onClick={() => {
@@ -618,14 +618,15 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                               next[i] = { ...next[i], department_id: e.target.value };
                               setPassengers(next);
                             }}
-                            className="flex-1 h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none"
+                            className="flex-1 min-w-0 h-9 px-2 border border-[#e2e8f0] rounded-lg text-[11.5px] text-[#0f172a] bg-white focus:outline-none truncate"
                           >
                             <option value="">Pilih Departemen</option>
                             {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                           </select>
                           <button
+                            type="button"
                             onClick={() => setPassengers(prev => prev.filter((_, j) => j !== i))}
-                            className="p-1.5 text-[#94a3b8] hover:text-[#ef4444] rounded-lg hover:bg-red-50 transition-colors flex-shrink-0"
+                            className="p-1.5 text-[#94a3b8] hover:text-[#ef4444] rounded-lg hover:bg-red-50 transition-colors flex-shrink-0 cursor-pointer"
                             title="Hapus Penumpang"
                           >
                             <Icon name="close" className="text-[18px]" />

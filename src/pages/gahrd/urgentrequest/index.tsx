@@ -359,8 +359,8 @@ export default function CreateUrgentRequestPage() {
                     (item) => !passengers.some((pOther, idx) => idx !== i && pOther.name.trim().toLowerCase() === item.name.trim().toLowerCase())
                   );
                   return (
-                    <div key={i} className="flex items-center gap-3 bg-[#f8fafc] p-3 rounded-xl border border-[#e2e8f0]">
-                      <div className="flex-1 relative">
+                    <div key={i} className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center bg-[#f8fafc] p-3 rounded-xl border border-[#e2e8f0]">
+                      <div className="flex-1 relative min-w-0">
                         <input
                           type="text"
                           value={p.name}
@@ -375,7 +375,7 @@ export default function CreateUrgentRequestPage() {
                           }, 250);
                         }}
                         placeholder="Nama Lengkap Penumpang"
-                        className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none"
+                        className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                       />
                       {activePassengerIndex === i && (filteredSuggestions.length > 0 || searchLoading) && (
                         <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#e2e8f0] rounded-xl shadow-lg max-h-48 overflow-y-auto z-50">
@@ -402,7 +402,7 @@ export default function CreateUrgentRequestPage() {
                         </div>
                       )}
                     </div>
-                    <div className="w-1/3">
+                    <div className="flex items-center gap-2 min-w-0 flex-1 sm:flex-initial">
                       <select
                         value={p.department_id}
                         onChange={e => {
@@ -410,18 +410,20 @@ export default function CreateUrgentRequestPage() {
                           next[i] = { ...next[i], department_id: e.target.value };
                           setPassengers(next);
                         }}
-                        className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none"
+                        className="flex-1 min-w-0 h-9 px-2 border border-[#e2e8f0] rounded-lg text-[11.5px] text-[#0f172a] bg-white focus:outline-none truncate cursor-pointer"
                       >
                         <option value="">Pilih Departemen</option>
                         {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                       </select>
+                      <button
+                        type="button"
+                        onClick={() => setPassengers(prev => prev.filter((_, j) => j !== i))}
+                        className="p-1.5 text-[#94a3b8] hover:text-[#ef4444] rounded-lg hover:bg-red-50 transition-colors flex-shrink-0 cursor-pointer"
+                        title="Hapus Penumpang"
+                      >
+                        <Icon name="close" className="text-[18px]" />
+                      </button>
                     </div>
-                     <button
-                      onClick={() => setPassengers(prev => prev.filter((_, j) => j !== i))}
-                      className="text-[#94a3b8] hover:text-[#ef4444] transition-colors"
-                    >
-                      <Icon name="close" className="text-[16px]" />
-                    </button>
                   </div>
                 );
               })
