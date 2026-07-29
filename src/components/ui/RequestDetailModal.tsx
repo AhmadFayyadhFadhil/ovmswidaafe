@@ -607,31 +607,34 @@ export function RequestDetailModal({
                                 const isAssigned = dName !== "Not Assigned" && dName !== "Belum Ditugaskan" && dName.trim() !== "";
 
                                 return (
-                                  <div key={dIdx} className="p-3 bg-gradient-to-r from-slate-50 to-blue-50/30 border border-slate-200/80 rounded-xl flex items-center justify-between gap-3">
-                                    <div className="flex items-center gap-3 min-w-0">
-                                      <div className="w-9 h-9 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-xs font-extrabold shrink-0 shadow-sm border border-blue-900">
+                                  <div key={dIdx} className="p-3.5 bg-gradient-to-r from-slate-50 to-blue-50/30 border border-slate-200/80 rounded-xl flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                                      <div className="w-9 h-9 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-xs font-extrabold shrink-0 shadow-sm border border-blue-900 mt-0.5">
                                         {dInitials}
                                       </div>
-                                      <div className="min-w-0">
-                                        <div className="text-[12.5px] font-bold text-slate-800 truncate">{dName}</div>
-                                        <div className="text-[11px] font-medium text-slate-600 truncate flex items-center gap-1 mt-0.5">
-                                          <Icon name="directions_car" className="text-xs text-slate-400" />
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-[13px] font-bold text-slate-800 leading-snug break-words">{dName}</div>
+                                        <div className="text-[11.5px] font-semibold text-slate-600 flex items-center gap-1.5 mt-1 leading-snug break-words">
+                                          <Icon name="directions_car" className="text-xs text-slate-400 shrink-0" />
                                           <span>{vName}</span>
                                         </div>
                                         {request.driverPhone && (
-                                          <a
-                                            href={`https://wa.me/${request.driverPhone.replace(/[^0-9]/g, '')}`}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-md text-[10.5px] font-bold transition-colors mt-1"
-                                          >
-                                            Hubungi WA ({request.driverPhone})
-                                          </a>
+                                          <div>
+                                            <a
+                                              href={`https://wa.me/${request.driverPhone.replace(/[^0-9]/g, '')}`}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-[10.5px] font-bold transition-colors mt-2 whitespace-nowrap"
+                                              title="Hubungi WhatsApp Driver"
+                                            >
+                                              Hubungi WA ({request.driverPhone})
+                                            </a>
+                                          </div>
                                         )}
                                       </div>
                                     </div>
 
-                                    <span className={`text-[9.5px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${
+                                    <span className={`text-[9.5px] font-extrabold px-2.5 py-1 rounded-full shrink-0 self-start sm:self-auto ${
                                       isAssigned 
                                         ? "bg-blue-100 text-blue-900 border border-blue-200" 
                                         : "bg-slate-100 text-slate-500 border border-slate-200"
