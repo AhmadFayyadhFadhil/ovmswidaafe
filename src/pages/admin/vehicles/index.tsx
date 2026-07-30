@@ -144,8 +144,8 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
     setEditFormError("");
     try {
       const data = new FormData();
-      data.append("name", editFormData.model);
-      data.append("plate_number", editFormData.plate);
+      data.append("name", editFormData.model.trim());
+      data.append("plate_number", editFormData.plate.trim());
       data.append("type", editFormData.type);
       data.append("capacity", String(editFormData.capacity));
       data.append("status", editFormData.status);
@@ -160,8 +160,9 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
       setIsEditModalOpen(false);
       refetch();
     } catch (err: any) {
-      console.error(err);
-      setEditFormError(err.response?.data?.message || "Failed to update vehicle.");
+      console.error("Edit vehicle error:", err);
+      const serverMsg = err.response?.data?.message || err.response?.data?.error;
+      setEditFormError(serverMsg || "Gagal memperbarui kendaraan. Pastikan nomor plat belum digunakan.");
     } finally {
       setUpdating(false);
     }
@@ -177,8 +178,8 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
     setFormError("");
     try {
       const data = new FormData();
-      data.append("name", formData.model);
-      data.append("plate_number", formData.plate);
+      data.append("name", formData.model.trim());
+      data.append("plate_number", formData.plate.trim());
       data.append("type", formData.type);
       data.append("capacity", String(formData.capacity));
       data.append("status", formData.status);
@@ -204,8 +205,9 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
       setStnkPreview("");
       refetch();
     } catch (err: any) {
-      console.error(err);
-      setFormError(err.response?.data?.message || "Failed to add vehicle.");
+      console.error("Add vehicle error:", err);
+      const serverMsg = err.response?.data?.message || err.response?.data?.error;
+      setFormError(serverMsg || "Gagal menambahkan kendaraan. Pastikan nomor plat belum pernah terdaftar.");
     } finally {
       setAdding(false);
     }
