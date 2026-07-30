@@ -1,7 +1,9 @@
 // src/utils/exportHelper.ts
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 /**
- * Exports data array to a downloadable UTF-8 CSV file (with BOM & semicolon delimiter for seamless Excel support in Indonesia/Global locale)
+ * Exports data array to a downloadable UTF-8 CSV file (with BOM & semicolon delimiter for seamless Excel support)
  */
 export function exportToCSV(filename: string, headers: string[], rows: (string | number | boolean | null | undefined)[][], delimiter: string = ";") {
   const cleanStr = (val: any) => {
@@ -27,91 +29,84 @@ export function exportToCSV(filename: string, headers: string[], rows: (string |
 }
 
 /**
- * Direct 1-Touch PDF Print/Download window helper using invisible iframe
- * Eliminates browser popup blocker restrictions for instant 1-click execution.
+ * DIRECT AUTOMATIC PDF FILE DOWNLOAD (1-Click)
+ * Generates a native binary PDF file and downloads it instantly to the browser Downloads folder.
+ * Zero print dialogs, zero step popups, zero prompt inputs!
  */
 export function downloadItemPDF(title: string, item: Record<string, any>) {
-  // Create hidden iframe to bypass popup blocker
-  const iframe = document.createElement("iframe");
-  iframe.style.position = "fixed";
-  iframe.style.right = "0";
-  iframe.style.bottom = "0";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
-  iframe.style.border = "0";
-  iframe.style.visibility = "hidden";
-  document.body.appendChild(iframe);
+  try {
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4"
+    });
 
-  const iframeDoc = iframe.contentWindow?.document || iframe.contentDocument;
-  if (!iframeDoc) return;
+    // Header Banner
+    doc.setFillColor(30, 58, 138); // #1e3a8a
+    doc.rect(0, 0, 210, 22, "F");
 
-  const fieldsHtml = Object.entries(item)
-    .filter(([_, val]) => val !== null && val !== undefined && val !== "")
-    .map(([key, val]) => `
-      <tr style="border-bottom: 1px solid #e2e8f0;">
-        <td style="padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #475569; width: 35%; background: #f8fafc;">${key.replace(/_/g, ' ')}</td>
-        <td style="padding: 10px 14px; font-size: 13px; font-weight: 600; color: #0f172a;">${val}</td>
-      </tr>
-    `).join("");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("PT. WIDATRA BHAKTI", 14, 11);
 
-  iframeDoc.open();
-  iframeDoc.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>${title}</title>
-        <style>
-          @page { size: A4; margin: 15mm; }
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 24px; color: #0f172a; }
-          .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #1e3a8a; padding-bottom: 16px; margin-bottom: 20px; }
-          .logo { font-size: 22px; font-weight: 900; color: #1e3a8a; letter-spacing: -0.5px; }
-          .sub { font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 2px; }
-          .table-box { border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; }
-          table { width: 100%; border-collapse: collapse; text-align: left; }
-          .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div>
-            <div class="logo">PT. WIDATRA BHAKTI</div>
-            <div class="sub">Operational Vehicle Management System (OVMS)</div>
-          </div>
-          <div style="text-align: right;">
-            <div style="font-size: 15px; font-weight: 800; color: #1e3a8a;">${title}</div>
-            <div style="font-size: 10px; color: #64748b; margin-top: 3px;">Tanggal Cetak: ${new Date().toLocaleString('id-ID')}</div>
-          </div>
-        </div>
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text("OPERATIONAL VEHICLE MANAGEMENT SYSTEM (OVMS)", 14, 17);
 
-        <div class="table-box">
-          <table>
-            <tbody>
-              ${fieldsHtml}
-            </tbody>
-          </table>
-        </div>
+    // Document Title & Timestamp
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.text(title.toUpperCase(), 14, 32);
 
-        <div class="footer">
-          Dokumen resmi ini diterbitkan secara otomatis oleh Sistem OVMS PT Widarta Bhakti.
-        </div>
-      </body>
-    </html>
-  `);
-  iframeDoc.close();
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Waktu Cetak: ${new Date().toLocaleString("id-ID")}`, 14, 37);
 
-  // Trigger print dialog smoothly
-  setTimeout(() => {
-    try {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-    } catch (e) {
-      console.error("PDF iframe print error", e);
-    } finally {
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-      }, 3000);
-    }
-  }, 300);
+    // Table Contents
+    const tableData = Object.entries(item)
+      .filter(([_, val]) => val !== null && val !== undefined && val !== "")
+      .map(([key, val]) => [key.replace(/_/g, " ").toUpperCase(), String(val)]);
+
+    autoTable(doc, {
+      startY: 42,
+      head: [["PARAMETER DOCUMENT", "DETAIL INFORMASI VERIFIKASI"]],
+      body: tableData,
+      theme: "striped",
+      headStyles: {
+        fillColor: [30, 58, 138],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 9.5
+      },
+      bodyStyles: {
+        fontSize: 9,
+        textColor: [15, 23, 42]
+      },
+      columnStyles: {
+        0: { fontStyle: "bold", cellWidth: 60, fillColor: [248, 250, 252] },
+        1: { cellWidth: "auto" }
+      },
+      margin: { left: 14, right: 14 }
+    });
+
+    const finalY = (doc as any).lastAutoTable?.finalY || 140;
+
+    // Official Footer Notice
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.text(
+      "Dokumen resmi ini diterbitkan secara otomatis oleh Sistem OVMS PT Widarta Bhakti dan berlaku sah.",
+      14,
+      finalY + 10
+    );
+
+    // DIRECT AUTOMATIC DOWNLOAD TO BROWSER DOWNLOADS FOLDER (1-CLICK)
+    const cleanFilename = (title.endsWith(".pdf") ? title : `${title}.pdf`).replace(/[^a-zA-Z0-9_.-]/g, "_");
+    doc.save(cleanFilename);
+  } catch (err) {
+    console.error("Gagal mendownload PDF langsung:", err);
+  }
 }

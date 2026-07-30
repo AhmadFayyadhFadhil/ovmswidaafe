@@ -3,6 +3,7 @@ import { Icon } from "./Icon";
 import { PriorityBadge } from "../layout/PriorityBadge";
 import type { FleetRequest } from "../../types";
 import { useAuthContext } from "@/auth/authContext";
+import { downloadItemPDF } from "@/utils/exportHelper";
 
 interface RequestDetailModalProps {
   isOpen: boolean;
@@ -232,7 +233,30 @@ export function RequestDetailModal({
             )}
           </div>
           <div className="flex items-center gap-1.5">
-            {/* Print Button */}
+            {/* Direct PDF Download Button */}
+            <button
+              onClick={() => {
+                downloadItemPDF(`Surat_Tugas_REQ_${request.id}`, {
+                  "Request ID": `REQ-${request.id}`,
+                  "Nama Pemohon": `${request.employee || ''} (${request.department || ''})`,
+                  "Tujuan Perjalanan": request.destination || '',
+                  "Jadwal Keberangkatan": `${request.date || ''} ${request.time || '09:00'}`,
+                  "Tipe Request": Array.isArray(request.itineraries) && request.itineraries.length > 0 ? `Multi-Day (${request.itineraries.length} Hari)` : (request.is_external ? "Sewa Pihak Ke-3" : "Armada Internal"),
+                  "Driver / Pengemudi": request.is_external ? (request.external_driver_name || "Sewa Eksternal") : (request.driverName || "Internal"),
+                  "Kendaraan / Armada": request.is_external ? (request.external_provider || "Eksternal") : (request.vehicleModel || "Internal"),
+                  "Jumlah Penumpang": `${request.passengerCount || 1} Orang`,
+                  "Keperluan Perjalanan": request.purpose || "-",
+                  "Status Pengajuan": request.rawStatus || request.status || "APPROVED"
+                });
+              }}
+              title="Download PDF Langsung (1-Touch)"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors text-[11px] font-bold cursor-pointer"
+            >
+              <Icon name="picture_as_pdf" className="text-[15px] text-red-600" />
+              <span>Download PDF</span>
+            </button>
+
+            {/* Print Ticket Button */}
             {request.qr_code_token && (
               ["driver_assigned", "on_going", "completed"].includes(request.rawStatus) ||
               (request.is_external && request.rawStatus === "assigned_by_ga")
