@@ -194,38 +194,39 @@ export const userService = {
       message: res.data?.message
     };
   },
-  delete: async (id: string): Promise<ApiResponse<void>> => {
+  delete: async (id: string, userObj?: any): Promise<ApiResponse<void>> => {
     try {
-      const res = await apiClient.delete<any>(`${ENDPOINTS.USERS}/${id}?force=1&cascade=1`);
+      const res = await apiClient.delete<any>(`${ENDPOINTS.USERS}/${id}`);
       return {
         data: undefined,
         message: res.data?.message
       };
     } catch (err: any) {
-      try {
-        const res2 = await apiClient.delete<any>(`${ENDPOINTS.USERS}/${id}`);
-        return {
-          data: undefined,
-          message: res2.data?.message
-        };
-      } catch (err2: any) {
+      if (err.response?.status === 500 || err.response?.status === 422 || err.response?.status === 409) {
         try {
-          const res3 = await apiClient.post<any>(`${ENDPOINTS.USERS}/${id}`, { _method: 'DELETE', force: true, cascade: true });
-          return {
-            data: undefined,
-            message: res3.data?.message
-          };
-        } catch (err3: any) {
-          const res4 = await apiClient.put<any>(`${ENDPOINTS.USERS}/${id}`, {
+          const payload: any = {
             status: 'INACTIVE',
             availability_status: 'unavailable'
-          });
+          };
+          if (userObj) {
+            if (userObj.fullName) payload.name = userObj.fullName;
+            if (userObj.email) payload.email = userObj.email;
+            if (userObj.roleName) payload.role = userObj.roleName;
+            if (userObj.department_id) {
+              const pDept = parseInt(userObj.department_id);
+              payload.department_id = isNaN(pDept) ? 1 : pDept;
+            }
+          }
+          const res2 = await apiClient.put<any>(`${ENDPOINTS.USERS}/${id}`, payload);
           return {
             data: undefined,
-            message: res4.data?.message || 'User berhasil dinonaktifkan dari sistem.'
+            message: res2.data?.message || 'User berhasil dinonaktifkan.'
           };
+        } catch (err2: any) {
+          console.error("User deactivation fallback error:", err2);
         }
       }
+      throw err;
     }
   },
 };

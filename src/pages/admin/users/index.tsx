@@ -113,14 +113,14 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
     if (!deleteModal.user) return;
     setDeleteModal(prev => ({ ...prev, deleting: true, error: null }));
     try {
-      await userService.delete(deleteModal.user.id);
+      await userService.delete(deleteModal.user.id, deleteModal.user);
       setDeleteModal({ isOpen: false, user: null, deleting: false, error: null });
       refetch();
     } catch (err: any) {
       console.error("Failed to delete user", err);
-      let msg = err.message || err.response?.data?.message || err.response?.data?.error;
-      if (!msg || msg === "Server Error") {
-        msg = "User ini memiliki data riwayat pengajuan/tugas operasional di database sehingga tidak dapat dihapus permanen. Anda dapat mengubah statusnya menjadi NONAKTIF.";
+      let msg = err.response?.data?.message || err.response?.data?.error || err.message;
+      if (!msg || msg === "Server Error" || msg.includes("status code 422")) {
+        msg = "User ini memiliki data riwayat di database. Silakan klik Edit untuk mengubah statusnya menjadi NONAKTIF.";
       }
       setDeleteModal(prev => ({
         ...prev,
