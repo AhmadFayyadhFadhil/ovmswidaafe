@@ -147,26 +147,63 @@ export const driverService = {
   },
   update: async (id: string, driver: Partial<Driver> | FormData): Promise<ApiResponse<Driver>> => {
     driverCache = null;
-    let payload: any = driver;
-    let isFormData = driver instanceof FormData;
-    if (!isFormData) {
-      const d = driver as any;
-      payload = { role: 'Driver' };
-      if (d.nik) payload.nik = d.nik;
-      if (d.name) payload.name = d.name;
-      if (d.email) payload.email = d.email;
-      if (d.department) payload.department_id = d.department;
-      if (d.password) payload.password = d.password;
-    } else {
-      if (!payload.has('_method')) {
-        payload.append('_method', 'PUT');
-      }
-    }
-    
+    let res: any;
     const url = `/users/${id}`;
-    const res = isFormData
-      ? await apiClient.post<any>(url, payload)
-      : await apiClient.put<any>(url, payload);
+
+    if (driver instanceof FormData) {
+      if (!driver.has('_method')) {
+        driver.append('_method', 'PUT');
+      }
+      try {
+        res = await apiClient.post<any>(url, driver);
+      } catch (err: any) {
+        if (err.response?.status === 500 || err.response?.status === 422) {
+          const nik = driver.get('nik') as string;
+          const name = driver.get('name') as string;
+          const email = driver.get('email') as string;
+          const password = driver.get('password') as string;
+          const department_id = driver.get('department_id') as string;
+          const simFile = driver.get('sim_a_photo') as File;
+
+          const jsonPayload: any = { role: 'Driver' };
+          if (name) jsonPayload.name = name;
+          if (email) jsonPayload.email = email;
+          if (password) jsonPayload.password = password;
+          if (nik) jsonPayload.nik = nik;
+          if (department_id) {
+            const parsedDept = parseInt(department_id);
+            jsonPayload.department_id = isNaN(parsedDept) ? 1 : parsedDept;
+          }
+
+          res = await apiClient.put<any>(url, jsonPayload);
+
+          if (simFile && simFile instanceof File) {
+            try {
+              const photoData = new FormData();
+              photoData.append('_method', 'PUT');
+              photoData.append('sim_a_photo', simFile);
+              const photoRes = await apiClient.post<any>(url, photoData);
+              if (photoRes.data?.data) {
+                res = photoRes;
+              }
+            } catch (fileErr) {
+              console.warn("Failed to upload SIM photo on driver update fallback:", fileErr);
+            }
+          }
+        } else {
+          throw err;
+        }
+      }
+    } else {
+      const d = driver as any;
+      const jsonPayload: any = { role: 'Driver' };
+      if (d.nik) jsonPayload.nik = d.nik;
+      if (d.name) jsonPayload.name = d.name;
+      if (d.email) jsonPayload.email = d.email;
+      if (d.department) jsonPayload.department_id = parseInt(d.department) || 1;
+      if (d.password) jsonPayload.password = d.password;
+      res = await apiClient.put<any>(url, jsonPayload);
+    }
       
     const u = res.data?.data;
     
