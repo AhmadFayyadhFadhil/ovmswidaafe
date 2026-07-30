@@ -151,6 +151,8 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       }
       if (editSimFile) {
         data.append("sim_a_photo", editSimFile);
+        data.append("sim_photo", editSimFile);
+        data.append("photo", editSimFile);
       }
 
       await driverService.update(editingDriver.id, data);
