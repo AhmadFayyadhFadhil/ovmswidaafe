@@ -136,16 +136,18 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     try {
       const data = new FormData();
       if (editFormData.nik) {
-        data.append("nik", editFormData.nik);
+        data.append("nik", editFormData.nik.trim());
       }
-      data.append("name", editFormData.name);
-      data.append("email", editFormData.email);
+      data.append("name", editFormData.name.trim());
+      data.append("email", editFormData.email.trim());
       if (editFormData.password) {
         data.append("password", editFormData.password);
       }
       data.append("role", "Driver");
+      
       if (editFormData.department) {
-        data.append("department_id", editFormData.department);
+        const parsedDeptId = parseInt(editFormData.department);
+        data.append("department_id", String(isNaN(parsedDeptId) ? 1 : parsedDeptId));
       }
       if (editSimFile) {
         data.append("sim_a_photo", editSimFile);
@@ -155,8 +157,16 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       setIsEditModalOpen(false);
       refetch();
     } catch (err: any) {
-      console.error(err);
-      setEditFormError(err.response?.data?.message || "Failed to update driver.");
+      console.error("Edit driver error:", err);
+      const status = err.response?.status;
+      const serverMsg = err.response?.data?.message || err.response?.data?.error;
+      if (status === 422) {
+        setEditFormError(serverMsg || "Data driver tidak valid atau NIK/Email sudah terdaftar.");
+      } else if (status === 500) {
+        setEditFormError(serverMsg ? `Server Error: ${serverMsg}` : "Gagal memperbarui driver di server.");
+      } else {
+        setEditFormError(serverMsg || "Failed to update driver.");
+      }
     } finally {
       setUpdating(false);
     }
@@ -177,16 +187,19 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     try {
       const data = new FormData();
       if (formData.nik) {
-        data.append("nik", formData.nik);
+        data.append("nik", formData.nik.trim());
       }
-      data.append("name", formData.name);
-      data.append("email", formData.email);
+      data.append("name", formData.name.trim());
+      data.append("email", formData.email.trim());
       data.append("password", formData.password);
       data.append("role", "Driver");
-      if (formData.department) {
-        data.append("department_id", formData.department);
+      
+      const parsedDeptId = formData.department ? parseInt(formData.department) : (departments[0]?.id || 1);
+      data.append("department_id", String(isNaN(parsedDeptId) ? 1 : parsedDeptId));
+
+      if (simFile) {
+        data.append("sim_a_photo", simFile);
       }
-      data.append("sim_a_photo", simFile);
 
       await driverService.create(data);
       setIsModalOpen(false);
@@ -201,8 +214,16 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       setSimPreview("");
       refetch();
     } catch (err: any) {
-      console.error(err);
-      setFormError(err.response?.data?.message || "Failed to add driver.");
+      console.error("Add driver error:", err);
+      const status = err.response?.status;
+      const serverMsg = err.response?.data?.message || err.response?.data?.error;
+      if (status === 422) {
+        setFormError(serverMsg || "Data driver tidak valid atau NIK/Email sudah terdaftar.");
+      } else if (status === 500) {
+        setFormError(serverMsg ? `Server Error: ${serverMsg}` : "Gagal menyimpan driver. Pastikan NIK & Email belum terdaftar di sistem.");
+      } else {
+        setFormError(serverMsg || "Gagal menambahkan driver.");
+      }
     } finally {
       setAdding(false);
     }

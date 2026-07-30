@@ -148,17 +148,18 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
     try {
       const data = new FormData();
       if (editFormData.nik) {
-        data.append("nik", editFormData.nik);
+        data.append("nik", editFormData.nik.trim());
       }
-      data.append("name", editFormData.name);
-      data.append("email", editFormData.email);
+      data.append("name", editFormData.name.trim());
+      data.append("email", editFormData.email.trim());
       if (editFormData.password) {
         data.append("password", editFormData.password);
       }
       data.append("role", editFormData.role);
-      if (editFormData.department) {
-        data.append("department_id", editFormData.department);
-      }
+      
+      const parsedDeptId = editFormData.department ? parseInt(editFormData.department) : (departments[0]?.id || 1);
+      data.append("department_id", String(isNaN(parsedDeptId) ? 1 : parsedDeptId));
+
       data.append("is_department_head", editFormData.isDepartmentHead ? "1" : "0");
       if (editFormData.role === "Approver") {
         data.append("rank", editFormData.rank);
@@ -171,8 +172,16 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
       setIsEditModalOpen(false);
       refetch();
     } catch (err: any) {
-      console.error(err);
-      setEditFormError(err.response?.data?.message || "Failed to update user.");
+      console.error("Edit user error:", err);
+      const status = err.response?.status;
+      const serverMsg = err.response?.data?.message || err.response?.data?.error;
+      if (status === 422) {
+        setEditFormError(serverMsg || "Data user tidak valid atau NIK/Email sudah terdaftar.");
+      } else if (status === 500) {
+        setEditFormError(serverMsg ? `Server Error: ${serverMsg}` : "Gagal memperbarui user di server.");
+      } else {
+        setEditFormError(serverMsg || "Failed to update user.");
+      }
     } finally {
       setEditClicked(false);
     }
@@ -198,15 +207,16 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
     try {
       const data = new FormData();
       if (formData.nik) {
-        data.append("nik", formData.nik);
+        data.append("nik", formData.nik.trim());
       }
-      data.append("name", formData.name);
-      data.append("email", formData.email);
+      data.append("name", formData.name.trim());
+      data.append("email", formData.email.trim());
       data.append("password", formData.password);
       data.append("role", formData.role);
-      if (formData.department) {
-        data.append("department_id", formData.department);
-      }
+      
+      const parsedDeptId = formData.department ? parseInt(formData.department) : (departments[0]?.id || 1);
+      data.append("department_id", String(isNaN(parsedDeptId) ? 1 : parsedDeptId));
+
       data.append("is_department_head", formData.isDepartmentHead ? "1" : "0");
       if (formData.role === "Approver") {
         data.append("rank", formData.rank);
@@ -231,8 +241,16 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
       setSimPreview("");
       refetch();
     } catch (err: any) {
-      console.error(err);
-      setFormError(err.response?.data?.message || "Failed to add user.");
+      console.error("Add user error:", err);
+      const status = err.response?.status;
+      const serverMsg = err.response?.data?.message || err.response?.data?.error;
+      if (status === 422) {
+        setFormError(serverMsg || "Data user tidak valid atau NIK/Email sudah terdaftar.");
+      } else if (status === 500) {
+        setFormError(serverMsg ? `Server Error: ${serverMsg}` : "Gagal menyimpan user. Pastikan NIK & Email belum terdaftar di sistem.");
+      } else {
+        setFormError(serverMsg || "Failed to add user.");
+      }
     } finally {
       setAddClicked(false);
     }

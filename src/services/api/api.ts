@@ -18,8 +18,12 @@ apiClient.interceptors.request.use(
     }
     if (config.data instanceof FormData) {
       if (config.headers) {
-        delete config.headers['Content-Type'];
-        delete config.headers['content-type'];
+        if (typeof config.headers.delete === 'function') {
+          config.headers.delete('Content-Type');
+          config.headers.delete('content-type');
+        }
+        delete (config.headers as any)['Content-Type'];
+        delete (config.headers as any)['content-type'];
       }
     }
     return config;
