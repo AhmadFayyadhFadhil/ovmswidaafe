@@ -51,6 +51,7 @@ const GAHRDDrivers = lazy(() => import("@/pages/gahrd/driver"));
 const GAHRDCalendar = lazy(() => import("@/pages/gahrd/calendar"));
 const GAHRDUsers = lazy(() => import("@/pages/gahrd/users"));
 const CreateUrgentRequest = lazy(() => import("@/pages/gahrd/urgentrequest"));
+const MaintenancePage = lazy(() => import("@/pages/common/MaintenancePage"));
 
 function GAHRDDashboardWrapper() {
   const navigate = useNavigate();
@@ -131,9 +132,11 @@ export default function AppRoutes() {
           {/* Security Routes */}
           <Route path="/security/dashboard" element={<SecurityDashboard />} />
           <Route path="/security/history" element={<SecurityHistory />} />
-          <Route path="/security/profile" element={<EmployeeProfile />} />
+          {/* Maintenance Page */}
+          <Route path="/maintenance" element={<MaintenancePage />} />
         </Route>
 
+        <Route path="/maintenance" element={<MaintenancePage />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
