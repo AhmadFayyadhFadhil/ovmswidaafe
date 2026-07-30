@@ -157,26 +157,60 @@ export const driverService = {
   },
   updateMyStatus: async (status: 'available' | 'unavailable'): Promise<ApiResponse<any>> => {
     driverCache = null;
-    const res = await apiClient.put<any>('/profile/status', { availability_status: status });
-    return {
-      data: res.data?.data,
-      message: res.data?.message
-    };
+    const payload = { availability_status: status };
+    try {
+      const res = await apiClient.put<any>('/profile/status', payload);
+      return { data: res.data?.data, message: res.data?.message };
+    } catch (err: any) {
+      if (err.response?.status === 404 || err.response?.status === 405) {
+        const res2 = await apiClient.put<any>('/profile', payload);
+        return { data: res2.data?.data, message: res2.data?.message };
+      }
+      throw err;
+    }
   },
   setAvailable: async (id: string): Promise<ApiResponse<any>> => {
     driverCache = null;
-    const res = await apiClient.put<any>(`/users/${id}/status`, { availability_status: 'available' });
-    return {
-      data: res.data?.data,
-      message: res.data?.message
-    };
+    const payload = { availability_status: 'available' };
+    try {
+      const res = await apiClient.put<any>(`/users/${id}/status`, payload);
+      return { data: res.data?.data, message: res.data?.message };
+    } catch (err: any) {
+      if (err.response?.status === 404 || err.response?.status === 405) {
+        try {
+          const res2 = await apiClient.put<any>(`/users/${id}`, payload);
+          return { data: res2.data?.data, message: res2.data?.message };
+        } catch (err2: any) {
+          if (err2.response?.status === 404 || err2.response?.status === 405) {
+            const res3 = await apiClient.post<any>(`/users/${id}`, { ...payload, _method: 'PUT' });
+            return { data: res3.data?.data, message: res3.data?.message };
+          }
+          throw err2;
+        }
+      }
+      throw err;
+    }
   },
   setUnavailable: async (id: string): Promise<ApiResponse<any>> => {
     driverCache = null;
-    const res = await apiClient.put<any>(`/users/${id}/status`, { availability_status: 'unavailable' });
-    return {
-      data: res.data?.data,
-      message: res.data?.message
-    };
+    const payload = { availability_status: 'unavailable' };
+    try {
+      const res = await apiClient.put<any>(`/users/${id}/status`, payload);
+      return { data: res.data?.data, message: res.data?.message };
+    } catch (err: any) {
+      if (err.response?.status === 404 || err.response?.status === 405) {
+        try {
+          const res2 = await apiClient.put<any>(`/users/${id}`, payload);
+          return { data: res2.data?.data, message: res2.data?.message };
+        } catch (err2: any) {
+          if (err2.response?.status === 404 || err2.response?.status === 405) {
+            const res3 = await apiClient.post<any>(`/users/${id}`, { ...payload, _method: 'PUT' });
+            return { data: res3.data?.data, message: res3.data?.message };
+          }
+          throw err2;
+        }
+      }
+      throw err;
+    }
   },
 };
