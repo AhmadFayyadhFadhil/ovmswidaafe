@@ -87,12 +87,43 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
     }).catch(err => console.error(err));
   }, []);
 
-  const handleDelete = async (id: string) => {
+  // Delete Modal State
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    user: any | null;
+    deleting: boolean;
+    error: string | null;
+  }>({
+    isOpen: false,
+    user: null,
+    deleting: false,
+    error: null,
+  });
+
+  const handleOpenDeleteModal = (u: any) => {
+    setDeleteModal({
+      isOpen: true,
+      user: u,
+      deleting: false,
+      error: null,
+    });
+  };
+
+  const handleConfirmDeleteUser = async () => {
+    if (!deleteModal.user) return;
+    setDeleteModal(prev => ({ ...prev, deleting: true, error: null }));
     try {
-      await userService.delete(id);
+      await userService.delete(deleteModal.user.id);
+      setDeleteModal({ isOpen: false, user: null, deleting: false, error: null });
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to delete user", err);
+      const serverMsg = err.response?.data?.message || err.response?.data?.error;
+      setDeleteModal(prev => ({
+        ...prev,
+        deleting: false,
+        error: serverMsg || "Gagal menghapus user ini karena terikat dengan riwayat pengajuan/tugas operasional. Anda dapat mengnonaktifkan statusnya."
+      }));
     }
   };
 
@@ -397,7 +428,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                           <Icon name="edit" className="text-[15px]" />
                         </button>
                         <button
-                          onClick={() => handleDelete(e.id)}
+                          onClick={() => handleOpenDeleteModal(e)}
                           className="flex items-center gap-2 h-8 px-3 bg-white border border-[#e2e8f0] rounded-lg text-[12px] text-[#dc2626] hover:bg-[#fee2e2]"
                         >
                           <Icon name="delete" className="text-[15px]" />
@@ -824,6 +855,66 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.isOpen && deleteModal.user && (
+        <div className="fixed inset-0 bg-black/55 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadein">
+          <div className="bg-white rounded-3xl border border-[#e2e8f0] p-6 sm:p-8 w-full max-w-md shadow-2xl relative">
+            <button
+              onClick={() => setDeleteModal({ isOpen: false, user: null, deleting: false, error: null })}
+              className="absolute top-4 right-4 text-[#94a3b8] hover:text-[#64748b] cursor-pointer"
+            >
+              <Icon name="close" className="text-[20px]" />
+            </button>
+            
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 bg-red-50 text-[#dc2626] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Icon name="delete" className="text-[28px]" />
+              </div>
+              <h3 className="text-[18px] font-extrabold text-[#0f172a]">Konfirmasi Hapus User</h3>
+              <p className="text-[13px] text-[#64748b] mt-2 leading-relaxed">
+                Apakah Anda yakin ingin menghapus user <strong>{deleteModal.user.fullName}</strong> ({deleteModal.user.email}) dari sistem?
+              </p>
+            </div>
+
+            {deleteModal.error && (
+              <div className="mb-5 p-4 bg-red-50/90 border border-red-100 rounded-2xl flex items-start gap-2.5 text-red-700 text-[12px] leading-relaxed">
+                <Icon name="error" className="text-[18px] text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold block mb-0.5 text-red-800">Tidak Dapat Menghapus</span>
+                  {deleteModal.error}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={deleteModal.deleting}
+                onClick={() => setDeleteModal({ isOpen: false, user: null, deleting: false, error: null })}
+                className="flex-1 py-3 border border-[#e2e8f0] text-[#475569] font-bold rounded-xl hover:bg-[#f8fafc] transition-colors cursor-pointer text-[13px]"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={deleteModal.deleting}
+                onClick={handleConfirmDeleteUser}
+                className="flex-1 py-3 bg-[#dc2626] hover:bg-[#b91c1c] text-white font-bold rounded-xl shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 text-[13px] transition-all"
+              >
+                {deleteModal.deleting ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Icon name="delete" className="text-[16px]" />
+                    Ya, Hapus
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
