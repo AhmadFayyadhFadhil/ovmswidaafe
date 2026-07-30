@@ -14,11 +14,7 @@ export const systemConfigService = {
   uploadLogo: async (file: File): Promise<ApiResponse<{ logo_url: string }>> => {
     const formData = new FormData();
     formData.append('logo', file);
-    const res = await apiClient.post<ApiResponse<{ logo_url: string }>>('/system-config/logo', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const res = await apiClient.post<ApiResponse<{ logo_url: string }>>('/system-config/logo', formData);
     return res.data;
   },
   getStats: async (): Promise<ApiResponse<any>> => {

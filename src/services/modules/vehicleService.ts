@@ -107,9 +107,7 @@ export const vehicleService = {
       };
     }
     
-    const res = await apiClient.post<any>(ENDPOINTS.VEHICLES, payload, {
-      headers: payload instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined
-    });
+    const res = await apiClient.post<any>(ENDPOINTS.VEHICLES, payload);
     const v = res.data?.data;
     
     const mapped: any = {
@@ -158,7 +156,7 @@ export const vehicleService = {
     
     const url = `${ENDPOINTS.VEHICLES}/${id}`;
     const res = isFormData 
-      ? await apiClient.post<any>(url, payload, { headers: { 'Content-Type': 'multipart/form-data' } })
+      ? await apiClient.post<any>(url, payload)
       : await apiClient.put<any>(url, payload);
       
     const v = res.data?.data;

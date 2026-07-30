@@ -75,9 +75,7 @@ export const driverService = {
       };
     }
     
-    const res = await apiClient.post<any>('/users', payload, {
-      headers: payload instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined
-    });
+    const res = await apiClient.post<any>('/users', payload);
     const u = res.data?.data;
     
     const mapped: any = {
@@ -121,7 +119,7 @@ export const driverService = {
     
     const url = `/users/${id}`;
     const res = isFormData
-      ? await apiClient.post<any>(url, payload, { headers: { 'Content-Type': 'multipart/form-data' } })
+      ? await apiClient.post<any>(url, payload)
       : await apiClient.put<any>(url, payload);
       
     const u = res.data?.data;
