@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { auditLogService } from "@/services/modules/auditLogService";
+import { exportToCSV } from "@/utils/exportHelper";
 
 // Audit logs will be loaded from backend via `auditLogService.getAll()`
 
@@ -143,7 +144,14 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
               </p>
             </div>
             <div className="flex gap-2 flex-shrink-0">
-              <button className="flex items-center gap-1.5 h-9 px-5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[12px] font-bold shadow-sm transition-all active:scale-95">
+              <button 
+                onClick={() => {
+                  const headers = ["Log ID", "User", "Role", "Activity Type", "Action", "Department", "Severity", "IP / Target", "Time"];
+                  const rows = filtered.map((l: any) => [l.id, l.name, l.role, l.activity, l.action, l.department, l.severity, l.email, l.time]);
+                  exportToCSV("System_Audit_Logs_Report.csv", headers, rows);
+                }}
+                className="flex items-center gap-1.5 h-9 px-5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[12px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
+              >
                 <Icon name="download" className="text-[16px]" />Download Report
               </button>
             </div>

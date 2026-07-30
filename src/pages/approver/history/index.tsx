@@ -6,6 +6,7 @@ import { requestService } from '@/services/modules/requestService';
 import { RequestDetailModal } from '@/components/ui/RequestDetailModal';
 import type { FleetRequest } from '@/types';
 import { useAuthContext } from "@/auth/authContext";
+import { exportToCSV, downloadItemPDF } from "@/utils/exportHelper";
 
 type Priority = "URGENT" | "NORMAL" | "CRITICAL";
 type HistoryStatus = "APPROVED" | "REJECTED" | "CANCELLED";
@@ -195,7 +196,15 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
               <span>View Full Detail</span>
             </button>
             <button 
-              onClick={() => alert('Downloading PDF...')}
+              onClick={() => downloadItemPDF("Surat_Keputusan_Persetujuan_" + item.reqId, {
+                "Request ID": item.reqId,
+                "Title / Destination": item.title,
+                "Requester Name": item.requester,
+                "Decision Status": item.status,
+                "Decision Date": item.datetime,
+                "Decided By": item.decidedBy || "Manager Approver",
+                "Priority Level": item.priority
+              })}
               className="w-full sm:w-auto h-9 px-4 bg-white border border-slate-200 text-slate-700 text-[12px] font-bold rounded-xl hover:bg-slate-50 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap active:scale-98"
             >
               <Icon name="picture_as_pdf" className="text-sm text-red-500" />
@@ -339,15 +348,23 @@ export default function HistoryPage() {
           </div>
           <div className="flex items-center gap-3">
             <button 
-              onClick={() => alert('Exporting history...')}
-              className="h-11 px-5 flex items-center gap-2 bg-white border border-[#e2e8f0] rounded-xl text-[13px] font-bold text-[#1e3a8a] hover:bg-[#f8faff] hover:border-[#93c5fd] transition-all shadow-sm cursor-pointer"
+              onClick={() => {
+                const headers = ["Request ID", "Title / Destination", "Requester", "Decision Date", "Priority", "Status", "Decided By"];
+                const rows = historyItems.map((h: any) => [h.reqId, h.title, h.requester, h.datetime, h.priority, h.status, h.decidedBy || 'Manager Approver']);
+                exportToCSV("Approver_Decision_History.csv", headers, rows);
+              }}
+              className="h-11 px-5 flex items-center gap-2 bg-white border border-[#e2e8f0] rounded-xl text-[13px] font-bold text-[#1e3a8a] hover:bg-[#f8faff] hover:border-[#93c5fd] transition-all shadow-sm cursor-pointer active:scale-95"
             >
               <IconExport />
               Export History
             </button>
             <button 
-              onClick={() => alert('Generating report...')}
-              className="h-11 px-5 flex items-center gap-2 bg-[#1e3a8a] rounded-xl text-[13px] font-bold text-white hover:bg-[#1e40af] transition-all shadow-sm cursor-pointer"
+              onClick={() => {
+                const headers = ["Request ID", "Title / Destination", "Requester", "Decision Date", "Priority", "Status", "Decided By"];
+                const rows = historyItems.map((h: any) => [h.reqId, h.title, h.requester, h.datetime, h.priority, h.status, h.decidedBy || 'Manager Approver']);
+                exportToCSV("Approver_Operational_Report.csv", headers, rows);
+              }}
+              className="h-11 px-5 flex items-center gap-2 bg-[#1e3a8a] rounded-xl text-[13px] font-bold text-white hover:bg-[#1e40af] transition-all shadow-sm cursor-pointer active:scale-95"
             >
               <IconReport />
               Generate Report

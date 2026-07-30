@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Layout, Icon } from '@/components/layout/RoleLayout';
 import { requestService } from '@/services/modules/requestService';
 import { RequestDetailModal } from '@/components/ui/RequestDetailModal';
+import { exportToCSV } from '@/utils/exportHelper';
 
 function StatusBadge({ status }: { status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED' | 'ONGOING' | 'CANCELLED' }) {
   const cfg: Record<string, string> = {
@@ -82,12 +83,24 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
             <h2 className="text-[24px] font-extrabold text-[#0f172a] tracking-tight">Riwayat Operasional Kendaraan</h2>
             <p className="text-[13.5px] text-[#64748b] mt-0.5">Arsip riwayat perjalanan dinas, persetujuan, dan pengajuan yang selesai atau ditolak.</p>
           </div>
-          <button 
-            onClick={fetchHistory}
-            className="flex items-center gap-2 h-9 px-4 border border-slate-200 bg-white rounded-xl text-[12px] font-bold text-slate-600 hover:bg-slate-50 shadow-xs transition-colors cursor-pointer w-fit"
-          >
-            <Icon name="refresh" className="text-[16px] text-slate-500" /> Segarkan Data
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button 
+              onClick={() => {
+                const headers = ["ID Request", "Pemohon", "Departemen", "Tujuan", "Driver", "Waktu", "Status"];
+                const rows = rawRequests.map(r => [r.id, r.employee, r.department, r.destination, r.driverName || 'Belum Ditugaskan', r.date, r.status]);
+                exportToCSV("Riwayat_Operasional_Armada_GA.csv", headers, rows);
+              }}
+              className="flex items-center gap-2 h-9 px-4 bg-[#1e3a8a] text-white rounded-xl text-[12px] font-bold hover:bg-[#1e40af] shadow-2xs transition-all active:scale-95 cursor-pointer"
+            >
+              <Icon name="download" className="text-[16px]" /> Export Laporan
+            </button>
+            <button 
+              onClick={fetchHistory}
+              className="flex items-center gap-2 h-9 px-4 border border-slate-200 bg-white rounded-xl text-[12px] font-bold text-slate-600 hover:bg-slate-50 shadow-xs transition-colors cursor-pointer w-fit"
+            >
+              <Icon name="refresh" className="text-[16px] text-slate-500" /> Segarkan Data
+            </button>
+          </div>
         </div>
 
         {/* Stat cards */}

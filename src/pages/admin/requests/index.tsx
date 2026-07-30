@@ -7,6 +7,7 @@ import { assignmentService } from "@/services/modules/assignmentService";
 import { departmentService } from "@/services/modules/departmentService";
 import type { Department } from "@/services/modules/departmentService";
 import { apiClient } from "@/services/api/api";
+import { exportToCSV } from "@/utils/exportHelper";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -424,7 +425,14 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
             <p className="text-[13px] text-[#64748b] mt-1">Real-time oversight of vehicle dispatch and mission status across the enterprise.</p>
           </div>
           <div className="flex gap-2.5 flex-shrink-0">
-            <button className="flex items-center gap-2 px-4 py-2.5 border border-[#e2e8f0] bg-white rounded-xl text-[13px] font-bold text-[#475569] hover:bg-[#f8fafc] shadow-sm">
+            <button 
+              onClick={() => {
+                const headers = ["Request ID", "Requester", "Department", "Vehicle", "Driver", "Destination", "Date", "Priority", "Status"];
+                const rows = list.map((r: any) => [r.id, r.employee, r.department, r.vehicleModel, r.driverName, r.destination, r.date, r.priority, r.status]);
+                exportToCSV("Admin_Vehicle_Requests_Report.csv", headers, rows);
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 border border-[#e2e8f0] bg-white rounded-xl text-[13px] font-bold text-[#475569] hover:bg-[#f8fafc] shadow-sm cursor-pointer active:scale-95 transition-all"
+            >
               <Icon name="download" className="text-[17px]" />Export
             </button>
             <button
