@@ -205,8 +205,10 @@ export const userService = {
       if (err.response?.status === 500 || err.response?.status === 422 || err.response?.status === 409) {
         try {
           const payload: any = {
-            status: 'INACTIVE',
-            availability_status: 'unavailable'
+            status: 'inactive',
+            availability_status: 'unavailable',
+            is_active: 0,
+            active: 0,
           };
           if (userObj) {
             if (userObj.fullName) payload.name = userObj.fullName;
