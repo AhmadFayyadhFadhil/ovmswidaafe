@@ -3,8 +3,9 @@ import { Layout as RoleLayout } from "../../../components/layout/RoleLayout";
 import { Icon } from "../../../components/ui/Icon";
 import { requestService } from "@/services/modules/requestService";
 import { useNavigate } from "react-router-dom";
+import { useAuthContext } from "@/auth/authContext";
 
-const TABS = ["All", "Unread", "Pending Approvals", "System Alerts"];
+const TABS = ["All", "Unread", "Pending Approvals"];
 
 interface NotifAction {
   label: string;
@@ -26,54 +27,32 @@ interface NotifItem {
   action: NotifAction | null;
 }
 
-const STATIC_NOTIFS: NotifItem[] = [
-  {
-    id: "n2", 
-    type: "DEPARTMENT BYPASS", 
-    typeColor: "text-[#991b1b]", 
-    typeBg: "bg-[#fee2e2]", 
-    typeIcon: "bolt",
-    title: "Urgent Request #3 - GA Coordinator", 
-    time: "45 mins ago", 
-    unread: false,
-    body: "GA Coordinator Jihan submitted an urgent request for Surabaya - RS Dr Soetomo. Department head approval bypassed and routed directly to GA Head/HRD Head.",
-    action: null,
-  },
-  {
-    id: "n3", 
-    type: "SYSTEM ALERT", 
-    typeColor: "text-[#475569]", 
-    typeBg: "bg-[#f1f5f9]", 
-    typeIcon: "info",
-    title: "Daily Quota Alert", 
-    time: "2 hours ago", 
-    unread: false,
-    body: "Daily request limit (10 requests) reached for date 2026-07-10. Subsequent requests will be queued or require GA head bypass.",
-    action: null,
-  },
-];
-
-const LIVE_ACTIVITY = [
-  { dot: "bg-[#0f2a5e]",  title: "Approval Granted",   desc: "Request #2 by Andi S. approved",   time: "NOW"      },
-  { dot: "bg-[#64748b]",  title: "Trip Started",       desc: "Driver John D. checked out",        time: "14:22 PM" },
-  { dot: "bg-[#64748b]",  title: "Vehicle Assigned",   desc: "GA assigned Avanza for Request #2", time: "12:05 PM" },
-];
+interface ActivityItem {
+  dot: string;
+  title: string;
+  desc: string;
+  time: string;
+}
 
 interface Props { onNavigate?: (page: string) => void; }
 
 export default function ApproverNotificationsPage({ onNavigate }: Props) {
   const [activeTab, setActiveTab] = useState("All");
   const [notifs, setNotifs] = useState<NotifItem[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
+  const { user } = useAuthContext();
 
   const loadRealNotifs = async () => {
     setLoading(true);
     try {
       const res = await requestService.getAll({ per_page: 1000 });
       const list = res.data || [];
-      const pendingNotifs = list
+
+      // 1. Generate REAL notification items from actual backend requests
+      const pendingNotifs: NotifItem[] = list
         .filter(r => r.canApprove)
         .map(r => ({
           id: `req-pending-${r.id}`,
@@ -82,10 +61,10 @@ export default function ApproverNotificationsPage({ onNavigate }: Props) {
           typeBg: "bg-[#fff7ed]",
           typeIcon: "pending_actions",
           title: `Persetujuan: Request #RQ-${r.id}`,
-          time: "Baru saja",
+          time: r.date || "Terbaru",
           unread: true,
           isNew: true,
-          body: `${r.employee} (${r.department}) mengajukan perjalanan dinas ke ${r.destination} pada ${r.date} ${r.time || "09:00"}.`,
+          body: `${r.employee || "Karyawan"} (${r.department || "Departemen"}) mengajukan perjalanan dinas ke ${r.destination || "Tujuan"} pada ${r.date} ${r.time || "09:00"}.`,
           action: { 
             label: "Review Request", 
             primary: true, 
@@ -93,10 +72,86 @@ export default function ApproverNotificationsPage({ onNavigate }: Props) {
           }
         }));
 
-      setNotifs([...pendingNotifs, ...STATIC_NOTIFS]);
+      const otherRealNotifs: NotifItem[] = list
+        .filter(r => !r.canApprove && ["APPROVED", "ONGOING", "COMPLETED", "REJECTED"].includes(r.status))
+        .slice(0, 10)
+        .map(r => {
+          let type = "INFO";
+          let typeColor = "text-[#006591]";
+          let typeBg = "bg-[#e0f4fe]";
+          let typeIcon = "info";
+          let title = `Update Request #RQ-${r.id}`;
+          let body = `Request perjalanan dinas ke ${r.destination || "Tujuan"} status saat ini: ${r.status}.`;
+
+          if (r.status === "COMPLETED") {
+            type = "SELESAI";
+            typeColor = "text-[#16a34a]";
+            typeBg = "bg-[#dcfce7]";
+            typeIcon = "task_alt";
+            title = `Request #RQ-${r.id} Selesai`;
+            body = `Perjalanan dinas ke ${r.destination || "Tujuan"} oleh ${r.employee || "User"} telah selesai.`;
+          } else if (r.status === "REJECTED") {
+            type = "DITOLAK";
+            typeColor = "text-[#dc2626]";
+            typeBg = "bg-[#fef2f2]";
+            typeIcon = "cancel";
+            title = `Request #RQ-${r.id} Ditolak`;
+            body = `Permintaan kendaraan ke ${r.destination || "Tujuan"} ditolak.`;
+          }
+
+          return {
+            id: `req-status-${r.id}`,
+            type,
+            typeColor,
+            typeBg,
+            typeIcon,
+            title,
+            time: r.date || "Terbaru",
+            unread: false,
+            body,
+            action: {
+              label: "Lihat Detail",
+              primary: false,
+              onClick: () => navigate("/approver/history")
+            }
+          };
+        });
+
+      setNotifs([...pendingNotifs, ...otherRealNotifs]);
+
+      // 2. Generate REAL activity items from actual requests API
+      const realActivities: ActivityItem[] = list.slice(0, 5).map(r => {
+        let dot = "bg-[#64748b]";
+        let title = `Request #${r.id}`;
+        let desc = `${r.employee || "Karyawan"} - ${r.destination || "Tujuan"}`;
+
+        if (r.canApprove) {
+          dot = "bg-[#c2410c]";
+          title = "Menunggu Persetujuan";
+        } else if (r.status === "ONGOING") {
+          dot = "bg-[#00236f]";
+          title = "Dalam Perjalanan";
+        } else if (r.status === "COMPLETED") {
+          dot = "bg-[#16a34a]";
+          title = "Perjalanan Selesai";
+        } else if (r.status === "REJECTED") {
+          dot = "bg-[#dc2626]";
+          title = "Request Ditolak";
+        }
+
+        return {
+          dot,
+          title,
+          desc,
+          time: r.date || "Hari ini",
+        };
+      });
+
+      setActivities(realActivities);
     } catch (err) {
       console.error("Failed to load real requests in notifications", err);
-      setNotifs(STATIC_NOTIFS);
+      setNotifs([]);
+      setActivities([]);
     } finally {
       setLoading(false);
     }
@@ -104,7 +159,7 @@ export default function ApproverNotificationsPage({ onNavigate }: Props) {
 
   useEffect(() => {
     loadRealNotifs().then(() => {
-      // Auto-mark all as read when page opens (like WhatsApp/Gmail)
+      // Auto-mark as read
       setNotifs(prev => prev.map(n => ({ ...n, unread: false, isNew: false })));
       window.dispatchEvent(new CustomEvent('ovms-notif-read'));
     });
@@ -112,38 +167,36 @@ export default function ApproverNotificationsPage({ onNavigate }: Props) {
 
   const markAllRead = () => {
     setNotifs(prev => prev.map(n => ({ ...n, unread: false, isNew: false })));
-    // Signal Topbar to immediately re-check unread count
     window.dispatchEvent(new CustomEvent('ovms-notif-read'));
   };
 
   const filtered = notifs.filter(n => {
     if (activeTab === "Unread")            return n.unread;
     if (activeTab === "Pending Approvals") return n.type.includes("APPROVAL");
-    if (activeTab === "System Alerts")     return n.type.includes("ALERT") || n.type.includes("BYPASS");
     return true;
   }).filter(n => search === "" || n.title.toLowerCase().includes(search.toLowerCase()) || n.body.toLowerCase().includes(search.toLowerCase()));
 
   const unreadCount = notifs.filter(n => n.unread).length;
   const pendingCount = notifs.filter(n => n.type === "PENDING APPROVAL").length;
-  const alertCount = notifs.filter(n => n.type !== "PENDING APPROVAL").length;
+  const totalCount = notifs.length;
 
   return (
     <RoleLayout
       activeNav="Notifications"
       onNavigate={(p: string) => onNavigate?.(p)}
       topbarTitle="Notification Center"
-      userName="Prind Widjaya Sena"
+      userName={user?.name || "Manager Approver"}
       userRole="Manager Approver"
       searchPlaceholder="Cari notifikasi..."
       searchValue={search}
       onSearchChange={setSearch}
     >
-      <div className="p-6 animate-fadeup space-y-5">
+      <div className="p-4 sm:p-6 animate-fadeup space-y-5">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div>
             <h2 className="text-[22px] font-bold text-[#0f172a]">Notification Center</h2>
-            <p className="text-[12.5px] text-[#64748b] mt-0.5">Pantau persetujuan masuk dan alert sistem terpusat untuk departemen Anda.</p>
+            <p className="text-[12.5px] text-[#64748b] mt-0.5">Pantau persetujuan masuk dan informasi pengajuan kendaraan terpusat.</p>
           </div>
           <div className="flex gap-2.5">
             <button onClick={markAllRead} className="flex items-center gap-2 h-9 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] shadow-sm transition-colors cursor-pointer">
@@ -157,7 +210,7 @@ export default function ApproverNotificationsPage({ onNavigate }: Props) {
           {[
             { icon: "mail",           iconBg: "bg-[#e5eeff]", iconColor: "text-[#00236f]",  value: String(unreadCount).padStart(2, '0'),   label: "Belum Dibaca",          bar: "bg-[#00236f]",  barW: "w-1/3", accent: false },
             { icon: "pending_actions",iconBg: "bg-[#fff7ed]", iconColor: "text-[#c2410c]",  value: String(pendingCount).padStart(2, '0'),  label: "Persetujuan Tertunda", bar: "bg-[#c2410c]",  barW: "w-1/2", accent: true },
-            { icon: "campaign",       iconBg: "bg-[#fee2e2]", iconColor: "text-[#991b1b]",  value: String(alertCount).padStart(2, '0'),    label: "System Alerts",         bar: "bg-[#991b1b]",  barW: "w-2/3", accent: true },
+            { icon: "history",        iconBg: "bg-[#f1f5f9]", iconColor: "text-[#475569]",  value: String(totalCount).padStart(2, '0'),    label: "Total Notifikasi",      bar: "bg-[#475569]",  barW: "w-2/3", accent: false },
           ].map((c, i) => (
             <div key={i} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
               <div>
@@ -241,22 +294,25 @@ export default function ApproverNotificationsPage({ onNavigate }: Props) {
             )}
           </div>
 
-          {/* Right Sidebar */}
-          <div className="w-full lg:w-[240px] flex-shrink-0 space-y-4">
-            {/* Live Activity */}
+          {/* Right Sidebar: Real Activity */}
+          <div className="w-full lg:w-[260px] flex-shrink-0 space-y-4">
             <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-4">
               <h3 className="text-[13px] font-bold text-[#0f172a] mb-3">Aktivitas Terkini</h3>
               <div className="space-y-3">
-                {LIVE_ACTIVITY.map((item, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <span className={`w-2 h-2 rounded-full ${item.dot} mt-1.5 flex-shrink-0`} />
-                    <div>
-                      <div className="text-[12px] font-bold text-[#0f172a]">{item.title}</div>
-                      <div className="text-[11px] text-[#64748b]">{item.desc}</div>
-                      <div className="text-[10px] text-[#94a3b8] mt-0.5 font-semibold">{item.time}</div>
+                {activities.length === 0 ? (
+                  <p className="text-[11px] text-[#94a3b8] py-2">Belum ada aktivitas hari ini.</p>
+                ) : (
+                  activities.map((item, i) => (
+                    <div key={i} className="flex items-start gap-2.5">
+                      <span className={`w-2.5 h-2.5 rounded-full ${item.dot} mt-1 flex-shrink-0`} />
+                      <div className="min-w-0">
+                        <div className="text-[12px] font-bold text-[#0f172a] leading-tight">{item.title}</div>
+                        <div className="text-[11px] text-[#64748b] truncate mt-0.5">{item.desc}</div>
+                        <div className="text-[10px] text-[#94a3b8] font-semibold mt-0.5">{item.time}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>
