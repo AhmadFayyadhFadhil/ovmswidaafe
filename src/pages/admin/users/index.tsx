@@ -231,11 +231,6 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
       setFormError("Rank is required for Approver role.");
       return;
     }
-    if (formData.role === "Driver" && !simFile) {
-      setFormError("Foto SIM A wajib diupload untuk Driver.");
-      return;
-    }
-    
     setAddClicked(true);
     setFormError("");
     try {

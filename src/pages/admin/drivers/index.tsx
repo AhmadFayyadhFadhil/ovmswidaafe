@@ -178,10 +178,6 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       setFormError("Name, email, and password are required.");
       return;
     }
-    if (!simFile) {
-      setFormError("Foto SIM A wajib diupload untuk Driver.");
-      return;
-    }
     setAdding(true);
     setFormError("");
     try {
