@@ -105,30 +105,44 @@ export function RequestDetailModal({
         .replace(/'/g, "&#039;");
     };
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    printWindow.document.write(`
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.style.visibility = "hidden";
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document || iframe.contentDocument;
+    if (!doc) return;
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
       <html>
         <head>
           <title>Surat Tugas / Tiket Perjalanan #REQ-${esc(request.id)}</title>
           <style>
-            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #334155; }
-            .ticket { border: 2px dashed #94a3b8; padding: 30px; border-radius: 16px; max-width: 600px; margin: 0 auto; background: #fff; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
-            .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 18px; margin-bottom: 20px; }
-            .title { font-size: 20px; font-weight: 800; margin: 0; color: #1e3a8a; letter-spacing: 0.5px; }
+            @page { size: A4; margin: 15mm; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #334155; }
+            .ticket { border: 2px dashed #94a3b8; padding: 25px; border-radius: 16px; max-width: 650px; margin: 0 auto; background: #fff; }
+            .header { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 16px; margin-bottom: 20px; }
+            .title { font-size: 18px; font-weight: 800; margin: 0; color: #1e3a8a; letter-spacing: 0.5px; }
             .subtitle { font-size: 11px; color: #64748b; font-weight: bold; text-transform: uppercase; margin-top: 4px; }
-            .row { display: flex; margin-bottom: 12px; border-bottom: 1px solid #f8fafc; padding-bottom: 8px; }
-            .label { font-weight: bold; width: 180px; text-transform: uppercase; font-size: 11px; color: #94a3b8; letter-spacing: 0.5px; }
-            .value { font-size: 13.5px; color: #334155; font-weight: 600; }
-            .qr { text-align: center; margin-top: 25px; border-top: 2px dashed #e2e8f0; pt: 20px; padding-top: 20px; }
-            .qr img { border: 1px solid #e2e8f0; padding: 8px; border-radius: 8px; }
+            .row { display: flex; margin-bottom: 10px; border-bottom: 1px solid #f8fafc; padding-bottom: 6px; }
+            .label { font-weight: bold; width: 180px; text-transform: uppercase; font-size: 11px; color: #64748b; letter-spacing: 0.5px; }
+            .value { font-size: 13px; color: #0f172a; font-weight: 600; }
+            .qr { text-align: center; margin-top: 20px; border-top: 2px dashed #e2e8f0; padding-top: 16px; }
+            .qr img { border: 1px solid #e2e8f0; padding: 6px; border-radius: 8px; }
           </style>
         </head>
         <body>
           <div class="ticket">
             <div class="header">
               <h2 class="title">SURAT TUGAS LAYANAN KENDARAAN (OVMS)</h2>
-              <div class="subtitle">PT. Widatra Bhakti</div>
+              <div class="subtitle">PT. WIDATRA BHAKTI</div>
             </div>
             <div class="row"><div class="label">ID Request</div><div class="value">#REQ-${esc(request.id)}</div></div>
             <div class="row"><div class="label">Nama Pemohon</div><div class="value">${esc(request.employee)} (${esc(request.department)})</div></div>
@@ -163,19 +177,26 @@ export function RequestDetailModal({
             <div class="row"><div class="label">Estimasi Lama Perjalanan</div><div class="value">${esc(request.estimated_duration ? `${request.estimated_duration} Jam` : "-")}</div></div>
             <div class="qr">
               <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${request.qr_code_token || `REQ-${request.id}`}`)}" />
-              <p style="font-size: 10px; color: #94a3b8; margin-top: 8px; font-family: monospace; font-weight: bold;">${esc(request.qr_code_token || `REQ-${request.id}`)}</p>
+              <p style="font-size: 10px; color: #94a3b8; margin-top: 6px; font-family: monospace; font-weight: bold;">${esc(request.qr_code_token || `REQ-${request.id}`)}</p>
             </div>
           </div>
-          <script>
-            window.onload = function() {
-              window.print();
-              window.onafterprint = function() { window.close(); }
-            }
-          </script>
         </body>
       </html>
     `);
-    printWindow.document.close();
+    doc.close();
+
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (e) {
+        console.error("Print window error", e);
+      } finally {
+        setTimeout(() => {
+          if (document.body.contains(iframe)) document.body.removeChild(iframe);
+        }, 3000);
+      }
+    }, 300);
   };
 
   const handleConfirmRejectSubmit = async (e: React.FormEvent) => {
