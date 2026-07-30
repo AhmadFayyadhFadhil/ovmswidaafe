@@ -7,17 +7,6 @@ import { useAuthContext } from "@/auth/authContext";
 
 interface Props { onNavigate?: (page: string) => void; }
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
-  return (
-    <button
-      onClick={onChange}
-      className={`w-12 h-6 rounded-full transition-all duration-300 flex items-center flex-shrink-0 cursor-pointer ${checked ? "bg-[#00236f]" : "bg-[#e2e8f0]"}`}
-    >
-      <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 mx-0.5 ${checked ? "translate-x-6" : "translate-x-0"}`} />
-    </button>
-  );
-}
-
 export default function MyProfilePage({ onNavigate }: Props) {
   const { user, updateUser } = useAuthContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -34,11 +23,6 @@ export default function MyProfilePage({ onNavigate }: Props) {
   const [simPhotoUrl, setSimPhotoUrl] = useState<string | null>(null);
   const [showSimLightbox, setShowSimLightbox] = useState(false);
 
-  // Alert preferences
-  const [emergency, setEmergency] = useState(true);
-  const [reqStatus, setReqStatus] = useState(true);
-  const [sysUpdate, setSysUpdate] = useState(false);
-
   // Form states
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -50,11 +34,10 @@ export default function MyProfilePage({ onNavigate }: Props) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Statistics and Activity States
+  // Statistics States
   const [totalRequests, setTotalRequests] = useState(0);
   const [approvedRequests, setApprovedRequests] = useState(0);
   const [activeRequests, setActiveRequests] = useState(0);
-  const [activities, setActivities] = useState<any[]>([]);
 
   // Map roles and title for layout dynamically
   const roleDisplayMap: Record<string, string> = {
@@ -107,34 +90,7 @@ export default function MyProfilePage({ onNavigate }: Props) {
       const active = list.filter((r: any) => r.status === "on_going").length;
       setActiveRequests(active);
 
-      // Generate activity log
-      const recent = list.slice(0, 3).map((r: any) => {
-        let icon = "send";
-        let color = "text-[#00236f]";
-        let bg = "bg-[#e5eeff]";
-        let text = `Permintaan #${r.id} diajukan`;
-        
-        if (r.status === "COMPLETED" || r.status === "completed") {
-          icon = "task_alt";
-          color = "text-[#1a6e3c]";
-          bg = "bg-[#d4f4e2]";
-          text = `Permintaan #${r.id} selesai`;
-        } else if (r.status === "REJECTED" || r.status === "rejected") {
-          icon = "cancel";
-          color = "text-[#ba1a1a]";
-          bg = "bg-[#ffd9d5]";
-          text = `Permintaan #${r.id} ditolak`;
-        } else if (r.status === "APPROVED" || r.status === "driver_assigned") {
-          icon = "person_add";
-          color = "text-[#006591]";
-          bg = "bg-[#e0f4fe]";
-          text = `Selesai diproses / Driver ditugaskan`;
-        }
-        
-        const time = r.date || "Baru saja";
-        return { icon, color, bg, text, time };
-      });
-      setActivities(recent);
+
 
     } catch (err: any) {
       console.error("Gagal memuat profil atau statistik:", err);
@@ -354,155 +310,97 @@ export default function MyProfilePage({ onNavigate }: Props) {
             </div>
 
             {/* Form & Info Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pb-4">
-              {/* Personal Information Form */}
-              <div className="col-span-1 lg:col-span-8 bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-5 sm:p-6">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-9 h-9 bg-[#e5eeff] rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Icon name="badge" className="text-[#00236f] text-[18px]" />
-                  </div>
-                  <div>
-                    <h3 className="text-[15px] font-bold text-[#0f172a]">Personal Information</h3>
-                    <p className="text-[11px] text-[#94a3b8]">Manage your account data and contact details</p>
-                  </div>
+            <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-5 sm:p-6 mb-4">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-9 h-9 bg-[#e5eeff] rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Icon name="badge" className="text-[#00236f] text-[18px]" />
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Full Name</label>
-                    <input
-                      value={name} onChange={e => setName(e.target.value)} readOnly={!editing}
-                      className={inputClass(editing)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Email Address</label>
-                    <input
-                      value={email} onChange={e => setEmail(e.target.value)} readOnly={!editing} type="email"
-                      className={inputClass(editing)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Phone Number</label>
-                    <input
-                      value={phone} onChange={e => setPhone(e.target.value)} readOnly={!editing}
-                      className={inputClass(editing)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Department</label>
-                    <input value={department} readOnly className={inputClass(false)} />
-                  </div>
-                  <div>
-                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Role / Position</label>
-                    <input value={position} readOnly className={inputClass(false)} />
-                  </div>
-                  <div>
-                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Location</label>
-                    <input
-                      value={location} onChange={e => setLocation(e.target.value)} readOnly={!editing}
-                      className={inputClass(editing)}
-                    />
-                  </div>
+                <div>
+                  <h3 className="text-[15px] font-bold text-[#0f172a]">Personal Information</h3>
+                  <p className="text-[11px] text-[#94a3b8]">Manage your account data and contact details</p>
                 </div>
+              </div>
 
-                {/* Dedicated SIM A Section for Driver (Read-Only) */}
-                {(user?.role === "driver" || displayRole === "Driver" || simPhotoUrl) && (
-                  <div className="mt-5 pt-5 border-t border-[#f1f5f9]">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Icon name="badge" className="text-[18px] text-[#00236f]" />
-                        <h4 className="text-[13px] font-bold text-[#0f172a]">Dokumen SIM A Driver</h4>
-                      </div>
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-600 border border-slate-200">
-                        🔒 Read-Only (Hanya Lihat)
-                      </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Full Name</label>
+                  <input
+                    value={name} onChange={e => setName(e.target.value)} readOnly={!editing}
+                    className={inputClass(editing)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Email Address</label>
+                  <input
+                    value={email} onChange={e => setEmail(e.target.value)} readOnly={!editing} type="email"
+                    className={inputClass(editing)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Phone Number</label>
+                  <input
+                    value={phone} onChange={e => setPhone(e.target.value)} readOnly={!editing}
+                    className={inputClass(editing)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Department</label>
+                  <input value={department} readOnly className={inputClass(false)} />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Role / Position</label>
+                  <input value={position} readOnly className={inputClass(false)} />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Location</label>
+                  <input
+                    value={location} onChange={e => setLocation(e.target.value)} readOnly={!editing}
+                    className={inputClass(editing)}
+                  />
+                </div>
+              </div>
+
+              {/* Dedicated SIM A Section for Driver (Read-Only) */}
+              {(user?.role === "driver" || displayRole === "Driver" || simPhotoUrl) && (
+                <div className="mt-5 pt-5 border-t border-[#f1f5f9]">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Icon name="badge" className="text-[18px] text-[#00236f]" />
+                      <h4 className="text-[13px] font-bold text-[#0f172a]">Dokumen SIM A Driver</h4>
                     </div>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-600 border border-slate-200">
+                      🔒 Read-Only (Hanya Lihat)
+                    </span>
+                  </div>
 
-                    {simPhotoUrl ? (
-                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-16 h-12 rounded-lg bg-slate-900 overflow-hidden flex items-center justify-center border border-slate-200 shrink-0">
-                            <img src={simPhotoUrl} alt="SIM A" className="w-full h-full object-cover" />
-                          </div>
-                          <div>
-                            <div className="text-[12.5px] font-bold text-slate-800">Kartu SIM A Pengemudi</div>
-                            <div className="text-[11px] text-slate-400 font-medium mt-0.5">Dokumen resmi pengemudi operasional PT Widatra Bhakti</div>
-                          </div>
+                  {simPhotoUrl ? (
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-16 h-12 rounded-lg bg-slate-900 overflow-hidden flex items-center justify-center border border-slate-200 shrink-0">
+                          <img src={simPhotoUrl} alt="SIM A" className="w-full h-full object-cover" />
                         </div>
-
-                        <button
-                          type="button"
-                          onClick={() => setShowSimLightbox(true)}
-                          className="px-4 py-2 bg-[#00236f] hover:bg-[#1e3a8a] text-white rounded-xl text-[11.5px] font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5 shrink-0"
-                        >
-                          <Icon name="visibility" className="text-[14px]" /> Lihat Foto SIM A
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center space-y-1">
-                        <div className="text-[12px] font-bold text-slate-700">Foto SIM A Belum Diunggah</div>
-                        <p className="text-[11px] text-slate-400">Dokumen SIM A dikelola langsung oleh Administrator di menu Management Driver.</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Right: Smart Alerts + Activity */}
-              <div className="col-span-1 lg:col-span-4 space-y-4">
-                {/* Smart Alerts */}
-                <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-5">
-                  <h3 className="text-[13px] font-bold text-[#0f172a] uppercase tracking-wider mb-4">Smart Alerts</h3>
-                  <div className="space-y-4">
-                    {[
-                      { label: "Emergency Dispatch", checked: emergency, toggle: () => setEmergency(p => !p) },
-                      { label: "Request Status Updates", checked: reqStatus, toggle: () => setReqStatus(p => !p) },
-                      { label: "System Maintenance", checked: sysUpdate, toggle: () => setSysUpdate(p => !p) },
-                    ].map(item => (
-                      <div key={item.label} className="flex items-center justify-between">
-                        <span className="text-[13px] font-medium text-[#0f172a]">{item.label}</span>
-                        <Toggle checked={item.checked} onChange={item.toggle} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Recent Activity */}
-                <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-5">
-                  <h3 className="text-[13px] font-bold text-[#0f172a] mb-3">Recent Activity</h3>
-                  <div className="space-y-3">
-                    {activities.length === 0 ? (
-                      <p className="text-[11px] text-[#94a3b8] text-center py-2">Belum ada aktivitas terekam.</p>
-                    ) : (
-                      activities.map((a, i) => (
-                        <div key={i} className="flex items-center gap-2.5">
-                          <div className={`w-7 h-7 ${a.bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                            <Icon name={a.icon} className={`${a.color} text-[14px]`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[11px] font-semibold text-[#0f172a] leading-tight truncate">{a.text}</div>
-                            <div className="text-[10px] text-[#94a3b8]">{a.time}</div>
-                          </div>
+                        <div>
+                          <div className="text-[12.5px] font-bold text-slate-800">Kartu SIM A Pengemudi</div>
+                          <div className="text-[11px] text-slate-400 font-medium mt-0.5">Dokumen resmi pengemudi operasional PT Widatra Bhakti</div>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                      </div>
 
-                {/* Danger Zone */}
-                <div className="bg-white rounded-2xl border border-[#fecdd3] shadow-sm p-4">
-                  <h3 className="text-[12px] font-bold text-[#ba1a1a] mb-3 flex items-center gap-2">
-                    <Icon name="warning" className="text-[16px]" />
-                    Danger Zone
-                  </h3>
-                  <div className="space-y-2">
-                    <button className="w-full py-2 border border-[#fecdd3] text-[#ba1a1a] rounded-xl text-[11px] font-bold hover:bg-[#fff1f2] transition-colors cursor-pointer">
-                      Deactivate Account
-                    </button>
-                  </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowSimLightbox(true)}
+                        className="px-4 py-2 bg-[#00236f] hover:bg-[#1e3a8a] text-white rounded-xl text-[11.5px] font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5 shrink-0"
+                      >
+                        <Icon name="visibility" className="text-[14px]" /> Lihat Foto SIM A
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center space-y-1">
+                      <div className="text-[12px] font-bold text-slate-700">Foto SIM A Belum Diunggah</div>
+                      <p className="text-[11px] text-slate-400">Dokumen SIM A dikelola langsung oleh Administrator di menu Management Driver.</p>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
           </>
         )}
