@@ -3,8 +3,9 @@ import { Layout as RoleLayout } from "../../../components/layout/RoleLayout";
 import { Icon } from "../../../components/ui/Icon";
 import { assignmentService } from "@/services/modules/assignmentService";
 import { useNavigate } from "react-router-dom";
+import { useAuthContext } from "@/auth/authContext";
 
-const TABS = ["All", "Unread", "New Assignments", "Schedule Updates", "Vehicle Alerts"];
+const TABS = ["All", "Unread", "New Assignments"];
 
 interface NotifAction {
   label: string;
@@ -26,44 +27,20 @@ interface NotifItem {
   action: NotifAction | null;
 }
 
-const STATIC_NOTIFS: NotifItem[] = [
-  {
-    id: "n2", 
-    type: "SCHEDULE UPDATE", 
-    typeColor: "text-[#d97706]", 
-    typeBg: "bg-[#fef3c7]", 
-    typeIcon: "event",
-    title: "Perubahan Waktu Kepulangan", 
-    time: "2 hours ago", 
-    unread: false,
-    body: "Waktu penjemputan pulang untuk Request #1 diundur menjadi pukul 21:30. Harap sesuaikan jadwal Anda.",
-    action: null,
-  },
-  {
-    id: "n3", 
-    type: "VEHICLE ALERT", 
-    typeColor: "text-[#991b1b]", 
-    typeBg: "bg-[#fee2e2]", 
-    typeIcon: "build",
-    title: "Jadwal Servis Kendaraan", 
-    time: "1 day ago", 
-    unread: false,
-    body: "Mobil Avanza (L 1234 AB) yang biasa Anda gunakan dijadwalkan servis rutin pada hari Minggu pukul 09:00.",
-    action: null,
-  },
-];
-
-const LIVE_ACTIVITY = [
-  { dot: "bg-[#1e3a8a]",  title: "Tugas Diterima",     desc: "Anda menerima tugas Surabaya",     time: "NOW"      },
-  { dot: "bg-[#64748b]",  title: "BBM Diisi",          desc: "Mobil Avanza diisi pertalite",      time: "Kemarin"  },
-  { dot: "bg-emerald-500", title: "Perjalanan Selesai", desc: "Tugas mengantar tamu diselesaikan", time: "2 hari lalu" },
-];
+interface ActivityItem {
+  dot: string;
+  title: string;
+  desc: string;
+  time: string;
+}
 
 interface Props { onNavigate?: (page: string) => void; }
 
 export default function DriverNotificationsPage({ onNavigate }: Props) {
+  const { user } = useAuthContext();
   const [activeTab, setActiveTab] = useState("All");
   const [notifs, setNotifs] = useState<NotifItem[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
@@ -73,8 +50,8 @@ export default function DriverNotificationsPage({ onNavigate }: Props) {
     try {
       const res = await assignmentService.getAll();
       const list = res.data || [];
-      const assignmentNotifs = list
-        .filter(a => a.status === "pending" || a.status === "assigned" || a.status === "driver_assigned")
+
+      const assignmentNotifs: NotifItem[] = list
         .map(a => {
           const req = a.request || {};
           const name = req.requested_by?.name || "Staff";
@@ -89,23 +66,48 @@ export default function DriverNotificationsPage({ onNavigate }: Props) {
             typeColor: "text-[#1e3a8a]",
             typeBg: "bg-[#dbeafe]",
             typeIcon: "local_taxi",
-            title: `Penugasan Baru: ${dest}`,
-            time: "Baru saja",
-            unread: true,
-            isNew: true,
-            body: `Anda ditugaskan mengantar penumpang (${name}) ke ${dest}. Keberangkatan tanggal ${dateVal}.`,
+            title: `Penugasan Driver: ${dest}`,
+            time: dateVal,
+            unread: false,
+            isNew: false,
+            body: `Anda ditugaskan mengantar penumpang (${name}) ke ${dest}. Keberangkatan tanggal ${dateVal}. Status: ${a.status || 'Aktif'}.`,
             action: { 
-              label: "Lihat Detail", 
+              label: "Lihat Tugas", 
               primary: true, 
-              onClick: () => navigate("/driver/dashboard?tab=assignments") 
+              onClick: () => navigate("/driver/dashboard") 
             }
           };
         });
 
-      setNotifs([...assignmentNotifs, ...STATIC_NOTIFS]);
+      setNotifs(assignmentNotifs);
+
+      const realActivities: ActivityItem[] = list.slice(0, 5).map(a => {
+        const req = a.request || {};
+        const dest = req.destination_city || "Tujuan Dinas";
+        let dot = "bg-[#1e3a8a]";
+        let title = "Tugas Penugasan";
+
+        if (a.status === "completed" || a.status === "COMPLETED") {
+          dot = "bg-emerald-500";
+          title = "Perjalanan Selesai";
+        } else if (a.status === "on_going" || a.status === "ONGOING") {
+          dot = "bg-indigo-500";
+          title = "Perjalanan Aktif";
+        }
+
+        return {
+          dot,
+          title,
+          desc: `Tugas perjalanan ke ${dest}`,
+          time: req.start_time ? req.start_time.split("T")[0] : "Terbaru",
+        };
+      });
+
+      setActivities(realActivities);
     } catch (err) {
       console.error("Failed to load real assignments in notifications", err);
-      setNotifs(STATIC_NOTIFS);
+      setNotifs([]);
+      setActivities([]);
     } finally {
       setLoading(false);
     }
@@ -113,7 +115,6 @@ export default function DriverNotificationsPage({ onNavigate }: Props) {
 
   useEffect(() => {
     loadRealNotifs().then(() => {
-      // Auto-mark all as read when page opens (like WhatsApp/Gmail)
       setNotifs(prev => prev.map(n => ({ ...n, unread: false, isNew: false })));
       window.dispatchEvent(new CustomEvent('ovms-notif-read'));
     });
@@ -121,28 +122,24 @@ export default function DriverNotificationsPage({ onNavigate }: Props) {
 
   const markAllRead = () => {
     setNotifs(prev => prev.map(n => ({ ...n, unread: false, isNew: false })));
-    // Signal Topbar to immediately re-check unread count
     window.dispatchEvent(new CustomEvent('ovms-notif-read'));
   };
 
   const filtered = notifs.filter(n => {
     if (activeTab === "Unread")          return n.unread;
     if (activeTab === "New Assignments") return n.type.includes("ASSIGNMENT");
-    if (activeTab === "Schedule Updates")return n.type.includes("SCHEDULE");
-    if (activeTab === "Vehicle Alerts")   return n.type.includes("VEHICLE");
     return true;
   }).filter(n => search === "" || n.title.toLowerCase().includes(search.toLowerCase()) || n.body.toLowerCase().includes(search.toLowerCase()));
 
   const unreadCount = notifs.filter(n => n.unread).length;
   const assignmentCount = notifs.filter(n => n.type === "NEW ASSIGNMENT").length;
-  const alertCount = notifs.filter(n => n.type !== "NEW ASSIGNMENT").length;
 
   return (
     <RoleLayout
       activeNav="Notifications"
       onNavigate={(p: string) => onNavigate?.(p)}
       topbarTitle="Notification Center"
-      userName="Driver Test 1"
+      userName={user?.name || "Driver"}
       userRole="Driver"
       searchPlaceholder="Cari notifikasi..."
       searchValue={search}
@@ -163,11 +160,10 @@ export default function DriverNotificationsPage({ onNavigate }: Props) {
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[
             { icon: "mail",           iconBg: "bg-[#e5eeff]", iconColor: "text-[#00236f]",  value: String(unreadCount).padStart(2, '0'),       label: "Belum Dibaca",      bar: "bg-[#00236f]",  barW: "33%", accent: false },
-            { icon: "assignment",     iconBg: "bg-[#dbeafe]", iconColor: "text-[#1e3a8a]",  value: String(assignmentCount).padStart(2, '0'),   label: "Penugasan Baru",    bar: "bg-[#1e3a8a]",  barW: "50%", accent: true },
-            { icon: "build",          iconBg: "bg-[#fee2e2]", iconColor: "text-[#991b1b]",  value: String(alertCount).padStart(2, '0'),        label: "Alert Servis Mobil", bar: "bg-[#991b1b]",  barW: "100%", accent: true },
+            { icon: "assignment",     iconBg: "bg-[#dbeafe]", iconColor: "text-[#1e3a8a]",  value: String(assignmentCount).padStart(2, '0'),   label: "Penugasan Driver",   bar: "bg-[#1e3a8a]",  barW: "100%", accent: true },
           ].map((c, i) => (
             <div key={i} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-all">
               <div className="flex items-center justify-between mb-3">
@@ -175,7 +171,7 @@ export default function DriverNotificationsPage({ onNavigate }: Props) {
                   <Icon name={c.icon} className={`${c.iconColor} text-[18px]`} />
                 </div>
               </div>
-              <div className={`text-[26px] font-bold ${c.accent ? "text-[#ba1a1a]" : "text-[#0f172a]"}`}>{c.value}</div>
+              <div className={`text-[26px] font-bold ${c.accent ? "text-[#0f2a5e]" : "text-[#0f172a]"}`}>{c.value}</div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mt-1">{c.label}</div>
               <div className="mt-2 h-[3px] bg-[#f1f5f9] rounded-full overflow-hidden">
                 <div className={`${c.bar} h-full rounded-full`} style={{ width: c.barW }} />
@@ -205,7 +201,7 @@ export default function DriverNotificationsPage({ onNavigate }: Props) {
               </div>
             ) : filtered.length === 0 ? (
               <div className="bg-white rounded-2xl border border-[#e2e8f0] p-10 text-center text-[#94a3b8] text-[13px]">
-                Tidak ada notifikasi untuk kategori ini
+                Tidak ada penugasan untuk kategori ini
               </div>
             ) : (
               filtered.map(n => (
@@ -253,16 +249,20 @@ export default function DriverNotificationsPage({ onNavigate }: Props) {
             <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-4">
               <h3 className="text-[13px] font-bold text-[#0f172a] mb-3">Aktivitas Terkini</h3>
               <div className="space-y-3">
-                {LIVE_ACTIVITY.map((item, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <span className={`w-2 h-2 rounded-full ${item.dot} mt-1.5 flex-shrink-0`} />
-                    <div>
-                      <div className="text-[12px] font-bold text-[#0f172a]">{item.title}</div>
-                      <div className="text-[11px] text-[#64748b]">{item.desc}</div>
-                      <div className="text-[10px] text-[#94a3b8] mt-0.5 font-semibold">{item.time}</div>
+                {activities.length === 0 ? (
+                  <p className="text-[11px] text-[#94a3b8] py-2">Belum ada aktivitas penugasan.</p>
+                ) : (
+                  activities.map((item, i) => (
+                    <div key={i} className="flex items-start gap-2.5">
+                      <span className={`w-2.5 h-2.5 rounded-full ${item.dot} mt-1 flex-shrink-0`} />
+                      <div className="min-w-0">
+                        <div className="text-[12px] font-bold text-[#0f172a] leading-tight">{item.title}</div>
+                        <div className="text-[11px] text-[#64748b] truncate mt-0.5">{item.desc}</div>
+                        <div className="text-[10px] text-[#94a3b8] font-semibold mt-0.5">{item.time}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>
