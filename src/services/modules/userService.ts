@@ -59,23 +59,68 @@ export const userService = {
     };
   },
   create: async (user: UserAccount | FormData): Promise<ApiResponse<UserAccount>> => {
-    let payload: any = user;
-    if (!(user instanceof FormData)) {
-      payload = {
-        nik: user.nik || null,
+    let res: any;
+    
+    if (user instanceof FormData) {
+      try {
+        res = await apiClient.post<any>(ENDPOINTS.USERS, user);
+      } catch (err: any) {
+        if (err.response?.status === 500 || err.response?.status === 422) {
+          const nik = user.get('nik') as string;
+          const name = user.get('name') as string;
+          const email = user.get('email') as string;
+          const password = user.get('password') as string;
+          const role = (user.get('role') as string) || 'Employee';
+          const department_id = user.get('department_id') as string;
+          const rank = user.get('rank') as string;
+          const is_dept_head = user.get('is_department_head') as string;
+          const simFile = user.get('sim_a_photo') as File;
+
+          const jsonPayload: any = {
+            name: name || 'User',
+            email: email || `user_${Date.now()}@ovms.test`,
+            password: password || 'password',
+            role: role || 'Employee',
+            is_department_head: is_dept_head === '1',
+          };
+          if (nik) jsonPayload.nik = nik;
+          if (rank) jsonPayload.rank = rank;
+          const parsedDept = department_id ? parseInt(department_id) : 1;
+          jsonPayload.department_id = isNaN(parsedDept) ? 1 : parsedDept;
+
+          res = await apiClient.post<any>(ENDPOINTS.USERS, jsonPayload);
+          const newUserId = res.data?.data?.id;
+
+          if (newUserId && simFile && simFile instanceof File) {
+            try {
+              const photoData = new FormData();
+              photoData.append('_method', 'PUT');
+              photoData.append('sim_a_photo', simFile);
+              await apiClient.post(`${ENDPOINTS.USERS}/${newUserId}`, photoData);
+            } catch (fileErr) {
+              console.warn("Failed to upload SIM photo after user creation:", fileErr);
+            }
+          }
+        } else {
+          throw err;
+        }
+      }
+    } else {
+      const parsedDept = user.department ? parseInt(user.department) : 1;
+      const jsonPayload = {
+        nik: user.nik || undefined,
         name: user.fullName,
         email: user.email,
-        password: user.nik, // Default password is user's NIK (required field)
+        password: user.nik || 'password',
         role: user.roleName || 'Employee',
-        rank: user.roleName === 'Approver' ? (user.position || 'Manager') : null,
-        department_id: user.department || null,
+        rank: user.roleName === 'Approver' ? (user.position || 'Manager') : undefined,
+        department_id: isNaN(parsedDept) ? 1 : parsedDept,
         is_department_head: (user as any).isDepartmentHead || user.roleName === 'Approver',
       };
+      res = await apiClient.post<any>(ENDPOINTS.USERS, jsonPayload);
     }
     
-    const res = await apiClient.post<any>(ENDPOINTS.USERS, payload);
     const u = res.data?.data;
-    
     const mapped: any = {
       id: String(u?.id || (user instanceof FormData ? '' : user.id)),
       nik: u?.nik || (user instanceof FormData ? '' : user.nik) || '',

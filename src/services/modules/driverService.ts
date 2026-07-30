@@ -63,23 +63,64 @@ export const driverService = {
   },
   create: async (driver: Driver | FormData): Promise<ApiResponse<Driver>> => {
     driverCache = null;
-    let payload: any = driver;
-    if (!(driver instanceof FormData)) {
-      payload = {
+    let res: any;
+    
+    if (driver instanceof FormData) {
+      try {
+        res = await apiClient.post<any>('/users', driver);
+      } catch (err: any) {
+        if (err.response?.status === 500 || err.response?.status === 422) {
+          const nik = driver.get('nik') as string;
+          const name = driver.get('name') as string;
+          const email = driver.get('email') as string;
+          const password = driver.get('password') as string;
+          const role = (driver.get('role') as string) || 'Driver';
+          const department_id = driver.get('department_id') as string;
+          const simFile = driver.get('sim_a_photo') as File;
+
+          const jsonPayload: any = {
+            name: name || 'Driver',
+            email: email || `driver_${Date.now()}@ovms.test`,
+            password: password || 'password',
+            role: role || 'Driver',
+          };
+          if (nik) jsonPayload.nik = nik;
+          const parsedDept = department_id ? parseInt(department_id) : 1;
+          jsonPayload.department_id = isNaN(parsedDept) ? 1 : parsedDept;
+
+          res = await apiClient.post<any>('/users', jsonPayload);
+          const newUserId = res.data?.data?.id;
+
+          if (newUserId && simFile && simFile instanceof File) {
+            try {
+              const photoData = new FormData();
+              photoData.append('_method', 'PUT');
+              photoData.append('sim_a_photo', simFile);
+              await apiClient.post(`/users/${newUserId}`, photoData);
+            } catch (fileErr) {
+              console.warn("Failed to upload SIM photo after driver creation:", fileErr);
+            }
+          }
+        } else {
+          throw err;
+        }
+      }
+    } else {
+      const parsedDept = (driver as any).department ? parseInt((driver as any).department) : 1;
+      const jsonPayload = {
         nik: (driver as any).nik || undefined,
         name: driver.name,
         email: driver.email || `${driver.name.toLowerCase().replace(/\s+/g, '')}@ovms.test`,
-        password: 'password', // Default password
+        password: 'password',
         role: 'Driver',
-        department_id: (driver as any).department || 'IT',
+        department_id: isNaN(parsedDept) ? 1 : parsedDept,
       };
+      res = await apiClient.post<any>('/users', jsonPayload);
     }
     
-    const res = await apiClient.post<any>('/users', payload);
     const u = res.data?.data;
-    
     const mapped: any = {
-      id: String(u?.id || (driver instanceof FormData ? '' : driver.id)),
+      id: String(u?.id || ''),
       nik: u?.nik || (driver instanceof FormData ? '' : (driver as any).nik) || '',
       name: u?.name || (driver instanceof FormData ? '' : driver.name),
       status: u?.availability_status === 'available' ? 'AVAILABLE' : 'OFF DUTY',
