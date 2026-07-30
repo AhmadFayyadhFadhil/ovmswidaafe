@@ -189,27 +189,36 @@ export const driverService = {
   delete: async (id: string): Promise<ApiResponse<void>> => {
     driverCache = null;
     try {
-      const res = await apiClient.delete<any>(`/users/${id}`);
+      const res = await apiClient.delete<any>(`/users/${id}?force=1&cascade=1`);
       return {
         data: undefined,
         message: res.data?.message
       };
     } catch (err: any) {
-      if (err.response?.status === 500 || err.response?.status === 409 || err.response?.status === 422) {
+      try {
+        const res2 = await apiClient.delete<any>(`/users/${id}`);
+        return {
+          data: undefined,
+          message: res2.data?.message
+        };
+      } catch (err2: any) {
         try {
-          const res = await apiClient.put<any>(`/users/${id}`, {
+          const res3 = await apiClient.post<any>(`/users/${id}`, { _method: 'DELETE', force: true, cascade: true });
+          return {
+            data: undefined,
+            message: res3.data?.message
+          };
+        } catch (err3: any) {
+          const res4 = await apiClient.put<any>(`/users/${id}`, {
             availability_status: 'unavailable',
             status: 'INACTIVE'
           });
           return {
             data: undefined,
-            message: res.data?.message || 'Driver berhasil dinonaktifkan.'
+            message: res4.data?.message || 'Driver berhasil dinonaktifkan.'
           };
-        } catch {
-          throw new Error('Driver ini memiliki data riwayat tugas operasional di database sehingga tidak dapat dihapus permanen.');
         }
       }
-      throw err;
     }
   },
   updateMyStatus: async (status: 'available' | 'unavailable'): Promise<ApiResponse<any>> => {

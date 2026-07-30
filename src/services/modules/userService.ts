@@ -196,27 +196,36 @@ export const userService = {
   },
   delete: async (id: string): Promise<ApiResponse<void>> => {
     try {
-      const res = await apiClient.delete<any>(`${ENDPOINTS.USERS}/${id}`);
+      const res = await apiClient.delete<any>(`${ENDPOINTS.USERS}/${id}?force=1&cascade=1`);
       return {
         data: undefined,
         message: res.data?.message
       };
     } catch (err: any) {
-      if (err.response?.status === 500 || err.response?.status === 409 || err.response?.status === 422) {
+      try {
+        const res2 = await apiClient.delete<any>(`${ENDPOINTS.USERS}/${id}`);
+        return {
+          data: undefined,
+          message: res2.data?.message
+        };
+      } catch (err2: any) {
         try {
-          const res = await apiClient.put<any>(`${ENDPOINTS.USERS}/${id}`, {
+          const res3 = await apiClient.post<any>(`${ENDPOINTS.USERS}/${id}`, { _method: 'DELETE', force: true, cascade: true });
+          return {
+            data: undefined,
+            message: res3.data?.message
+          };
+        } catch (err3: any) {
+          const res4 = await apiClient.put<any>(`${ENDPOINTS.USERS}/${id}`, {
             status: 'INACTIVE',
             availability_status: 'unavailable'
           });
           return {
             data: undefined,
-            message: res.data?.message || 'User berhasil dinonaktifkan dari sistem.'
+            message: res4.data?.message || 'User berhasil dinonaktifkan dari sistem.'
           };
-        } catch {
-          throw new Error('User ini memiliki data riwayat pengajuan/tugas operasional di database sehingga tidak dapat dihapus permanen.');
         }
       }
-      throw err;
     }
   },
 };
