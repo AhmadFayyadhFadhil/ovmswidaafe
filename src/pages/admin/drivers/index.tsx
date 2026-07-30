@@ -189,6 +189,9 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       data.append("email", formData.email.trim());
       data.append("password", formData.password);
       data.append("role", "Driver");
+      data.append("role_name", "Driver");
+      data.append("roles[]", "Driver");
+      data.append("position", "Driver");
       
       const parsedDeptId = formData.department ? parseInt(formData.department) : (departments[0]?.id || 1);
       data.append("department_id", String(isNaN(parsedDeptId) ? 1 : parsedDeptId));

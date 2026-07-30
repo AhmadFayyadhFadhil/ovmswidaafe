@@ -74,7 +74,6 @@ export const driverService = {
           const name = driver.get('name') as string;
           const email = driver.get('email') as string;
           const password = driver.get('password') as string;
-          const role = (driver.get('role') as string) || 'Driver';
           const department_id = driver.get('department_id') as string;
           const simFile = driver.get('sim_a_photo') as File;
 
@@ -82,7 +81,10 @@ export const driverService = {
             name: name || 'Driver',
             email: email || `driver_${Date.now()}@ovms.test`,
             password: password || 'password',
-            role: role || 'Driver',
+            role: 'Driver',
+            role_name: 'Driver',
+            roles: ['Driver'],
+            position: 'Driver',
           };
           if (nik) jsonPayload.nik = nik;
           const parsedDept = department_id ? parseInt(department_id) : 1;
@@ -113,6 +115,9 @@ export const driverService = {
         email: driver.email || `${driver.name.toLowerCase().replace(/\s+/g, '')}@ovms.test`,
         password: 'password',
         role: 'Driver',
+        role_name: 'Driver',
+        roles: ['Driver'],
+        position: 'Driver',
         department_id: isNaN(parsedDept) ? 1 : parsedDept,
       };
       res = await apiClient.post<any>('/users', jsonPayload);
