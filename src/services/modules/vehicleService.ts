@@ -187,10 +187,27 @@ export const vehicleService = {
   },
   delete: async (id: string): Promise<ApiResponse<void>> => {
     vehicleCache = null;
-    const res = await apiClient.delete<any>(`${ENDPOINTS.VEHICLES}/${id}`);
-    return {
-      data: undefined,
-      message: res.data?.message
-    };
+    try {
+      const res = await apiClient.delete<any>(`${ENDPOINTS.VEHICLES}/${id}`);
+      return {
+        data: undefined,
+        message: res.data?.message
+      };
+    } catch (err: any) {
+      if (err.response?.status === 500 || err.response?.status === 409 || err.response?.status === 422) {
+        try {
+          const res = await apiClient.put<any>(`${ENDPOINTS.VEHICLES}/${id}`, {
+            status: 'Retired'
+          });
+          return {
+            data: undefined,
+            message: res.data?.message || 'Kendaraan berhasil di-retired.'
+          };
+        } catch {
+          throw new Error('Kendaraan ini terikat dengan riwayat perjalanan armada di database.');
+        }
+      }
+      throw err;
+    }
   },
 };

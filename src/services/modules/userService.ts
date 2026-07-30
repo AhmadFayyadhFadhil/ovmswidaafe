@@ -195,11 +195,29 @@ export const userService = {
     };
   },
   delete: async (id: string): Promise<ApiResponse<void>> => {
-    const res = await apiClient.delete<any>(`${ENDPOINTS.USERS}/${id}`);
-    return {
-      data: undefined,
-      message: res.data?.message
-    };
+    try {
+      const res = await apiClient.delete<any>(`${ENDPOINTS.USERS}/${id}`);
+      return {
+        data: undefined,
+        message: res.data?.message
+      };
+    } catch (err: any) {
+      if (err.response?.status === 500 || err.response?.status === 409 || err.response?.status === 422) {
+        try {
+          const res = await apiClient.put<any>(`${ENDPOINTS.USERS}/${id}`, {
+            status: 'INACTIVE',
+            availability_status: 'unavailable'
+          });
+          return {
+            data: undefined,
+            message: res.data?.message || 'User berhasil dinonaktifkan dari sistem.'
+          };
+        } catch {
+          throw new Error('User ini memiliki data riwayat pengajuan/tugas operasional di database sehingga tidak dapat dihapus permanen.');
+        }
+      }
+      throw err;
+    }
   },
 };
 

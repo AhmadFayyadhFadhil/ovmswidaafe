@@ -118,11 +118,14 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
       refetch();
     } catch (err: any) {
       console.error("Failed to delete user", err);
-      const serverMsg = err.response?.data?.message || err.response?.data?.error;
+      let msg = err.message || err.response?.data?.message || err.response?.data?.error;
+      if (!msg || msg === "Server Error") {
+        msg = "User ini memiliki data riwayat pengajuan/tugas operasional di database sehingga tidak dapat dihapus permanen. Anda dapat mengubah statusnya menjadi NONAKTIF.";
+      }
       setDeleteModal(prev => ({
         ...prev,
         deleting: false,
-        error: serverMsg || "Gagal menghapus user ini karena terikat dengan riwayat pengajuan/tugas operasional. Anda dapat mengnonaktifkan statusnya."
+        error: msg
       }));
     }
   };
