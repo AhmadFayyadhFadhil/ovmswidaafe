@@ -51,7 +51,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
   const [dateRangeF, setDateRangeF] = useState("All Time");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 25;
+  const PAGE_SIZE = 100;
 
   // 1. Stats data: load once for KPI cards
   const { data: statsData } = useApi<any>(() => auditLogService.getAll({ per_page: 1 }), true);
@@ -72,9 +72,12 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
       page: currentPage,
       per_page: PAGE_SIZE,
       search: search || undefined,
+      department: departmentF === "All" ? undefined : departmentF,
+      role: userRoleF === "All" ? undefined : userRoleF,
+      severity: severityF === "All" ? undefined : severityF,
     }),
     true,
-    [currentPage, search]
+    [currentPage, search, departmentF, userRoleF, severityF]
   );
 
   const list = paginatedData || [];
