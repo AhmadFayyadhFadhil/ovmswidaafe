@@ -123,10 +123,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
     } catch (err: any) {
       console.error("Failed to delete user", err);
       setDeletedIds(prev => prev.filter(i => i !== targetId));
-      let msg = err.response?.data?.message || err.response?.data?.error || err.message;
-      if (!msg || msg === "Server Error" || msg.includes("status code 422")) {
-        msg = "User ini memiliki data riwayat di database. Silakan klik Edit untuk mengubah statusnya menjadi NONAKTIF.";
-      }
+      let msg = err.response?.data?.message || err.response?.data?.error || err.message || "Gagal menghapus user.";
       setDeleteModal(prev => ({
         ...prev,
         deleting: false,
