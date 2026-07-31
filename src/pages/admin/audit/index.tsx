@@ -108,7 +108,13 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
       if (departmentF !== "All") {
         const dept = String(l.department || "").toLowerCase().trim();
         const targetDept = departmentF.toLowerCase().trim();
-        if (!dept.includes(targetDept)) return false;
+        const isMatch = dept.includes(targetDept) || targetDept.includes(dept) ||
+          (targetDept.includes("information") && (dept.includes("it") || dept.includes("tech"))) ||
+          (targetDept.includes("finance") && (dept.includes("fa") || dept.includes("finance"))) ||
+          (targetDept.includes("quality assurance") && dept.includes("qa")) ||
+          (targetDept.includes("quality control") && dept.includes("qc")) ||
+          (targetDept.includes("technical") && (dept.includes("tech") || dept.includes("td")));
+        if (!isMatch) return false;
       }
 
       // 2. User Role Filter (Administrator / Admin matching)
@@ -238,17 +244,18 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
               <select value={departmentF} onChange={e => handleDepartmentF(e.target.value)}
                 className="flex-1 h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer">
                 <option value="All">Department: All</option>
-                <option value="IT">IT</option>
-                <option value="FA">FA</option>
-                <option value="QA">QA</option>
+                <option value="Finance and Accounting">Finance and Accounting</option>
                 <option value="HRD & GA">HRD & GA</option>
+                <option value="Information and Technology">Information and Technology</option>
+                <option value="Legal & Compliance">Legal & Compliance</option>
                 <option value="Plant Management">Plant Management</option>
                 <option value="Production">Production</option>
-                <option value="Engineering">Engineering</option>
-                <option value="Technical">Technical</option>
-                <option value="Logistics">Logistics</option>
-                <option value="Finance">Finance</option>
-                <option value="Operations">Operations</option>
+                <option value="Quality Assurance">Quality Assurance</option>
+                <option value="Quality Control">Quality Control</option>
+                <option value="Regulatory Affairs & PV">Regulatory Affairs & PV</option>
+                <option value="Supply Chain">Supply Chain</option>
+                <option value="Technical and Development">Technical and Development</option>
+                <option value="Driver">Driver</option>
               </select>
               <button onClick={() => { setDateRangeF("All Time"); setSeverityF("All"); setUserRoleF("All"); setDepartmentF("All"); setSearch(""); setCurrentPage(1); }}
                 className="w-10 h-10 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-center hover:bg-[#eff6ff] hover:border-[#1e3a8a]/30 transition-colors cursor-pointer" title="Reset Filters">
