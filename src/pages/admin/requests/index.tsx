@@ -7,7 +7,7 @@ import { assignmentService } from "@/services/modules/assignmentService";
 import { departmentService } from "@/services/modules/departmentService";
 import type { Department } from "@/services/modules/departmentService";
 import { apiClient } from "@/services/api/api";
-import { exportToCSV } from "@/utils/exportHelper";
+import { exportToExcel } from "@/utils/exportHelper";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -464,18 +464,18 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
             <button 
               onClick={() => {
                 const headers = ["ID Request", "Nama Pemohon", "Departemen", "Armada / Kendaraan", "Pengemudi / Driver", "Tujuan Perjalanan", "Jadwal", "Prioritas", "Status"];
-                const rows = list.map((r: any) => [
+                const rows = filteredList.map((r: any) => [
                   `REQ-${r.id}`, 
                   r.employee || "-", 
                   r.department || "-", 
-                  r.vehicleModel || "-", 
-                  r.driverName || "-", 
+                  r.vehicleModel || "Not Assigned", 
+                  r.driverName || "Not Assigned", 
                   r.destination || "-", 
                   `${r.date || "-"} ${r.time || ""}`, 
-                  r.priority || "-", 
-                  r.status || "-"
+                  r.priority || "NORMAL", 
+                  r.status || "PENDING"
                 ]);
-                exportToCSV("Laporan_Monitoring_Request_OVMS.csv", headers, rows);
+                exportToExcel("Laporan_Monitoring_Request_OVMS.xls", headers, rows);
               }}
               className="flex items-center gap-2 px-4 py-2.5 border border-[#e2e8f0] bg-white rounded-xl text-[13px] font-bold text-[#475569] hover:bg-[#f8fafc] shadow-sm cursor-pointer active:scale-95 transition-all"
             >
