@@ -9,12 +9,39 @@ export const auditLogService = {
     const list = Array.isArray(res.data?.data) ? res.data.data : [];
     
     const mapped = list.map((a: any) => {
-      let deptName = 'Operations';
-      if (typeof a.department_name === 'string' && a.department_name) deptName = a.department_name;
-      else if (typeof a.department === 'string' && a.department) deptName = a.department;
-      else if (a.department && typeof a.department === 'object' && a.department.name) deptName = a.department.name;
-      else if (a.user && typeof a.user.department === 'object' && a.user.department?.name) deptName = a.user.department.name;
-      else if (a.user && typeof a.user.department === 'string' && a.user.department) deptName = a.user.department;
+      let deptName = 'General';
+      if (typeof a.user?.department_name === 'string' && a.user.department_name) {
+        deptName = a.user.department_name;
+      } else if (typeof a.user?.department === 'string' && a.user.department) {
+        deptName = a.user.department;
+      } else if (a.user?.department && typeof a.user.department === 'object' && a.user.department.name) {
+        deptName = a.user.department.name;
+      } else if (typeof a.department_name === 'string' && a.department_name) {
+        deptName = a.department_name;
+      } else if (typeof a.department === 'string' && a.department) {
+        deptName = a.department;
+      } else if (a.department && typeof a.department === 'object' && a.department.name) {
+        deptName = a.department.name;
+      } else if (typeof a.user?.department_id === 'number' || typeof a.user?.department === 'number') {
+        const id = Number(a.user?.department_id || a.user?.department);
+        const DEPT_MAP: Record<number, string> = {
+          1: 'Information and Technology',
+          2: 'Finance and Accounting',
+          3: 'HRD & GA',
+          4: 'Legal & Compliance',
+          5: 'Plant Management',
+          6: 'Production',
+          7: 'Quality Assurance',
+          8: 'Quality Control',
+          9: 'Regulatory Affairs & PV',
+          10: 'Supply Chain',
+          11: 'Technical and Development',
+          12: 'Driver',
+          17: 'Legal & Compliance',
+          18: 'Plant Management',
+        };
+        deptName = DEPT_MAP[id] || `Department #${id}`;
+      }
 
       let roleName = 'Staff';
       if (typeof a.user?.role === 'string' && a.user.role) roleName = a.user.role;
