@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
@@ -109,8 +109,12 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
     });
   };
 
+  const [deletedIds, setDeletedIds] = useState<string[]>([]);
+
   const handleConfirmDeleteUser = async () => {
     if (!deleteModal.user) return;
+    const targetId = String(deleteModal.user.id);
+    setDeletedIds(prev => [...prev, targetId]);
     setDeleteModal(prev => ({ ...prev, deleting: true, error: null }));
     try {
       await userService.delete(deleteModal.user.id, deleteModal.user);
@@ -118,6 +122,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
       refetch();
     } catch (err: any) {
       console.error("Failed to delete user", err);
+      setDeletedIds(prev => prev.filter(i => i !== targetId));
       let msg = err.response?.data?.message || err.response?.data?.error || err.message;
       if (!msg || msg === "Server Error" || msg.includes("status code 422")) {
         msg = "User ini memiliki data riwayat di database. Silakan klik Edit untuk mengubah statusnya menjadi NONAKTIF.";
@@ -285,7 +290,10 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
     }
   };
 
-  const list = paginatedData || [];
+  const rawList = paginatedData || [];
+  const list = useMemo(() => {
+    return rawList.filter((u: any) => !deletedIds.includes(String(u.id)));
+  }, [rawList, deletedIds]);
   const pagination = (paginatedData as any)?.pagination || { total: 0, currentPage: 1, lastPage: 1, from: null, to: null };
 
   const handleSearchChange = (val: string) => { setSearch(val); setCurrentPage(1); };
