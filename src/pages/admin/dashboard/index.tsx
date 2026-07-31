@@ -45,17 +45,31 @@ const PriorityBadge = React.memo(function PriorityBadge({ priority }: { priority
 });
 
 // ── Chart ────────────────────────────────────
-const UsageChart = React.memo(function UsageChart({ thisWeekPct, prevWeekPct }: { thisWeekPct: number[]; prevWeekPct: number[] }) {
-  const xCoords = [44, 141, 238, 335, 432, 529, 626];
-  
-  const thisWeekPoints = thisWeekPct.map((p, i) => ({
+const UsageChart = React.memo(function UsageChart({
+  labels,
+  thisPeriodPct,
+  prevPeriodPct,
+  periodName
+}: {
+  labels: string[];
+  thisPeriodPct: number[];
+  prevPeriodPct: number[];
+  periodName: string;
+}) {
+  const count = labels.length;
+  const startX = 44;
+  const endX = 626;
+  const step = count > 1 ? (endX - startX) / (count - 1) : 0;
+  const xCoords = labels.map((_, i) => startX + i * step);
+
+  const thisPeriodPoints = thisPeriodPct.map((p, i) => ({
     x: xCoords[i],
-    y: 190 - (p / 100) * 160
+    y: 190 - (Math.min(100, Math.max(0, p)) / 100) * 160
   }));
-  
-  const prevWeekPoints = prevWeekPct.map((p, i) => ({
+
+  const prevPeriodPoints = prevPeriodPct.map((p, i) => ({
     x: xCoords[i],
-    y: 190 - (p / 100) * 160
+    y: 190 - (Math.min(100, Math.max(0, p)) / 100) * 160
   }));
 
   const getSplinePath = (points: { x: number; y: number }[]) => {
@@ -64,26 +78,30 @@ const UsageChart = React.memo(function UsageChart({ thisWeekPct, prevWeekPct }: 
     for (let i = 1; i < points.length; i++) {
       const p0 = points[i - 1];
       const p1 = points[i];
-      const cp1x = p0.x + 48;
-      const cp1y = p0.y;
-      const cp2x = p1.x - 48;
-      const cp2y = p1.y;
-      path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p1.x},${p1.y}`;
+      const cpX = (p1.x - p0.x) * 0.4;
+      path += ` C ${p0.x + cpX},${p0.y} ${p1.x - cpX},${p1.y} ${p1.x},${p1.y}`;
     }
     return path;
   };
 
-  const thisWeek = getSplinePath(thisWeekPoints);
-  const prevWeek = getSplinePath(prevWeekPoints);
-  const fillPath = thisWeek + " L 626,210 L 44,210 Z";
+  const thisPath = getSplinePath(thisPeriodPoints);
+  const prevPath = getSplinePath(prevPeriodPoints);
+  const fillPath = thisPath ? `${thisPath} L ${xCoords[xCoords.length - 1]},210 L ${xCoords[0]},210 Z` : "";
 
-  const today = new Date();
-  let dayIndex = today.getDay() - 1; // 0 = Mon, ..., 6 = Sun
-  if (dayIndex === -1) dayIndex = 6;
+  const now = new Date();
+  let activeIdx = 0;
+  if (periodName === "Weekly") {
+    let dayIndex = now.getDay() - 1; // 0 = Mon, ..., 6 = Sun
+    if (dayIndex === -1) dayIndex = 6;
+    activeIdx = dayIndex;
+  } else {
+    activeIdx = now.getMonth(); // 0 = Jan, ..., 11 = Dec
+  }
+  if (activeIdx >= count) activeIdx = count - 1;
 
-  const todayX = xCoords[dayIndex];
-  const todayY = thisWeekPoints[dayIndex].y;
-  const todayPct = thisWeekPct[dayIndex];
+  const todayX = xCoords[activeIdx];
+  const todayY = thisPeriodPoints[activeIdx]?.y || 190;
+  const todayPct = thisPeriodPct[activeIdx] || 0;
 
   return (
     <div className="relative w-full" style={{ height: 248 }}>
@@ -97,14 +115,16 @@ const UsageChart = React.memo(function UsageChart({ thisWeekPct, prevWeekPct }: 
         {[40, 80, 120, 160, 200].map(y => (
           <line key={y} x1="44" y1={y} x2="626" y2={y} stroke="#e2e8f0" strokeWidth="1" />
         ))}
-        <path d={prevWeek} fill="none" stroke="#93c5fd" strokeWidth="1.8" strokeDasharray="6 4" strokeOpacity="0.8" />
+        <path d={prevPath} fill="none" stroke="#93c5fd" strokeWidth="1.8" strokeDasharray="6 4" strokeOpacity="0.8" />
         <path d={fillPath} fill="url(#waveGrad)" />
-        <path d={thisWeek} fill="none" stroke="#1e3a8a" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={thisPath} fill="none" stroke="#1e3a8a" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+        
         <circle cx={todayX} cy={todayY} r="5.5" fill="#1e3a8a" />
         <circle cx={todayX} cy={todayY} r="11" fill="none" stroke="#1e3a8a" strokeWidth="1.5" strokeOpacity="0.25">
           <animate attributeName="r"              from="6"   to="18"  dur="1.8s" repeatCount="indefinite" />
           <animate attributeName="stroke-opacity" from="0.4" to="0"   dur="1.8s" repeatCount="indefinite" />
         </circle>
+        
         <g>
           <rect x={todayX - 50} y={todayY - 30} width="100" height="26" rx="6" fill="#1e3a8a" />
           <polygon points={`${todayX - 5},${todayY - 4} ${todayX + 5},${todayY - 4} ${todayX},${todayY + 4}`} fill="#1e3a8a" />
@@ -114,10 +134,10 @@ const UsageChart = React.memo(function UsageChart({ thisWeekPct, prevWeekPct }: 
         </g>
       </svg>
       <div className="absolute bottom-0 left-0 right-0 flex" style={{ paddingLeft: 30, paddingRight: 16 }}>
-        {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((d, i) => (
-          <div key={d} className="flex-1 text-center" style={{ fontSize: 12, color: i === dayIndex ? "#1e3a8a" : "#94a3b8", fontWeight: i === dayIndex ? 700 : 500 }}>
+        {labels.map((d, i) => (
+          <div key={d} className="flex-1 text-center" style={{ fontSize: labels.length > 7 ? 10 : 12, color: i === activeIdx ? "#1e3a8a" : "#94a3b8", fontWeight: i === activeIdx ? 700 : 500 }}>
             {d}
-            {i === dayIndex && <div className="w-1 h-1 rounded-full bg-[#1e3a8a] mx-auto mt-1" />}
+            {i === activeIdx && <div className="w-1 h-1 rounded-full bg-[#1e3a8a] mx-auto mt-1" />}
           </div>
         ))}
       </div>
@@ -127,13 +147,14 @@ const UsageChart = React.memo(function UsageChart({ thisWeekPct, prevWeekPct }: 
 
 export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState("All Status");
+  const [periodFilter, setPeriodFilter] = useState<"Weekly" | "Monthly">("Weekly");
 
   // Fetch all dashboard metrics in parallel
   const { data: dashboardData, loading: reqLoading, error: reqError, refetch } = useApi(async () => {
     const [reqsRes, vehiclesRes, usersRes] = await Promise.all([
-      requestService.getAll({ per_page: 100 }),  // cukup untuk tabel + weekly analytics
-      vehicleService.getAll({ per_page: 50 }),   // stat card: cukup 50 record
-      userService.getAll({ per_page: 50 }),      // stat card: cukup 50 record
+      requestService.getAll({ per_page: 1000 }),
+      vehicleService.getAll({ per_page: 1000 }),
+      userService.getAll({ per_page: 1000 }),
     ]);
     return {
       data: {
@@ -148,57 +169,115 @@ export default function Dashboard() {
   const vehiclesList = dashboardData?.vehicles || [];
   const usersList = dashboardData?.users || [];
 
-  // Calculate dynamic weekly usage analytics based on requests in database
-  const { finalThisWeekPct, finalPrevWeekPct } = useMemo(() => {
-    const getStartOfWeek = (date: Date) => {
-      const d = new Date(date);
-      const day = d.getDay();
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-      const monday = new Date(d.setDate(diff));
-      monday.setHours(0, 0, 0, 0);
-      return monday;
-    };
-
-    const formatDate = (d: Date) => {
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
-    };
-
-    const todayDate = new Date();
-    const startOfThisWeek = getStartOfWeek(todayDate);
-    const startOfPrevWeek = new Date(startOfThisWeek);
-    startOfPrevWeek.setDate(startOfPrevWeek.getDate() - 7);
-
-    const thisWeekUsage = Array(7).fill(0);
-    const prevWeekUsage = Array(7).fill(0);
-
+  // Calculate dynamic usage analytics based on REAL database request data for Weekly & Monthly modes
+  const { labels, finalThisPct, finalPrevPct, legendThis, legendPrev } = useMemo(() => {
     const totalVehiclesCount = Math.max(1, vehiclesList.length);
 
-    for (let d = 0; d < 7; d++) {
-      const dateThis = new Date(startOfThisWeek);
-      dateThis.setDate(dateThis.getDate() + d);
-      const strThis = formatDate(dateThis);
+    if (periodFilter === "Weekly") {
+      const getStartOfWeek = (date: Date) => {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        const monday = new Date(d.setDate(diff));
+        monday.setHours(0, 0, 0, 0);
+        return monday;
+      };
 
-      const datePrev = new Date(startOfPrevWeek);
-      datePrev.setDate(datePrev.getDate() + d);
-      const strPrev = formatDate(datePrev);
+      const formatDate = (d: Date) => {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      };
 
-      const countThis = requestsList.filter((r: any) => r.date === strThis && r.status !== 'REJECTED').length;
-      const countPrev = requestsList.filter((r: any) => r.date === strPrev && r.status !== 'REJECTED').length;
+      const todayDate = new Date();
+      const startOfThisWeek = getStartOfWeek(todayDate);
+      const startOfPrevWeek = new Date(startOfThisWeek);
+      startOfPrevWeek.setDate(startOfPrevWeek.getDate() - 7);
 
-      thisWeekUsage[d] = Math.min(100, Math.round((countThis / totalVehiclesCount) * 100));
-      prevWeekUsage[d] = Math.min(100, Math.round((countPrev / totalVehiclesCount) * 100));
+      const thisWeekUsage = Array(7).fill(0);
+      const prevWeekUsage = Array(7).fill(0);
+
+      for (let d = 0; d < 7; d++) {
+        const dateThis = new Date(startOfThisWeek);
+        dateThis.setDate(dateThis.getDate() + d);
+        const strThis = formatDate(dateThis);
+
+        const datePrev = new Date(startOfPrevWeek);
+        datePrev.setDate(datePrev.getDate() + d);
+        const strPrev = formatDate(datePrev);
+
+        const countThis = requestsList.filter((r: any) => (r.date === strThis || r.start_time?.startsWith(strThis)) && r.status !== 'REJECTED' && r.status !== 'rejected').length;
+        const countPrev = requestsList.filter((r: any) => (r.date === strPrev || r.start_time?.startsWith(strPrev)) && r.status !== 'REJECTED' && r.status !== 'rejected').length;
+
+        thisWeekUsage[d] = Math.min(100, Math.round((countThis / totalVehiclesCount) * 100));
+        prevWeekUsage[d] = Math.min(100, Math.round((countPrev / totalVehiclesCount) * 100));
+      }
+
+      return {
+        labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        finalThisPct: thisWeekUsage,
+        finalPrevPct: prevWeekUsage,
+        legendThis: "Minggu Ini (This Week)",
+        legendPrev: "Minggu Lalu (Prev. Week)"
+      };
+    } else {
+      // Monthly Mode
+      const currentYear = new Date().getFullYear();
+      const prevYear = currentYear - 1;
+
+      const thisYearUsage = Array(12).fill(0);
+      const prevYearUsage = Array(12).fill(0);
+
+      requestsList.forEach((r: any) => {
+        if (r.status === 'REJECTED' || r.status === 'rejected') return;
+        const dateStr = r.date || r.start_time || r.created_at;
+        if (!dateStr) return;
+
+        try {
+          // Parse DD-MM-YYYY or YYYY-MM-DD
+          let y = currentYear;
+          let m = -1;
+
+          if (/^\d{2}-\d{2}-\d{4}/.test(dateStr)) {
+            const parts = dateStr.split(' ')[0].split('-');
+            y = parseInt(parts[2], 10);
+            m = parseInt(parts[1], 10) - 1;
+          } else if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+            const parts = dateStr.split(' ')[0].split('-');
+            y = parseInt(parts[0], 10);
+            m = parseInt(parts[1], 10) - 1;
+          } else {
+            const d = new Date(dateStr);
+            if (!isNaN(d.getTime())) {
+              y = d.getFullYear();
+              m = d.getMonth();
+            }
+          }
+
+          if (m >= 0 && m < 12) {
+            if (y === currentYear) {
+              thisYearUsage[m] += 1;
+            } else if (y === prevYear) {
+              prevYearUsage[m] += 1;
+            }
+          }
+        } catch {}
+      });
+
+      const monthlyCapacity = Math.max(1, totalVehiclesCount * 10);
+      const thisMonthPct = thisYearUsage.map(c => Math.min(100, Math.round((c / monthlyCapacity) * 100)));
+      const prevMonthPct = prevYearUsage.map(c => Math.min(100, Math.round((c / monthlyCapacity) * 100)));
+
+      return {
+        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        finalThisPct: thisMonthPct,
+        finalPrevPct: prevMonthPct,
+        legendThis: `Tahun ${currentYear}`,
+        legendPrev: `Tahun ${prevYear}`
+      };
     }
-
-    // Fallback to sample data if both weeks have 0 active usages
-    const hasRealData = thisWeekUsage.some(v => v > 0) || prevWeekUsage.some(v => v > 0);
-    return {
-      finalThisWeekPct: hasRealData ? thisWeekUsage : [10, 25, 45, 38, 84, 52, 35],
-      finalPrevWeekPct: hasRealData ? prevWeekUsage : [22, 12, 35, 25, 18, 28, 48]
-    };
-  }, [requestsList, vehiclesList]);
+  }, [periodFilter, requestsList, vehiclesList]);
 
   // Calculate stats dynamically from actual database data
   const STATS: StatCard[] = useMemo(() => {
@@ -312,7 +391,6 @@ export default function Dashboard() {
                 <div className="text-[22px] font-bold text-[#0f172a] leading-tight">{card.value}</div>
                 <div className="text-[12px] text-[#64748b] font-medium mt-0.5">{card.label}</div>
               </div>
-              
             </div>
           ))}
         </div>
@@ -326,25 +404,39 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3.5 mt-1 flex-wrap">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#1e3a8a]" />
-                    <span className="text-[10.5px] font-semibold text-[#64748b] uppercase tracking-wider">This Week</span>
+                    <span className="text-[10.5px] font-semibold text-[#64748b] uppercase tracking-wider">{legendThis}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <svg width="18" height="6"><line x1="0" y1="3" x2="18" y2="3" stroke="#93c5fd" strokeWidth="2" strokeDasharray="4 2" /></svg>
-                    <span className="text-[10.5px] font-semibold text-[#64748b] uppercase tracking-wider">Prev. Week</span>
+                    <span className="text-[10.5px] font-semibold text-[#64748b] uppercase tracking-wider">{legendPrev}</span>
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
-                <select aria-label="Analytics Filter Period" className="text-[12px] font-semibold border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-[#475569] bg-[#f8fafc] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer">
-                  <option>Weekly</option>
-                  <option>Monthly</option>
+                <select 
+                  aria-label="Analytics Filter Period" 
+                  value={periodFilter}
+                  onChange={(e) => setPeriodFilter(e.target.value as "Weekly" | "Monthly")}
+                  className="text-[12px] font-bold border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-[#1e3a8a] bg-[#f8fafc] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer shadow-2xs"
+                >
+                  <option value="Weekly">Weekly (Mingguan)</option>
+                  <option value="Monthly">Monthly (Bulanan)</option>
                 </select>
-                <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#f1f5f9] transition-colors">
-                  <Icon name="more_vert" className="text-[#94a3b8] text-[20px]" />
+                <button 
+                  onClick={() => refetch()} 
+                  title="Segarkan Data Analytics"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#f1f5f9] transition-colors cursor-pointer"
+                >
+                  <Icon name="refresh" className="text-[#94a3b8] hover:text-[#1e3a8a] text-[18px]" />
                 </button>
               </div>
             </div>
-            <UsageChart thisWeekPct={finalThisWeekPct} prevWeekPct={finalPrevWeekPct} />
+            <UsageChart 
+              labels={labels} 
+              thisPeriodPct={finalThisPct} 
+              prevPeriodPct={finalPrevPct} 
+              periodName={periodFilter}
+            />
           </div>
 
           <div className="col-span-4 bg-white rounded-2xl border border-[#e2e8f0] p-5 shadow-sm flex flex-col">
