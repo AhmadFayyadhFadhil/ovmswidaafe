@@ -90,8 +90,8 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
   useEffect(() => {
     if (apiData) {
       const updated = { ...apiData };
-      if (!updated.hqAddress || updated.hqAddress.includes("Sudirman") || updated.hqAddress === "") {
-        updated.hqAddress = "Jl. Stadion / Jl. Sidomukti No. 1, Sidomukti, Pandaan, Pasuruan, Jawa Timur 67156";
+      if (!updated.hqAddress || updated.hqAddress.includes("Sudirman") || updated.hqAddress.includes("Semarang") || updated.hqAddress.includes("Demak") || updated.hqAddress === "") {
+        updated.hqAddress = "Jl. Stadion / Jl. Sidomukti No. 1, Sidomukti, Kecamatan Pandaan, Kabupaten Pasuruan, Jawa Timur 67156";
       }
       setFormData(updated);
     }
