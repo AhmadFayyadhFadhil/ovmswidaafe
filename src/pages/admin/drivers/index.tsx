@@ -363,7 +363,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                   <table className="w-full min-w-[900px]">
                   <thead>
                     <tr className="bg-[#f8fafc]">
-                      {["DRIVER", "STATUS", "ASSIGNED VEHICLE", "SIM A", "ACTIONS"].map(h => (
+                      {["DRIVER", "STATUS", "ASSIGNED VEHICLE", "GOLONGAN SIM", "ACTIONS"].map(h => (
                         <th key={h} className="px-5 py-3 text-left text-[10.5px] font-bold text-[#94a3b8] uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
