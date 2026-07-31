@@ -607,7 +607,21 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
               </div>
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">SIM A Photo</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Golongan / Jenis SIM</label>
+                <select
+                  value={formData.sim_type || "SIM A"}
+                  onChange={e => setFormData({ ...formData, sim_type: e.target.value })}
+                  className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] font-bold text-[#1e3a8a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                >
+                  <option value="SIM A">SIM A (Mobil Penumpang / MPV)</option>
+                  <option value="SIM B1">SIM B1 (Truk / Bus &gt; 3.5 Ton)</option>
+                  <option value="SIM B2">SIM B2 (Truk Gandeng / Alat Berat)</option>
+                  <option value="SIM C">SIM C (Sepeda Motor Operasional)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Foto Kartu SIM Driver</label>
                 <div className="flex items-center gap-4">
                   <input
                     type="file"
@@ -618,7 +632,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                   />
                   <label htmlFor="sim-upload" className="cursor-pointer h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
                     <Icon name="upload" className="text-[16px]" />
-                    Upload SIM A Image
+                    Upload Foto SIM
                   </label>
                   {simPreview && (
                     <img src={simPreview} alt="SIM Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0]" />
@@ -728,7 +742,21 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
               </div>
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">SIM A Photo</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Golongan / Jenis SIM</label>
+                <select
+                  value={editFormData.sim_type || "SIM A"}
+                  onChange={e => setEditFormData({ ...editFormData, sim_type: e.target.value })}
+                  className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] font-bold text-[#1e3a8a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                >
+                  <option value="SIM A">SIM A (Mobil Penumpang / MPV)</option>
+                  <option value="SIM B1">SIM B1 (Truk / Bus &gt; 3.5 Ton)</option>
+                  <option value="SIM B2">SIM B2 (Truk Gandeng / Alat Berat)</option>
+                  <option value="SIM C">SIM C (Sepeda Motor Operasional)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Foto Kartu SIM Driver</label>
                 <div className="flex items-center gap-4">
                   <input
                     type="file"
@@ -739,7 +767,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                   />
                   <label htmlFor="edit-sim-upload" className="cursor-pointer h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
                     <Icon name="upload" className="text-[16px]" />
-                    Upload SIM A Image
+                    Upload Foto SIM
                   </label>
                   {editSimPreview && (
                     <img src={editSimPreview} alt="SIM Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0]" />
