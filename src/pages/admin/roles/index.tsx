@@ -14,14 +14,6 @@ const ROLES = [
 
 const MODULES = ["Dashboard", "Vehicles", "Requests", "Reports"];
 const ACTIONS = ["VIEW", "CREATE", "EDIT", "DELETE", "APPROVE", "MANAGE"];
-
-const DEFAULT_PERMS: Record<string, Record<string, boolean>> = {
-  Dashboard: { VIEW: true, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, EXPORT: false, MANAGE: true },
-  Vehicles: { VIEW: true, CREATE: true, EDIT: true, DELETE: false, APPROVE: false, EXPORT: true, MANAGE: false },
-  Requests: { VIEW: true, CREATE: true, EDIT: true, DELETE: false, APPROVE: true, EXPORT: true, MANAGE: false },
-  Reports: { VIEW: true, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, EXPORT: true, MANAGE: false },
-};
-
 const FALLBACK_USERS = [
   { id: "1", name: "Sarah Connor", email: "sarah.c@ovms.com", dept: "Global Operations", role: "Administrator", roleColor: "bg-[#dbeafe] text-[#1d4ed8]", img: "https://i.pravatar.cc/32?img=44" },
   { id: "2", name: "James Wilson", email: "j.wilson@ovms.com", dept: "Finance", role: "Approver", roleColor: "bg-[#dcfce7] text-[#16a34a]", img: "https://i.pravatar.cc/32?img=55" },
@@ -38,11 +30,59 @@ const getRoleBadgeStyle = (role: string) => {
   return "bg-[#f1f5f9] text-[#475569]";
 };
 
+const SYSTEM_ROLE_PERMISSIONS: Record<string, Record<string, Record<string, boolean>>> = {
+  Administrator: {
+    Dashboard: { VIEW: true, CREATE: true, EDIT: true, DELETE: true, APPROVE: true, MANAGE: true },
+    Vehicles:  { VIEW: true, CREATE: true, EDIT: true, DELETE: true, APPROVE: true, MANAGE: true },
+    Requests:  { VIEW: true, CREATE: true, EDIT: true, DELETE: true, APPROVE: true, MANAGE: true },
+    Reports:   { VIEW: true, CREATE: true, EDIT: true, DELETE: true, APPROVE: true, MANAGE: true },
+  },
+  Approver: {
+    Dashboard: { VIEW: true, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, MANAGE: false },
+    Vehicles:  { VIEW: true, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, MANAGE: false },
+    Requests:  { VIEW: true, CREATE: true, EDIT: true, DELETE: false, APPROVE: true, MANAGE: false },
+    Reports:   { VIEW: true, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, MANAGE: false },
+  },
+  GA: {
+    Dashboard: { VIEW: true, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, MANAGE: true },
+    Vehicles:  { VIEW: true, CREATE: true, EDIT: true, DELETE: true, APPROVE: false, MANAGE: true },
+    Requests:  { VIEW: true, CREATE: true, EDIT: true, DELETE: false, APPROVE: true, MANAGE: true },
+    Reports:   { VIEW: true, CREATE: true, EDIT: false, DELETE: false, APPROVE: false, MANAGE: true },
+  },
+  Driver: {
+    Dashboard: { VIEW: true, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, MANAGE: false },
+    Vehicles:  { VIEW: true, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, MANAGE: false },
+    Requests:  { VIEW: true, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, MANAGE: false },
+    Reports:   { VIEW: false, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, MANAGE: false },
+  },
+  Employee: {
+    Dashboard: { VIEW: true, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, MANAGE: false },
+    Vehicles:  { VIEW: true, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, MANAGE: false },
+    Requests:  { VIEW: true, CREATE: true, EDIT: false, DELETE: false, APPROVE: false, MANAGE: false },
+    Reports:   { VIEW: false, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, MANAGE: false },
+  },
+  Security: {
+    Dashboard: { VIEW: true, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, MANAGE: false },
+    Vehicles:  { VIEW: false, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, MANAGE: false },
+    Requests:  { VIEW: true, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, MANAGE: true },
+    Reports:   { VIEW: false, CREATE: false, EDIT: false, DELETE: false, APPROVE: false, MANAGE: false },
+  },
+};
+
 export default function Role({ onNavigate }: { onNavigate?: (p: string) => void }) {
   const [selectedRole, setSelectedRole] = useState("Approver");
-  const [perms, setPerms] = useState(DEFAULT_PERMS);
-  const [selectAll, setSelectAll] = useState(true);
+  const [rolePermsStore, setRolePermsStore] = useState(SYSTEM_ROLE_PERMISSIONS);
   const [saved, setSaved] = useState(false);
+
+  // Active perms for current selectedRole
+  const perms = useMemo(() => {
+    return rolePermsStore[selectedRole] || SYSTEM_ROLE_PERMISSIONS[selectedRole] || SYSTEM_ROLE_PERMISSIONS["Employee"];
+  }, [rolePermsStore, selectedRole]);
+
+  // Check if all actions are selected for current selectedRole
+  const isSelectAllActive = useMemo(() => {
+    return Object.values(perms).every(mod => Object.values(mod).every(val => val));
+  }, [perms]);
 
   // User Assignment Filter State
   const [userRoleFilter, setUserRoleFilter] = useState("All Roles");
@@ -73,7 +113,38 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
   }, [rawUsers, userRoleFilter]);
 
   const togglePerm = (mod: string, action: string) => {
-    setPerms(prev => ({ ...prev, [mod]: { ...prev[mod], [action]: !prev[mod][action] } }));
+    setRolePermsStore(prev => {
+      const currentRoleObj = prev[selectedRole] || SYSTEM_ROLE_PERMISSIONS[selectedRole];
+      const currentModObj  = currentRoleObj[mod] || {};
+      return {
+        ...prev,
+        [selectedRole]: {
+          ...currentRoleObj,
+          [mod]: {
+            ...currentModObj,
+            [action]: !currentModObj[action],
+          },
+        },
+      };
+    });
+    setSaved(false);
+  };
+
+  const toggleSelectAll = () => {
+    const nextVal = !isSelectAllActive;
+    setRolePermsStore(prev => {
+      const updatedRoleObj: Record<string, Record<string, boolean>> = {};
+      MODULES.forEach(m => {
+        updatedRoleObj[m] = {};
+        ACTIONS.forEach(a => {
+          updatedRoleObj[m][a] = nextVal;
+        });
+      });
+      return {
+        ...prev,
+        [selectedRole]: updatedRoleObj,
+      };
+    });
     setSaved(false);
   };
 
@@ -169,8 +240,8 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[12px] font-semibold text-[#475569]">Select All Actions</span>
-                  <button onClick={() => setSelectAll(p => !p)} className={`w-11 h-6 rounded-full transition-all cursor-pointer ${selectAll ? "bg-[#1e3a8a]" : "bg-[#e2e8f0]"}`}>
-                    <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${selectAll ? "translate-x-5" : "translate-x-0"}`} />
+                  <button onClick={toggleSelectAll} className={`w-11 h-6 rounded-full transition-all cursor-pointer ${isSelectAllActive ? "bg-[#1e3a8a]" : "bg-[#e2e8f0]"}`}>
+                    <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${isSelectAllActive ? "translate-x-5" : "translate-x-0"}`} />
                   </button>
                 </div>
               </div>
