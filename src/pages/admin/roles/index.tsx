@@ -6,8 +6,10 @@ import { userService } from "@/services/modules/userService";
 const ROLES = [
   { icon: "gavel", label: "Approver", sub: "Financial & asset approvals" },
   { icon: "admin_panel_settings", label: "Administrator", sub: "Full system access & control" },
+  { icon: "assignment_ind", label: "GA", sub: "General Affairs & Operations" },
   { icon: "directions_car", label: "Driver", sub: "Vehicle data access only" },
   { icon: "work", label: "Employee", sub: "Standard view permissions" },
+  { icon: "security", label: "Security", sub: "Security & QR Verification" },
 ];
 
 const MODULES = ["Dashboard", "Vehicles", "Requests", "Reports"];
@@ -32,6 +34,7 @@ const getRoleBadgeStyle = (role: string) => {
   if (r.includes("approver")) return "bg-[#dcfce7] text-[#16a34a]";
   if (r.includes("driver")) return "bg-[#e0f2fe] text-[#0369a1]";
   if (r.includes("ga")) return "bg-[#fef3c7] text-[#d97706]";
+  if (r.includes("security")) return "bg-[#fae8ff] text-[#a21caf]";
   return "bg-[#f1f5f9] text-[#475569]";
 };
 
@@ -336,6 +339,7 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
                   <option value="GA">GA (General Affairs / Admin Operasional)</option>
                   <option value="Driver">Driver (Pengemudi Operasional)</option>
                   <option value="Employee">Employee (Karyawan Pemohon)</option>
+                  <option value="Security">Security (Petugas Keamanan / Pos)</option>
                 </select>
               </div>
 
