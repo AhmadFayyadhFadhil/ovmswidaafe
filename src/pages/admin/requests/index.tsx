@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { requestService } from "@/services/modules/requestService";
@@ -398,7 +398,36 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
     }
   };
 
-  const list = paginatedData || [];
+  const [priorityFilter, setPriorityFilter] = useState("All");
+
+  const rawList = paginatedData || [];
+  const list = useMemo(() => {
+    let result = rawList;
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((r: any) =>
+        String(r.id).toLowerCase().includes(q) ||
+        (r.employee || "").toLowerCase().includes(q) ||
+        (r.department || "").toLowerCase().includes(q) ||
+        (r.destination || "").toLowerCase().includes(q) ||
+        (r.vehicleModel || "").toLowerCase().includes(q) ||
+        (r.driverName || "").toLowerCase().includes(q) ||
+        (r.purpose || "").toLowerCase().includes(q)
+      );
+    }
+
+    if (statusFilter !== "All") {
+      result = result.filter((r: any) => (r.status || "").toUpperCase() === statusFilter.toUpperCase());
+    }
+
+    if (priorityFilter !== "All") {
+      result = result.filter((r: any) => (r.priority || "").toUpperCase() === priorityFilter.toUpperCase());
+    }
+
+    return result;
+  }, [rawList, search, statusFilter, priorityFilter]);
+
   const pagination = (paginatedData as any)?.pagination || { total: 0, currentPage: 1, lastPage: 1, from: null, to: null };
 
   const handleSearchChange = (val: string) => { setSearch(val); setCurrentPage(1); };
@@ -427,13 +456,23 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
           <div className="flex gap-2.5 flex-shrink-0">
             <button 
               onClick={() => {
-                const headers = ["Request ID", "Requester", "Department", "Vehicle", "Driver", "Destination", "Date", "Priority", "Status"];
-                const rows = list.map((r: any) => [r.id, r.employee, r.department, r.vehicleModel, r.driverName, r.destination, r.date, r.priority, r.status]);
-                exportToCSV("Admin_Vehicle_Requests_Report.csv", headers, rows);
+                const headers = ["ID Request", "Nama Pemohon", "Departemen", "Armada / Kendaraan", "Pengemudi / Driver", "Tujuan Perjalanan", "Jadwal", "Prioritas", "Status"];
+                const rows = list.map((r: any) => [
+                  `REQ-${r.id}`, 
+                  r.employee || "-", 
+                  r.department || "-", 
+                  r.vehicleModel || "-", 
+                  r.driverName || "-", 
+                  r.destination || "-", 
+                  `${r.date || "-"} ${r.time || ""}`, 
+                  r.priority || "-", 
+                  r.status || "-"
+                ]);
+                exportToCSV("Laporan_Monitoring_Request_OVMS.csv", headers, rows);
               }}
               className="flex items-center gap-2 px-4 py-2.5 border border-[#e2e8f0] bg-white rounded-xl text-[13px] font-bold text-[#475569] hover:bg-[#f8fafc] shadow-sm cursor-pointer active:scale-95 transition-all"
             >
-              <Icon name="download" className="text-[17px]" />Export
+              <Icon name="download" className="text-[17px]" />Export Excel
             </button>
             <button
               onClick={() => setIsModalOpen(true)}
@@ -473,23 +512,27 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
               <input
                 value={search}
                 onChange={e => handleSearchChange(e.target.value)}
-                placeholder="Search Requests..."
+                placeholder="Search Requests, Employee, Destination..."
                 className="w-full h-9 pl-9 pr-4 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
               />
             </div>
             <select
               value={statusFilter}
               onChange={e => handleStatusChange(e.target.value)}
-              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-semibold text-[#475569] focus:outline-none"
+              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer"
             >
-              {["All", "APPROVED", "PENDING", "ONGOING", "COMPLETED", "REJECTED"].map(s => <option key={s} value={s}>Status: {s}</option>)}
+              {["All", "APPROVED", "PENDING", "ONGOING", "COMPLETED", "REJECTED", "CANCELLED"].map(s => <option key={s} value={s}>Status: {s}</option>)}
             </select>
-            <select className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-semibold text-[#475569] focus:outline-none">
-              <option>Priority: All</option>
-              <option>HIGH</option>
-              <option>URGENT</option>
-              <option>NORMAL</option>
-              <option>LOW</option>
+            <select 
+              value={priorityFilter}
+              onChange={e => { setPriorityFilter(e.target.value); setCurrentPage(1); }}
+              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer"
+            >
+              <option value="All">Prioritas: Semua</option>
+              <option value="URGENT">URGENT</option>
+              <option value="HIGH">HIGH</option>
+              <option value="NORMAL">NORMAL</option>
+              <option value="LOW">LOW</option>
             </select>
             <div className="flex items-center gap-2 h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] text-[#475569] whitespace-nowrap">
               <Icon name="calendar_today" className="text-[15px]" />
@@ -519,7 +562,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                 </tr>
               </thead>
               <tbody>
-                {list.map(r => (
+                {list.map((r: any) => (
                   <tr key={r.id} className="border-t border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors group">
                     <td className="px-4 py-4 text-[13px] font-bold text-[#1e3a8a]">{r.id}</td>
                     <td className="px-4 py-4">

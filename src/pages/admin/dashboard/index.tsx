@@ -145,7 +145,7 @@ const UsageChart = React.memo(function UsageChart({
   );
 });
 
-export default function Dashboard() {
+export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => void }) {
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [periodFilter, setPeriodFilter] = useState<"Weekly" | "Monthly">("Weekly");
 
@@ -460,7 +460,11 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-            <button className="mt-4 w-full py-2.5 rounded-xl border border-[#e2e8f0] text-[13px] font-bold text-[#1e3a8a] hover:bg-[#eff6ff] hover:border-[#1e3a8a]/20 transition-all">
+            <button 
+              onClick={() => onNavigate ? onNavigate("Vehicle Schedule") : window.location.href = "/admin/schedules"}
+              className="mt-4 w-full py-2.5 rounded-xl border border-[#e2e8f0] text-[13px] font-bold text-[#1e3a8a] hover:bg-[#eff6ff] hover:border-[#1e3a8a]/20 transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-2"
+            >
+              <Icon name="calendar_month" className="text-[17px]" />
               View Calendar
             </button>
           </div>

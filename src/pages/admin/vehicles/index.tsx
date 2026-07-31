@@ -520,7 +520,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                     onChange={e => setFormData({ ...formData, type: e.target.value })}
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   >
-                    {["Sedan", "SUV", "Van", "Truck", "Electric"].map(t => <option key={t}>{t}</option>)}
+                    {["Sedan", "MPV", "SUV", "Van", "Blind Van", "Truck", "Pick-up", "Bus", "Electric"].map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
@@ -664,7 +664,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                     onChange={e => setEditFormData({ ...editFormData, type: e.target.value })}
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   >
-                    {["Sedan", "SUV", "Van", "Truck", "Electric"].map(t => <option key={t}>{t}</option>)}
+                    {["Sedan", "MPV", "SUV", "Van", "Blind Van", "Truck", "Pick-up", "Bus", "Electric"].map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>

@@ -43,6 +43,8 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     refetchPaginated();
   };
 
+  const [simTypeFilter, setSimTypeFilter] = useState("All");
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     nik: "",
@@ -50,6 +52,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     email: "",
     password: "password",
     department: "",
+    sim_type: "SIM A",
   });
   const [adding, setAdding] = useState(false);
   const [simFile, setSimFile] = useState<File | null>(null);
@@ -66,6 +69,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     email: "",
     password: "",
     department: "",
+    sim_type: "SIM A",
   });
   const [editSimFile, setEditSimFile] = useState<File | null>(null);
   const [editSimPreview, setEditSimPreview] = useState("");
@@ -107,6 +111,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       email: d.email || "",
       password: "", // dikosongkan kecuali ingin ganti
       department: d.department_id ? String(d.department_id) : "",
+      sim_type: d.sim_type || d.simType || "SIM A",
     });
     setEditSimFile(null);
     setEditSimPreview(d.simPhotoUrl || "");
@@ -144,6 +149,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
         data.append("password", editFormData.password);
       }
       data.append("role", "Driver");
+      data.append("sim_type", editFormData.sim_type);
       
       if (editFormData.department) {
         const parsedDeptId = parseInt(editFormData.department);
@@ -194,6 +200,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       data.append("role_name", "Driver");
       data.append("roles[]", "Driver");
       data.append("position", "Driver");
+      data.append("sim_type", formData.sim_type);
       
       const parsedDeptId = formData.department ? parseInt(formData.department) : (departments[0]?.id || 1);
       data.append("department_id", String(isNaN(parsedDeptId) ? 1 : parsedDeptId));
@@ -210,6 +217,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
         email: "",
         password: "password",
         department: departments[0]?.id ? String(departments[0].id) : "",
+        sim_type: "SIM A",
       });
       setSimFile(null);
       setSimPreview("");
@@ -230,7 +238,15 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     }
   };
 
-  const list = paginatedData || [];
+  const rawList = paginatedData || [];
+  const list = simTypeFilter === "All"
+    ? rawList
+    : rawList.filter((d: any) => {
+        const type = (d.sim_type || d.simType || "SIM A").toUpperCase();
+        if (simTypeFilter === "SIM B") return type.includes("SIM B") || type.includes("B1") || type.includes("B2");
+        return type.includes(simTypeFilter.toUpperCase());
+      });
+
   const pagination = (paginatedData as any)?.pagination || { total: 0, currentPage: 1, lastPage: 1, from: null, to: null };
 
   const handleSearchChange = (val: string) => { setSearch(val); setCurrentPage(1); };
@@ -315,14 +331,21 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
             >
               {["All", "AVAILABLE", "ON DUTY", "OFF DUTY"].map(s => <option key={s} value={s}>Status: {s}</option>)}
             </select>
-            <select className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-semibold text-[#475569] focus:outline-none flex-shrink-0">
-              <option>License Type</option>
-              <option>Class A</option>
-              <option>Class B</option>
+            <select 
+              value={simTypeFilter}
+              onChange={e => { setSimTypeFilter(e.target.value); setCurrentPage(1); }}
+              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none flex-shrink-0 cursor-pointer shadow-2xs"
+            >
+              <option value="All">Kategori SIM: Semua</option>
+              <option value="SIM A">SIM A (Penumpang)</option>
+              <option value="SIM B">SIM B (Truk/Bus)</option>
+              <option value="SIM B1">SIM B1</option>
+              <option value="SIM B2">SIM B2</option>
+              <option value="SIM C">SIM C (Motor)</option>
             </select>
             <button
-              onClick={() => { setSearch(""); setStatusFilter("All"); setCurrentPage(1); }}
-              className="h-9 px-4 border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#475569] hover:bg-[#f1f5f9] flex-shrink-0"
+              onClick={() => { setSearch(""); setStatusFilter("All"); setSimTypeFilter("All"); setCurrentPage(1); }}
+              className="h-9 px-4 border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#475569] hover:bg-[#f1f5f9] flex-shrink-0 cursor-pointer"
             >
               Reset
             </button>

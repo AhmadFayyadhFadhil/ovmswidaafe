@@ -293,16 +293,17 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
             <div className="relative">
               <button
                 onClick={() => setFilterOpen(!filterOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-semibold text-[#475569] hover:bg-[#f1f5f9] transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] hover:bg-[#f1f5f9] transition-colors cursor-pointer shadow-2xs"
               >
-                Kendaraan: {vehicleType}
+                <Icon name="filter_alt" className="text-[15px] text-[#1e3a8a]" />
+                Kategori: {vehicleType}
                 <Icon name="keyboard_arrow_down" className="text-[16px]" />
               </button>
               {filterOpen && (
-                <div className="absolute top-full left-0 mt-1 bg-white rounded-xl border border-[#e2e8f0] shadow-xl z-30 py-1 min-w-[140px]">
-                  {["All", "Sedan", "SUV", "Van", "Truck", "Pajero", "Innova", "Avanza"].map(t => (
+                <div className="absolute top-full right-0 mt-1 bg-white rounded-xl border border-[#e2e8f0] shadow-xl z-30 py-1 min-w-[160px]">
+                  {["All", "Sedan", "MPV", "SUV", "Van", "Blind Van", "Truck", "Pick-up", "Bus", "Electric"].map(t => (
                     <button key={t} onClick={() => { setVehicleType(t); setFilterOpen(false); }}
-                      className={`w-full text-left px-4 py-2 text-[12px] font-semibold hover:bg-[#f1f5f9] transition-colors ${vehicleType === t ? "text-[#1e3a8a]" : "text-[#475569]"}`}>
+                      className={`w-full text-left px-4 py-2 text-[12px] font-bold hover:bg-[#f1f5f9] transition-colors ${vehicleType === t ? "text-[#1e3a8a] bg-blue-50/50" : "text-[#475569]"}`}>
                       {t}
                     </button>
                   ))}
