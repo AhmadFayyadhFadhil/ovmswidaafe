@@ -90,7 +90,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
   useEffect(() => {
     if (apiData) {
       const updated = { ...apiData };
-      if (!updated.hqAddress || updated.hqAddress.includes("Sudirman") || updated.hqAddress.includes("Semarang") || updated.hqAddress.includes("Demak") || updated.hqAddress === "") {
+      if (!updated.hqAddress || !updated.hqAddress.includes("Kecamatan Pandaan")) {
         updated.hqAddress = "Jl. Stadion / Jl. Sidomukti No. 1, Sidomukti, Kecamatan Pandaan, Kabupaten Pasuruan, Jawa Timur 67156";
       }
       setFormData(updated);
