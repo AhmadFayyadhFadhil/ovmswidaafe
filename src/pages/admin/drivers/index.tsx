@@ -86,12 +86,18 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     }).catch(err => console.error(err));
   }, []);
 
+  const [deletedIds, setDeletedIds] = useState<string[]>([]);
+
   const handleDelete = async (id: string) => {
+    if (!window.confirm("Apakah Anda yakin ingin menghapus driver ini?")) return;
+    setDeletedIds(prev => [...prev, String(id)]);
     try {
       await driverService.delete(id);
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to delete driver", err);
+      setDeletedIds(prev => prev.filter(i => i !== String(id)));
+      alert("Gagal menghapus driver: " + (err.response?.data?.message || err.message || "Terjadi kesalahan."));
     }
   };
 
@@ -238,7 +244,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     }
   };
 
-  const rawList = paginatedData || [];
+  const rawList = (paginatedData || []).filter((d: any) => !deletedIds.includes(String(d.id)));
   const list = simTypeFilter === "All"
     ? rawList
     : rawList.filter((d: any) => {

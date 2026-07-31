@@ -37,7 +37,22 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
     [currentPage, search, status]
   );
 
-  const rawList = paginatedData || [];
+  const [deletedIds, setDeletedIds] = useState<string[]>([]);
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Apakah Anda yakin ingin menghapus kendaraan ini?")) return;
+    setDeletedIds(prev => [...prev, String(id)]);
+    try {
+      await vehicleService.delete(id);
+      refetch();
+    } catch (err: any) {
+      console.error("Failed to delete vehicle", err);
+      setDeletedIds(prev => prev.filter(i => i !== String(id)));
+      alert("Gagal menghapus kendaraan: " + (err.response?.data?.message || err.message || "Terjadi kesalahan."));
+    }
+  };
+
+  const rawList = (paginatedData || []).filter((v: any) => !deletedIds.includes(String(v.id)));
   const list = useMemo(() => {
     if (typeFilter === "All Types") return rawList;
     return rawList.filter((v: any) => (v.type || "").toLowerCase() === typeFilter.toLowerCase());
@@ -86,14 +101,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
   // Lightbox State
   const [stnkLightbox, setStnkLightbox] = useState<{ url: string; vehicle: any } | null>(null);
 
-  const handleDelete = async (id: string) => {
-    try {
-      await vehicleService.delete(id);
-      refetch();
-    } catch (err) {
-      console.error("Failed to delete vehicle", err);
-    }
-  };
+
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
