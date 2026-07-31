@@ -14,21 +14,6 @@ const SEV: Record<string, { badge: string; dot: string; row: string }> = {
   Low: { badge: "bg-[#f0fdf4] text-[#16a34a] border border-[#86efac]", dot: "bg-[#22c55e]", row: "" },
 };
 
-// ── Donut gauge ───────────────────────────────
-function Donut({ pct, color, size = 72 }: { pct: number; color: string; size?: number }) {
-  const r = size / 2 - 8, c = 2 * Math.PI * r;
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e2e8f0" strokeWidth="8" />
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="8"
-        strokeDasharray={`${(pct / 100) * c} ${c}`} strokeLinecap="round"
-        transform={`rotate(-90 ${size / 2} ${size / 2})`} />
-      <text x={size / 2} y={size / 2 + 5} textAnchor="middle" fontSize="13" fontWeight="800"
-        fill="#0f172a" fontFamily="Inter,sans-serif">{pct}%</text>
-    </svg>
-  );
-}
-
 // ── Mini sparkbar ─────────────────────────────
 function MiniSparkbar({ vals, colors }: { vals: number[]; colors: string[] }) {
   const max = Math.max(...vals);
@@ -65,8 +50,6 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
   const [departmentF, setDepartmentF] = useState("All");
   const [dateRangeF, setDateRangeF] = useState("All Time");
   const [search, setSearch] = useState("");
-  const [blockClicked, setBlockClicked] = useState(false);
-  const [alertDismiss, setAlertDismiss] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 25;
 
@@ -123,14 +106,14 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
     return LOGS.filter((l: any) => {
       // 1. Department Filter
       if (departmentF !== "All") {
-        const dept = (l.department || "").toLowerCase();
-        const targetDept = departmentF.toLowerCase();
+        const dept = String(l.department || "").toLowerCase().trim();
+        const targetDept = departmentF.toLowerCase().trim();
         if (!dept.includes(targetDept)) return false;
       }
 
       // 2. User Role Filter (Administrator / Admin matching)
       if (userRoleF !== "All") {
-        const r = (l.role || "").toLowerCase();
+        const r = String(l.role || "").toLowerCase();
         const targetRole = userRoleF.toLowerCase();
         if (targetRole === "administrator" || targetRole === "admin") {
           if (!r.includes("admin")) return false;
@@ -141,7 +124,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
 
       // 3. Severity Filter (Critical, High, Medium, Low)
       if (severityF !== "All") {
-        const sev = (l.severity || "").toLowerCase();
+        const sev = String(l.severity || "").toLowerCase();
         const targetSev = severityF.toLowerCase();
         if (targetSev === "critical") {
           if (sev !== "critical" && sev !== "high") return false;
@@ -152,7 +135,8 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
 
       // 4. Date Range Filter
       if (dateRangeF !== "All Time") {
-        const logTime = new Date(l.time).getTime();
+        const rawDateStr = String(l.createdAtRaw || l.time || "").replace(" ", "T");
+        const logTime = new Date(rawDateStr).getTime();
         if (!isNaN(logTime)) {
           const now = Date.now();
           if (dateRangeF === "Last 24 Hours" && (now - logTime > 24 * 3600 * 1000)) return false;
@@ -176,260 +160,201 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
       searchValue={search}
       onSearchChange={handleSearchChange}
     >
-      <div className="p-4 sm:p-5 flex flex-col lg:flex-row gap-4">
-
-        {/* ── LEFT MAIN COLUMN ── */}
-        <div className="flex-1 min-w-0 space-y-4">
-
-          {/* Page header */}
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-[24px] font-bold text-[#0f172a]">Audit Logs</h2>
-              <p className="text-[12.5px] text-[#64748b] mt-0.5 max-w-lg">
-                Monitor system activities, operational events, and security logs for comprehensive oversight of the enterprise fleet environment.
-              </p>
-            </div>
-            <div className="flex gap-2 flex-shrink-0">
-              <button 
-                onClick={() => {
-                  const headers = ["Log ID", "User", "Role", "Activity Type", "Action", "Department", "Severity", "IP / Target", "Time"];
-                  const rows = filtered.map((l: any) => [l.id, l.name, l.role, l.activity, l.action, l.department, l.severity, l.email, l.time]);
-                  exportToCSV("System_Audit_Logs_Report.csv", headers, rows);
-                }}
-                className="flex items-center gap-1.5 h-9 px-5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[12px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
-              >
-                <Icon name="download" className="text-[16px]" />Download Report
-              </button>
-            </div>
+      <div className="p-4 sm:p-5 space-y-4">
+        {/* Page header */}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-[24px] font-bold text-[#0f172a]">Audit Logs</h2>
+            <p className="text-[12.5px] text-[#64748b] mt-0.5 max-w-lg">
+              Monitor system activities, operational events, and security logs for comprehensive oversight of the enterprise fleet environment.
+            </p>
           </div>
-
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[
-              { label: "Total Logs", value: String(stats.total_logs), icon: "database", bg: "bg-[#e8edf8]", col: "text-[#1e3a8a]", vals: [4, 5, 4, 6, 5, 7, 8], colors: ["bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#1e3a8a]"] },
-              { label: "Security Alerts", value: String(stats.security_alerts).padStart(2, '0'), icon: "shield", bg: "bg-[#fee2e2]", col: "text-[#dc2626]", vals: [2, 3, 2, 4, 3, 5, 4], colors: ["bg-[#fecaca]", "bg-[#fecaca]", "bg-[#fecaca]", "bg-[#ef4444]", "bg-[#fecaca]", "bg-[#ef4444]", "bg-[#dc2626]"] },
-              { label: "Failed Logins", value: String(stats.failed_logins), icon: "login", bg: "bg-[#f1f5f9]", col: "text-[#64748b]", vals: [5, 6, 4, 7, 5, 6, 8], colors: ["bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#94a3b8]"] },
-              { label: "Permissions", value: String(stats.permissions), icon: "key", bg: "bg-[#f1f5f9]", col: "text-[#64748b]", vals: [4, 4, 5, 4, 5, 4, 5], colors: ["bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#e2e8f0]", "bg-[#94a3b8]"] },
-              { label: "Operational", value: String(stats.operational), icon: "settings", bg: "bg-[#e0f2fe]", col: "text-[#0369a1]", vals: [5, 6, 7, 6, 8, 7, 9], colors: ["bg-[#bae6fd]", "bg-[#bae6fd]", "bg-[#7dd3fc]", "bg-[#bae6fd]", "bg-[#38bdf8]", "bg-[#7dd3fc]", "bg-[#0ea5e9]"] },
-              { label: "Suspicious", value: String(stats.suspicious).padStart(2, '0'), icon: "verified_user", bg: "bg-[#e8edf8]", col: "text-[#1e3a8a]", vals: [1, 0, 1, 0, 1, 0, 1], colors: ["bg-[#e2e8f0]", "bg-[#f1f5f9]", "bg-[#e2e8f0]", "bg-[#f1f5f9]", "bg-[#cbd5e1]", "bg-[#f1f5f9]", "bg-[#94a3b8]"] },
-            ].map(c => (
-              <div key={c.label} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div className={`w-8 h-8 ${c.bg} rounded-lg flex items-center justify-center`}>
-                    <Icon name={c.icon} className={`${c.col} text-[17px]`} />
-                  </div>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full $`}>
-
-                  </span>
-                </div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mt-2 h-8 flex items-end leading-tight">{c.label}</div>
-                <div className="text-[22px] font-bold text-[#0f172a] leading-tight mt-1">{c.value}</div>
-                <MiniSparkbar vals={c.vals} colors={c.colors} />
-              </div>
-            ))}
-          </div>
-
-          {/* Filters */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <select value={dateRangeF} onChange={e => handleDateRangeF(e.target.value)}
-                className="h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all cursor-pointer">
-                <option value="All Time">Date Range: All Time</option>
-                <option value="Last 24 Hours">Last 24 Hours</option>
-                <option value="Last 7 Days">Last 7 Days</option>
-                <option value="Last 30 Days">Last 30 Days</option>
-              </select>
-              <select value={userRoleF} onChange={e => handleUserRoleF(e.target.value)}
-                className="h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all cursor-pointer">
-                <option value="All">User Role: All</option>
-                <option value="Administrator">Administrator</option>
-                <option value="Approver">Approver</option>
-                <option value="GA">GA</option>
-                <option value="Driver">Driver</option>
-                <option value="Employee">Employee</option>
-                <option value="Security">Security</option>
-              </select>
-              <select value={severityF} onChange={e => handleSeverityF(e.target.value)}
-                className="h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all cursor-pointer">
-                <option value="All">Severity: All</option>
-                <option value="Critical">Critical</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
-              <div className="flex gap-2">
-                <select value={departmentF} onChange={e => handleDepartmentF(e.target.value)}
-                  className="flex-1 h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer">
-                  <option value="All">Department: All</option>
-                  <option value="IT">IT</option>
-                  <option value="FA">FA</option>
-                  <option value="QA">QA</option>
-                  <option value="HRD & GA">HRD & GA</option>
-                  <option value="Production">Production</option>
-                  <option value="Engineering">Engineering</option>
-                  <option value="Technical">Technical</option>
-                  <option value="Logistics">Logistics</option>
-                  <option value="Finance">Finance</option>
-                </select>
-                <button onClick={() => { setDateRangeF("All Time"); setSeverityF("All"); setUserRoleF("All"); setDepartmentF("All"); setSearch(""); setCurrentPage(1); }}
-                  className="w-10 h-10 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-center hover:bg-[#eff6ff] hover:border-[#1e3a8a]/30 transition-colors cursor-pointer" title="Reset Filters">
-                  <Icon name="refresh" className="text-[#64748b] text-[18px]" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Log Table */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
-              <thead>
-                <tr className="bg-[#f8fafc] border-b border-[#f1f5f9]">
-                  {["ID", "USER", "ACTIVITY TYPE", "DEPARTMENT", "SEVERITY", "EMAIL", "TIME"].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {logsLoading && (
-                  <tr><td colSpan={7} className="px-4 py-6 text-center text-[13px] text-[#475569]">Loading logs...</td></tr>
-                )}
-                {logsError && (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center text-[13px] text-[#b91c1c]">
-                      Failed to load logs. <button onClick={() => refetchLogs()} className="ml-3 px-3 py-1 bg-[#1e3a8a] text-white rounded-lg">Retry</button>
-                    </td>
-                  </tr>
-                )}
-                {filtered.map((log, i) => (
-                  <tr key={log.id}
-                    className={`border-b border-[#f8fafc] hover:bg-[#f8fafc] transition-all group ${log.severity === "Critical" ? "bg-[#fff8f8]" : ""}`}
-                    style={{ animation: `fadeSlideIn 0.2s ease-out ${i * 40}ms both` }}>
-                    <td className="px-4 py-4">
-                      <span className="text-[12px] font-bold text-[#1e3a8a]">{log.id}</span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2.5">
-                        <Avatar name={log.name} img={log.img} />
-                        <div>
-                          <div className="text-[12px] font-bold text-[#0f172a]">{log.name}</div>
-                          <div className="text-[10px] text-[#94a3b8]">{log.role}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="text-[12px] font-semibold text-[#0f172a]">{log.activity}</div>
-                      <div className="text-[10.5px] text-[#94a3b8]">Action: {log.action}</div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="px-2.5 py-1 bg-[#f1f5f9] text-[#475569] rounded-lg text-[11px] font-semibold">
-                        {log.department}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${SEV[log.severity].badge}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${SEV[log.severity].dot} ${log.severity === "Critical" ? "animate-pulse" : ""}`} />
-                        {log.severity}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-[12px] text-[#64748b]">{log.email}</td>
-                    <td className="px-4 py-4 text-[11px] text-[#94a3b8]">{log.time}</td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-10 text-center text-[13px] text-[#94a3b8]">No logs match the current filters.</td></tr>
-                )}
-              </tbody>
-            </table>
-            </div>
-
-            {/* Pagination */}
-            {pagination.lastPage > 1 && (
-              <div className="px-5 py-3 border-t border-[#f1f5f9] flex items-center justify-between bg-[#fafbfc]">
-                <span className="text-[12px] text-[#94a3b8]">
-                  Showing <b>{pagination.from ?? 0}–{pagination.to ?? 0}</b> of <b>{pagination.total}</b> entries
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={pagination.currentPage <= 1}
-                    className="w-7 h-7 rounded border border-[#e2e8f0] flex items-center justify-center disabled:opacity-40 hover:bg-[#f1f5f9]"
-                  >
-                    <Icon name="chevron_left" className="text-[16px]" />
-                  </button>
-                  {Array.from({ length: pagination.lastPage }, (_, i) => i + 1).map(n => (
-                    <button
-                      key={n}
-                      onClick={() => setCurrentPage(n)}
-                      className={`w-7 h-7 rounded text-[12px] font-semibold border transition-colors ${n === pagination.currentPage ? "bg-[#1e3a8a] text-white border-[#1e3a8a]" : "border-[#e2e8f0] text-[#475569] hover:bg-[#f1f5f9]"
-                        }`}
-                    >{n}</button>
-                  ))}
-                  <button
-                    onClick={() => setCurrentPage(p => Math.min(pagination.lastPage, p + 1))}
-                    disabled={pagination.currentPage >= pagination.lastPage}
-                    className="w-7 h-7 rounded border border-[#e2e8f0] flex items-center justify-center hover:bg-[#f1f5f9] disabled:opacity-40"
-                  >
-                    <Icon name="chevron_right" className="text-[16px]" />
-                  </button>
-                </div>
-              </div>
-            )}
+          <div className="flex gap-2 flex-shrink-0">
+            <button 
+              onClick={() => {
+                const headers = ["Log ID", "User", "Role", "Activity Type", "Action", "Department", "Severity", "IP / Target", "Time"];
+                const rows = filtered.map((l: any) => [l.id, l.name, l.role, l.activity, l.action, l.department, l.severity, l.email, l.time]);
+                exportToCSV("System_Audit_Logs_Report.csv", headers, rows);
+              }}
+              className="flex items-center gap-1.5 h-9 px-5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[12px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
+            >
+              <Icon name="download" className="text-[16px]" />Download Report
+            </button>
           </div>
         </div>
 
-        {/* ── RIGHT SIDEBAR ── */}
-        <div className="w-full lg:w-[240px] flex-shrink-0 space-y-4">
-
-          {/* Critical Alert Card */}
-          {!alertDismiss && (
-            <div className="bg-white rounded-2xl border-2 border-[#fca5a5] shadow-md p-4 animate-pulse-border">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 bg-[#fee2e2] rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Icon name="warning" className="text-[#dc2626] text-[17px]" />
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[
+            { label: "Total Logs", value: String(stats.total_logs), icon: "database", bg: "bg-[#e8edf8]", col: "text-[#1e3a8a]", vals: [4, 5, 4, 6, 5, 7, 8], colors: ["bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#1e3a8a]"] },
+            { label: "Security Alerts", value: String(stats.security_alerts).padStart(2, '0'), icon: "shield", bg: "bg-[#fee2e2]", col: "text-[#dc2626]", vals: [2, 3, 2, 4, 3, 5, 4], colors: ["bg-[#fecaca]", "bg-[#fecaca]", "bg-[#fecaca]", "bg-[#ef4444]", "bg-[#fecaca]", "bg-[#ef4444]", "bg-[#dc2626]"] },
+            { label: "Failed Logins", value: String(stats.failed_logins), icon: "login", bg: "bg-[#f1f5f9]", col: "text-[#64748b]", vals: [5, 6, 4, 7, 5, 6, 8], colors: ["bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#94a3b8]"] },
+            { label: "Permissions", value: String(stats.permissions), icon: "key", bg: "bg-[#f1f5f9]", col: "text-[#64748b]", vals: [4, 4, 5, 4, 5, 4, 5], colors: ["bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#e2e8f0]", "bg-[#94a3b8]"] },
+            { label: "Operational", value: String(stats.operational), icon: "settings", bg: "bg-[#e0f2fe]", col: "text-[#0369a1]", vals: [5, 6, 7, 6, 8, 7, 9], colors: ["bg-[#bae6fd]", "bg-[#bae6fd]", "bg-[#7dd3fc]", "bg-[#bae6fd]", "bg-[#38bdf8]", "bg-[#7dd3fc]", "bg-[#0ea5e9]"] },
+            { label: "Suspicious", value: String(stats.suspicious).padStart(2, '0'), icon: "verified_user", bg: "bg-[#e8edf8]", col: "text-[#1e3a8a]", vals: [1, 0, 1, 0, 1, 0, 1], colors: ["bg-[#e2e8f0]", "bg-[#f1f5f9]", "bg-[#e2e8f0]", "bg-[#f1f5f9]", "bg-[#cbd5e1]", "bg-[#f1f5f9]", "bg-[#94a3b8]"] },
+          ].map(c => (
+            <div key={c.label} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between">
+                <div className={`w-8 h-8 ${c.bg} rounded-lg flex items-center justify-center`}>
+                  <Icon name={c.icon} className={`${c.col} text-[17px]`} />
                 </div>
-                <span className="text-[14px] font-bold text-[#dc2626]">Critical Alert</span>
               </div>
-              <p className="text-[12px] text-[#dc2626] leading-relaxed mb-3">
-                Brute force attempt detected on Admin portal from unauthorized IP range (Region: Unknown).
-              </p>
-              <div className="flex gap-2">
-                <button onClick={() => setBlockClicked(true)}
-                  className={`flex-1 py-2 rounded-xl text-[12px] font-bold transition-all active:scale-95 ${blockClicked ? "bg-[#16a34a] text-white" : "bg-[#dc2626] hover:bg-[#b91c1c] text-white"}`}>
-                  {blockClicked ? "✓ Blocked" : "Block IP"}
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mt-2 h-8 flex items-end leading-tight">{c.label}</div>
+              <div className="text-[22px] font-bold text-[#0f172a] leading-tight mt-1">{c.value}</div>
+              <MiniSparkbar vals={c.vals} colors={c.colors} />
+            </div>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <select value={dateRangeF} onChange={e => handleDateRangeF(e.target.value)}
+              className="h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all cursor-pointer">
+              <option value="All Time">Date Range: All Time</option>
+              <option value="Last 24 Hours">Last 24 Hours</option>
+              <option value="Last 7 Days">Last 7 Days</option>
+              <option value="Last 30 Days">Last 30 Days</option>
+            </select>
+            <select value={userRoleF} onChange={e => handleUserRoleF(e.target.value)}
+              className="h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all cursor-pointer">
+              <option value="All">User Role: All</option>
+              <option value="Administrator">Administrator</option>
+              <option value="Approver">Approver</option>
+              <option value="GA">GA</option>
+              <option value="Driver">Driver</option>
+              <option value="Employee">Employee</option>
+              <option value="Security">Security</option>
+            </select>
+            <select value={severityF} onChange={e => handleSeverityF(e.target.value)}
+              className="h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all cursor-pointer">
+              <option value="All">Severity: All</option>
+              <option value="Critical">Critical</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+            <div className="flex gap-2">
+              <select value={departmentF} onChange={e => handleDepartmentF(e.target.value)}
+                className="flex-1 h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer">
+                <option value="All">Department: All</option>
+                <option value="IT">IT</option>
+                <option value="FA">FA</option>
+                <option value="QA">QA</option>
+                <option value="HRD & GA">HRD & GA</option>
+                <option value="Plant Management">Plant Management</option>
+                <option value="Production">Production</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Technical">Technical</option>
+                <option value="Logistics">Logistics</option>
+                <option value="Finance">Finance</option>
+                <option value="Operations">Operations</option>
+              </select>
+              <button onClick={() => { setDateRangeF("All Time"); setSeverityF("All"); setUserRoleF("All"); setDepartmentF("All"); setSearch(""); setCurrentPage(1); }}
+                className="w-10 h-10 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-center hover:bg-[#eff6ff] hover:border-[#1e3a8a]/30 transition-colors cursor-pointer" title="Reset Filters">
+                <Icon name="refresh" className="text-[#64748b] text-[18px]" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Log Table */}
+        <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[800px]">
+            <thead>
+              <tr className="bg-[#f8fafc] border-b border-[#f1f5f9]">
+                {["ID", "USER", "ACTIVITY TYPE", "DEPARTMENT", "SEVERITY", "EMAIL", "TIME"].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {logsLoading && (
+                <tr><td colSpan={7} className="px-4 py-6 text-center text-[13px] text-[#475569]">Loading logs...</td></tr>
+              )}
+              {logsError && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-6 text-center text-[13px] text-[#b91c1c]">
+                    Failed to load logs. <button onClick={() => refetchLogs()} className="ml-3 px-3 py-1 bg-[#1e3a8a] text-white rounded-lg">Retry</button>
+                  </td>
+                </tr>
+              )}
+              {filtered.map((log, i) => (
+                <tr key={log.id}
+                  className={`border-b border-[#f8fafc] hover:bg-[#f8fafc] transition-all group ${log.severity === "Critical" ? "bg-[#fff8f8]" : ""}`}
+                  style={{ animation: `fadeSlideIn 0.2s ease-out ${i * 40}ms both` }}>
+                  <td className="px-4 py-4">
+                    <span className="text-[12px] font-bold text-[#1e3a8a]">{log.id}</span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-2.5">
+                      <Avatar name={log.name} img={log.img} />
+                      <div>
+                        <div className="text-[12px] font-bold text-[#0f172a]">{log.name}</div>
+                        <div className="text-[10px] text-[#94a3b8]">{log.role}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="text-[12px] font-semibold text-[#0f172a]">{log.activity}</div>
+                    <div className="text-[10.5px] text-[#94a3b8]">Action: {log.action}</div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="px-2.5 py-1 bg-[#f1f5f9] text-[#475569] rounded-lg text-[11px] font-semibold">
+                      {log.department}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${SEV[log.severity] ? SEV[log.severity].badge : SEV["Low"].badge}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${SEV[log.severity] ? SEV[log.severity].dot : SEV["Low"].dot} ${log.severity === "Critical" ? "animate-pulse" : ""}`} />
+                      {log.severity}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 text-[12px] text-[#64748b]">{log.email}</td>
+                  <td className="px-4 py-4 text-[11px] text-[#94a3b8]">{log.time}</td>
+                </tr>
+              ))}
+              {filtered.length === 0 && !logsLoading && (
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-[13px] text-[#94a3b8]">No logs match the current filters.</td></tr>
+              )}
+            </tbody>
+          </table>
+          </div>
+
+          {/* Pagination */}
+          {pagination.lastPage > 1 && (
+            <div className="px-5 py-3 border-t border-[#f1f5f9] flex items-center justify-between bg-[#fafbfc]">
+              <span className="text-[12px] text-[#94a3b8]">
+                Showing <b>{pagination.from ?? 0}–{pagination.to ?? 0}</b> of <b>{pagination.total}</b> entries
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={pagination.currentPage <= 1}
+                  className="w-7 h-7 rounded border border-[#e2e8f0] flex items-center justify-center disabled:opacity-40 hover:bg-[#f1f5f9]"
+                >
+                  <Icon name="chevron_left" className="text-[16px]" />
                 </button>
-                <button onClick={() => setAlertDismiss(true)}
-                  className="flex-1 py-2 rounded-xl border-2 border-[#fca5a5] text-[#dc2626] text-[12px] font-bold hover:bg-[#fff1f2] transition-colors">
-                  Details
+                {Array.from({ length: pagination.lastPage }, (_, i) => i + 1).map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setCurrentPage(n)}
+                    className={`w-7 h-7 rounded text-[12px] font-semibold border transition-colors ${n === pagination.currentPage ? "bg-[#1e3a8a] text-white border-[#1e3a8a]" : "border-[#e2e8f0] text-[#475569] hover:bg-[#f1f5f9]"
+                      }`}
+                  >{n}</button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(pagination.lastPage, p + 1))}
+                  disabled={pagination.currentPage >= pagination.lastPage}
+                  className="w-7 h-7 rounded border border-[#e2e8f0] flex items-center justify-center hover:bg-[#f1f5f9] disabled:opacity-40"
+                >
+                  <Icon name="chevron_right" className="text-[16px]" />
                 </button>
               </div>
             </div>
           )}
-
-          {/* Compliance Status */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-4">
-            <div className="text-[11px] font-bold uppercase tracking-widest text-[#94a3b8] mb-4">Compliance Status</div>
-            <div className="flex items-center gap-3 mb-4">
-              <Donut pct={stats.data_integrity} color="#1e3a8a" />
-              <div>
-                <div className="text-[14px] font-bold text-[#0f172a]">Data Integrity</div>
-                <div className="text-[11px] text-[#94a3b8]">Last audit 2h ago</div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {[
-                { label: "Retention Status", badge: "OK", badgeBg: "bg-[#dcfce7] text-[#16a34a]" },
-                { label: "Log Encryption", badge: "ACTIVE", badgeBg: "bg-[#dcfce7] text-[#16a34a]" },
-              ].map(item => (
-                <div key={item.label} className="flex items-center justify-between py-2 border-b border-[#f1f5f9] last:border-0">
-                  <span className="text-[12px] text-[#475569] font-medium">{item.label}</span>
-                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${item.badgeBg}`}>{item.badge}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </div>{/* end right sidebar */}
+        </div>
       </div>
 
       {/* ── Global Styles ── */}
