@@ -48,10 +48,9 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
   const [severityF, setSeverityF] = useState("All");
   const [userRoleF, setUserRoleF] = useState("All");
   const [departmentF, setDepartmentF] = useState("All");
-  const [dateRangeF, setDateRangeF] = useState("All Time");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 100;
+  const PAGE_SIZE = 200;
 
   // 1. Stats data: load once for KPI cards
   const { data: statsData } = useApi<any>(() => auditLogService.getAll({ per_page: 1 }), true);
@@ -72,12 +71,9 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
       page: currentPage,
       per_page: PAGE_SIZE,
       search: search || undefined,
-      department: departmentF === "All" ? undefined : departmentF,
-      role: userRoleF === "All" ? undefined : userRoleF,
-      severity: severityF === "All" ? undefined : severityF,
     }),
     true,
-    [currentPage, search, departmentF, userRoleF, severityF]
+    [currentPage, search]
   );
 
   const list = paginatedData || [];
@@ -87,7 +83,6 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
   const handleSeverityF = (val: string) => { setSeverityF(val); setCurrentPage(1); };
   const handleUserRoleF = (val: string) => { setUserRoleF(val); setCurrentPage(1); };
   const handleDepartmentF = (val: string) => { setDepartmentF(val); setCurrentPage(1); };
-  const handleDateRangeF = (val: string) => { setDateRangeF(val); setCurrentPage(1); };
 
   const LOGS = useMemo(() => {
     return list.map((a: any) => ({
@@ -142,21 +137,9 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
         }
       }
 
-      // 4. Date Range Filter
-      if (dateRangeF !== "All Time") {
-        const rawDateStr = String(l.createdAtRaw || l.time || "").replace(" ", "T");
-        const logTime = new Date(rawDateStr).getTime();
-        if (!isNaN(logTime)) {
-          const now = Date.now();
-          if (dateRangeF === "Last 24 Hours" && (now - logTime > 24 * 3600 * 1000)) return false;
-          if (dateRangeF === "Last 7 Days" && (now - logTime > 7 * 24 * 3600 * 1000)) return false;
-          if (dateRangeF === "Last 30 Days" && (now - logTime > 30 * 24 * 3600 * 1000)) return false;
-        }
-      }
-
       return true;
     });
-  }, [LOGS, departmentF, userRoleF, severityF, dateRangeF]);
+  }, [LOGS, departmentF, userRoleF, severityF]);
 
   return (
     <Layout
@@ -217,14 +200,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
 
         {/* Filters */}
         <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <select value={dateRangeF} onChange={e => handleDateRangeF(e.target.value)}
-              className="h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all cursor-pointer">
-              <option value="All Time">Date Range: All Time</option>
-              <option value="Last 24 Hours">Last 24 Hours</option>
-              <option value="Last 7 Days">Last 7 Days</option>
-              <option value="Last 30 Days">Last 30 Days</option>
-            </select>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <select value={userRoleF} onChange={e => handleUserRoleF(e.target.value)}
               className="h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all cursor-pointer">
               <option value="All">User Role: All</option>
@@ -260,7 +236,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
                 <option value="Technical and Development">Technical and Development</option>
                 <option value="Driver">Driver</option>
               </select>
-              <button onClick={() => { setDateRangeF("All Time"); setSeverityF("All"); setUserRoleF("All"); setDepartmentF("All"); setSearch(""); setCurrentPage(1); }}
+              <button onClick={() => { setSeverityF("All"); setUserRoleF("All"); setDepartmentF("All"); setSearch(""); setCurrentPage(1); }}
                 className="w-10 h-10 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-center hover:bg-[#eff6ff] hover:border-[#1e3a8a]/30 transition-colors cursor-pointer" title="Reset Filters">
                 <Icon name="refresh" className="text-[#64748b] text-[18px]" />
               </button>
