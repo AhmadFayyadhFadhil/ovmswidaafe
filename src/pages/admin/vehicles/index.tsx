@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { vehicleService } from "@/services/modules/vehicleService";
@@ -21,6 +21,7 @@ const getStatusColor = (status: string) => {
 export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => void }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All Statuses");
+  const [typeFilter, setTypeFilter] = useState("All Types");
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 15;
 
@@ -35,6 +36,15 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
     true,
     [currentPage, search, status]
   );
+
+  const rawList = paginatedData || [];
+  const list = useMemo(() => {
+    if (typeFilter === "All Types") return rawList;
+    return rawList.filter((v: any) => (v.type || "").toLowerCase() === typeFilter.toLowerCase());
+  }, [rawList, typeFilter]);
+
+  const handleSearchChange = (val: string) => { setSearch(val); setCurrentPage(1); };
+  const handleStatusChange = (val: string) => { setStatus(val); setCurrentPage(1); };
 
   const refetch = () => {
     refetchStats();
@@ -213,11 +223,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
     }
   };
 
-  const list = paginatedData || [];
   const pagination = (paginatedData as any)?.pagination || { total: 0, currentPage: 1, lastPage: 1, from: null, to: null };
-
-  const handleSearchChange = (val: string) => { setSearch(val); setCurrentPage(1); };
-  const handleStatusChange = (val: string) => { setStatus(val); setCurrentPage(1); };
 
   const statsList = statsData || [];
   const totalVehiclesCount = (statsList as any)?.pagination?.total ?? statsList.length;
@@ -281,19 +287,20 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
             <select
               value={status}
               onChange={e => handleStatusChange(e.target.value)}
-              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-semibold text-[#475569] focus:outline-none"
+              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer shadow-2xs"
             >
-              {["All Statuses", "AVAILABLE", "IN TRANSIT"].map(s => <option key={s}>{s}</option>)}
+              {["All Statuses", "AVAILABLE", "IN TRANSIT"].map(s => <option key={s} value={s}>Status: {s}</option>)}
             </select>
-            <select className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-semibold text-[#475569] focus:outline-none">
-              <option>All Types</option>
-              <option>Sedan</option>
-              <option>SUV</option>
-              <option>Truck</option>
+            <select
+              value={typeFilter}
+              onChange={e => { setTypeFilter(e.target.value); setCurrentPage(1); }}
+              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer shadow-2xs"
+            >
+              {["All Types", "Sedan", "MPV", "SUV", "Van", "Blind Van", "Truck", "Pick-up", "Bus", "Electric"].map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <button
-              onClick={() => { setSearch(""); setStatus("All Statuses"); setCurrentPage(1); }}
-              className="h-9 px-4 border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#475569] hover:bg-[#f1f5f9] transition-colors"
+              onClick={() => { setSearch(""); setStatus("All Statuses"); setTypeFilter("All Types"); setCurrentPage(1); }}
+              className="h-9 px-4 border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#475569] hover:bg-[#f1f5f9] transition-colors cursor-pointer"
             >
               Reset
             </button>

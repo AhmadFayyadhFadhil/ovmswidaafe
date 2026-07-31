@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { requestService } from "@/services/modules/requestService";
+import { vehicleService } from "@/services/modules/vehicleService";
 
 // ── Gantt ──
 const WEEK_DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
@@ -60,6 +61,7 @@ interface GanttVehicle {
   id: string;
   model: string;
   plate: string;
+  type?: string;
   blocks: {
     dayIndex: number;
     label: string;
@@ -74,13 +76,35 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
   const [filterOpen,  setFilterOpen]  = useState(false);
   const [weekOffset,  setWeekOffset]  = useState(0);
 
-  // Ambil semua request dari backend
-  const { data: requests, loading, error, refetch } = useApi(() => requestService.getAll({ per_page: 1000 }));
+  // Ambil semua request & kendaraan dari backend
+  const { data: scheduleData, loading, error, refetch } = useApi(async () => {
+    const [reqsRes, vehiclesRes] = await Promise.all([
+      requestService.getAll({ per_page: 1000 }),
+      vehicleService.getAll({ per_page: 1000 }),
+    ]);
+    return {
+      data: {
+        requests: reqsRes.data || [],
+        vehicles: vehiclesRes.data || [],
+      }
+    };
+  }, true, []);
 
-  const allRequests = requests || [];
+  const allRequests = scheduleData?.requests || [];
+  const allVehicles = scheduleData?.vehicles || [];
+
+  // Map nama/model kendaraan ke tipe kategorinya
+  const vehicleTypeMap = useMemo(() => {
+    const map = new Map<string, string>();
+    allVehicles.forEach((v: any) => {
+      if (v.name) map.set(v.name.toLowerCase().trim(), (v.type || "Sedan").toLowerCase());
+      if (v.model) map.set(v.model.toLowerCase().trim(), (v.type || "Sedan").toLowerCase());
+    });
+    return map;
+  }, [allVehicles]);
 
   // Filter request valid (abaikan rejected / cancelled)
-  const validRequests = allRequests.filter(r => {
+  const validRequests = allRequests.filter((r: any) => {
     const statusLower = (r.rawStatus || r.status || "").toLowerCase();
     return !["rejected", "cancelled", "draft"].includes(statusLower);
   });
@@ -104,7 +128,7 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
   // Kelompokkan berdasarkan kendaraan (Mendukung Multi-day / Case Spesial)
   const vehicleMap = new Map<string, GanttVehicle>();
 
-  validRequests.forEach(r => {
+  validRequests.forEach((r: any) => {
     if (Array.isArray(r.itineraries) && r.itineraries.length > 0) {
       // Case Spesial Multi-Day
       r.itineraries.forEach((it: any, idx: number) => {
@@ -175,14 +199,19 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
 
   let ganttVehicles = Array.from(vehicleMap.values());
   if (vehicleType !== "All") {
-    ganttVehicles = ganttVehicles.filter(v => v.model.toLowerCase().includes(vehicleType.toLowerCase()));
+    const targetType = vehicleType.toLowerCase().trim();
+    ganttVehicles = ganttVehicles.filter(v => {
+      const modelLower = v.model.toLowerCase().trim();
+      const mappedType = vehicleTypeMap.get(modelLower) || (v as any).type?.toLowerCase();
+      return (mappedType && mappedType.includes(targetType)) || modelLower.includes(targetType);
+    });
   }
 
   // Stat counts
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   let scheduledToday = 0;
 
-  validRequests.forEach(r => {
+  validRequests.forEach((r: any) => {
     if (Array.isArray(r.itineraries) && r.itineraries.length > 0) {
       r.itineraries.forEach((it: any) => {
         if (it.date === todayStr && it.status !== 'cancelled' && it.status !== 'rejected') {

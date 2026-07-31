@@ -52,15 +52,10 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
     }).catch(err => console.error(err));
   }, []);
 
-  const { data: paginatedData, loading, error, refetch: refetchPaginated } = useApi(
-    () => requestService.getAll({
-      page: currentPage,
-      per_page: PAGE_SIZE,
-      search: search || undefined,
-      status: statusFilter === "All" ? undefined : statusFilter,
-    }),
+  const { data: allRequestsData, loading, error, refetch: refetchPaginated } = useApi(
+    () => requestService.getAll({ per_page: 1000 }),
     true,
-    [currentPage, search, statusFilter]
+    []
   );
 
   const refetch = () => {
@@ -400,8 +395,9 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
 
   const [priorityFilter, setPriorityFilter] = useState("All");
 
-  const rawList = paginatedData || [];
-  const list = useMemo(() => {
+  const rawList = allRequestsData || [];
+
+  const filteredList = useMemo(() => {
     let result = rawList;
 
     if (search.trim()) {
@@ -428,7 +424,18 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
     return result;
   }, [rawList, search, statusFilter, priorityFilter]);
 
-  const pagination = (paginatedData as any)?.pagination || { total: 0, currentPage: 1, lastPage: 1, from: null, to: null };
+  const list = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredList.slice(start, start + PAGE_SIZE);
+  }, [filteredList, currentPage]);
+
+  const pagination = {
+    total: filteredList.length,
+    currentPage,
+    lastPage: Math.max(1, Math.ceil(filteredList.length / PAGE_SIZE)),
+    from: filteredList.length > 0 ? (currentPage - 1) * PAGE_SIZE + 1 : 0,
+    to: Math.min(filteredList.length, currentPage * PAGE_SIZE),
+  };
 
   const handleSearchChange = (val: string) => { setSearch(val); setCurrentPage(1); };
   const handleStatusChange = (val: string) => { setStatusFilter(val); setCurrentPage(1); };
