@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { userService } from "@/services/modules/userService";
@@ -70,6 +71,7 @@ const SYSTEM_ROLE_PERMISSIONS: Record<string, Record<string, Record<string, bool
 };
 
 export default function Role({ onNavigate }: { onNavigate?: (p: string) => void }) {
+  const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState("Approver");
   const [rolePermsStore, setRolePermsStore] = useState(SYSTEM_ROLE_PERMISSIONS);
   const [saved, setSaved] = useState(false);
@@ -339,7 +341,18 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
               <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-[14px] font-bold text-[#0f172a]">Audit Timeline</h3>
-                  <button className="text-[11px] font-bold text-[#1e3a8a] hover:underline cursor-pointer">View History</button>
+                  <button
+                    onClick={() => {
+                      if (onNavigate) {
+                        onNavigate("Audit Logs");
+                      } else {
+                        navigate("/admin/audit");
+                      }
+                    }}
+                    className="text-[11px] font-bold text-[#1e3a8a] hover:underline cursor-pointer"
+                  >
+                    View History
+                  </button>
                 </div>
                 <div className="space-y-3.5">
                   {[
