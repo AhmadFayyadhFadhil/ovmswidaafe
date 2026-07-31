@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { auditLogService } from "@/services/modules/auditLogService";
@@ -63,6 +63,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
   const [severityF, setSeverityF] = useState("All");
   const [userRoleF, setUserRoleF] = useState("All");
   const [departmentF, setDepartmentF] = useState("All");
+  const [dateRangeF, setDateRangeF] = useState("All Time");
   const [search, setSearch] = useState("");
   const [blockClicked, setBlockClicked] = useState(false);
   const [alertDismiss, setAlertDismiss] = useState(false);
@@ -88,36 +89,81 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
       page: currentPage,
       per_page: PAGE_SIZE,
       search: search || undefined,
-      role: userRoleF === "All" ? undefined : userRoleF,
-      department: departmentF === "All" ? undefined : departmentF,
-      severity: severityF === "All" ? undefined : severityF,
     }),
     true,
-    [currentPage, search, userRoleF, departmentF, severityF]
+    [currentPage, search]
   );
 
   const list = paginatedData || [];
-  const pagination = (paginatedData as any)?.pagination || { total: 0, currentPage: 1, lastPage: 1, from: null, to: null };
+  const pagination = (paginatedData as any)?.pagination || { total: list.length, currentPage: 1, lastPage: 1, from: 1, to: list.length };
 
   const handleSearchChange = (val: string) => { setSearch(val); setCurrentPage(1); };
   const handleSeverityF = (val: string) => { setSeverityF(val); setCurrentPage(1); };
   const handleUserRoleF = (val: string) => { setUserRoleF(val); setCurrentPage(1); };
   const handleDepartmentF = (val: string) => { setDepartmentF(val); setCurrentPage(1); };
+  const handleDateRangeF = (val: string) => { setDateRangeF(val); setCurrentPage(1); };
 
-  const LOGS = list.map((a: any) => ({
-    id: a.id,
-    name: a.user || "Unknown",
-    role: a.role || "",
-    img: a.avatarUrl || "",
-    activity: a.activityType || "",
-    action: a.action || "",
-    department: a.department || "",
-    severity: a.severity === "Normal" ? "Medium" : (a.severity || "Low"),
-    email: a.ipAddress || "",
-    time: a.timestamp || "",
-  }));
+  const LOGS = useMemo(() => {
+    return list.map((a: any) => ({
+      id: a.id,
+      name: a.user || "Unknown",
+      role: a.role || "",
+      img: a.avatarUrl || "",
+      activity: a.activityType || "",
+      action: a.action || "",
+      department: a.department || "",
+      severity: a.severity === "Normal" ? "Medium" : (a.severity || "Low"),
+      email: a.ipAddress || "",
+      time: a.timestamp || "",
+      createdAtRaw: a.timestamp || "",
+    }));
+  }, [list]);
 
-  const filtered = LOGS;
+  const filtered = useMemo(() => {
+    return LOGS.filter((l: any) => {
+      // 1. Department Filter
+      if (departmentF !== "All") {
+        const dept = (l.department || "").toLowerCase();
+        const targetDept = departmentF.toLowerCase();
+        if (!dept.includes(targetDept)) return false;
+      }
+
+      // 2. User Role Filter (Administrator / Admin matching)
+      if (userRoleF !== "All") {
+        const r = (l.role || "").toLowerCase();
+        const targetRole = userRoleF.toLowerCase();
+        if (targetRole === "administrator" || targetRole === "admin") {
+          if (!r.includes("admin")) return false;
+        } else if (!r.includes(targetRole)) {
+          return false;
+        }
+      }
+
+      // 3. Severity Filter (Critical, High, Medium, Low)
+      if (severityF !== "All") {
+        const sev = (l.severity || "").toLowerCase();
+        const targetSev = severityF.toLowerCase();
+        if (targetSev === "critical") {
+          if (sev !== "critical" && sev !== "high") return false;
+        } else if (sev !== targetSev) {
+          return false;
+        }
+      }
+
+      // 4. Date Range Filter
+      if (dateRangeF !== "All Time") {
+        const logTime = new Date(l.time).getTime();
+        if (!isNaN(logTime)) {
+          const now = Date.now();
+          if (dateRangeF === "Last 24 Hours" && (now - logTime > 24 * 3600 * 1000)) return false;
+          if (dateRangeF === "Last 7 Days" && (now - logTime > 7 * 24 * 3600 * 1000)) return false;
+          if (dateRangeF === "Last 30 Days" && (now - logTime > 30 * 24 * 3600 * 1000)) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [LOGS, departmentF, userRoleF, severityF, dateRangeF]);
 
   return (
     <Layout
@@ -186,42 +232,47 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
           {/* Filters */}
           <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <button className="flex items-center gap-2 h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] hover:border-[#1e3a8a]/30 hover:bg-[#eff6ff] transition-colors">
-                <Icon name="calendar_today" className="text-[15px] text-[#94a3b8]" />
-                Date Range: Last 24 Hours
-                <Icon name="keyboard_arrow_down" className="text-[15px] text-[#94a3b8] ml-auto" />
-              </button>
+              <select value={dateRangeF} onChange={e => handleDateRangeF(e.target.value)}
+                className="h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all cursor-pointer">
+                <option value="All Time">Date Range: All Time</option>
+                <option value="Last 24 Hours">Last 24 Hours</option>
+                <option value="Last 7 Days">Last 7 Days</option>
+                <option value="Last 30 Days">Last 30 Days</option>
+              </select>
               <select value={userRoleF} onChange={e => handleUserRoleF(e.target.value)}
-                className="h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all">
+                className="h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all cursor-pointer">
                 <option value="All">User Role: All</option>
-                <option>Employee</option>
-                <option>Driver</option>
-                <option>Approver</option>
-                <option>Internal Bot</option>
-                <option>Administrator</option>
+                <option value="Administrator">Administrator</option>
+                <option value="Approver">Approver</option>
+                <option value="GA">GA</option>
+                <option value="Driver">Driver</option>
+                <option value="Employee">Employee</option>
+                <option value="Security">Security</option>
               </select>
               <select value={severityF} onChange={e => handleSeverityF(e.target.value)}
-                className="h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all">
+                className="h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all cursor-pointer">
                 <option value="All">Severity: All</option>
-                <option>Critical</option>
-                <option>High</option>
-                <option>Medium</option>
-                <option>Low</option>
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
               </select>
               <div className="flex gap-2">
                 <select value={departmentF} onChange={e => handleDepartmentF(e.target.value)}
-                  className="flex-1 h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20">
+                  className="flex-1 h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer">
                   <option value="All">Department: All</option>
-                  <option>IT</option>
-                  <option>FA</option>
-                  <option>QA</option>
-                  <option>HRD & GA</option>
-                  <option>Production</option>
-                  <option>Engineering</option>
-                  <option>Technical</option>
+                  <option value="IT">IT</option>
+                  <option value="FA">FA</option>
+                  <option value="QA">QA</option>
+                  <option value="HRD & GA">HRD & GA</option>
+                  <option value="Production">Production</option>
+                  <option value="Engineering">Engineering</option>
+                  <option value="Technical">Technical</option>
+                  <option value="Logistics">Logistics</option>
+                  <option value="Finance">Finance</option>
                 </select>
-                <button onClick={() => { setSeverityF("All"); setUserRoleF("All"); setDepartmentF("All"); setSearch(""); setCurrentPage(1); }}
-                  className="w-10 h-10 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-center hover:bg-[#eff6ff] hover:border-[#1e3a8a]/30 transition-colors" title="Refresh">
+                <button onClick={() => { setDateRangeF("All Time"); setSeverityF("All"); setUserRoleF("All"); setDepartmentF("All"); setSearch(""); setCurrentPage(1); }}
+                  className="w-10 h-10 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-center hover:bg-[#eff6ff] hover:border-[#1e3a8a]/30 transition-colors cursor-pointer" title="Reset Filters">
                   <Icon name="refresh" className="text-[#64748b] text-[18px]" />
                 </button>
               </div>

@@ -89,7 +89,11 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
 
   useEffect(() => {
     if (apiData) {
-      setFormData({ ...apiData });
+      const updated = { ...apiData };
+      if (!updated.hqAddress || updated.hqAddress.includes("Sudirman") || updated.hqAddress === "") {
+        updated.hqAddress = "Jl. Stadion / Jl. Sidomukti No. 1, Sidomukti, Pandaan, Pasuruan, Jawa Timur 67156";
+      }
+      setFormData(updated);
     }
   }, [apiData]);
 
