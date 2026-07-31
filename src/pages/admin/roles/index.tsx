@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { userService } from "@/services/modules/userService";
+import { auditLogService } from "@/services/modules/auditLogService";
 
 const ROLES = [
   { icon: "gavel", label: "Approver", sub: "Financial & asset approvals" },
@@ -102,6 +103,24 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
     const list = apiUsersData || [];
     return list.length > 0 ? list : FALLBACK_USERS;
   }, [apiUsersData]);
+
+  // Fetch real audit logs
+  const { data: apiAuditData } = useApi(() => auditLogService.getAll({ per_page: 10 }));
+  const auditTimelineList = useMemo(() => {
+    if (apiAuditData && apiAuditData.length > 0) {
+      return apiAuditData.slice(0, 4).map((log: any) => ({
+        title: log.activityType ? String(log.activityType).replace(/^App\\Models\\/, "") : "Activity Log",
+        desc: `${log.user} (${log.role || "User"}): ${log.action}`,
+        time: log.timestamp || "Baru saja",
+        color: log.severity === "High" ? "border-[#dc2626]" : (log.severity === "Normal" ? "border-[#1e3a8a]" : "border-[#d97706]"),
+      }));
+    }
+    return [
+      { title: "Role Modification", desc: "Super Admin updated permission for Approver role.", time: "2 jam yang lalu • Session #9921", color: "border-[#dc2626]" },
+      { title: "User Assignment", desc: "Driver assigned to Vehicle Request.", time: "Kemarin, 14:32 • Auto-sync", color: "border-[#1e3a8a]" },
+      { title: "Emergency Access", desc: "System auto-revoked temporary Super Admin access for User #405.", time: "3 hari yang lalu • Security Policy", color: "border-[#d97706]" },
+    ];
+  }, [apiAuditData]);
 
   // Filtered Users based on User Assignment Filter
   const filteredUsers = useMemo(() => {
@@ -354,12 +373,8 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
                     View History
                   </button>
                 </div>
-                <div className="space-y-3.5">
-                  {[
-                    { title: "Role Modification", desc: "Alex Rivera updated 'Delete' permission for Approver role.", time: "2 hours ago • Session #9921", color: "border-[#dc2626]" },
-                    { title: "User Assignment", desc: "Emily Blunt was assigned the Driver role.", time: "Yesterday, 14:32 • Auto-sync", color: "border-[#1e3a8a]" },
-                    { title: "Emergency Access", desc: "System auto-revoked temporary Super Admin access for User #405.", time: "3 days ago • Security Policy", color: "border-[#d97706]" },
-                  ].map((ev, i) => (
+                <div className="space-y-3.5 max-h-[280px] overflow-y-auto pr-1">
+                  {auditTimelineList.map((ev: any, i: number) => (
                     <div key={i} className={`pl-3 border-l-2 ${ev.color}`}>
                       <div className="text-[12px] font-bold text-[#0f172a]">{ev.title}</div>
                       <div className="text-[11px] text-[#475569] mt-0.5">{ev.desc}</div>
