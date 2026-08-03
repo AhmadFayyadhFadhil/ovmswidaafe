@@ -275,10 +275,11 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
       console.error("Add user error:", err);
       const status = err.response?.status;
       const serverMsg = err.response?.data?.message || err.response?.data?.error;
+      const cleanMsg = (serverMsg && serverMsg !== "Server Error") ? serverMsg : "Terjadi kendala pada server saat menyimpan data user.";
       if (status === 422) {
         setFormError(serverMsg || "Data user tidak valid atau NIK/Email sudah terdaftar.");
       } else if (status === 500) {
-        setFormError(serverMsg ? `Server Error: ${serverMsg}` : "Gagal menyimpan user. Pastikan NIK & Email belum terdaftar di sistem.");
+        setFormError(cleanMsg);
       } else {
         setFormError(serverMsg || "Failed to add user.");
       }
