@@ -24,19 +24,19 @@ const Settings = lazy(() => import("@/pages/admin/settings"));
 const CreateRequest = lazy(() => import("@/pages/employee/createrequest"));
 const EmployeeDashboard = lazy(() => import("@/pages/employee/dashboard"));
 const MyRequests = lazy(() => import("@/pages/employee/myrequests"));
-const EmployeeNotifications = lazy(() => import("@/pages/employee/notifications"));
+const EmployeeNotifications = lazy(() => import("@/pages/admin/notifications"));
 const EmployeeProfile = lazy(() => import("@/pages/employee/profil"));
 const EmployeeHistory = lazy(() => import("@/pages/employee/history"));
 
 // Driver Pages
 const DriverDashboard = lazy(() => import("@/pages/driver/dasboard"));
-const DriverNotifications = lazy(() => import("@/pages/driver/notifications"));
+const DriverNotifications = lazy(() => import("@/pages/admin/notifications"));
 
 // Approver Pages
 const ApproverDashboard = lazy(() => import("@/pages/approver/dashboard"));
 const ApproverRequests = lazy(() => import("@/pages/approver/requests"));
 const ApproverHistory = lazy(() => import("@/pages/approver/history"));
-const ApproverNotifications = lazy(() => import("@/pages/approver/notifications"));
+const ApproverNotifications = lazy(() => import("@/pages/admin/notifications"));
 
 // Security Pages
 const SecurityDashboard = lazy(() => import("@/pages/security/dashboard"));
@@ -46,7 +46,7 @@ const SecurityHistory = lazy(() => import("@/pages/security/history"));
 const GAHRDDashboard = lazy(() => import("@/pages/gahrd/dashboard"));
 const GAHRDRequests = lazy(() => import("@/pages/gahrd/requests"));
 const GAHRDHistory = lazy(() => import("@/pages/gahrd/history"));
-const GAHRDNotifications = lazy(() => import("@/pages/gahrd/notifications"));
+const GAHRDNotifications = lazy(() => import("@/pages/admin/notifications"));
 const GAHRDDrivers = lazy(() => import("@/pages/gahrd/driver"));
 const GAHRDCalendar = lazy(() => import("@/pages/gahrd/calendar"));
 const GAHRDUsers = lazy(() => import("@/pages/gahrd/users"));
