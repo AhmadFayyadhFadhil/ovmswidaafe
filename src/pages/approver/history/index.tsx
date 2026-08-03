@@ -243,13 +243,7 @@ export default function HistoryPage() {
     !!user?.is_department_head;
 
   const historyItems: HistoryItem[] = requestsList
-    .filter(r => {
-      if (isHrGaHead) {
-        // Only show completed, rejected, and cancelled requests in history for HRD & GA Head
-        return ["completed", "rejected", "cancelled"].includes(r.rawStatus || "");
-      }
-      return !r.canApprove;
-    })
+    .filter(r => ["completed", "rejected", "cancelled"].includes(r.rawStatus || ""))
     .map(r => {
       // Cari log persetujuan untuk user saat ini, atau gunakan persetujuan terakhir sebagai cadangan
       const userApproval = r.approvals?.find(

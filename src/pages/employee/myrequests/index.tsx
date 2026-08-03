@@ -308,7 +308,9 @@ export default function MyRequestsPage() {
 
     if (!matchSearch) return false;
 
-    if (statusFilter === "All Status") return true;
+    if (statusFilter === "All Status") {
+      return !["completed", "rejected", "cancelled"].includes(r.rawStatus);
+    }
     if (statusFilter === "In Progress") {
       return ["on_going", "driver_assigned", "approved_hrd_ga", "approved_hrd"].includes(r.rawStatus);
     }

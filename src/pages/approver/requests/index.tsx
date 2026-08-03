@@ -301,6 +301,9 @@ export default function ApprovalManagement() {
   // Map pending requests from database (filtered by canApprove and status)
   const mappedRequests: PendingRequest[] = requestsList
     .filter(r => {
+      if (["completed", "rejected", "cancelled"].includes(r.rawStatus || "")) {
+        return false;
+      }
       if (isHrGaHead) {
         return r.canApprove || ["assigned_by_ga", "approved_hrd_ga", "approved_hrd", "waiting_driver", "driver_assigned", "on_going"].includes(r.rawStatus || "");
       }

@@ -412,7 +412,9 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
       );
     }
 
-    if (statusFilter !== "All") {
+    if (statusFilter === "All") {
+      result = result.filter((r: any) => !["completed", "rejected", "cancelled"].includes(r.rawStatus || ""));
+    } else {
       result = result.filter((r: any) => (r.status || "").toUpperCase() === statusFilter.toUpperCase());
     }
 

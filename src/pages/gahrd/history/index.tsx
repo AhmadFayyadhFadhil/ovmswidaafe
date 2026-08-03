@@ -52,7 +52,12 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
     fetchHistory();
   }, []);
 
-  const filtered = rawRequests.filter(req => {
+  const historyOnly = rawRequests.filter(req => 
+    ["completed", "rejected", "cancelled"].includes(req.rawStatus || "") ||
+    ["COMPLETED", "REJECTED", "CANCELLED"].includes(req.status || "")
+  );
+
+  const filtered = historyOnly.filter(req => {
     const matchSearch =
       String(req.id).toLowerCase().includes(search.toLowerCase()) ||
       (req.employee || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -61,10 +66,9 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
     return matchSearch && matchStatus;
   });
 
-  const completedCount = rawRequests.filter(r => r.status === 'COMPLETED').length;
-  const approvedCount  = rawRequests.filter(r => r.status === 'APPROVED' || r.status === 'ONGOING').length;
-  const rejectedCount  = rawRequests.filter(r => r.status === 'REJECTED').length;
-  const cancelledCount = rawRequests.filter(r => r.status === 'CANCELLED').length;
+  const completedCount = historyOnly.filter(r => r.status === 'COMPLETED' || r.rawStatus === 'completed').length;
+  const rejectedCount  = historyOnly.filter(r => r.status === 'REJECTED' || r.rawStatus === 'rejected').length;
+  const cancelledCount = historyOnly.filter(r => r.status === 'CANCELLED' || r.rawStatus === 'cancelled').length;
 
   return (
     <Layout
