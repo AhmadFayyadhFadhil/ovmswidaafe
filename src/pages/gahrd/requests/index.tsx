@@ -452,11 +452,11 @@ export default function GAHRDRequestsPage() {
       showToast(isEditAction ? "Perubahan penugasan berhasil disimpan!" : "Driver & Kendaraan berhasil ditugaskan!");
       await fetchData();
     } catch (err: any) {
-      console.error(err);
+      console.error("Assign error:", err);
       const serverMsg = err.response?.data?.message || err.response?.data?.error || err.message;
-      const displayMsg = (serverMsg === "Server Error" || !serverMsg)
-        ? "Gagal menugaskan driver. Pastikan driver & kendaraan yang dipilih sedang tersedia dan belum memiliki penugasan di jam yang sama."
-        : serverMsg;
+      const displayMsg = (serverMsg && serverMsg !== "Server Error")
+        ? serverMsg
+        : "Gagal menugaskan driver. Silakan periksa kembali ketersediaan driver & kendaraan.";
       setAssignError(displayMsg);
     } finally {
       setActionLoading(false);
