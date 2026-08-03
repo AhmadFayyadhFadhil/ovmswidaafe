@@ -35,58 +35,19 @@ export function Topbar({
     if (!user?.role) return;
 
     const fetchUnreadCount = async () => {
-      const role = user.role.toLowerCase();
       try {
-        if (role === "gahrd") {
-          const stored = localStorage.getItem("ovms_gahrd_notifications");
-          if (stored) {
-            const list = JSON.parse(stored);
-            if (Array.isArray(list)) {
-              setUnreadCount(list.filter((n: any) => n.unread).length);
-              return;
-            }
-          }
+        const storedRead = localStorage.getItem("ovms_read_notification_ids");
+        const readIds: string[] = storedRead ? JSON.parse(storedRead) : [];
+        const res = await apiClient.get("/requests?per_page=1000");
+        if (res.data?.status === "success" && Array.isArray(res.data?.data)) {
+          const allRequests = res.data.data;
+          const unread = allRequests.filter((r: any) => !readIds.includes(String(r.id)));
+          setUnreadCount(unread.length);
+        } else {
           setUnreadCount(0);
-        } else if (role === "admin") {
-          const stored = localStorage.getItem("ovms_admin_notifications");
-          if (stored) {
-            const list = JSON.parse(stored);
-            if (Array.isArray(list)) {
-              setUnreadCount(list.filter((n: any) => !n.isRead).length);
-              return;
-            }
-          }
-          setUnreadCount(0);
-        } else if (role === "driver") {
-          const res = await apiClient.get("/assignments");
-          if (res.data?.status === "success" && Array.isArray(res.data?.data)) {
-            const pending = res.data.data.filter(
-              (a: any) => a.status === "pending_driver" && String(a.driver_id) === String(user.id)
-            );
-            setUnreadCount(pending.length);
-          }
-        } else if (role === "approver") {
-          const res = await apiClient.get("/requests");
-          if (res.data?.status === "success" && Array.isArray(res.data?.data)) {
-            const pending = res.data.data.filter((r: any) => r.can_approve);
-            setUnreadCount(pending.length);
-          }
-        } else if (role === "employee") {
-          const res = await apiClient.get("/requests");
-          if (res.data?.status === "success" && Array.isArray(res.data?.data)) {
-            const allRequests = res.data.data;
-            // Compare current statuses vs what was last seen on notifications page
-            const seenRaw = localStorage.getItem('ovms_employee_notif_seen');
-            const seen: Record<string, string> = seenRaw ? JSON.parse(seenRaw) : {};
-            const unseen = allRequests.filter((r: any) => {
-              const currentStatus = r.rawStatus || r.status;
-              return !seen[String(r.id)] || seen[String(r.id)] !== currentStatus;
-            });
-            setUnreadCount(unseen.length);
-          }
         }
       } catch (err) {
-        console.error("Failed to fetch unread count for", role, err);
+        console.error("Failed to fetch unread count", err);
       }
     };
 
