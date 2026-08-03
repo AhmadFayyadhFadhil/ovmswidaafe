@@ -78,8 +78,11 @@ export default function GAHRDDashboard({ onNavigate }: { onNavigate: (p: string)
     { label: "Available Drivers", value: String(availableDrivers), icon: "directions_car", color: "text-[#7c3aed]", bg: "bg-[#f5f3ff]", border: "border-l-[#7c3aed]" },
   ];
 
-  // Get 5 most recent requests
-  const recentRequests = requestsList.slice(0, 5);
+  // Get 5 most recent active (non-history) requests
+  const activeRequestsList = requestsList.filter(r => 
+    !["completed", "cancelled", "rejected"].includes(r.rawStatus?.toLowerCase() || "")
+  );
+  const recentRequests = activeRequestsList.slice(0, 5);
 
   // Get 5 drivers and resolve their current destination
   const driversSummary = driversList.slice(0, 5).map(d => {

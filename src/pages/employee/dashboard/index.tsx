@@ -53,7 +53,11 @@ export default function EmployeeDashboard() {
 
   // Map to upcoming trips (Approved or Pending trips)
   const UPCOMING_TRIPS: UpcomingTrip[] = requestsList
-    .filter(r => r.status === "APPROVED" || r.status === "PENDING" || r.status === "ONGOING")
+    .filter(r => {
+      const raw = (r.rawStatus || r.status || "").toLowerCase();
+      if (["completed", "cancelled", "rejected"].includes(raw)) return false;
+      return r.status === "APPROVED" || r.status === "PENDING" || r.status === "ONGOING";
+    })
     .map(r => {
       let statusLabel = "Pending";
       if (r.status === "APPROVED") statusLabel = "Approved";

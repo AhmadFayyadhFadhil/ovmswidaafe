@@ -244,6 +244,10 @@ export default function DashboardPage() {
 
   const pendingRequests: PendingRequest[] = requestsList
     .filter(r => {
+      const raw = (r.rawStatus || "").toLowerCase();
+      if (["completed", "cancelled", "rejected"].includes(raw)) {
+        return false;
+      }
       if (isHrGaHead) {
         // Show pending approvals OR approved/ongoing active requests
         return r.canApprove || ["assigned_by_ga", "approved_hrd_ga", "approved_hrd", "waiting_driver", "driver_assigned", "on_going"].includes(r.rawStatus || "");

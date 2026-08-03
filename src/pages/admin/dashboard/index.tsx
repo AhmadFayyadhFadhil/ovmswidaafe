@@ -327,7 +327,11 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
   }, [requestsList]);
 
   const requests: Request[] = useMemo(() => {
-    return requestsList.map((r: any) => {
+    const activeList = requestsList.filter((r: any) => {
+      const raw = (r.rawStatus || r.status || "").toLowerCase();
+      return !["completed", "cancelled", "rejected"].includes(raw);
+    });
+    return activeList.map((r: any) => {
       const name = r.employee || "Unknown";
       const initials = name.trim().split(/\s+/).map((p:string)=>p ? p[0] : "").filter(Boolean).slice(0,2).join("").toUpperCase() || "UN";
       const vehicle = r.vehicleModel || "Unassigned";
