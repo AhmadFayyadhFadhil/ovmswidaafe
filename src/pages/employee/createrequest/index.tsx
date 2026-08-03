@@ -274,7 +274,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
       const formattedEndTime = estReturn ? (estReturn.includes('T') ? estReturn.replace('T', ' ') + (estReturn.length === 16 ? ':00' : '') : estReturn) : null;
 
       const firstDeptId = validPassengers[0]?.department_id;
-      let parsedMainDeptId: any = 1;
+      let parsedMainDeptId: any = null;
       if (firstDeptId) {
         const num = Number(firstDeptId);
         parsedMainDeptId = !isNaN(num) && num > 0 ? num : firstDeptId;
@@ -294,7 +294,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
         department_id: parsedMainDeptId,
         notes: notes || null,
         passengers: validPassengers.map((p, idx) => {
-          let deptIdVal: any = 1;
+          let deptIdVal: any = null;
           if (p.department_id) {
             const num = Number(p.department_id);
             deptIdVal = !isNaN(num) && num > 0 ? num : p.department_id;
