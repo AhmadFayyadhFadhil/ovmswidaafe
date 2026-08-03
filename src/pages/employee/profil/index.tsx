@@ -19,7 +19,7 @@ export default function MyProfilePage({ onNavigate }: Props) {
   const [phone, setPhone] = useState("+62 812-3456-7890");
   const [department, setDepartment] = useState("");
   const [position, setPosition] = useState("");
-  const [location, setLocation] = useState("Jakarta Head Office");
+  const [location, setLocation] = useState("Pandaan Head Office");
   const [simPhotoUrl, setSimPhotoUrl] = useState<string | null>(null);
   const [showSimLightbox, setShowSimLightbox] = useState(false);
 
@@ -72,7 +72,7 @@ export default function MyProfilePage({ onNavigate }: Props) {
         setDepartment(u.department_id || "Operations");
         setPhone(u.phone || "+62 812-3456-7890");
         setPosition(u.position || (u.roles?.[0] ? u.roles[0].toUpperCase() : "Staff"));
-        setLocation(u.location || "Jakarta Head Office");
+        setLocation(u.location && !u.location.includes("Jakarta") ? u.location : "Pandaan Head Office");
         setAvatar(u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || "User")}&background=00236f&color=fff&size=120`);
         setSimPhotoUrl(u.sim_a_photo_url || null);
       }
