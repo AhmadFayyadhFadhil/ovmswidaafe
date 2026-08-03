@@ -326,15 +326,25 @@ export default function CreateRequestPage({ onNavigate }: Props) {
       setSubmitted(true);
       setTimeout(() => navigate("/employee/myrequests"), 1500);
     } catch (err: any) {
-      console.error(err);
-      let errMsg = err.response?.data?.message;
+      console.error("Create request error:", err);
+      let errMsg = "";
+      const validationErrors = err.response?.data?.errors;
+      if (validationErrors && typeof validationErrors === "object") {
+        const firstKey = Object.keys(validationErrors)[0];
+        if (firstKey && Array.isArray(validationErrors[firstKey]) && validationErrors[firstKey][0]) {
+          errMsg = validationErrors[firstKey][0];
+        }
+      }
+      if (!errMsg) {
+        errMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+      }
       if (!errMsg || errMsg === "Server Error") {
         if (err.response?.status === 401) {
-          errMsg = "Sesi Anda telah berakhir. Silakan re-login (keluar lalu masuk kembali) untuk melanjutkan pengajuan.";
+          errMsg = "Sesi Anda telah berakhir. Silakan re-login untuk melanjutkan pengajuan.";
         } else if (err.response?.status === 422) {
-          errMsg = "Data pengajuan belum sesuai format. Silakan periksa kembali kelengkapan data penumpang dan tanggal.";
+          errMsg = "Data pengajuan belum sesuai format. Silakan periksa kembali kelengkapan tanggal dan data penumpang.";
         } else {
-          errMsg = "Terjadi kendala pada server API saat menyimpan pengajuan. Silakan pastikan profil & departemen akun Anda lengkap, atau coba beberapa saat lagi.";
+          errMsg = "Terjadi kendala pada server API saat menyimpan pengajuan. Silakan coba beberapa saat lagi.";
         }
       }
       setFormError(errMsg);

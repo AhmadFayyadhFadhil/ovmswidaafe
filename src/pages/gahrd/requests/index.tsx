@@ -453,7 +453,17 @@ export default function GAHRDRequestsPage() {
       await fetchData();
     } catch (err: any) {
       console.error("Assign error:", err);
-      const serverMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+      let serverMsg = "";
+      const validationErrors = err.response?.data?.errors;
+      if (validationErrors && typeof validationErrors === "object") {
+        const firstKey = Object.keys(validationErrors)[0];
+        if (firstKey && Array.isArray(validationErrors[firstKey]) && validationErrors[firstKey][0]) {
+          serverMsg = validationErrors[firstKey][0];
+        }
+      }
+      if (!serverMsg) {
+        serverMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+      }
       const displayMsg = (serverMsg && serverMsg !== "Server Error")
         ? serverMsg
         : "Gagal menugaskan driver. Silakan periksa kembali ketersediaan driver & kendaraan.";
