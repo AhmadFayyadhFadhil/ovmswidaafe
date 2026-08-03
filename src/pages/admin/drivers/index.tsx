@@ -232,13 +232,10 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       console.error("Add driver error:", err);
       const status = err.response?.status;
       const serverMsg = err.response?.data?.message || err.response?.data?.error;
-      const cleanMsg = (serverMsg && serverMsg !== "Server Error") ? serverMsg : "Terjadi kendala pada server saat menyimpan data driver.";
       if (status === 422) {
         setFormError(serverMsg || "Data driver tidak valid atau NIK/Email sudah terdaftar.");
-      } else if (status === 500) {
-        setFormError(cleanMsg);
       } else {
-        setFormError(serverMsg || "Gagal menambahkan driver.");
+        setFormError(serverMsg || "Terjadi kendala pada server saat menyimpan data driver.");
       }
     } finally {
       setAdding(false);
