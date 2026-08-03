@@ -69,6 +69,7 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
   const completedCount = historyOnly.filter(r => r.status === 'COMPLETED' || r.rawStatus === 'completed').length;
   const rejectedCount  = historyOnly.filter(r => r.status === 'REJECTED' || r.rawStatus === 'rejected').length;
   const cancelledCount = historyOnly.filter(r => r.status === 'CANCELLED' || r.rawStatus === 'cancelled').length;
+  const totalFinishedCount = historyOnly.length;
 
   return (
     <Layout
@@ -111,7 +112,7 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           {[
             { label: "Completed Trips", value: completedCount, color: "text-sky-600", bg: "bg-sky-50", border: "border-sky-100", icon: "task_alt" },
-            { label: "Approved / Active", value: approvedCount, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100", icon: "check_circle" },
+            { label: "Total Riwayat", value: totalFinishedCount, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100", icon: "history" },
             { label: "Rejected Trips", value: rejectedCount, color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-100", icon: "cancel" },
             { label: "Cancelled Trips", value: cancelledCount, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-100", icon: "block" },
           ].map((card, i) => (
