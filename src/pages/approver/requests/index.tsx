@@ -307,7 +307,7 @@ export default function ApprovalManagement() {
       if (isHrGaHead) {
         return r.canApprove || ["assigned_by_ga", "approved_hrd_ga", "approved_hrd", "waiting_driver", "driver_assigned", "on_going"].includes(r.rawStatus || "");
       }
-      return r.canApprove;
+      return r.canApprove || r.rawStatus === "submitted";
     })
     .map(r => ({
       id: r.id,
