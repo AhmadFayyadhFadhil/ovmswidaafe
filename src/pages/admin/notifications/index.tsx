@@ -24,15 +24,34 @@ export default function Notification({
   onDeleteNotification: propOnDeleteNotification,
   onNavigate
 }: NotificationProps) {
-  const ADMIN_NOTIFS_KEY = "ovms_admin_notifications";
+  const READ_NOTIFS_KEY = "ovms_read_notification_ids";
   const [internalNotifs, setInternalNotifs] = useState<SystemNotification[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const getReadIds = (): string[] => {
+    try {
+      const raw = localStorage.getItem(READ_NOTIFS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const saveReadIds = (ids: string[]) => {
+    try {
+      localStorage.setItem(READ_NOTIFS_KEY, JSON.stringify(Array.from(new Set(ids))));
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const loadRealNotifs = async () => {
     setLoading(true);
     try {
       const res = await requestService.getAll({ per_page: 1000 });
       const list = res.data || [];
+      const readIds = getReadIds();
 
       const realNotifs: SystemNotification[] = list.map(r => ({
         id: String(r.id),
@@ -41,7 +60,7 @@ export default function Notification({
         timeAgo: r.date || 'Terbaru',
         severity: r.status === 'PENDING' ? 'high' : (r.status === 'ONGOING' ? 'medium' : 'low'),
         category: r.status === 'PENDING' ? 'Approvals' : 'Operational',
-        isRead: true,
+        isRead: readIds.includes(String(r.id)),
         metadata: `Req ID: #${r.id}`,
       }));
 
@@ -62,28 +81,25 @@ export default function Notification({
 
   const notifications = propNotifications || internalNotifs;
 
-  const saveNotifications = (newNotifs: SystemNotification[]) => {
-    setInternalNotifs(newNotifs);
-    localStorage.setItem(ADMIN_NOTIFS_KEY, JSON.stringify(newNotifs));
-    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
-  };
-
   const handleMarkAsRead = (id: string) => {
     if (propOnMarkAsRead) {
       propOnMarkAsRead(id);
-      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
-    } else {
-      saveNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n));
     }
+    const currentRead = getReadIds();
+    const nextRead = [...currentRead, String(id)];
+    saveReadIds(nextRead);
+    setInternalNotifs(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
   };
 
   const handleMarkAllAsRead = () => {
     if (propOnMarkAllAsRead) {
       propOnMarkAllAsRead();
-      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
-    } else {
-      saveNotifications(notifications.map(n => ({ ...n, isRead: true })));
     }
+    const allIds = notifications.map(n => String(n.id));
+    const currentRead = getReadIds();
+    const nextRead = [...currentRead, ...allIds];
+    saveReadIds(nextRead);
+    setInternalNotifs(prev => prev.map(n => ({ ...n, isRead: true })));
   };
 
   const handleDeleteNotification = (id: string) => {
@@ -91,7 +107,8 @@ export default function Notification({
       propOnDeleteNotification(id);
       window.dispatchEvent(new CustomEvent('ovms-notif-read'));
     } else {
-      saveNotifications(notifications.filter(n => n.id !== id));
+      setInternalNotifs(prev => prev.filter(n => n.id !== id));
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
     }
   };
 
@@ -113,7 +130,7 @@ export default function Notification({
     >
       <div className="max-w-4xl mx-auto p-6 space-y-6 animate-in fade-in duration-200">
         {/* Search Header Banner */}
-        <div className="bg-white p-4 rounded-xl border border-slate-100 flex items-center justify-between flex-wrap gap-4">
+        <div className="bg-white p-4 rounded-xl border border-slate-100 flex items-center justify-between flex-wrap gap-4 shadow-sm">
           <div className="flex flex-wrap gap-2 bg-slate-100 p-0.5 rounded-xl text-xs font-semibold">
             {categories.map((cat) => (
               <button
@@ -130,7 +147,7 @@ export default function Notification({
 
           <button
             onClick={handleMarkAllAsRead}
-            className="flex items-center gap-1.5 text-xs font-bold text-[#00236f] hover:underline cursor-pointer"
+            className="flex items-center gap-1.5 text-xs font-bold text-[#00236f] hover:text-[#1e3a8a] bg-blue-50 hover:bg-blue-100 px-3.5 py-2 rounded-xl transition-all cursor-pointer shadow-2xs"
           >
             <MailOpen className="w-4 h-4" /> Tandai Semua Dibaca
           </button>
@@ -138,7 +155,7 @@ export default function Notification({
 
         {/* Notifications list */}
         {loading ? (
-          <div className="bg-white p-12 text-center rounded-2xl border border-slate-100 text-xs text-slate-500 font-bold">
+          <div className="bg-white p-12 text-center rounded-2xl border border-slate-100 text-xs text-slate-500 font-bold shadow-sm">
             Memuat notifikasi sistem real-time...
           </div>
         ) : (
@@ -147,19 +164,19 @@ export default function Notification({
               <div
                 key={not.id}
                 className={`p-5 rounded-2xl border transition-all flex items-start gap-4 ${
-                  not.isRead ? "bg-white border-slate-100 opacity-70" : "bg-white border-[#cbdbf5] ring-1 ring-blue-50"
+                  not.isRead
+                    ? "bg-white border-slate-200/80 opacity-75 shadow-2xs"
+                    : "bg-blue-50/40 border-blue-200 ring-1 ring-blue-100/60 shadow-sm"
                 }`}
               >
                 {/* Category icon */}
                 <div
-                  className={`p-2.5 rounded-xl shrink-0 ${
-                    not.severity === "critical"
-                      ? "bg-rose-50 text-rose-700"
-                      : not.severity === "high"
-                      ? "bg-rose-50 text-rose-600"
-                      : not.severity === "medium"
-                      ? "bg-amber-50 text-amber-700"
-                      : "bg-blue-50 text-blue-700"
+                  className={`p-2.5 rounded-xl shrink-0 flex items-center justify-center ${
+                    not.isRead
+                      ? "bg-slate-100 text-slate-500"
+                      : not.severity === "critical" || not.severity === "high"
+                      ? "bg-rose-100 text-rose-700"
+                      : "bg-blue-100 text-blue-700"
                   }`}
                 >
                   <Bell className="w-5 h-5" />
@@ -168,12 +185,24 @@ export default function Notification({
                 {/* Notification Information details */}
                 <div className="flex-1 space-y-1 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900 text-xs">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {!not.isRead && (
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0" title="Belum Dibaca" />
+                      )}
+                      <span className={`text-xs ${not.isRead ? "font-semibold text-slate-700" : "font-bold text-slate-900"}`}>
                         {not.title}
                       </span>
                       <span
-                        className={`px-2 py-0.2 rounded-full text-[9px] font-bold border whitespace-nowrap uppercase ${
+                        className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase border whitespace-nowrap tracking-wider ${
+                          not.isRead
+                            ? "bg-slate-100 text-slate-500 border-slate-200"
+                            : "bg-blue-600 text-white border-blue-600 shadow-2xs"
+                        }`}
+                      >
+                        {not.isRead ? "Sudah Dibaca" : "Belum Dibaca"}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[9px] font-bold border whitespace-nowrap uppercase ${
                           not.category === "Operational"
                             ? "bg-rose-50 text-rose-700 border-rose-100"
                             : not.category === "Approvals"
@@ -200,19 +229,23 @@ export default function Notification({
 
                 {/* Read / Delete Operations */}
                 <div className="flex items-center gap-2 shrink-0 self-center">
-                  {!not.isRead && (
+                  {!not.isRead ? (
                     <button
                       onClick={() => handleMarkAsRead(not.id)}
-                      className="bg-[#00236f]/10 text-[#00236f] hover:bg-[#00236f] hover:text-white p-1.5 rounded-lg text-xs font-bold font-mono transition-colors cursor-pointer"
-                      title="Mark as Read"
+                      className="flex items-center gap-1 bg-blue-600 text-white hover:bg-blue-700 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-2xs cursor-pointer"
+                      title="Tandai Dibaca"
                     >
-                      <CheckCircle className="w-4 h-4" />
+                      <CheckCircle className="w-3.5 h-3.5" /> Tandai Dibaca
                     </button>
+                  ) : (
+                    <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1 px-2.5 py-1 bg-slate-100 rounded-lg border border-slate-200">
+                      <CheckCircle className="w-3.5 h-3.5 text-slate-400" /> Dibaca
+                    </span>
                   )}
                   <button
                     onClick={() => handleDeleteNotification(not.id)}
-                    className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
-                    title="Delete"
+                    className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                    title="Hapus Notifikasi"
                   >
                     <X className="w-4 h-4" />
                   </button>
