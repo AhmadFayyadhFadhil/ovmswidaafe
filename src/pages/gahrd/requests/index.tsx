@@ -512,68 +512,23 @@ export default function GAHRDRequestsPage() {
   const readyDrivers = drivers.filter((d) => d.status === "AVAILABLE");
 
   const getAvailableDriversForRequest = (req: any) => {
-    const allowedDrivers = drivers.filter((d) => 
+    return drivers.filter((d) => 
       d.status === "AVAILABLE" || 
       String(d.id) === String(selectedDriverId) || 
-      String(d.id) === String(selectedDriverId2)
+      String(d.id) === String(selectedDriverId2) ||
+      (req && (String(d.id) === String(req.driverId) || String(d.id) === String(req.driver_id)))
     );
-    if (!req) return allowedDrivers;
-    const reqDate = req.startTime ? req.startTime.substring(0, 10) : "";
-    if (!reqDate) return allowedDrivers;
-
-    const assignedDriverIds = new Set<string>();
-    requests.forEach(r => {
-      if (String(r.id) === String(req.id)) return;
-      if (["completed", "rejected"].includes(r.rawStatus)) return;
-      if (!r.startTime || r.startTime.substring(0, 10) !== reqDate) return;
-
-      if (r.driverId) {
-        assignedDriverIds.add(String(r.driverId));
-      }
-      if (Array.isArray(r.operational_trips)) {
-        r.operational_trips.forEach((t: any) => {
-          if (t.driver?.id) {
-            assignedDriverIds.add(String(t.driver.id));
-          }
-        });
-      }
-    });
-
-    return allowedDrivers.filter(d => !assignedDriverIds.has(String(d.id)));
   };
 
   const availableDrivers = getAvailableDriversForRequest(selectedRequest);
 
   const getAvailableVehiclesForRequest = (req: any) => {
-    const activeVehicles = vehicles.filter(v => 
+    return vehicles.filter(v => 
       v.status === "AVAILABLE" || v.status === "Available" || v.status === "available" ||
       String(v.id) === String(selectedVehicleId) ||
-      String(v.id) === String(selectedVehicleId2)
+      String(v.id) === String(selectedVehicleId2) ||
+      (req && (String(v.id) === String(req.vehicleId) || String(v.id) === String(req.vehicle_id)))
     );
-    if (!req) return activeVehicles;
-
-    const reqDate = req.startTime ? req.startTime.substring(0, 10) : "";
-    if (!reqDate) return activeVehicles;
-
-    const assignedVehicleIds = new Set<string>();
-    requests.forEach(r => {
-      if (String(r.id) === String(req.id)) return;
-      if (["completed", "rejected"].includes(r.rawStatus)) return;
-      if (!r.startTime || r.startTime.substring(0, 10) !== reqDate) return;
-
-      if (r.vehicleId) {
-        assignedVehicleIds.add(String(r.vehicleId));
-      }
-      if (Array.isArray(r.operational_trips)) {
-        r.operational_trips.forEach((t: any) => {
-          if (t.vehicle?.id) {
-            assignedVehicleIds.add(String(t.vehicle.id));
-          }
-        });
-      }
-    });
-
-    return activeVehicles.filter(v => !assignedVehicleIds.has(String(v.id)));
   };
 
   const availableVehicles = getAvailableVehiclesForRequest(selectedRequest);
