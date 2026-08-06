@@ -126,25 +126,55 @@ export default function SecurityDashboard() {
       }
     }
 
-    try {
-      const res = await apiClient.get('/security/lookup', {
-        params: { qr_code_token: finalId }
-      });
+    // Build candidate tokens list (primary token + fallback candidate IDs)
+    const candidatesToTry: string[] = [finalId];
 
-      if (res.data && res.data.status === "success") {
-        setScannedRequest(res.data.data);
-      } else {
-        setError("Permintaan tidak ditemukan.");
+    // Extract REQ-{ID} pattern (e.g. REQ-17 from REQ-1786023277...)
+    const reqMatch = finalId.match(/REQ-(\d+)/i);
+    if (reqMatch && reqMatch[1]) {
+      const extractedId = reqMatch[1];
+      if (!candidatesToTry.includes(extractedId)) {
+        candidatesToTry.push(extractedId);
       }
-    } catch (err: any) {
-      console.error(err);
-      setError(
-        err.response?.data?.message || 
-        "Permintaan kendaraan tidak ditemukan. Periksa kembali format kode."
-      );
-    } finally {
-      setActionLoading(false);
+      const reqPref = `REQ-${extractedId}`;
+      if (!candidatesToTry.includes(reqPref)) {
+        candidatesToTry.push(reqPref);
+      }
     }
+
+    // Extract short digits sequence if reasonable length
+    const digitsOnly = finalId.replace(/[^0-9]/g, '');
+    if (digitsOnly && digitsOnly.length > 0 && digitsOnly.length <= 6 && !candidatesToTry.includes(digitsOnly)) {
+      candidatesToTry.push(digitsOnly);
+    }
+
+    let lastErrorMsg = "Permintaan kendaraan tidak ditemukan. Periksa kembali format kode.";
+    let successData: any = null;
+
+    for (const candToken of candidatesToTry) {
+      try {
+        const res = await apiClient.get('/security/lookup', {
+          params: { qr_code_token: candToken }
+        });
+
+        if (res.data && res.data.status === "success" && res.data.data) {
+          successData = res.data.data;
+          break;
+        }
+      } catch (err: any) {
+        if (err.response?.data?.message) {
+          lastErrorMsg = err.response.data.message;
+        }
+      }
+    }
+
+    if (successData) {
+      setScannedRequest(successData);
+    } else {
+      setError(lastErrorMsg);
+    }
+
+    setActionLoading(false);
   };
 
   // Real-time polling auto-refresh every 5 seconds for active scanned request
