@@ -268,10 +268,24 @@ export default function CreateRequestPage({ onNavigate }: Props) {
 
     setIsConfirmOpen(false);
     setSubmitting(true);
-    setFormError("");
     try {
-      const formattedStartTime = departure ? (departure.includes('T') ? departure.replace('T', ' ') + (departure.length === 16 ? ':00' : '') : departure) : '';
-      const formattedEndTime = estReturn ? (estReturn.includes('T') ? estReturn.replace('T', ' ') + (estReturn.length === 16 ? ':00' : '') : estReturn) : null;
+      const formatDateTimeForBackend = (dtStr: string): string => {
+        if (!dtStr) return '';
+        const d = new Date(dtStr);
+        if (isNaN(d.getTime())) {
+          return dtStr.includes('T') ? dtStr.replace('T', ' ').substring(0, 19) : dtStr;
+        }
+        const YYYY = d.getFullYear();
+        const MM = String(d.getMonth() + 1).padStart(2, '0');
+        const DD = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        const ss = String(d.getSeconds()).padStart(2, '0');
+        return `${YYYY}-${MM}-${DD} ${hh}:${mm}:${ss}`;
+      };
+
+      const formattedStartTime = formatDateTimeForBackend(departure);
+      const formattedEndTime = estReturn ? formatDateTimeForBackend(estReturn) : null;
 
       const firstDeptId = validPassengers[0]?.department_id;
       let parsedMainDeptId: any = null;

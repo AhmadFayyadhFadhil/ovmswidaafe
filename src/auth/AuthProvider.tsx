@@ -10,8 +10,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("auth_user");
-    const token = sessionStorage.getItem("token");
+    const stored = localStorage.getItem("auth_user") || sessionStorage.getItem("auth_user");
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
 
     const verifySession = async () => {
       try {
@@ -41,13 +41,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               avatar_url: apiUser.avatar_url,
             };
             setUser(updatedUser);
+            localStorage.setItem("auth_user", JSON.stringify(updatedUser));
+            localStorage.setItem("token", token);
             sessionStorage.setItem("auth_user", JSON.stringify(updatedUser));
+            sessionStorage.setItem("token", token);
             return;
           }
         }
       } catch (err) {
         console.error("Session verification failed, logging out:", err);
         setUser(null);
+        localStorage.removeItem("auth_user");
+        localStorage.removeItem("token");
         sessionStorage.removeItem("auth_user");
         sessionStorage.removeItem("token");
       }
@@ -60,7 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false); // Render dashboard immediately
         verifySession(); // Revalidate in background
       } catch {
+        localStorage.removeItem("auth_user");
+        localStorage.removeItem("token");
         sessionStorage.removeItem("auth_user");
+        sessionStorage.removeItem("token");
         setLoading(false);
       }
     } else {
@@ -90,6 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
 
       setUser(authUser);
+      localStorage.setItem("auth_user", JSON.stringify(authUser));
+      localStorage.setItem("token", token);
       sessionStorage.setItem("auth_user", JSON.stringify(authUser));
       sessionStorage.setItem("token", token);
       return role;
@@ -123,6 +133,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
 
           setUser(authUser);
+          localStorage.setItem("auth_user", JSON.stringify(authUser));
+          localStorage.setItem("token", token);
           sessionStorage.setItem("auth_user", JSON.stringify(authUser));
           sessionStorage.setItem("token", token);
           return role;
@@ -150,6 +162,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requestService.clearCache();
     } catch {}
     setUser(null);
+    localStorage.removeItem("auth_user");
+    localStorage.removeItem("token");
     sessionStorage.clear();
   };
 
@@ -157,6 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser((prev) => {
       if (!prev) return null;
       const next = { ...prev, ...updated };
+      localStorage.setItem("auth_user", JSON.stringify(next));
       sessionStorage.setItem("auth_user", JSON.stringify(next));
       return next;
     });
