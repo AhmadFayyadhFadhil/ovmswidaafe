@@ -335,12 +335,20 @@ export default function CreateRequestPage({ onNavigate }: Props) {
           errMsg = validationErrors[firstKey][0];
         }
       }
-      if (!errMsg) {
-        errMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+      if (!errMsg && err.response?.data?.message) {
+        errMsg = err.response.data.message;
       }
-      if (!errMsg || errMsg === "Server Error") {
+      if (!errMsg && err.response?.data?.error) {
+        errMsg = err.response.data.error;
+      }
+      if (!errMsg && err.message) {
+        errMsg = err.message;
+      }
+      if (!errMsg || errMsg === "Server Error" || errMsg === "Request failed with status code 500") {
         if (err.response?.status === 401) {
           errMsg = "Sesi Anda telah berakhir. Silakan re-login untuk melanjutkan pengajuan.";
+        } else if (err.response?.status === 403) {
+          errMsg = "Akun Anda tidak memiliki izin untuk membuat pengajuan. Silakan hubungi GA Koordinator.";
         } else if (err.response?.status === 422) {
           errMsg = "Data pengajuan belum sesuai format. Silakan periksa kembali kelengkapan tanggal dan data penumpang.";
         } else {
