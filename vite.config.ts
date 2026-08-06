@@ -10,7 +10,6 @@ export default defineConfig({
     tailwindcss(),
     legacy({
       targets: ["chrome >= 50", "android >= 4.4"],
-      renderModernChunks: false,
     }),
   ],
 
