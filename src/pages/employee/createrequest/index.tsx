@@ -188,7 +188,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
     const diffHours = (depDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
     const isGAUser = user?.role === "gahrd" || user?.role === "admin";
-    if (!isGAUser && diffHours < minLeadTimeHours) {
+    if (!isGAUser && diffHours < (minLeadTimeHours - 0.25)) {
       const errMsg = "Waktu keberangkatan kurang dari 24 jam. Silakan menghubungi GA KOORDINATOR (Bu Melodi) untuk pengajuan urgent.";
       setFormError(errMsg);
       showAlert(errMsg);
