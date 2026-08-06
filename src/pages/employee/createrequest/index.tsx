@@ -187,18 +187,9 @@ export default function CreateRequestPage({ onNavigate }: Props) {
     const now = new Date();
     const diffHours = (depDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-    if (diffHours < minLeadTimeHours) {
-      const earliestAllowed = new Date(now.getTime() + minLeadTimeHours * 60 * 60 * 1000);
-      const formattedEarliest = earliestAllowed.toLocaleDateString("id-ID", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-      }) + " " + earliestAllowed.toLocaleTimeString("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-
-      const errMsg = `Waktu keberangkatan minimal ${minLeadTimeHours} jam dari waktu pengajuan saat ini (keberangkatan tercepat yang diizinkan: ${formattedEarliest}).`;
+    const isGAUser = user?.role === "gahrd" || user?.role === "admin";
+    if (!isGAUser && diffHours < minLeadTimeHours) {
+      const errMsg = "Waktu keberangkatan kurang dari 24 jam. Silakan menghubungi GA KOORDINATOR (Bu Melodi) untuk pengajuan urgent.";
       setFormError(errMsg);
       showAlert(errMsg);
       return;
