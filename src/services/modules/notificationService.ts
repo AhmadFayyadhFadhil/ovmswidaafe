@@ -10,11 +10,20 @@ export const notificationService = {
 
   /**
    * Fetch all notifications from backend API.
-   * Backend already filters out deleted notifications and sets isRead correctly.
+   * Uses cache-buster timestamp query param to guarantee fresh data on every request.
    */
   getAll: async (): Promise<ApiResponse<SystemNotification[]>> => {
     try {
-      const res = await apiClient.get<{ status: string; data: SystemNotification[]; total: number }>('/notifications');
+      const res = await apiClient.get<{ status: string; data: SystemNotification[]; total: number }>(
+        `/notifications?_t=${Date.now()}`,
+        {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          }
+        }
+      );
       if (res.data && Array.isArray(res.data.data)) {
         return {
           data: res.data.data,
@@ -61,7 +70,6 @@ export const notificationService = {
   deleteNotification: async (id: string): Promise<{ success: boolean }> => {
     try {
       // Use POST instead of DELETE for maximum server compatibility
-      // (many aaPanel/nginx configs block HTTP DELETE method)
       const res = await apiClient.post(`/notifications/${String(id)}/delete`);
       window.dispatchEvent(new CustomEvent('ovms-notif-read'));
       return { success: res.data?.status === 'success' };
