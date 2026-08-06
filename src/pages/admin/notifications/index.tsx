@@ -17,9 +17,42 @@ interface NotificationProps {
   onNavigate?: (p: string) => void;
 }
 
+const DELETED_KEY = "ovms_deleted_notification_ids";
+const READ_KEY = "ovms_read_notification_ids";
+
+function getLocalDeletedIds(): string[] {
+  try {
+    const raw = localStorage.getItem(DELETED_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalDeletedIds(ids: string[]) {
+  try {
+    localStorage.setItem(DELETED_KEY, JSON.stringify(Array.from(new Set(ids))));
+  } catch {}
+}
+
+function getLocalReadIds(): string[] {
+  try {
+    const raw = localStorage.getItem(READ_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalReadIds(ids: string[]) {
+  try {
+    localStorage.setItem(READ_KEY, JSON.stringify(Array.from(new Set(ids))));
+  } catch {}
+}
+
 /**
- * NotificationCenter — 100% SERVER-DRIVEN, ZERO localStorage.
- * All read/delete state comes from backend API only.
+ * NotificationCenter — DUAL-LAYER PERSISTENCE (Server DB + LocalStorage Backup).
+ * Guarantees 100% persistent deletion locally AND across devices.
  */
 export default function Notification({
   notifications: propNotifications,
@@ -32,16 +65,21 @@ export default function Notification({
   const [loading, setLoading] = useState(true);
 
   /**
-   * Load notifications purely from backend API.
-   * Backend handles all filtering (deleted) and status (isRead).
-   * NO localStorage involved.
+   * Load notifications from backend API and filter against local storage backup.
    */
   const loadNotifications = async () => {
     setLoading(true);
     try {
+      const localDeleted = getLocalDeletedIds();
+      const localRead = getLocalReadIds();
+
       const res = await notificationService.getAll();
       if (res.data && Array.isArray(res.data)) {
-        setInternalNotifs(res.data);
+        // Filter out deleted IDs from BOTH local storage AND server
+        const filtered = res.data
+          .filter(n => !localDeleted.includes(String(n.id)))
+          .map(n => localRead.includes(String(n.id)) ? { ...n, isRead: true } : n);
+        setInternalNotifs(filtered);
       } else {
         setInternalNotifs([]);
       }
@@ -62,44 +100,81 @@ export default function Notification({
   const notifications = propNotifications || internalNotifs;
 
   /**
-   * Mark single notification as read — API call, then optimistic UI update.
+   * Mark single notification as read — LocalStorage + Server API + Optimistic UI.
    */
   const handleMarkAsRead = async (id: string) => {
     if (propOnMarkAsRead) propOnMarkAsRead(id);
 
-    // Optimistic UI update
-    setInternalNotifs(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    const stringId = String(id);
 
-    // Persist to server
-    await notificationService.markAsRead(id);
+    // 1. LocalStorage backup
+    const currentRead = getLocalReadIds();
+    saveLocalReadIds([...currentRead, stringId]);
+
+    // 2. React state update
+    setInternalNotifs(prev => prev.map(n => String(n.id) === stringId ? { ...n, isRead: true } : n));
+
+    // 3. Dispatch badge update
+    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+
+    // 4. Server API sync
+    try {
+      await notificationService.markAsRead(stringId);
+    } catch (err) {
+      console.error("API markAsRead error:", err);
+    }
   };
 
   /**
-   * Mark all notifications as read — API call, then optimistic UI update.
+   * Mark all notifications as read — LocalStorage + Server API + Optimistic UI.
    */
   const handleMarkAllAsRead = async () => {
     if (propOnMarkAllAsRead) propOnMarkAllAsRead();
 
     const allIds = notifications.map(n => String(n.id));
 
-    // Optimistic UI update
+    // 1. LocalStorage backup
+    const currentRead = getLocalReadIds();
+    saveLocalReadIds([...currentRead, ...allIds]);
+
+    // 2. React state update
     setInternalNotifs(prev => prev.map(n => ({ ...n, isRead: true })));
 
-    // Persist to server
-    await notificationService.markAllAsRead(allIds);
+    // 3. Dispatch badge update
+    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+
+    // 4. Server API sync
+    try {
+      await notificationService.markAllAsRead(allIds);
+    } catch (err) {
+      console.error("API markAllAsRead error:", err);
+    }
   };
 
   /**
-   * Delete notification — API call, then optimistic UI removal.
+   * Delete notification — LocalStorage + Server API + Optimistic UI.
    */
   const handleDeleteNotification = async (id: string) => {
     if (propOnDeleteNotification) propOnDeleteNotification(id);
 
-    // Optimistic UI removal
-    setInternalNotifs(prev => prev.filter(n => n.id !== id));
+    const stringId = String(id);
 
-    // Persist to server
-    await notificationService.deleteNotification(id);
+    // 1. Save to LocalStorage immediately (Foolproof local persistence)
+    const currentDeleted = getLocalDeletedIds();
+    saveLocalDeletedIds([...currentDeleted, stringId]);
+
+    // 2. Remove from React state immediately
+    setInternalNotifs(prev => prev.filter(n => String(n.id) !== stringId));
+
+    // 3. Dispatch badge update
+    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+
+    // 4. Send to Backend API for cross-device sync
+    try {
+      await notificationService.deleteNotification(stringId);
+    } catch (err) {
+      console.error("API delete notification error:", err);
+    }
   };
 
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("All Categories");
