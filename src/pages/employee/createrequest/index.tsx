@@ -185,11 +185,11 @@ export default function CreateRequestPage({ onNavigate }: Props) {
 
     const depDate = new Date(departure);
     const now = new Date();
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    const diffHours = (depDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
     const isGAUser = user?.role === "gahrd" || user?.role === "admin";
-    if (!isGAUser && depDate <= todayEnd) {
-      const errMsg = "Waktu keberangkatan untuk hari ini (kurang dari H-1). Silakan menghubungi GA KOORDINATOR (Bu Melodi) untuk pengajuan urgent.";
+    if (!isGAUser && diffHours < minLeadTimeHours) {
+      const errMsg = "Waktu keberangkatan kurang dari 24 jam. Silakan menghubungi GA KOORDINATOR (Bu Melodi) untuk pengajuan urgent.";
       setFormError(errMsg);
       showAlert(errMsg);
       return;
