@@ -342,23 +342,24 @@ export default function CreateRequestPage({ onNavigate }: Props) {
     } catch (err: any) {
       console.error("Create request error:", err);
       let errMsg = "";
-      const validationErrors = err.response?.data?.errors;
-      if (validationErrors && typeof validationErrors === "object") {
-        const firstKey = Object.keys(validationErrors)[0];
-        if (firstKey && Array.isArray(validationErrors[firstKey]) && validationErrors[firstKey][0]) {
-          errMsg = validationErrors[firstKey][0];
-        }
-      }
-      if (!errMsg && err.response?.data?.message) {
+      
+      if (err.response?.data?.message) {
         errMsg = err.response.data.message;
-      }
-      if (!errMsg && err.response?.data?.error) {
+      } else if (err.response?.data?.errors && typeof err.response.data.errors === "object") {
+        const errs = err.response.data.errors;
+        const firstKey = Object.keys(errs)[0];
+        if (firstKey && Array.isArray(errs[firstKey]) && errs[firstKey][0]) {
+          errMsg = errs[firstKey][0];
+        } else if (typeof errs === "string") {
+          errMsg = errs;
+        }
+      } else if (err.response?.data?.error) {
         errMsg = err.response.data.error;
-      }
-      if (!errMsg && err.message) {
+      } else if (err.message) {
         errMsg = err.message;
       }
-      if (!errMsg || errMsg === "Server Error" || errMsg === "Request failed with status code 500") {
+
+      if (!errMsg || errMsg === "Server Error" || errMsg === "Request failed with status code 500" || errMsg === "Request failed with status code 422") {
         if (err.response?.status === 401) {
           errMsg = "Sesi Anda telah berakhir. Silakan re-login untuk melanjutkan pengajuan.";
         } else if (err.response?.status === 403) {
