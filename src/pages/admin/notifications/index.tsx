@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import type { SystemNotification } from "@/types";
 import { Layout } from "@/components/layout/RoleLayout";
-import { requestService } from "@/services/modules/requestService";
 import { notificationService } from "@/services/modules/notificationService";
 
 interface NotificationProps {
@@ -18,6 +17,10 @@ interface NotificationProps {
   onNavigate?: (p: string) => void;
 }
 
+/**
+ * NotificationCenter — 100% SERVER-DRIVEN, ZERO localStorage.
+ * All read/delete state comes from backend API only.
+ */
 export default function Notification({
   notifications: propNotifications,
   onMarkAsRead: propOnMarkAsRead,
@@ -25,61 +28,23 @@ export default function Notification({
   onDeleteNotification: propOnDeleteNotification,
   onNavigate
 }: NotificationProps) {
-  const READ_NOTIFS_KEY = "ovms_read_notification_ids";
-  const DELETED_NOTIFS_KEY = "ovms_deleted_notification_ids";
   const [internalNotifs, setInternalNotifs] = useState<SystemNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const getReadIds = (): string[] => {
-    try {
-      const raw = localStorage.getItem(READ_NOTIFS_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const getDeletedIds = (): string[] => {
-    try {
-      const raw = localStorage.getItem(DELETED_NOTIFS_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const saveReadIds = (ids: string[]) => {
-    try {
-      localStorage.setItem(READ_NOTIFS_KEY, JSON.stringify(Array.from(new Set(ids))));
-      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const saveDeletedIds = (ids: string[]) => {
-    try {
-      localStorage.setItem(DELETED_NOTIFS_KEY, JSON.stringify(Array.from(new Set(ids))));
-      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const loadRealNotifs = async () => {
+  /**
+   * Load notifications purely from backend API.
+   * Backend handles all filtering (deleted) and status (isRead).
+   * NO localStorage involved.
+   */
+  const loadNotifications = async () => {
     setLoading(true);
     try {
-      const deletedIds = getDeletedIds();
-      const readIds = getReadIds();
-
-      // Load from API backend
-      const apiRes = await notificationService.getAll();
-      if (apiRes.data && Array.isArray(apiRes.data)) {
-        const filtered = apiRes.data.filter(n => !deletedIds.includes(String(n.id)));
-        setInternalNotifs(filtered);
-        return;
+      const res = await notificationService.getAll();
+      if (res.data && Array.isArray(res.data)) {
+        setInternalNotifs(res.data);
+      } else {
+        setInternalNotifs([]);
       }
-      setInternalNotifs([]);
     } catch (err) {
       console.error("Failed to load notifications", err);
       setInternalNotifs([]);
@@ -89,68 +54,55 @@ export default function Notification({
   };
 
   useEffect(() => {
-    loadRealNotifs().then(() => {
+    loadNotifications().then(() => {
       window.dispatchEvent(new CustomEvent('ovms-notif-read'));
     });
   }, []);
 
   const notifications = propNotifications || internalNotifs;
 
+  /**
+   * Mark single notification as read — API call, then optimistic UI update.
+   */
   const handleMarkAsRead = async (id: string) => {
-    if (propOnMarkAsRead) {
-      propOnMarkAsRead(id);
-    }
-    const currentRead = getReadIds();
-    const nextRead = [...currentRead, String(id)];
-    saveReadIds(nextRead);
+    if (propOnMarkAsRead) propOnMarkAsRead(id);
+
+    // Optimistic UI update
     setInternalNotifs(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
 
-    try {
-      await notificationService.markAsRead(id);
-    } catch (err) {
-      console.error(err);
-    }
+    // Persist to server
+    await notificationService.markAsRead(id);
   };
 
+  /**
+   * Mark all notifications as read — API call, then optimistic UI update.
+   */
   const handleMarkAllAsRead = async () => {
-    if (propOnMarkAllAsRead) {
-      propOnMarkAllAsRead();
-    }
+    if (propOnMarkAllAsRead) propOnMarkAllAsRead();
+
     const allIds = notifications.map(n => String(n.id));
-    const currentRead = getReadIds();
-    const nextRead = [...currentRead, ...allIds];
-    saveReadIds(nextRead);
+
+    // Optimistic UI update
     setInternalNotifs(prev => prev.map(n => ({ ...n, isRead: true })));
 
-    try {
-      await notificationService.markAllAsRead(allIds);
-    } catch (err) {
-      console.error(err);
-    }
+    // Persist to server
+    await notificationService.markAllAsRead(allIds);
   };
 
+  /**
+   * Delete notification — API call, then optimistic UI removal.
+   */
   const handleDeleteNotification = async (id: string) => {
-    const currentDeleted = getDeletedIds();
-    const nextDeleted = [...currentDeleted, String(id)];
-    saveDeletedIds(nextDeleted);
+    if (propOnDeleteNotification) propOnDeleteNotification(id);
 
+    // Optimistic UI removal
     setInternalNotifs(prev => prev.filter(n => n.id !== id));
 
-    if (propOnDeleteNotification) {
-      propOnDeleteNotification(id);
-    }
-
-    try {
-      await notificationService.deleteNotification(id);
-    } catch (err) {
-      console.error(err);
-    }
-
-    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+    // Persist to server
+    await notificationService.deleteNotification(id);
   };
 
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("All Categories");
-
   const categories = ["All Categories", "Operational", "Approvals", "Security", "System"];
 
   const filteredNotifications = notifications.filter((not) => {
@@ -166,7 +118,7 @@ export default function Notification({
       searchPlaceholder="Cari notifikasi..."
     >
       <div className="max-w-4xl mx-auto p-6 space-y-6 animate-in fade-in duration-200">
-        {/* Search Header Banner */}
+        {/* Category filter + Mark All Read */}
         <div className="bg-white p-4 rounded-xl border border-slate-100 flex items-center justify-between flex-wrap gap-4 shadow-sm">
           <div className="flex flex-wrap gap-2 bg-slate-100 p-0.5 rounded-xl text-xs font-semibold">
             {categories.map((cat) => (
@@ -219,7 +171,7 @@ export default function Notification({
                   <Bell className="w-5 h-5" />
                 </div>
 
-                {/* Notification Information details */}
+                {/* Notification details */}
                 <div className="flex-1 space-y-1 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -264,7 +216,7 @@ export default function Notification({
                   )}
                 </div>
 
-                {/* Read / Delete Operations */}
+                {/* Read / Delete buttons */}
                 <div className="flex items-center gap-2 shrink-0 self-center">
                   {!not.isRead ? (
                     <button

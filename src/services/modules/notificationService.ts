@@ -2,114 +2,70 @@ import type { SystemNotification } from '../../types';
 import type { ApiResponse } from '../../types/api';
 import { apiClient } from '../api/api';
 
-const READ_KEY = 'ovms_read_notification_ids';
-const DELETED_KEY = 'ovms_deleted_notification_ids';
-
-function getStoredReadIds(): string[] {
-  try {
-    const raw = localStorage.getItem(READ_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function getStoredDeletedIds(): string[] {
-  try {
-    const raw = localStorage.getItem(DELETED_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveStoredReadIds(ids: string[]) {
-  try {
-    localStorage.setItem(READ_KEY, JSON.stringify(Array.from(new Set(ids))));
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-function saveStoredDeletedIds(ids: string[]) {
-  try {
-    localStorage.setItem(DELETED_KEY, JSON.stringify(Array.from(new Set(ids))));
-  } catch (err) {
-    console.error(err);
-  }
-}
-
+/**
+ * Notification Service — 100% SERVER-DRIVEN, ZERO localStorage.
+ * All read/delete state is persisted in the backend database.
+ */
 export const notificationService = {
+
+  /**
+   * Fetch all notifications from backend API.
+   * Backend already filters out deleted notifications and sets isRead correctly.
+   */
   getAll: async (): Promise<ApiResponse<SystemNotification[]>> => {
-    if (import.meta.env.VITE_ENABLE_MOCK !== 'true') {
-      try {
-        const res = await apiClient.get<ApiResponse<SystemNotification[]>>('/notifications');
-        if (res.data?.status === 'success' && Array.isArray(res.data.data)) {
-          return res.data;
-        }
-      } catch (err) {
-        console.warn('Backend notification fetch failed, using local fallback:', err);
+    try {
+      const res = await apiClient.get<{ status: string; data: SystemNotification[]; total: number }>('/notifications');
+      if (res.data && Array.isArray(res.data.data)) {
+        return {
+          data: res.data.data,
+          total: res.data.total || res.data.data.length,
+        };
       }
+    } catch (err) {
+      console.error('Failed to fetch notifications from API:', err);
     }
-
-    const readIds = getStoredReadIds();
-    const deletedIds = getStoredDeletedIds();
-
-    return {
-      data: [],
-      total: 0
-    };
+    return { data: [], total: 0 };
   },
 
-  markAsRead: async (id: string): Promise<ApiResponse<SystemNotification>> => {
-    const readIds = getStoredReadIds();
-    readIds.push(String(id));
-    saveStoredReadIds(readIds);
-
-    if (import.meta.env.VITE_ENABLE_MOCK !== 'true') {
-      try {
-        await apiClient.post('/notifications/mark-read', { id });
-      } catch (err) {
-        console.warn('Failed to post mark-read to API:', err);
-      }
+  /**
+   * Mark a single notification as read on the server.
+   */
+  markAsRead: async (id: string): Promise<{ success: boolean }> => {
+    try {
+      const res = await apiClient.post('/notifications/mark-read', { id: String(id) });
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+      return { success: res.data?.status === 'success' };
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+      return { success: false };
     }
-
-    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
-    return { data: { id, title: '', description: '', timeAgo: '', severity: 'info', category: 'Operational', isRead: true } };
   },
 
-  markAllAsRead: async (ids?: string[]): Promise<ApiResponse<void>> => {
-    if (ids && ids.length > 0) {
-      const readIds = getStoredReadIds();
-      saveStoredReadIds([...readIds, ...ids.map(String)]);
+  /**
+   * Mark all notifications as read on the server.
+   */
+  markAllAsRead: async (ids?: string[]): Promise<{ success: boolean }> => {
+    try {
+      const res = await apiClient.post('/notifications/mark-all-read', { ids: ids?.map(String) });
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+      return { success: res.data?.status === 'success' };
+    } catch (err) {
+      console.error('Failed to mark all notifications as read:', err);
+      return { success: false };
     }
-
-    if (import.meta.env.VITE_ENABLE_MOCK !== 'true') {
-      try {
-        await apiClient.post('/notifications/mark-all-read', { ids });
-      } catch (err) {
-        console.warn('Failed to post mark-all-read to API:', err);
-      }
-    }
-
-    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
-    return { data: undefined };
   },
 
-  deleteNotification: async (id: string): Promise<ApiResponse<void>> => {
-    const deletedIds = getStoredDeletedIds();
-    deletedIds.push(String(id));
-    saveStoredDeletedIds(deletedIds);
-
-    if (import.meta.env.VITE_ENABLE_MOCK !== 'true') {
-      try {
-        await apiClient.delete(`/notifications/${id}`);
-      } catch (err) {
-        console.warn('Failed to delete notification on API:', err);
-      }
+  /**
+   * Delete (hide) a notification permanently on the server.
+   */
+  deleteNotification: async (id: string): Promise<{ success: boolean }> => {
+    try {
+      const res = await apiClient.delete(`/notifications/${String(id)}`);
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+      return { success: res.data?.status === 'success' };
+    } catch (err) {
+      console.error('Failed to delete notification:', err);
+      return { success: false };
     }
-
-    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
-    return { data: undefined };
   },
 };
