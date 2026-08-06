@@ -9,7 +9,7 @@ import { apiClient } from "@/services/api/api";
 
 import { departmentService } from "@/services/modules/departmentService";
 import type { Department } from "@/services/modules/departmentService";
-import { formatDateTime } from "@/utils/formatDate";
+import { formatDate, formatDateTime } from "@/utils/formatDate";
 
 interface Props { onNavigate?: (page: string) => void; }
 
@@ -476,13 +476,25 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Departure Date &amp; Time <span className="text-red-500">*</span></label>
-                    <input type="datetime-local" value={departure} onChange={e => setDeparture(e.target.value)}
+                    <input type="datetime-local" lang="id-ID" value={departure} onChange={e => setDeparture(e.target.value)}
                       className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all" />
+                    {departure && (
+                      <div className="mt-1.5 text-[11px] font-semibold text-[#00236f] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100 flex items-center gap-1.5 animate-fadein">
+                        <Icon name="event" className="text-xs text-blue-600" />
+                        <span>Format Indonesia: <strong>{formatDate(departure, true)} WIB</strong></span>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Estimated Return <span className="text-red-500">*</span></label>
-                    <input type="datetime-local" value={estReturn} onChange={e => setEstReturn(e.target.value)}
+                    <input type="datetime-local" lang="id-ID" value={estReturn} onChange={e => setEstReturn(e.target.value)}
                       className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all" />
+                    {estReturn && (
+                      <div className="mt-1.5 text-[11px] font-semibold text-[#00236f] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100 flex items-center gap-1.5 animate-fadein">
+                        <Icon name="event" className="text-xs text-blue-600" />
+                        <span>Format Indonesia: <strong>{formatDate(estReturn, true)} WIB</strong></span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div>
