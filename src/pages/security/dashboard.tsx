@@ -283,9 +283,9 @@ export default function SecurityDashboard() {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             
-            // Attempt to decode QR code using jsQR
+            // Attempt to decode QR code using jsQR with attemptBoth for inverted & mirrored QR codes
             let code = jsQR(imageData.data, imageData.width, imageData.height, {
-              inversionAttempts: "dontInvert",
+              inversionAttempts: "attemptBoth",
             });
             
             let finalPhotoUrl = "";
@@ -293,7 +293,7 @@ export default function SecurityDashboard() {
             if (code && code.data) {
               finalPhotoUrl = canvas.toDataURL("image/jpeg");
             } else {
-              // Try with horizontally flipped image (for mirrored webcams)
+              // Try with horizontally flipped image (for mirrored webcams / screens)
               ctx.clearRect(0, 0, canvas.width, canvas.height);
               ctx.translate(canvas.width, 0);
               ctx.scale(-1, 1);
@@ -301,7 +301,7 @@ export default function SecurityDashboard() {
               
               const flippedData = ctx.getImageData(0, 0, canvas.width, canvas.height);
               code = jsQR(flippedData.data, flippedData.width, flippedData.height, {
-                inversionAttempts: "dontInvert",
+                inversionAttempts: "attemptBoth",
               });
               
               if (code && code.data) {
@@ -429,7 +429,22 @@ export default function SecurityDashboard() {
             if (ctx) {
               ctx.drawImage(img, 0, 0);
               const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-              const code = jsQR(imageData.data, imageData.width, imageData.height);
+              let code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "attemptBoth",
+              });
+              
+              if (!code || !code.data) {
+                // Try horizontally flipped canvas if normal decoding failed (e.g. mirrored photo)
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+                ctx.drawImage(img, 0, 0);
+                const flippedData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                code = jsQR(flippedData.data, flippedData.width, flippedData.height, {
+                  inversionAttempts: "attemptBoth",
+                });
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+              }
               
               setIsScanning(true);
               stopCamera();
@@ -438,7 +453,7 @@ export default function SecurityDashboard() {
                 if (code && code.data) {
                   handleSearchRequest(undefined, code.data);
                 } else {
-                  setError("QR Code tidak terdeteksi pada berkas gambar yang diunggah.");
+                  setError("QR Code tidak terdeteksi pada berkas gambar yang diunggah. Anda dapat menginput ID Request secara manual di bawah.");
                   setCapturedPhoto(null);
                 }
               }, 1200);
@@ -663,6 +678,22 @@ export default function SecurityDashboard() {
                   <Icon name="image" className="text-base" /> Upload Foto Scan
                 </button>
               </div>
+
+              {/* Manual Request Search Input Form */}
+              <form onSubmit={(e) => { e.preventDefault(); const form = e.target as HTMLFormElement; const inputEl = form.elements.namedItem('manualCode') as HTMLInputElement; if (inputEl?.value) handleSearchRequest(e, inputEl.value); }} className="w-full mt-2 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-2">
+                <div className="relative flex-1 w-full">
+                  <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                  <input
+                    name="manualCode"
+                    type="text"
+                    placeholder="Atau ketik ID Request / Kode Tiket (cth: 18 atau REQ-18)..."
+                    className="w-full h-11 pl-10 pr-3 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 font-semibold"
+                  />
+                </div>
+                <button type="submit" disabled={actionLoading} className="w-full sm:w-auto h-11 px-5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white text-xs font-bold rounded-xl shadow transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer">
+                  <Icon name="arrow_forward" className="text-sm" /> Cari Request
+                </button>
+              </form>
 
 
 
