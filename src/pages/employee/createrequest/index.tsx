@@ -287,14 +287,13 @@ export default function CreateRequestPage({ onNavigate }: Props) {
       const formattedStartTime = formatDateTimeForBackend(departure);
       const formattedEndTime = estReturn ? formatDateTimeForBackend(estReturn) : null;
 
-      const firstDeptId = validPassengers[0]?.department_id;
       let parsedMainDeptId: any = null;
-      if (firstDeptId) {
-        const num = Number(firstDeptId);
-        parsedMainDeptId = !isNaN(num) && num > 0 ? num : firstDeptId;
-      } else if ((user as any)?.department_id) {
+      if ((user as any)?.department_id) {
         const num = Number((user as any).department_id);
         parsedMainDeptId = !isNaN(num) && num > 0 ? num : (user as any).department_id;
+      } else if (validPassengers[0]?.department_id) {
+        const num = Number(validPassengers[0].department_id);
+        parsedMainDeptId = !isNaN(num) && num > 0 ? num : validPassengers[0].department_id;
       }
 
       const payload: any = {
