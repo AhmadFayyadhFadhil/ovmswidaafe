@@ -86,19 +86,19 @@ export default function SecurityDashboard() {
   const handleSearchRequest = async (e?: React.FormEvent, manualValue?: string) => {
     if (e) e.preventDefault();
     
-    let finalId = manualValue;
+    let finalId = manualValue ? manualValue.trim() : undefined;
 
     if (finalId && (finalId.startsWith("http://") || finalId.startsWith("https://") || finalId.includes("?token="))) {
       try {
         const urlObj = new URL(finalId);
         const tokenParam = urlObj.searchParams.get("token");
         if (tokenParam) {
-          finalId = tokenParam;
+          finalId = tokenParam.trim();
         }
       } catch (err) {
         const match = finalId.match(/[?&]token=([^&]+)/);
         if (match) {
-          finalId = match[1];
+          finalId = match[1].trim();
         }
       }
     }
