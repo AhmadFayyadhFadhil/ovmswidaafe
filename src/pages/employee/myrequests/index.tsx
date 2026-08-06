@@ -276,9 +276,14 @@ export default function MyRequestsPage() {
     // If no user object available yet, fallback to rawList
     if (!user?.id) return true;
     const targetUserId = String(user.id);
+    const targetUserName = (user.name || "").trim().toLowerCase();
     const creatorId = String(r.userId || r.user_id || r.requestedById || r.requested_by?.id || r.requested_by_id || r.employee_id || "");
     const isCreator = creatorId !== "" && creatorId === targetUserId;
-    const isPassenger = Array.isArray(r.passengers) && r.passengers.some((p: any) => String(p.user_id || p.id) === targetUserId);
+    const isPassenger = Array.isArray(r.passengers) && r.passengers.some((p: any) => {
+      const pUserId = String(p.user_id || p.user?.id || "");
+      const pName = (p.name || "").trim().toLowerCase();
+      return (pUserId !== "" && pUserId === targetUserId) || (pName !== "" && pName === targetUserName);
+    });
     return isCreator || isPassenger;
   });
 
@@ -467,6 +472,18 @@ export default function MyRequestsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                           <span className="text-[10px] font-bold text-[#00236f] bg-[#e5eeff] px-2 py-0.5 rounded-full">#{r.id}</span>
+                          {(() => {
+                            const creatorId = String(r.userId || r.user_id || r.requestedById || r.requested_by?.id || r.requested_by_id || r.employee_id || "");
+                            const isCreator = user?.id && creatorId !== "" && creatorId === String(user.id);
+                            if (!isCreator) {
+                              return (
+                                <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                                  <Icon name="person" className="text-xs" /> Penumpang (View Only)
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                           {r.rawStatus === "on_going" && (
                             <span className="text-[10px] font-bold text-[#4059aa] flex items-center gap-1">
                               <span className="w-1.5 h-1.5 rounded-full bg-[#4059aa] animate-pulse" />
