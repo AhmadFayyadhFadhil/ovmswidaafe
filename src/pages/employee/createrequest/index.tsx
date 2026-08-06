@@ -9,6 +9,7 @@ import { apiClient } from "@/services/api/api";
 
 import { departmentService } from "@/services/modules/departmentService";
 import type { Department } from "@/services/modules/departmentService";
+import { formatDateTime } from "@/utils/formatDate";
 
 interface Props { onNavigate?: (page: string) => void; }
 
@@ -189,7 +190,15 @@ export default function CreateRequestPage({ onNavigate }: Props) {
 
     const isGAUser = user?.role === "gahrd" || user?.role === "admin";
     if (!isGAUser && diffHours < minLeadTimeHours) {
-      const errMsg = "Waktu keberangkatan kurang dari 24 jam. Silakan menghubungi GA KOORDINATOR (Bu Melodi) untuk pengajuan urgent.";
+      const earliestAllowed = new Date(now.getTime() + minLeadTimeHours * 60 * 60 * 1000);
+      const day = String(earliestAllowed.getDate()).padStart(2, '0');
+      const month = String(earliestAllowed.getMonth() + 1).padStart(2, '0');
+      const year = earliestAllowed.getFullYear();
+      const hours = String(earliestAllowed.getHours()).padStart(2, '0');
+      const minutes = String(earliestAllowed.getMinutes()).padStart(2, '0');
+      const formattedEarliest = `${day}/${month}/${year} ${hours}:${minutes} WIB`;
+
+      const errMsg = `Waktu keberangkatan kurang dari 24 jam (keberangkatan tercepat yang diizinkan: ${formattedEarliest}). Silakan menghubungi GA KOORDINATOR (Bu Melodi) untuk pengajuan urgent.`;
       setFormError(errMsg);
       showAlert(errMsg);
       return;
@@ -809,15 +818,15 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                 <span className="font-semibold text-slate-800">{destinationPlace}</span>
               </div>
               <div className="flex justify-between border-b border-slate-200/60 pb-2">
-                <span className="font-bold text-slate-400">Keberangkatan:</span>
+                <span className="font-bold text-slate-400">Keberangkatan (DD/MM/YYYY):</span>
                 <span className="font-semibold text-slate-800">
-                  {departure ? departure.replace("T", " ") : "-"}
+                  {departure ? formatDateTime(departure) : "-"}
                 </span>
               </div>
               <div className="flex justify-between border-b border-slate-200/60 pb-2">
-                <span className="font-bold text-slate-400">Estimasi Kembali:</span>
+                <span className="font-bold text-slate-400">Estimasi Kembali (DD/MM/YYYY):</span>
                 <span className="font-semibold text-slate-800">
-                  {estReturn ? estReturn.replace("T", " ") : "-"}
+                  {estReturn ? formatDateTime(estReturn) : "-"}
                 </span>
               </div>
               <div className="flex justify-between border-b border-slate-200/60 pb-2">
