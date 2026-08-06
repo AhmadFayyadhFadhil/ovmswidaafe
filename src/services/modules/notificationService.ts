@@ -1,85 +1,115 @@
 import type { SystemNotification } from '../../types';
 import type { ApiResponse } from '../../types/api';
+import { apiClient } from '../api/api';
 
-const DEFAULT_NOTIFICATIONS: SystemNotification[] = [
-  {
-    id: "NOT-001",
-    title: "Collision Detected - Vehicle V-8821",
-    description: "G-Force impact detected on Vehicle V-8821 at North Junction. Driver: Alex Rivera. Immediate dispatch required.",
-    timeAgo: "2 mins ago",
-    severity: "critical",
-    category: "Operational",
-    isRead: false,
-    metadata: "Sector 7-B"
-  },
-  {
-    id: "NOT-002",
-    title: "Fuel Expense Approval Required",
-    description: "Driver Sarah Jenkins has submitted a high-value fuel expense ($420.50) for approval. Fleet standard limit exceeded.",
-    timeAgo: "45 mins ago",
-    severity: "high",
-    category: "Approvals",
-    isRead: false,
-    metadata: "Sarah Jenkins"
-  },
-  {
-    id: "NOT-003",
-    title: "Service Reminder: Brake Inspection",
-    description: "Vehicle V-1102 has reached 15,000 km since last brake service. Service window opening in 48 hours.",
-    timeAgo: "2 hours ago",
-    severity: "medium",
-    category: "Operational",
-    isRead: false,
-    metadata: "V-1102 (Semi-Truck)"
-  },
-  {
-    id: "NOT-004",
-    title: "System Update Completed",
-    description: "OVMS Core v2.4.1 has been successfully deployed. Check the changelog for new telematics reporting features.",
-    timeAgo: "6 hours ago",
-    severity: "info",
-    category: "System",
-    isRead: true,
-    metadata: "Info"
-  }
-];
+const READ_KEY = 'ovms_read_notification_ids';
+const DELETED_KEY = 'ovms_deleted_notification_ids';
 
-function getStoredNotifications(): SystemNotification[] {
-  const stored = localStorage.getItem('ovms_notifications');
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch {
-      // fallback
-    }
+function getStoredReadIds(): string[] {
+  try {
+    const raw = localStorage.getItem(READ_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
   }
-  localStorage.setItem('ovms_notifications', JSON.stringify(DEFAULT_NOTIFICATIONS));
-  return DEFAULT_NOTIFICATIONS;
+}
+
+function getStoredDeletedIds(): string[] {
+  try {
+    const raw = localStorage.getItem(DELETED_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredReadIds(ids: string[]) {
+  try {
+    localStorage.setItem(READ_KEY, JSON.stringify(Array.from(new Set(ids))));
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function saveStoredDeletedIds(ids: string[]) {
+  try {
+    localStorage.setItem(DELETED_KEY, JSON.stringify(Array.from(new Set(ids))));
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 export const notificationService = {
   getAll: async (): Promise<ApiResponse<SystemNotification[]>> => {
-    const list = getStoredNotifications();
+    if (import.meta.env.VITE_ENABLE_MOCK !== 'true') {
+      try {
+        const res = await apiClient.get<ApiResponse<SystemNotification[]>>('/notifications');
+        if (res.data?.status === 'success' && Array.isArray(res.data.data)) {
+          return res.data;
+        }
+      } catch (err) {
+        console.warn('Backend notification fetch failed, using local fallback:', err);
+      }
+    }
+
+    const readIds = getStoredReadIds();
+    const deletedIds = getStoredDeletedIds();
+
     return {
-      data: list,
-      total: list.length
+      data: [],
+      total: 0
     };
   },
+
   markAsRead: async (id: string): Promise<ApiResponse<SystemNotification>> => {
-    const list = getStoredNotifications();
-    const idx = list.findIndex(n => n.id === id);
-    if (idx !== -1) {
-      list[idx].isRead = true;
-      localStorage.setItem('ovms_notifications', JSON.stringify(list));
-      return { data: list[idx] };
+    const readIds = getStoredReadIds();
+    readIds.push(String(id));
+    saveStoredReadIds(readIds);
+
+    if (import.meta.env.VITE_ENABLE_MOCK !== 'true') {
+      try {
+        await apiClient.post('/notifications/mark-read', { id });
+      } catch (err) {
+        console.warn('Failed to post mark-read to API:', err);
+      }
     }
-    throw new Error('Notification not found');
+
+    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+    return { data: { id, title: '', description: '', timeAgo: '', severity: 'info', category: 'Operational', isRead: true } };
   },
-  markAllAsRead: async (): Promise<ApiResponse<void>> => {
-    const list = getStoredNotifications();
-    const updated = list.map(n => ({ ...n, isRead: true }));
-    localStorage.setItem('ovms_notifications', JSON.stringify(updated));
+
+  markAllAsRead: async (ids?: string[]): Promise<ApiResponse<void>> => {
+    if (ids && ids.length > 0) {
+      const readIds = getStoredReadIds();
+      saveStoredReadIds([...readIds, ...ids.map(String)]);
+    }
+
+    if (import.meta.env.VITE_ENABLE_MOCK !== 'true') {
+      try {
+        await apiClient.post('/notifications/mark-all-read', { ids });
+      } catch (err) {
+        console.warn('Failed to post mark-all-read to API:', err);
+      }
+    }
+
+    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+    return { data: undefined };
+  },
+
+  deleteNotification: async (id: string): Promise<ApiResponse<void>> => {
+    const deletedIds = getStoredDeletedIds();
+    deletedIds.push(String(id));
+    saveStoredDeletedIds(deletedIds);
+
+    if (import.meta.env.VITE_ENABLE_MOCK !== 'true') {
+      try {
+        await apiClient.delete(`/notifications/${id}`);
+      } catch (err) {
+        console.warn('Failed to delete notification on API:', err);
+      }
+    }
+
+    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
     return { data: undefined };
   },
 };
-

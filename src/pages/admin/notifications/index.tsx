@@ -8,6 +8,7 @@ import {
 import type { SystemNotification } from "@/types";
 import { Layout } from "@/components/layout/RoleLayout";
 import { requestService } from "@/services/modules/requestService";
+import { notificationService } from "@/services/modules/notificationService";
 
 interface NotificationProps {
   notifications?: SystemNotification[];
@@ -25,12 +26,22 @@ export default function Notification({
   onNavigate
 }: NotificationProps) {
   const READ_NOTIFS_KEY = "ovms_read_notification_ids";
+  const DELETED_NOTIFS_KEY = "ovms_deleted_notification_ids";
   const [internalNotifs, setInternalNotifs] = useState<SystemNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
   const getReadIds = (): string[] => {
     try {
       const raw = localStorage.getItem(READ_NOTIFS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const getDeletedIds = (): string[] => {
+    try {
+      const raw = localStorage.getItem(DELETED_NOTIFS_KEY);
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
@@ -46,27 +57,49 @@ export default function Notification({
     }
   };
 
+  const saveDeletedIds = (ids: string[]) => {
+    try {
+      localStorage.setItem(DELETED_NOTIFS_KEY, JSON.stringify(Array.from(new Set(ids))));
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const loadRealNotifs = async () => {
     setLoading(true);
     try {
-      const res = await requestService.getAll({ per_page: 1000 });
-      const list = res.data || [];
+      const deletedIds = getDeletedIds();
       const readIds = getReadIds();
 
-      const realNotifs: SystemNotification[] = list.map(r => ({
-        id: String(r.id),
-        title: `Pengajuan Armada #${r.id} (${r.employee || 'User'})`,
-        description: `Perjalanan dinas ke ${r.destination || 'Tujuan'} tanggal ${r.date}. Status: ${r.status}.`,
-        timeAgo: r.date || 'Terbaru',
-        severity: r.status === 'PENDING' ? 'high' : (r.status === 'ONGOING' ? 'medium' : 'low'),
-        category: r.status === 'PENDING' ? 'Approvals' : 'Operational',
-        isRead: readIds.includes(String(r.id)),
-        metadata: `Req ID: #${r.id}`,
-      }));
+      // Attempt to load from API backend first
+      const apiRes = await notificationService.getAll();
+      if (apiRes.data && apiRes.data.length > 0) {
+        const filtered = apiRes.data.filter(n => !deletedIds.includes(String(n.id)));
+        setInternalNotifs(filtered);
+        return;
+      }
+
+      // Fallback: load directly from requests endpoint
+      const res = await requestService.getAll({ per_page: 1000 });
+      const list = res.data || [];
+
+      const realNotifs: SystemNotification[] = list
+        .filter(r => !deletedIds.includes(String(r.id)))
+        .map(r => ({
+          id: String(r.id),
+          title: `Pengajuan Armada #${r.id} (${r.employee || 'User'})`,
+          description: `Perjalanan dinas ke ${r.destination || 'Tujuan'} tanggal ${r.date}. Status: ${r.status}.`,
+          timeAgo: r.date || 'Terbaru',
+          severity: r.status === 'PENDING' ? 'high' : (r.status === 'ONGOING' ? 'medium' : 'low'),
+          category: r.status === 'PENDING' ? 'Approvals' : 'Operational',
+          isRead: readIds.includes(String(r.id)),
+          metadata: `REQ ID: #${r.id}`,
+        }));
 
       setInternalNotifs(realNotifs);
     } catch (err) {
-      console.error("Failed to load admin notifications", err);
+      console.error("Failed to load notifications", err);
       setInternalNotifs([]);
     } finally {
       setLoading(false);
@@ -81,7 +114,7 @@ export default function Notification({
 
   const notifications = propNotifications || internalNotifs;
 
-  const handleMarkAsRead = (id: string) => {
+  const handleMarkAsRead = async (id: string) => {
     if (propOnMarkAsRead) {
       propOnMarkAsRead(id);
     }
@@ -89,9 +122,15 @@ export default function Notification({
     const nextRead = [...currentRead, String(id)];
     saveReadIds(nextRead);
     setInternalNotifs(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+
+    try {
+      await notificationService.markAsRead(id);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = async () => {
     if (propOnMarkAllAsRead) {
       propOnMarkAllAsRead();
     }
@@ -100,16 +139,32 @@ export default function Notification({
     const nextRead = [...currentRead, ...allIds];
     saveReadIds(nextRead);
     setInternalNotifs(prev => prev.map(n => ({ ...n, isRead: true })));
+
+    try {
+      await notificationService.markAllAsRead(allIds);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleDeleteNotification = (id: string) => {
+  const handleDeleteNotification = async (id: string) => {
+    const currentDeleted = getDeletedIds();
+    const nextDeleted = [...currentDeleted, String(id)];
+    saveDeletedIds(nextDeleted);
+
+    setInternalNotifs(prev => prev.filter(n => n.id !== id));
+
     if (propOnDeleteNotification) {
       propOnDeleteNotification(id);
-      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
-    } else {
-      setInternalNotifs(prev => prev.filter(n => n.id !== id));
-      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
     }
+
+    try {
+      await notificationService.deleteNotification(id);
+    } catch (err) {
+      console.error(err);
+    }
+
+    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
   };
 
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("All Categories");
