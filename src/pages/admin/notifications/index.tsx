@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Bell,
   CheckCircle,
@@ -65,21 +65,14 @@ export default function Notification({
   const [loading, setLoading] = useState(true);
 
   /**
-   * Load notifications from backend API and filter against local storage backup.
+   * Load notifications from backend API.
    */
   const loadNotifications = async () => {
     setLoading(true);
     try {
-      const localDeleted = getLocalDeletedIds();
-      const localRead = getLocalReadIds();
-
       const res = await notificationService.getAll();
       if (res.data && Array.isArray(res.data)) {
-        // Filter out deleted IDs from BOTH local storage AND server
-        const filtered = res.data
-          .filter(n => !localDeleted.includes(String(n.id)))
-          .map(n => localRead.includes(String(n.id)) ? { ...n, isRead: true } : n);
-        setInternalNotifs(filtered);
+        setInternalNotifs(res.data);
       } else {
         setInternalNotifs([]);
       }
@@ -97,7 +90,17 @@ export default function Notification({
     });
   }, []);
 
-  const notifications = propNotifications || internalNotifs;
+  // Compute final notifications: MUST ALWAYS filter out localDeleted and apply localRead
+  const baseNotifications = propNotifications || internalNotifs;
+
+  const notifications = useMemo(() => {
+    const localDeleted = getLocalDeletedIds();
+    const localRead = getLocalReadIds();
+
+    return baseNotifications
+      .filter(n => !localDeleted.includes(String(n.id)))
+      .map(n => localRead.includes(String(n.id)) ? { ...n, isRead: true } : n);
+  }, [baseNotifications, internalNotifs, loading]);
 
   /**
    * Mark single notification as read — LocalStorage + Server API + Optimistic UI.
