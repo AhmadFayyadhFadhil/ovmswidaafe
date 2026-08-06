@@ -4,6 +4,8 @@ import { useAuthContext } from "@/auth/authContext";
 import { Icon } from "@/components/ui/Icon";
 import { apiClient } from "@/services/api/api";
 
+import { notificationService } from "@/services/modules/notificationService";
+
 export function Topbar({ 
   title, 
   userName = "Admin User", 
@@ -36,12 +38,9 @@ export function Topbar({
 
     const fetchUnreadCount = async () => {
       try {
-        const storedRead = localStorage.getItem("ovms_read_notification_ids");
-        const readIds: string[] = storedRead ? JSON.parse(storedRead) : [];
-        const res = await apiClient.get("/requests?per_page=1000");
-        if (res.data?.status === "success" && Array.isArray(res.data?.data)) {
-          const allRequests = res.data.data;
-          const unread = allRequests.filter((r: any) => !readIds.includes(String(r.id)));
+        const res = await notificationService.getAll();
+        if (res.data && Array.isArray(res.data)) {
+          const unread = res.data.filter((n: any) => !n.isRead);
           setUnreadCount(unread.length);
         } else {
           setUnreadCount(0);

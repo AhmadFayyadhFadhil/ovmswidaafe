@@ -74,7 +74,7 @@ export default function Notification({
 
       // Attempt to load from API backend first
       const apiRes = await notificationService.getAll();
-      if (apiRes.data && apiRes.data.length > 0) {
+      if (apiRes.data && Array.isArray(apiRes.data)) {
         const filtered = apiRes.data.filter(n => !deletedIds.includes(String(n.id)));
         setInternalNotifs(filtered);
         return;
