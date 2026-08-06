@@ -4,6 +4,7 @@ import {
   CheckCircle,
   X,
   MailOpen,
+  Trash2,
 } from "lucide-react";
 import type { SystemNotification } from "@/types";
 import { Layout } from "@/components/layout/RoleLayout";
@@ -311,10 +312,10 @@ export default function Notification({
                   )}
                   <button
                     onClick={() => handleDeleteNotification(not.id)}
-                    className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-                    title="Hapus Notifikasi"
+                    className="flex items-center gap-1 bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all border border-rose-200/80 cursor-pointer shadow-2xs"
+                    title="Hapus Notifikasi Permanen"
                   >
-                    <X className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" /> Hapus
                   </button>
                 </div>
               </div>
