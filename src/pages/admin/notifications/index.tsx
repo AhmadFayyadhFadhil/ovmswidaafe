@@ -72,32 +72,14 @@ export default function Notification({
       const deletedIds = getDeletedIds();
       const readIds = getReadIds();
 
-      // Attempt to load from API backend first
+      // Load from API backend
       const apiRes = await notificationService.getAll();
       if (apiRes.data && Array.isArray(apiRes.data)) {
         const filtered = apiRes.data.filter(n => !deletedIds.includes(String(n.id)));
         setInternalNotifs(filtered);
         return;
       }
-
-      // Fallback: load directly from requests endpoint
-      const res = await requestService.getAll({ per_page: 1000 });
-      const list = res.data || [];
-
-      const realNotifs: SystemNotification[] = list
-        .filter(r => !deletedIds.includes(String(r.id)))
-        .map(r => ({
-          id: String(r.id),
-          title: `Pengajuan Armada #${r.id} (${r.employee || 'User'})`,
-          description: `Perjalanan dinas ke ${r.destination || 'Tujuan'} tanggal ${r.date}. Status: ${r.status}.`,
-          timeAgo: r.date || 'Terbaru',
-          severity: r.status === 'PENDING' ? 'high' : (r.status === 'ONGOING' ? 'medium' : 'low'),
-          category: r.status === 'PENDING' ? 'Approvals' : 'Operational',
-          isRead: readIds.includes(String(r.id)),
-          metadata: `REQ ID: #${r.id}`,
-        }));
-
-      setInternalNotifs(realNotifs);
+      setInternalNotifs([]);
     } catch (err) {
       console.error("Failed to load notifications", err);
       setInternalNotifs([]);
