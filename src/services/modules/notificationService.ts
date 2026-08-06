@@ -60,7 +60,9 @@ export const notificationService = {
    */
   deleteNotification: async (id: string): Promise<{ success: boolean }> => {
     try {
-      const res = await apiClient.delete(`/notifications/${String(id)}`);
+      // Use POST instead of DELETE for maximum server compatibility
+      // (many aaPanel/nginx configs block HTTP DELETE method)
+      const res = await apiClient.post(`/notifications/${String(id)}/delete`);
       window.dispatchEvent(new CustomEvent('ovms-notif-read'));
       return { success: res.data?.status === 'success' };
     } catch (err) {
