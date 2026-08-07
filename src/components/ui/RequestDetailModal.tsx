@@ -756,42 +756,47 @@ export function RequestDetailModal({
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                    {passengers.map((p: any, idx: number) => {
-                      const isPicPassenger = p.is_pic || (!passengers.some((px: any) => px.is_pic) && idx === 0);
-                      const rawPhone = p.phone || (isPicPassenger ? request.userPhone : null);
-                      const cleanPhone = rawPhone ? String(rawPhone).replace(/[^0-9]/g, '') : '';
+                    {(() => {
+                      const firstPicIndex = passengers.findIndex((px: any) => px.is_pic === true || px.is_pic === 1 || px.is_pic === '1');
+                      const activePicIndex = firstPicIndex !== -1 ? firstPicIndex : 0;
 
-                      return (
-                        <div key={p.id || idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl text-[13px] transition-all">
-                          <div className="font-semibold text-slate-700 flex flex-wrap items-center gap-2">
-                            <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center text-[11px] font-extrabold flex-shrink-0 border border-blue-200">
-                              {idx + 1}
-                            </span>
-                            <span className="font-bold text-slate-900 text-[13.5px]">{p.name}</span>
-                            {isPicPassenger && (
-                              <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
-                                👑 PIC Penumpang
+                      return passengers.map((p: any, idx: number) => {
+                        const isPicPassenger = idx === activePicIndex;
+                        const rawPhone = p.phone || (isPicPassenger ? request.userPhone : null);
+                        const cleanPhone = rawPhone ? String(rawPhone).replace(/[^0-9]/g, '') : '';
+
+                        return (
+                          <div key={p.id || idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl text-[13px] transition-all">
+                            <div className="font-semibold text-slate-700 flex flex-wrap items-center gap-2">
+                              <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center text-[11px] font-extrabold flex-shrink-0 border border-blue-200">
+                                {idx + 1}
                               </span>
-                            )}
-                            {cleanPhone && (
-                              <a
-                                href={`https://wa.me/${cleanPhone}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition-all flex-shrink-0 shadow-2xs active:scale-95"
-                                title={`Hubungi WhatsApp ${p.name}`}
-                              >
-                                <Icon name="chat" className="text-xs text-white" />
-                                <span>Hubungi WA {isPicPassenger ? 'PIC' : ''} ({rawPhone})</span>
-                              </a>
-                            )}
+                              <span className="font-bold text-slate-900 text-[13.5px]">{p.name}</span>
+                              {isPicPassenger && (
+                                <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
+                                  👑 PIC Penumpang
+                                </span>
+                              )}
+                              {cleanPhone && (
+                                <a
+                                  href={`https://wa.me/${cleanPhone}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition-all flex-shrink-0 shadow-2xs active:scale-95"
+                                  title={`Hubungi WhatsApp ${p.name}`}
+                                >
+                                  <Icon name="chat" className="text-xs text-white" />
+                                  <span>Hubungi WA {isPicPassenger ? 'PIC' : ''} ({rawPhone})</span>
+                                </a>
+                              )}
+                            </div>
+                            <span className="text-[11px] font-extrabold text-slate-500 bg-white px-2.5 py-1 rounded-md border border-slate-200 uppercase flex-shrink-0 self-start sm:self-auto">
+                              {p.department_name || p.department_id || request.department}
+                            </span>
                           </div>
-                          <span className="text-[11px] font-extrabold text-slate-500 bg-white px-2.5 py-1 rounded-md border border-slate-200 uppercase flex-shrink-0 self-start sm:self-auto">
-                            {p.department_name || p.department_id || request.department}
-                          </span>
-                        </div>
-                      );
-                    })}
+                        );
+                      });
+                    })()}
                   </div>
                 )}
               </div>
