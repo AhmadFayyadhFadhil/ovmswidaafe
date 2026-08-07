@@ -447,12 +447,7 @@ export default function GAHRDRequestsPage() {
           vehicle_id: selectedVehicleId,
         };
 
-        if (selectedRequest.passengerCount > 6) {
-          if (!selectedDriverId2 || !selectedVehicleId2) {
-            setAssignError("Untuk pengajuan lebih dari 6 penumpang (2 Mobil), WAJIB memilih Driver 2 dan Mobil 2 secara lengkap.");
-            setActionLoading(false);
-            return;
-          }
+        if (selectedDriverId2 && selectedVehicleId2) {
           if (selectedDriverId === selectedDriverId2) {
             setAssignError("Driver 1 dan Driver 2 tidak boleh orang yang sama.");
             setActionLoading(false);
@@ -465,6 +460,10 @@ export default function GAHRDRequestsPage() {
           }
           payload.driver_ids = [selectedDriverId, selectedDriverId2];
           payload.vehicle_ids = [selectedVehicleId, selectedVehicleId2];
+        } else if (selectedDriverId2 || selectedVehicleId2) {
+          setAssignError("Jika ingin menugaskan Armada/Driver ke-2, mohon isi Driver 2 dan Mobil 2 secara lengkap.");
+          setActionLoading(false);
+          return;
         }
 
         await assignmentService.create(payload);
@@ -487,10 +486,7 @@ export default function GAHRDRequestsPage() {
       if (!serverMsg) {
         serverMsg = err.response?.data?.message || err.response?.data?.error || err.message;
       }
-      const displayMsg = (serverMsg && serverMsg !== "Server Error")
-        ? serverMsg
-        : "Gagal menugaskan driver. Silakan periksa kembali ketersediaan driver & kendaraan.";
-      setAssignError(displayMsg);
+      setAssignError(serverMsg || "Gagal menugaskan driver.");
     } finally {
       setActionLoading(false);
     }
@@ -1985,7 +1981,7 @@ export default function GAHRDRequestsPage() {
 
       {/* Build Stamp for Verification */}
       <div className="text-[10px] text-slate-400 text-right mt-4 pr-4 font-mono pb-4">
-        Build Version: 2026-08-07-v8 (Fleet & WA Fix)
+        Build Version: 2026-08-07-v9 (Flex 2nd Car Fix)
       </div>
     </Layout>
   );
