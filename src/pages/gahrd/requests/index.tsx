@@ -1982,7 +1982,7 @@ export default function GAHRDRequestsPage() {
 
       {/* Build Stamp for Verification */}
       <div className="text-[10px] text-slate-400 text-right mt-4 pr-4 font-mono pb-4">
-        Build Version: 2026-08-07-v10 (Detail Error Catch)
+        Build Version: 2026-08-07-v11 (2 Cars Submit Fix)
       </div>
     </Layout>
   );
