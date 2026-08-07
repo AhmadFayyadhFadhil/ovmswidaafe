@@ -324,7 +324,10 @@ export default function GAHRDRequestsPage() {
     try {
       vehicleService.clearCache();
       const res = await vehicleService.getAll({ per_page: 1000 });
-      setVehicles(res.data || []);
+      const vList = res.data || [];
+      console.log('[DEBUG-VEHICLES] Fresh fetch result:', JSON.stringify(vList.map((v: any) => ({ id: v.id, model: v.model, plate: v.plate, status: v.status }))));
+      console.log('[DEBUG-VEHICLES] Total vehicles fetched:', vList.length);
+      setVehicles(vList);
     } catch (err) {
       console.error("Gagal memuat kendaraan:", err);
     } finally {
@@ -1752,7 +1755,7 @@ export default function GAHRDRequestsPage() {
                               ) : (
                                 <>
                                   <option value="">-- Pilih Mobil --</option>
-                                  {(availableVehicles && availableVehicles.length > 0 ? availableVehicles : vehicles).map((v) => (
+                                  {vehicles.map((v) => (
                                     <option key={v.id} value={v.id}>{v.model || v.name} ({v.plate || v.plate_number})</option>
                                   ))}
                                 </>
@@ -1794,7 +1797,7 @@ export default function GAHRDRequestsPage() {
                                 ) : (
                                   <>
                                     <option value="">-- Tanpa Mobil 2 --</option>
-                                    {(availableVehicles && availableVehicles.length > 0 ? availableVehicles : vehicles)
+                                    {vehicles
                                       .filter(v => String(v.id) !== String(selectedVehicleId))
                                       .map((v) => (
                                         <option key={v.id} value={v.id}>{v.model || v.name} ({v.plate || v.plate_number})</option>
