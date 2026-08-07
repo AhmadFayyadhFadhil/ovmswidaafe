@@ -2,6 +2,12 @@ import type { SystemNotification } from '../../types';
 import type { ApiResponse } from '../../types/api';
 import { apiClient } from '../api/api';
 
+const cleanId = (id: string | number): string => {
+  const str = String(id);
+  const digits = str.replace(/[^0-9]/g, '');
+  return digits.length > 0 ? digits : str.trim();
+};
+
 /**
  * Notification Service — 100% SERVER-DRIVEN, ZERO localStorage.
  * All read/delete state is persisted in the backend database.
@@ -41,7 +47,8 @@ export const notificationService = {
    */
   markAsRead: async (id: string): Promise<{ success: boolean }> => {
     try {
-      const res = await apiClient.post('/notifications/mark-read', { id: String(id) });
+      const cid = cleanId(id);
+      const res = await apiClient.post('/notifications/mark-read', { id: cid });
       window.dispatchEvent(new CustomEvent('ovms-notif-read'));
       return { success: res.data?.status === 'success' };
     } catch (err) {
@@ -55,7 +62,8 @@ export const notificationService = {
    */
   markAllAsRead: async (ids?: string[]): Promise<{ success: boolean }> => {
     try {
-      const res = await apiClient.post('/notifications/mark-all-read', { ids: ids?.map(String) });
+      const cleaned = ids?.map(cleanId);
+      const res = await apiClient.post('/notifications/mark-all-read', { ids: cleaned });
       window.dispatchEvent(new CustomEvent('ovms-notif-read'));
       return { success: res.data?.status === 'success' };
     } catch (err) {
@@ -69,8 +77,8 @@ export const notificationService = {
    */
   deleteNotification: async (id: string): Promise<{ success: boolean }> => {
     try {
-      // Use POST instead of DELETE for maximum server compatibility
-      const res = await apiClient.post(`/notifications/${String(id)}/delete`);
+      const cid = cleanId(id);
+      const res = await apiClient.post(`/notifications/${cid}/delete`);
       window.dispatchEvent(new CustomEvent('ovms-notif-read'));
       return { success: res.data?.status === 'success' };
     } catch (err) {

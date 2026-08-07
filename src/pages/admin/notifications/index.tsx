@@ -86,42 +86,49 @@ export default function Notification({
   };
 
   useEffect(() => {
+    // Clear legacy LocalStorage keys if present to prevent cross-device drift
+    try {
+      localStorage.removeItem(DELETED_KEY);
+      localStorage.removeItem(READ_KEY);
+    } catch {}
+
     loadNotifications().then(() => {
       window.dispatchEvent(new CustomEvent('ovms-notif-read'));
     });
+
+    // Auto-refresh notifications every 10 seconds for real-time multi-device sync
+    const interval = setInterval(loadNotifications, 10000);
+    const handleFocus = () => loadNotifications();
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
-  // Compute final notifications: MUST ALWAYS filter out localDeleted and apply localRead
+  // Compute final notifications — 100% Server Driven
   const baseNotifications = propNotifications || internalNotifs;
 
   const notifications = useMemo(() => {
-    const localDeleted = getLocalDeletedIds();
-    const localRead = getLocalReadIds();
-
-    return baseNotifications
-      .filter(n => !localDeleted.includes(String(n.id)))
-      .map(n => localRead.includes(String(n.id)) ? { ...n, isRead: true } : n);
+    return baseNotifications;
   }, [baseNotifications, internalNotifs, loading]);
 
   /**
-   * Mark single notification as read — LocalStorage + Server API + Optimistic UI.
+   * Mark single notification as read — Server API + Optimistic UI.
    */
   const handleMarkAsRead = async (id: string) => {
     if (propOnMarkAsRead) propOnMarkAsRead(id);
 
     const stringId = String(id);
 
-    // 1. LocalStorage backup
-    const currentRead = getLocalReadIds();
-    saveLocalReadIds([...currentRead, stringId]);
-
-    // 2. React state update
+    // 1. Optimistic React state update
     setInternalNotifs(prev => prev.map(n => String(n.id) === stringId ? { ...n, isRead: true } : n));
 
-    // 3. Dispatch badge update
+    // 2. Dispatch badge update
     window.dispatchEvent(new CustomEvent('ovms-notif-read'));
 
-    // 4. Server API sync
+    // 3. Server API sync for cross-device persistence
     try {
       await notificationService.markAsRead(stringId);
     } catch (err) {
@@ -130,24 +137,20 @@ export default function Notification({
   };
 
   /**
-   * Mark all notifications as read — LocalStorage + Server API + Optimistic UI.
+   * Mark all notifications as read — Server API + Optimistic UI.
    */
   const handleMarkAllAsRead = async () => {
     if (propOnMarkAllAsRead) propOnMarkAllAsRead();
 
     const allIds = notifications.map(n => String(n.id));
 
-    // 1. LocalStorage backup
-    const currentRead = getLocalReadIds();
-    saveLocalReadIds([...currentRead, ...allIds]);
-
-    // 2. React state update
+    // 1. Optimistic React state update
     setInternalNotifs(prev => prev.map(n => ({ ...n, isRead: true })));
 
-    // 3. Dispatch badge update
+    // 2. Dispatch badge update
     window.dispatchEvent(new CustomEvent('ovms-notif-read'));
 
-    // 4. Server API sync
+    // 3. Server API sync for cross-device persistence
     try {
       await notificationService.markAllAsRead(allIds);
     } catch (err) {
@@ -156,24 +159,20 @@ export default function Notification({
   };
 
   /**
-   * Delete notification — LocalStorage + Server API + Optimistic UI.
+   * Delete notification ("X") — Server API + Optimistic UI.
    */
   const handleDeleteNotification = async (id: string) => {
     if (propOnDeleteNotification) propOnDeleteNotification(id);
 
     const stringId = String(id);
 
-    // 1. Save to LocalStorage immediately (Foolproof local persistence)
-    const currentDeleted = getLocalDeletedIds();
-    saveLocalDeletedIds([...currentDeleted, stringId]);
-
-    // 2. Remove from React state immediately
+    // 1. Remove from React state immediately
     setInternalNotifs(prev => prev.filter(n => String(n.id) !== stringId));
 
-    // 3. Dispatch badge update
+    // 2. Dispatch badge update
     window.dispatchEvent(new CustomEvent('ovms-notif-read'));
 
-    // 4. Send to Backend API for cross-device sync
+    // 3. Send to Backend API for permanent cross-device deletion
     try {
       await notificationService.deleteNotification(stringId);
     } catch (err) {
