@@ -1754,8 +1754,8 @@ export default function GAHRDRequestsPage() {
                               ) : (
                                 <>
                                   <option value="">-- Pilih Mobil --</option>
-                                  {availableVehicles.map((v) => (
-                                    <option key={v.id} value={v.id}>{v.model} ({v.plate})</option>
+                                  {(availableVehicles && availableVehicles.length > 0 ? availableVehicles : vehicles).map((v) => (
+                                    <option key={v.id} value={v.id}>{v.model || v.name} ({v.plate || v.plate_number})</option>
                                   ))}
                                 </>
                               )}
@@ -1777,7 +1777,7 @@ export default function GAHRDRequestsPage() {
                                 className="w-full h-10 px-2 border border-blue-200 rounded-xl text-[12.5px] bg-white focus:outline-none"
                               >
                                 <option value="">-- Tanpa Driver 2 --</option>
-                                {availableDrivers.filter(d => d.id !== selectedDriverId).map((d) => (
+                                {(availableDrivers && availableDrivers.length > 0 ? availableDrivers : drivers).filter(d => String(d.id) !== String(selectedDriverId)).map((d) => (
                                   <option key={d.id} value={d.id}>{d.name}</option>
                                 ))}
                               </select>
@@ -1796,7 +1796,7 @@ export default function GAHRDRequestsPage() {
                                 ) : (
                                   <>
                                     <option value="">-- Tanpa Mobil 2 --</option>
-                                    {availableVehicles
+                                    {(availableVehicles && availableVehicles.length > 0 ? availableVehicles : vehicles)
                                       .filter(v => String(v.id) !== String(selectedVehicleId))
                                       .map((v) => (
                                         <option key={v.id} value={v.id}>{v.model || v.name} ({v.plate || v.plate_number})</option>
