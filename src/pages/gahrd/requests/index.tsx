@@ -460,10 +460,6 @@ export default function GAHRDRequestsPage() {
           }
           payload.driver_ids = [selectedDriverId, selectedDriverId2];
           payload.vehicle_ids = [selectedVehicleId, selectedVehicleId2];
-        } else if (selectedDriverId2 || selectedVehicleId2) {
-          setAssignError("Jika ingin menugaskan Armada/Driver ke-2, mohon isi Driver 2 dan Mobil 2 secara lengkap.");
-          setActionLoading(false);
-          return;
         }
 
         await assignmentService.create(payload);
@@ -1982,7 +1978,7 @@ export default function GAHRDRequestsPage() {
 
       {/* Build Stamp for Verification */}
       <div className="text-[10px] text-slate-400 text-right mt-4 pr-4 font-mono pb-4">
-        Build Version: 2026-08-07-v20 (Bulletproof Internal Fleet Fix)
+        Build Version: 2026-08-07-v21 (Auto Cache Clean & Smooth Workflow)
       </div>
     </Layout>
   );
