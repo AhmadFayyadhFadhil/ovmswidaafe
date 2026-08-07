@@ -474,7 +474,8 @@ export default function GAHRDRequestsPage() {
       showToast(isEditAction ? "Perubahan penugasan berhasil disimpan!" : "Driver & Kendaraan berhasil ditugaskan!");
       await fetchData();
     } catch (err: any) {
-      console.error("Assign error:", err);
+      console.error("Assign error full object:", err);
+      console.error("Assign error response data:", err.response?.data);
       let serverMsg = "";
       const validationErrors = err.response?.data?.errors;
       if (validationErrors && typeof validationErrors === "object") {
@@ -484,9 +485,9 @@ export default function GAHRDRequestsPage() {
         }
       }
       if (!serverMsg) {
-        serverMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+        serverMsg = err.response?.data?.message || err.response?.data?.error || (typeof err.response?.data === 'string' ? err.response?.data : null) || err.message;
       }
-      setAssignError(serverMsg || "Gagal menugaskan driver.");
+      setAssignError(serverMsg ? `Error Server: ${serverMsg}` : "Gagal menugaskan driver.");
     } finally {
       setActionLoading(false);
     }
@@ -1981,7 +1982,7 @@ export default function GAHRDRequestsPage() {
 
       {/* Build Stamp for Verification */}
       <div className="text-[10px] text-slate-400 text-right mt-4 pr-4 font-mono pb-4">
-        Build Version: 2026-08-07-v9 (Flex 2nd Car Fix)
+        Build Version: 2026-08-07-v10 (Detail Error Catch)
       </div>
     </Layout>
   );
