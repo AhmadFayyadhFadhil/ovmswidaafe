@@ -452,6 +452,16 @@ export default function GAHRDRequestsPage() {
             setActionLoading(false);
             return;
           }
+          if (selectedDriverId === selectedDriverId2) {
+            setAssignError("Driver 1 dan Driver 2 tidak boleh orang yang sama.");
+            setActionLoading(false);
+            return;
+          }
+          if (selectedVehicleId === selectedVehicleId2) {
+            setAssignError("Kendaraan 1 dan Kendaraan 2 tidak boleh unit mobil yang sama.");
+            setActionLoading(false);
+            return;
+          }
           payload.driver_ids = [selectedDriverId, selectedDriverId2];
           payload.vehicle_ids = [selectedVehicleId, selectedVehicleId2];
         }
