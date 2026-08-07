@@ -755,34 +755,38 @@ export function RequestDetailModal({
                     Hanya pemohon sendiri.
                   </div>
                 ) : (
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
                     {passengers.map((p: any, idx: number) => {
                       const isPicPassenger = p.is_pic || (!passengers.some((px: any) => px.is_pic) && idx === 0);
+                      const rawPhone = p.phone || (isPicPassenger ? request.userPhone : null);
+                      const cleanPhone = rawPhone ? String(rawPhone).replace(/[^0-9]/g, '') : '';
+
                       return (
-                        <div key={p.id || idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-lg text-[13px] transition-colors">
-                          <div className="font-semibold text-slate-700 flex flex-wrap items-center gap-1.5">
-                            <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                        <div key={p.id || idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl text-[13px] transition-all">
+                          <div className="font-semibold text-slate-700 flex flex-wrap items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center text-[11px] font-extrabold flex-shrink-0 border border-blue-200">
                               {idx + 1}
                             </span>
-                            <span className="font-bold text-slate-800">{p.name}</span>
+                            <span className="font-bold text-slate-900 text-[13.5px]">{p.name}</span>
                             {isPicPassenger && (
-                              <span className="bg-amber-100 text-amber-800 border border-amber-300 text-[9.5px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-0.5 flex-shrink-0">
-                                PIC Penumpang
+                              <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
+                                👑 PIC Penumpang
                               </span>
                             )}
-                            {isPicPassenger && (p.phone || request.userPhone) && (
+                            {cleanPhone && (
                               <a
-                                href={`https://wa.me/${(p.phone || request.userPhone).replace(/[^0-9]/g, '')}`}
+                                href={`https://wa.me/${cleanPhone}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-md text-[10px] font-bold transition-colors flex-shrink-0"
-                                title="Hubungi WhatsApp PIC Penumpang"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition-all flex-shrink-0 shadow-2xs active:scale-95"
+                                title={`Hubungi WhatsApp ${p.name}`}
                               >
-                                WA PIC
+                                <Icon name="chat" className="text-xs text-white" />
+                                <span>Hubungi WA {isPicPassenger ? 'PIC' : ''} ({rawPhone})</span>
                               </a>
                             )}
                           </div>
-                          <span className="text-[11px] font-semibold text-slate-400 uppercase flex-shrink-0 self-start sm:self-auto">
+                          <span className="text-[11px] font-extrabold text-slate-500 bg-white px-2.5 py-1 rounded-md border border-slate-200 uppercase flex-shrink-0 self-start sm:self-auto">
                             {p.department_name || p.department_id || request.department}
                           </span>
                         </div>

@@ -430,6 +430,12 @@ export default function GAHRDRequestsPage() {
 
         await assignmentService.create(formData);
       } else {
+        if (!selectedDriverId || !selectedVehicleId) {
+          setAssignError("WAJIB memilih Driver 1 dan Mobil 1.");
+          setActionLoading(false);
+          return;
+        }
+
         const payload: any = {
           request_id: selectedRequest.id,
           is_external: false,
@@ -440,13 +446,19 @@ export default function GAHRDRequestsPage() {
           vehicle_id: selectedVehicleId,
         };
 
-        if (selectedRequest.passengerCount > 6 && selectedDriverId2 && selectedVehicleId2) {
+        if (selectedRequest.passengerCount > 6) {
+          if (!selectedDriverId2 || !selectedVehicleId2) {
+            setAssignError("Untuk pengajuan lebih dari 6 penumpang (2 Mobil), WAJIB memilih Driver 2 dan Mobil 2 secara lengkap.");
+            setActionLoading(false);
+            return;
+          }
           payload.driver_ids = [selectedDriverId, selectedDriverId2];
           payload.vehicle_ids = [selectedVehicleId, selectedVehicleId2];
         }
 
         await assignmentService.create(payload);
       }
+
       const isEditAction = selectedRequest?.driverName !== "Not Assigned" || selectedRequest?.vehicleModel !== "Not Assigned" || selectedRequest?.is_external;
       setIsAssignModalOpen(false);
       showToast(isEditAction ? "Perubahan penugasan berhasil disimpan!" : "Driver & Kendaraan berhasil ditugaskan!");
@@ -961,6 +973,22 @@ export default function GAHRDRequestsPage() {
                 <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded-xl text-[12px] font-semibold flex items-center gap-2">
                   <Icon name="error" className="text-[16px]" />
                   {assignError}
+                </div>
+              )}
+
+              {selectedRequest?.passengerCount > 6 && !isExternal && (availableVehicles.length < 2 || availableDrivers.length < 2) && (
+                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-3 text-amber-900 text-[12px]">
+                  <div className="flex items-center gap-2 font-bold min-w-0">
+                    <Icon name="warning" className="text-amber-600 text-lg flex-shrink-0" />
+                    <span>Perhatian: Stok armada/driver internal yang tersedia ({availableVehicles.length} mobil & {availableDrivers.length} driver) kurang untuk 2 mobil.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsExternal(true)}
+                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold shrink-0 cursor-pointer shadow-xs transition-all"
+                  >
+                    Ganti ke Sewa Pihak Ke-3
+                  </button>
                 </div>
               )}
 
