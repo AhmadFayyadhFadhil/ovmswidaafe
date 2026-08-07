@@ -545,12 +545,14 @@ export default function GAHRDRequestsPage() {
   const availableDrivers = getAvailableDriversForRequest(selectedRequest);
 
   const getAvailableVehiclesForRequest = (req: any) => {
-    return vehicles.filter(v => 
-      v.status === "AVAILABLE" || v.status === "Available" || v.status === "available" ||
-      String(v.id) === String(selectedVehicleId) ||
-      String(v.id) === String(selectedVehicleId2) ||
-      (req && (String(v.id) === String(req.vehicleId) || String(v.id) === String(req.vehicle_id)))
-    );
+    if (!Array.isArray(vehicles)) return [];
+    return vehicles.filter(v => {
+      const s = String(v.status || 'Available').toUpperCase();
+      const isAvailable = s === "AVAILABLE";
+      const isSelected = String(v.id) === String(selectedVehicleId) || String(v.id) === String(selectedVehicleId2);
+      const isReqVehicle = req && (String(v.id) === String(req.vehicleId) || String(v.id) === String(req.vehicle_id));
+      return isAvailable || isSelected || isReqVehicle;
+    });
   };
 
   const availableVehicles = getAvailableVehiclesForRequest(selectedRequest);
@@ -1794,9 +1796,11 @@ export default function GAHRDRequestsPage() {
                                 ) : (
                                   <>
                                     <option value="">-- Tanpa Mobil 2 --</option>
-                                    {availableVehicles.filter(v => v.id !== selectedVehicleId).map((v) => (
-                                      <option key={v.id} value={v.id}>{v.model} ({v.plate})</option>
-                                    ))}
+                                    {availableVehicles
+                                      .filter(v => String(v.id) !== String(selectedVehicleId))
+                                      .map((v) => (
+                                        <option key={v.id} value={v.id}>{v.model || v.name} ({v.plate || v.plate_number})</option>
+                                      ))}
                                   </>
                                 )}
                               </select>
