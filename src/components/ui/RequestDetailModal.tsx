@@ -645,11 +645,14 @@ export function RequestDetailModal({
                             {(() => {
                               const rawDriverName = request.driverName || "Belum Ditugaskan";
                               const driverNames = rawDriverName.includes(',') ? rawDriverName.split(',').map((s: string) => s.trim()) : [rawDriverName];
-                              const vName = (request.vehicleModel || "Armada Belum Dipilih").replace(/\s*\(\s*\)/g, '').trim();
+                              
+                              const rawVehicleModel = request.vehicleModel || "Armada Belum Dipilih";
+                              const vehicleModels = rawVehicleModel.includes(',') ? rawVehicleModel.split(',').map((s: string) => s.trim()) : [rawVehicleModel];
 
                               return driverNames.map((dName: string, dIdx: number) => {
                                 const dInitials = dName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
                                 const isAssigned = dName !== "Not Assigned" && dName !== "Belum Ditugaskan" && dName.trim() !== "";
+                                const currentVehicle = (vehicleModels[dIdx] || vehicleModels[0] || "Armada Belum Dipilih").replace(/\s*\(\s*\)/g, '').trim();
 
                                 return (
                                   <div key={dIdx} className="p-3.5 bg-slate-50/90 border border-slate-200/80 rounded-2xl space-y-2.5 shadow-2xs">
@@ -686,7 +689,7 @@ export function RequestDetailModal({
                                       <div className="min-w-0 flex-1">
                                         <div className="text-[9.5px] text-slate-400 font-bold uppercase tracking-wider">Armada / Kendaraan</div>
                                         <div className="text-[12.5px] font-extrabold text-slate-800 leading-snug break-words">
-                                          {vName}
+                                          {currentVehicle}
                                         </div>
                                       </div>
                                     </div>
