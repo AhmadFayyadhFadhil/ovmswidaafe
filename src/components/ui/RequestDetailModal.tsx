@@ -765,7 +765,7 @@ export function RequestDetailModal({
 
                       return passengers.map((p: any, idx: number) => {
                         const isPicPassenger = idx === activePicIndex;
-                        const rawPhone = p.phone || (isPicPassenger ? request.userPhone : null);
+                        const rawPhone = p.phone || (isPicPassenger ? (request.userPhone || request.requested_by?.phone || request.user_phone || request.phone || '') : null);
                         const cleanPhone = rawPhone ? String(rawPhone).replace(/[^0-9]/g, '') : '';
 
                         return (
@@ -780,16 +780,16 @@ export function RequestDetailModal({
                                   👑 PIC Penumpang
                                 </span>
                               )}
-                              {cleanPhone && (
+                              {(isPicPassenger || cleanPhone) && (
                                 <a
-                                  href={`https://wa.me/${cleanPhone}`}
+                                  href={cleanPhone ? `https://wa.me/${cleanPhone}` : `https://wa.me/`}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition-all flex-shrink-0 shadow-2xs active:scale-95"
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition-all flex-shrink-0 shadow-2xs active:scale-95 cursor-pointer"
                                   title={`Hubungi WhatsApp ${p.name}`}
                                 >
                                   <Icon name="chat" className="text-xs text-white" />
-                                  <span>Hubungi WA {isPicPassenger ? 'PIC' : ''} ({rawPhone})</span>
+                                  <span>Hubungi WA {isPicPassenger ? 'PIC' : ''} {cleanPhone ? `(${rawPhone})` : ''}</span>
                                 </a>
                               )}
                             </div>
