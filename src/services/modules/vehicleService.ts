@@ -3,21 +3,9 @@ import type { Vehicle } from '../../types';
 import type { ApiResponse } from '../../types/api';
 import { ENDPOINTS } from '../../constants/endpoints';
 
-let vehicleCache: { data: ApiResponse<Vehicle[]>; timestamp: number } | null = null;
-const CACHE_TTL_MS = 20000; // 20 seconds short TTL cache
-
 export const vehicleService = {
-  clearCache: () => {
-    vehicleCache = null;
-  },
+  clearCache: () => { /* no-op, cache removed */ },
   getAll: async (params?: any): Promise<ApiResponse<Vehicle[]>> => {
-    const isDefaultFetch = !params || (Object.keys(params).length === 1 && params.per_page === 1000);
-    const now = Date.now();
-
-    if (isDefaultFetch && vehicleCache && (now - vehicleCache.timestamp < CACHE_TTL_MS)) {
-      return vehicleCache.data;
-    }
-
     const res = await apiClient.get<any>(ENDPOINTS.VEHICLES, { params });
     const list = Array.isArray(res.data?.data) ? res.data.data : [];
     
@@ -58,10 +46,6 @@ export const vehicleService = {
       data: mapped,
       message: res.data?.message
     };
-
-    if (isDefaultFetch) {
-      vehicleCache = { data: response, timestamp: now };
-    }
 
     return response;
   },

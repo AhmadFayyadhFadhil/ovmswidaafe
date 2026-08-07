@@ -298,16 +298,26 @@ export function RequestDetailModal({
                     <div className="text-[11px] font-semibold text-slate-400 mt-0.5">
                       Departemen: {request.department}
                     </div>
-                    {request.userPhone && (
-                      <a
-                        href={`https://wa.me/${request.userPhone.replace(/[^0-9]/g, '')}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-[11px] font-bold transition-colors mt-1.5"
-                      >
-                        Hubungi WA Pemohon ({request.userPhone})
-                      </a>
-                    )}
+                    {(() => {
+                      const reqPhone = request.userPhone || request.requested_by?.phone || request.user_phone || request.phone || '';
+                      const cleanReqPhone = reqPhone ? String(reqPhone).replace(/[^0-9]/g, '') : '';
+                      return (
+                        <a
+                          href={cleanReqPhone ? `https://wa.me/${cleanReqPhone}` : '#'}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all mt-1.5 cursor-pointer ${
+                            cleanReqPhone
+                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                              : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                          }`}
+                          onClick={(e) => { if (!cleanReqPhone) e.preventDefault(); }}
+                        >
+                          <Icon name="chat" className="text-xs" />
+                          <span>Hubungi WA Pemohon {cleanReqPhone ? `(${reqPhone})` : '(No HP tidak ada)'}</span>
+                        </a>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -782,13 +792,18 @@ export function RequestDetailModal({
                               )}
                               {(isPicPassenger || cleanPhone) && (
                                 <a
-                                  href={cleanPhone ? `https://wa.me/${cleanPhone}` : `https://wa.me/`}
+                                  href={cleanPhone ? `https://wa.me/${cleanPhone}` : '#'}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition-all flex-shrink-0 shadow-2xs active:scale-95 cursor-pointer"
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex-shrink-0 shadow-2xs cursor-pointer ${
+                                    cleanPhone
+                                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95'
+                                      : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                                  }`}
+                                  onClick={(e) => { if (!cleanPhone) e.preventDefault(); }}
                                   title={`Hubungi WhatsApp ${p.name}`}
                                 >
-                                  <Icon name="chat" className="text-xs text-white" />
+                                  <Icon name="chat" className="text-xs" />
                                   <span>Hubungi WA {isPicPassenger ? 'PIC' : ''} {cleanPhone ? `(${rawPhone})` : ''}</span>
                                 </a>
                               )}

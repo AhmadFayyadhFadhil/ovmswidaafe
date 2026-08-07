@@ -1982,6 +1982,11 @@ export default function GAHRDRequestsPage() {
           <span className="text-[13px] font-bold tracking-wide">{toastMessage}</span>
         </div>
       )}
+
+      {/* Build Stamp for Verification */}
+      <div className="text-[10px] text-slate-400 text-right mt-4 pr-4 font-mono pb-4">
+        Build Version: 2026-08-07-v8 (Fleet & WA Fix)
+      </div>
     </Layout>
   );
 }
