@@ -322,10 +322,8 @@ export default function GAHRDRequestsPage() {
 
     setLoadingVehicles(true);
     try {
-      const res = await vehicleService.getAll({ 
-        per_page: 1000, 
-        exclude_busy_for_request_id: req.id 
-      });
+      vehicleService.clearCache();
+      const res = await vehicleService.getAll({ per_page: 1000 });
       setVehicles(res.data || []);
     } catch (err) {
       console.error("Gagal memuat kendaraan:", err);
