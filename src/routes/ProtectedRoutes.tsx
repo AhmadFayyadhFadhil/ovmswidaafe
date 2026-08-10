@@ -28,15 +28,14 @@ export default function ProtectedRoutes() {
   const accessResult = canAccessRoute(user, location.pathname);
   
   if (accessResult === 'forbidden') {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-[#dc2626] mb-2">Access Denied</h1>
-          <p className="text-[#475569] mb-4">You do not have permission to access this page.</p>
-          <a href="/login" className="text-[#1e3a8a] underline">Return to login</a>
-        </div>
-      </div>
-    );
+    // Graceful fallback (Popular Web Apps standard): redirect user to their primary default dashboard
+    const targetDashboard = user.role === 'admin' ? '/admin/dashboard' :
+      (user.role === 'gahrd' ? '/gahrd/dashboard' :
+      (user.role === 'approver' || user.is_department_head ? '/approver/dashboard' :
+      (user.role === 'driver' ? '/driver/dashboard' :
+      (user.role === 'security' ? '/security/dashboard' : '/employee/dashboard'))));
+
+    return <Navigate to={targetDashboard} replace />;
   }
 
   return <Outlet />;

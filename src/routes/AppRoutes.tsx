@@ -1,57 +1,74 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ComponentType } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 
 import ProtectedRoutes from "./ProtectedRoutes";
 
+// Smart lazy loader with automatic deployment asset chunk retry
+function lazyWithRetry<T extends ComponentType<any>>(factory: () => Promise<{ default: T }>) {
+  return lazy(() =>
+    factory().catch((error) => {
+      const storageKey = "ovms_chunk_reload_retry";
+      const hasRetried = sessionStorage.getItem(storageKey);
+      if (!hasRetried) {
+        sessionStorage.setItem(storageKey, "true");
+        window.location.reload();
+        return new Promise<{ default: T }>(() => {});
+      }
+      sessionStorage.removeItem(storageKey);
+      throw error;
+    })
+  );
+}
+
 // Lazy-loaded pages
-const LoginPage = lazy(() => import("@/pages/auth/login"));
-const RegisterPage = lazy(() => import("@/pages/auth/register"));
-const ForgotPasswordPage = lazy(() => import("@/pages/auth/forgot-password"));
+const LoginPage = lazyWithRetry(() => import("@/pages/auth/login"));
+const RegisterPage = lazyWithRetry(() => import("@/pages/auth/register"));
+const ForgotPasswordPage = lazyWithRetry(() => import("@/pages/auth/forgot-password"));
 
 // Admin Pages
-const Dashboard = lazy(() => import("@/pages/admin/dashboard"));
-const Driver = lazy(() => import("@/pages/admin/drivers"));
-const Request = lazy(() => import("@/pages/admin/requests"));
-const User = lazy(() => import("@/pages/admin/users"));
-const Vehicle = lazy(() => import("@/pages/admin/vehicles"));
-const Audit = lazy(() => import("@/pages/admin/audit"));
-const Roles = lazy(() => import("@/pages/admin/roles"));
-const AdminNotifications = lazy(() => import("@/pages/admin/notifications"));
-const Schedules = lazy(() => import("@/pages/admin/schedules"));
-const Settings = lazy(() => import("@/pages/admin/settings"));
+const Dashboard = lazyWithRetry(() => import("@/pages/admin/dashboard"));
+const Driver = lazyWithRetry(() => import("@/pages/admin/drivers"));
+const Request = lazyWithRetry(() => import("@/pages/admin/requests"));
+const User = lazyWithRetry(() => import("@/pages/admin/users"));
+const Vehicle = lazyWithRetry(() => import("@/pages/admin/vehicles"));
+const Audit = lazyWithRetry(() => import("@/pages/admin/audit"));
+const Roles = lazyWithRetry(() => import("@/pages/admin/roles"));
+const AdminNotifications = lazyWithRetry(() => import("@/pages/admin/notifications"));
+const Schedules = lazyWithRetry(() => import("@/pages/admin/schedules"));
+const Settings = lazyWithRetry(() => import("@/pages/admin/settings"));
 
 // Employee Pages
-const CreateRequest = lazy(() => import("@/pages/employee/createrequest"));
-const EmployeeDashboard = lazy(() => import("@/pages/employee/dashboard"));
-const MyRequests = lazy(() => import("@/pages/employee/myrequests"));
-const EmployeeNotifications = lazy(() => import("@/pages/admin/notifications"));
-const EmployeeProfile = lazy(() => import("@/pages/employee/profil"));
-const EmployeeHistory = lazy(() => import("@/pages/employee/history"));
+const CreateRequest = lazyWithRetry(() => import("@/pages/employee/createrequest"));
+const EmployeeDashboard = lazyWithRetry(() => import("@/pages/employee/dashboard"));
+const MyRequests = lazyWithRetry(() => import("@/pages/employee/myrequests"));
+const EmployeeNotifications = lazyWithRetry(() => import("@/pages/admin/notifications"));
+const EmployeeProfile = lazyWithRetry(() => import("@/pages/employee/profil"));
+const EmployeeHistory = lazyWithRetry(() => import("@/pages/employee/history"));
 
 // Driver Pages
-const DriverDashboard = lazy(() => import("@/pages/driver/dasboard"));
-const DriverNotifications = lazy(() => import("@/pages/admin/notifications"));
+const DriverDashboard = lazyWithRetry(() => import("@/pages/driver/dasboard"));
+const DriverNotifications = lazyWithRetry(() => import("@/pages/admin/notifications"));
 
 // Approver Pages
-const ApproverDashboard = lazy(() => import("@/pages/approver/dashboard"));
-const ApproverRequests = lazy(() => import("@/pages/approver/requests"));
-const ApproverHistory = lazy(() => import("@/pages/approver/history"));
-const ApproverNotifications = lazy(() => import("@/pages/admin/notifications"));
+const ApproverDashboard = lazyWithRetry(() => import("@/pages/approver/dashboard"));
+const ApproverRequests = lazyWithRetry(() => import("@/pages/approver/requests"));
+const ApproverHistory = lazyWithRetry(() => import("@/pages/approver/history"));
+const ApproverNotifications = lazyWithRetry(() => import("@/pages/admin/notifications"));
 
 // Security Pages
-const SecurityDashboard = lazy(() => import("@/pages/security/dashboard"));
-const SecurityHistory = lazy(() => import("@/pages/security/history"));
+const SecurityDashboard = lazyWithRetry(() => import("@/pages/security/dashboard"));
+const SecurityHistory = lazyWithRetry(() => import("@/pages/security/history"));
 
 // GAHRD Pages
-const GAHRDDashboard = lazy(() => import("@/pages/gahrd/dashboard"));
-const GAHRDRequests = lazy(() => import("@/pages/gahrd/requests"));
-const GAHRDHistory = lazy(() => import("@/pages/gahrd/history"));
-const GAHRDNotifications = lazy(() => import("@/pages/admin/notifications"));
-const GAHRDDrivers = lazy(() => import("@/pages/gahrd/driver"));
-const GAHRDCalendar = lazy(() => import("@/pages/gahrd/calendar"));
-const GAHRDUsers = lazy(() => import("@/pages/gahrd/users"));
-const CreateUrgentRequest = lazy(() => import("@/pages/gahrd/urgentrequest"));
-const MaintenancePage = lazy(() => import("@/pages/common/MaintenancePage"));
+const GAHRDDashboard = lazyWithRetry(() => import("@/pages/gahrd/dashboard"));
+const GAHRDRequests = lazyWithRetry(() => import("@/pages/gahrd/requests"));
+const GAHRDHistory = lazyWithRetry(() => import("@/pages/gahrd/history"));
+const GAHRDNotifications = lazyWithRetry(() => import("@/pages/admin/notifications"));
+const GAHRDDrivers = lazyWithRetry(() => import("@/pages/gahrd/driver"));
+const GAHRDCalendar = lazyWithRetry(() => import("@/pages/gahrd/calendar"));
+const GAHRDUsers = lazyWithRetry(() => import("@/pages/gahrd/users"));
+const CreateUrgentRequest = lazyWithRetry(() => import("@/pages/gahrd/urgentrequest"));
+const MaintenancePage = lazyWithRetry(() => import("@/pages/common/MaintenancePage"));
 
 function GAHRDDashboardWrapper() {
   const navigate = useNavigate();

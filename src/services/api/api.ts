@@ -38,11 +38,15 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && !error.config?.url?.includes('/login')) {
+      const currentPath = window.location.pathname + window.location.search;
+      if (currentPath && currentPath !== '/login') {
+        sessionStorage.setItem('redirect_intent', currentPath);
+      }
       localStorage.removeItem('token');
       localStorage.removeItem('auth_user');
       sessionStorage.removeItem('token');
       sessionStorage.removeItem('auth_user');
-      window.location.href = '/login';
+      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
     }
     return Promise.reject(error);
   }

@@ -38,31 +38,40 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
+      const isChunkError = this.state.error?.name === 'ChunkLoadError' || 
+        (this.state.error?.message && (
+          this.state.error.message.includes('Loading chunk') || 
+          this.state.error.message.includes('dynamically imported module') ||
+          this.state.error.message.includes('Failed to fetch')
+        ));
+
       return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4 sm:p-6 font-sans">
           <div className="max-w-lg w-full bg-slate-800/90 border border-slate-700/80 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl text-center space-y-6 animate-fadein">
             {/* Header Icon */}
             <div className="relative inline-flex items-center justify-center">
-              <div className="w-20 h-20 bg-amber-500/10 border border-amber-500/20 rounded-3xl flex items-center justify-center shadow-inner">
-                <span className="material-symbols-outlined text-[44px] text-amber-400 animate-pulse">
-                  engineering
+              <div className="w-20 h-20 bg-blue-500/10 border border-blue-500/20 rounded-3xl flex items-center justify-center shadow-inner">
+                <span className="material-symbols-outlined text-[44px] text-blue-400 animate-pulse">
+                  {isChunkError ? "update" : "engineering"}
                 </span>
               </div>
-              <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-md">
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-md">
                 !
               </div>
             </div>
 
             {/* Title & Description */}
             <div className="space-y-2">
-              <span className="inline-block px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] font-extrabold tracking-wider uppercase rounded-full">
-                Maintenance Mode / System Adjustment
+              <span className="inline-block px-3 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-extrabold tracking-wider uppercase rounded-full">
+                {isChunkError ? "Pembaruan Versi Sistem" : "Maintenance Mode / System Adjustment"}
               </span>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Halaman Sedang Dalam Pemeliharaan
+                {isChunkError ? "Versi Terbaru Tersedia" : "Halaman Sedang Dalam Pemeliharaan"}
               </h1>
               <p className="text-sm text-slate-400 leading-relaxed max-w-md mx-auto">
-                Sistem OVMS sedang mengalami penyesuaian layanan atau kendala sementara. Tim teknis sedang menangani halaman ini.
+                {isChunkError
+                  ? "Sistem OVMS telah diperbarui ke versi terbaru di server. Silakan klik tombol di bawah untuk memuat ulang halaman."
+                  : "Sistem OVMS sedang mengalami penyesuaian layanan atau kendala sementara. Tim teknis sedang menangani halaman ini."}
               </p>
             </div>
 

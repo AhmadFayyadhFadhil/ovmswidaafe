@@ -8,6 +8,7 @@ export interface AuthUser {
   nik?: string;
   name?: string;
   role: UserRole;
+  roles?: string[];
   token: string;
   department_id?: string | number;
   department_name?: string;

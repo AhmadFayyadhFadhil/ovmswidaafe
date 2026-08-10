@@ -18,44 +18,58 @@ export function checkRolePermission(userRole: UserRole | null, requiredPermissio
 export function canAccessRoute(user: AuthUser | null, route: string): GuardResult {
   if (!user) return 'unauthorized';
 
-  const rawRole = (user.role || '').toLowerCase();
-  let normalizedRole: string = rawRole;
-  if (rawRole === 'ga') normalizedRole = 'gahrd';
+  // Gather all roles assigned to user
+  const allRoles: string[] = [];
+  if (user.role) allRoles.push(user.role.toLowerCase());
+  if (user.roles && Array.isArray(user.roles)) {
+    user.roles.forEach((r) => {
+      if (r && !allRoles.includes(r.toLowerCase())) {
+        allRoles.push(r.toLowerCase());
+      }
+    });
+  }
+  // Map 'ga' alias to 'gahrd'
+  if (allRoles.includes('ga') && !allRoles.includes('gahrd')) {
+    allRoles.push('gahrd');
+  }
+  // If is_department_head is true, user also has approver capability!
+  if (user.is_department_head && !allRoles.includes('approver')) {
+    allRoles.push('approver');
+  }
 
   // Normalize path: strip query params, hashes, and trailing slashes
   const pathWithoutQuery = (route || '').split('?')[0].split('#')[0];
   const cleanPath = (pathWithoutQuery.replace(/\/+$/, '') || '/').toLowerCase();
 
   // Admin can access all routes
-  if (normalizedRole === 'admin') {
+  if (allRoles.includes('admin')) {
     return 'allowed';
   }
 
-  // Common employee routes (accessible by all authenticated roles)
+  // Common employee routes (accessible by ALL logged in users)
   if (cleanPath.startsWith('/employee')) {
     return 'allowed';
   }
 
   // Role-specific prefix checks
   if (cleanPath.startsWith('/gahrd')) {
-    return normalizedRole === 'gahrd' ? 'allowed' : 'forbidden';
+    return allRoles.includes('gahrd') ? 'allowed' : 'forbidden';
   }
 
   if (cleanPath.startsWith('/approver')) {
-    return normalizedRole === 'approver' ? 'allowed' : 'forbidden';
+    return allRoles.includes('approver') ? 'allowed' : 'forbidden';
   }
 
   if (cleanPath.startsWith('/driver')) {
-    return normalizedRole === 'driver' ? 'allowed' : 'forbidden';
+    return allRoles.includes('driver') ? 'allowed' : 'forbidden';
   }
 
   if (cleanPath.startsWith('/security')) {
-    return normalizedRole === 'security' ? 'allowed' : 'forbidden';
+    return allRoles.includes('security') ? 'allowed' : 'forbidden';
   }
 
   if (cleanPath.startsWith('/admin')) {
-    // GAHRD special access to /admin/vehicles
-    if (normalizedRole === 'gahrd' && cleanPath.startsWith('/admin/vehicles')) {
+    if (allRoles.includes('gahrd') && cleanPath.startsWith('/admin/vehicles')) {
       return 'allowed';
     }
     return 'forbidden';
