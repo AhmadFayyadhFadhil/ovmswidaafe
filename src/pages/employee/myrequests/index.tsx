@@ -144,27 +144,44 @@ function getPriorityColor(priority: string) {
 
 function formatDateTime(str: string) {
   if (!str) return "";
-  let datePart = "";
-  let timePart = "09:00";
   
-  if (str.includes("T")) {
-    const parts = str.split("T");
-    datePart = parts[0];
-    timePart = parts[1].split(".")[0].substring(0, 5);
+  let d: Date | null = null;
+  if (str.includes("T") || str.includes("Z") || str.includes("+")) {
+    d = new Date(str);
   } else if (str.includes(" ")) {
-    const parts = str.split(" ");
-    datePart = parts[0];
-    timePart = parts[1].substring(0, 5);
+    d = new Date(str.replace(" ", "T"));
   } else {
-    datePart = str;
+    d = new Date(str);
   }
-  
-  const dateSubparts = datePart.split("-");
-  if (dateSubparts.length === 3) {
-    datePart = `${dateSubparts[2]}-${dateSubparts[1]}-${dateSubparts[0]}`;
+
+  if (!d || isNaN(d.getTime())) {
+    let datePart = "";
+    let timePart = "09:00";
+    if (str.includes("T")) {
+      const parts = str.split("T");
+      datePart = parts[0];
+      timePart = parts[1].split(".")[0].substring(0, 5);
+    } else if (str.includes(" ")) {
+      const parts = str.split(" ");
+      datePart = parts[0];
+      timePart = parts[1].substring(0, 5);
+    } else {
+      datePart = str;
+    }
+    const dateSubparts = datePart.split("-");
+    if (dateSubparts.length === 3) {
+      datePart = `${dateSubparts[2]}-${dateSubparts[1]}-${dateSubparts[0]}`;
+    }
+    return `${datePart} ${timePart}`;
   }
-  
-  return `${datePart} ${timePart}`;
+
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+
+  return `${day}-${month}-${year} ${hours}:${minutes}`;
 }
 
 function formatScanTime(dateTimeStr: string | null | undefined) {
@@ -863,6 +880,22 @@ export default function MyRequestsPage() {
                             <div className="font-semibold text-[#0f172a] truncate" title={r.purpose}>{r.purpose || "-"}</div>
                           </div>
                         </div>
+
+                        {(r.rawStatus === "rejected" || r.rawStatus === "cancelled" || r.rejected_reason || r.rejectedReason) && (
+                          <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-[12px] text-red-800 font-medium mt-2">
+                            <span className="font-bold flex items-center gap-1 mb-0.5 text-red-900">
+                              <Icon name="cancel" className="text-sm text-red-600" />
+                              Alasan {r.rawStatus === "cancelled" ? "Pembatalan" : "Penolakan"}:
+                            </span>
+                            <div className="text-[11.5px] text-red-700 pl-5">
+                              {r.rejected_reason || r.rejectedReason || (
+                                r.approvals?.find((a: any) => a.status === "rejected" && a.notes)?.notes
+                              ) || (
+                                r.assignments?.find((a: any) => a.status === "rejected" && a.reject_reason)?.reject_reason
+                              ) || "Tidak ada catatan alasan tertulis."}
+                            </div>
+                          </div>
+                        )}
 
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[12px] pt-2 border-t border-[#f1f5f9] mt-2">
                           <div>

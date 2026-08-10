@@ -283,6 +283,24 @@ export function RequestDetailModal({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Left Column: Requester & Trip Details (Span 2) */}
             <div className="md:col-span-2 space-y-5">
+              {/* Rejection / Cancellation Alert Banner */}
+              {(request.rawStatus === "rejected" || request.rawStatus === "cancelled" || request.rejected_reason || request.rejectedReason) && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                  <div className="flex items-center gap-2 text-red-800 font-bold text-[13px] mb-1">
+                    <Icon name="cancel" className="text-[18px] text-red-600" />
+                    <span>{request.rawStatus === "cancelled" ? "Permintaan Dibatalkan" : "Permintaan Ditolak"}</span>
+                  </div>
+                  <div className="text-[12px] text-red-700 font-medium leading-relaxed">
+                    <span className="font-bold">Alasan / Catatan: </span>
+                    {request.rejected_reason || request.rejectedReason || (
+                      request.approvals?.find((a: any) => a.status === "rejected" && a.notes)?.notes
+                    ) || (
+                      request.assignments?.find((a: any) => a.status === "rejected" && a.reject_reason)?.reject_reason
+                    ) || "Tidak ada alasan tertulis."}
+                  </div>
+                </div>
+              )}
+
               {/* Requester Profile */}
               <div>
                 <h4 className="text-[11px] font-extrabold tracking-wider text-slate-400 uppercase mb-2">

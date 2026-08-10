@@ -41,45 +41,71 @@ function mapPriority(backendPriority: string): "HIGH" | "URGENT" | "NORMAL" | "L
 function parseDateTime(dtStr: string | undefined) {
   if (!dtStr) return { date: '', time: '' };
 
-  let datePart = '';
-  let timePart = '';
-
-  if (dtStr.includes('T')) {
-    const parts = dtStr.split('T');
-    datePart = parts[0];
-    if (parts[1]) {
-      timePart = parts[1].substring(0, 5);
-    }
+  let d: Date | null = null;
+  if (dtStr.includes('T') || dtStr.includes('Z') || dtStr.includes('+')) {
+    d = new Date(dtStr);
   } else if (dtStr.includes(' ')) {
-    const parts = dtStr.split(' ');
-    datePart = parts[0];
-    if (parts[1]) {
-      timePart = parts[1].substring(0, 5);
-    }
+    d = new Date(dtStr.replace(' ', 'T'));
   } else {
-    datePart = dtStr;
+    d = new Date(dtStr);
   }
 
-  const dateSubparts = datePart.split('-');
-  if (dateSubparts.length === 3) {
-    let day = dateSubparts[2];
-    let monthStr = dateSubparts[1];
-    let year = dateSubparts[0];
-    
-    if (year.length < 4 && day.length === 4) {
-      day = dateSubparts[0];
-      year = dateSubparts[2];
+  if (!d || isNaN(d.getTime())) {
+    let datePart = '';
+    let timePart = '';
+
+    if (dtStr.includes('T')) {
+      const parts = dtStr.split('T');
+      datePart = parts[0];
+      if (parts[1]) {
+        timePart = parts[1].substring(0, 5);
+      }
+    } else if (dtStr.includes(' ')) {
+      const parts = dtStr.split(' ');
+      datePart = parts[0];
+      if (parts[1]) {
+        timePart = parts[1].substring(0, 5);
+      }
+    } else {
+      datePart = dtStr;
     }
-    
-    const dayNum = parseInt(day, 10);
-    const monthIndex = parseInt(monthStr, 10) - 1;
-    const monthNames = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-    ];
-    const monthName = monthNames[monthIndex] || monthStr;
-    datePart = `${dayNum} ${monthName} ${year}`;
+
+    const dateSubparts = datePart.split('-');
+    if (dateSubparts.length === 3) {
+      let day = dateSubparts[2];
+      let monthStr = dateSubparts[1];
+      let year = dateSubparts[0];
+      
+      if (year.length < 4 && day.length === 4) {
+        day = dateSubparts[0];
+        year = dateSubparts[2];
+      }
+      
+      const dayNum = parseInt(day, 10);
+      const monthIndex = parseInt(monthStr, 10) - 1;
+      const monthNames = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      const monthName = monthNames[monthIndex] || monthStr;
+      datePart = `${dayNum} ${monthName} ${year}`;
+    }
+
+    return { date: datePart, time: timePart };
   }
+
+  const dayNum = d.getDate();
+  const monthNames = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  const monthName = monthNames[d.getMonth()] || '';
+  const year = d.getFullYear();
+  const datePart = `${dayNum} ${monthName} ${year}`;
+
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const timePart = `${hours}:${minutes}`;
 
   return { date: datePart, time: timePart };
 }
@@ -124,6 +150,8 @@ function mapRequestFromBackend(r: any): FleetRequest {
     passengerCount: r.passenger_count || 1,
     rawPriority: r.priority || 'Normal',
     notes: r.notes || '',
+    rejected_reason: r.rejected_reason || r.rejection_reason || null,
+    rejectedReason: r.rejected_reason || r.rejection_reason || null,
     passengers: r.passengers || [],
     // data tambahan alur persetujuan:
     canApprove: !!r.can_approve,
