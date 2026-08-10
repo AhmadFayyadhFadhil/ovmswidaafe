@@ -58,6 +58,7 @@ const ApproverNotifications = lazyWithRetry(() => import("@/pages/admin/notifica
 // Security Pages
 const SecurityDashboard = lazyWithRetry(() => import("@/pages/security/dashboard"));
 const SecurityHistory = lazyWithRetry(() => import("@/pages/security/history"));
+const SecurityNotifications = lazyWithRetry(() => import("@/pages/admin/notifications"));
 
 // GAHRD Pages
 const GAHRDDashboard = lazyWithRetry(() => import("@/pages/gahrd/dashboard"));
@@ -149,6 +150,8 @@ export default function AppRoutes() {
           {/* Security Routes */}
           <Route path="/security/dashboard" element={<SecurityDashboard />} />
           <Route path="/security/history" element={<SecurityHistory />} />
+          <Route path="/security/notifications" element={<SecurityNotifications />} />
+          <Route path="/security/profile" element={<EmployeeProfile />} />
           {/* Maintenance Page */}
           <Route path="/maintenance" element={<MaintenancePage />} />
         </Route>

@@ -108,6 +108,12 @@ export const ROLE_PERMISSION_MATRIX: Record<string, string[]> = {
     PERMISSIONS.MANAGE_USERS,
     PERMISSIONS.VIEW_NOTIFICATIONS,
   ],
+  security: [
+    PERMISSIONS.VIEW_DASHBOARD,
+    PERMISSIONS.VIEW_NOTIFICATIONS,
+    PERMISSIONS.VIEW_HISTORY,
+    PERMISSIONS.VIEW_SCHEDULE,
+  ],
 };
 
 export function checkPermission(userRole: string, permission: string): boolean {

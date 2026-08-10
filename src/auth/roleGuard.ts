@@ -172,6 +172,7 @@ export function getAllowedRoutes(user: AuthUser | null): string[] {
     security: [
       '/security/dashboard',
       '/security/history',
+      '/security/notifications',
       '/security/profile',
       '/employee/createrequest',
       '/employee/myrequests',
