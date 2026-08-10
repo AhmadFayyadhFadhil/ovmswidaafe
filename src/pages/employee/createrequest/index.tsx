@@ -9,6 +9,9 @@ import { apiClient } from "@/services/api/api";
 
 import { departmentService } from "@/services/modules/departmentService";
 import type { Department } from "@/services/modules/departmentService";
+import { tripPurposeService } from "@/services/modules/tripPurposeService";
+import { destinationCityService } from "@/services/modules/destinationCityService";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { formatDate, formatDateTime } from "@/utils/formatDate";
 
 interface Props { onNavigate?: (page: string) => void; }
@@ -17,11 +20,21 @@ export default function CreateRequestPage({ onNavigate }: Props) {
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [purposeOptions, setPurposeOptions] = useState<string[]>([]);
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
 
   useEffect(() => {
     departmentService.getAll().then(res => {
       if (res.data) setDepartments(res.data);
     }).catch(err => console.error("Failed to load departments", err));
+
+    tripPurposeService.getAll().then(res => {
+      if (res.data) setPurposeOptions(res.data.map(p => p.name));
+    }).catch(err => console.error("Failed to load trip purposes", err));
+
+    destinationCityService.getAll().then(res => {
+      if (res.data) setCityOptions(res.data.map(c => c.name));
+    }).catch(err => console.error("Failed to load destination cities", err));
   }, []);
   const [purpose,    setPurpose]    = useState("");
   const [destinationCity, setDestinationCity] = useState("");
@@ -425,17 +438,20 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                 </div>
               </div>
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Purpose of Trip</label>
-                <input
-                  value={purpose} onChange={e => setPurpose(e.target.value)}
-                  placeholder="e.g. Client Site Visit - Tech Park"
-                  className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all"
+                <SearchableSelect
+                  label="Purpose of Trip"
+                  value={purpose}
+                  onChange={(v) => setPurpose(v)}
+                  options={purposeOptions}
+                  placeholder="Pilih atau cari keperluan perjalanan..."
+                  icon="info"
+                  customOptionLabel="✨ Lainnya (Tulis Sendiri...)"
                 />
               </div>
             </div>
 
             {/* 2. Destination & Schedule */}
-            <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-5">
+            <div className="bg-[#ffffff] rounded-2xl border border-[#e2e8f0] shadow-sm p-5">
               <div className="flex items-start gap-3 mb-4">
                 <div className="w-10 h-10 bg-[#ffd9d5] rounded-xl flex items-center justify-center flex-shrink-0">
                   <Icon name="location_on" className="text-[#ba1a1a] text-[20px]" />
@@ -448,16 +464,16 @@ export default function CreateRequestPage({ onNavigate }: Props) {
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Destination City <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                      <Icon name="location_city" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[17px]" />
-                      <input
-                        required
-                        value={destinationCity} onChange={e => setDestinationCity(e.target.value)}
-                        placeholder="e.g. Jakarta"
-                        className="w-full h-10 pl-9 pr-4 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all"
-                      />
-                    </div>
+                    <SearchableSelect
+                      label="Destination City"
+                      value={destinationCity}
+                      onChange={(v) => setDestinationCity(v)}
+                      options={cityOptions}
+                      placeholder="Pilih atau cari kota tujuan (e.g. Surabaya, Pasuruan)..."
+                      required
+                      icon="location_city"
+                      customOptionLabel="✨ Lainnya (Tulis Sendiri...)"
+                    />
                   </div>
                   <div>
                     <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Destination Place <span className="text-red-500">*</span></label>

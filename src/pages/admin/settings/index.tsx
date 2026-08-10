@@ -2,10 +2,14 @@ import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Layout } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { systemConfigService } from "@/services/modules/systemConfigService";
+import { tripPurposeService, type TripPurposeItem } from "@/services/modules/tripPurposeService";
+import { destinationCityService, type DestinationCityItem } from "@/services/modules/destinationCityService";
 
 const SETTING_SECTIONS = [
   { icon: "settings",        label: "General Settings" },
   { icon: "business",        label: "Company Info"     },
+  { icon: "flag",            label: "Master Data Keperluan" },
+  { icon: "location_city",   label: "Master Data Kota" },
   { icon: "notifications",   label: "Notifications"    },
 ];
 
@@ -86,6 +90,109 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
 
   // Form State
   const [formData, setFormData] = useState<any | null>(null);
+
+  // Master Data Trip Purposes & Destination Cities State
+  const [purposes, setPurposes] = useState<TripPurposeItem[]>([]);
+  const [newPurposeName, setNewPurposeName] = useState("");
+  const [editingPurpose, setEditingPurpose] = useState<TripPurposeItem | null>(null);
+
+  const [cities, setCities] = useState<DestinationCityItem[]>([]);
+  const [newCityName, setNewCityName] = useState("");
+  const [newCityProvince, setNewCityProvince] = useState("");
+  const [editingCity, setEditingCity] = useState<DestinationCityItem | null>(null);
+  const [citySearchTerm, setCitySearchTerm] = useState("");
+
+  const loadPurposes = () => {
+    tripPurposeService.getAll({ all: true }).then((res) => {
+      if (res.data) setPurposes(res.data);
+    }).catch(err => console.error("Failed to load purposes", err));
+  };
+
+  const loadCities = () => {
+    destinationCityService.getAll({ all: true }).then((res) => {
+      if (res.data) setCities(res.data);
+    }).catch(err => console.error("Failed to load cities", err));
+  };
+
+  useEffect(() => {
+    loadPurposes();
+    loadCities();
+  }, []);
+
+  const handleAddPurpose = async () => {
+    if (!newPurposeName.trim()) return;
+    try {
+      await tripPurposeService.create({ name: newPurposeName.trim() });
+      setNewPurposeName("");
+      loadPurposes();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Gagal menambah Purpose of Trip");
+    }
+  };
+
+  const handleUpdatePurpose = async () => {
+    if (!editingPurpose || !editingPurpose.name.trim()) return;
+    try {
+      await tripPurposeService.update(editingPurpose.id, {
+        name: editingPurpose.name.trim(),
+        is_active: editingPurpose.is_active,
+      });
+      setEditingPurpose(null);
+      loadPurposes();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Gagal memperbarui Purpose of Trip");
+    }
+  };
+
+  const handleDeletePurpose = async (id: number) => {
+    if (!confirm("Yakin ingin menghapus Master Data Purpose ini?")) return;
+    try {
+      await tripPurposeService.delete(id);
+      loadPurposes();
+    } catch (err: any) {
+      alert("Gagal menghapus Purpose");
+    }
+  };
+
+  const handleAddCity = async () => {
+    if (!newCityName.trim()) return;
+    try {
+      await destinationCityService.create({
+        name: newCityName.trim(),
+        province: newCityProvince.trim() || undefined,
+      });
+      setNewCityName("");
+      setNewCityProvince("");
+      loadCities();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Gagal menambah Kota Tujuan");
+    }
+  };
+
+  const handleUpdateCity = async () => {
+    if (!editingCity || !editingCity.name.trim()) return;
+    try {
+      await destinationCityService.update(editingCity.id, {
+        name: editingCity.name.trim(),
+        province: editingCity.province || undefined,
+        is_active: editingCity.is_active,
+      });
+      setEditingCity(null);
+      loadCities();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Gagal memperbarui Kota Tujuan");
+    }
+  };
+
+  const handleDeleteCity = async (id: number) => {
+    if (!confirm("Yakin ingin menghapus Master Data Kota ini?")) return;
+    try {
+      await destinationCityService.delete(id);
+      loadCities();
+    } catch (err: any) {
+      alert("Gagal menghapus Kota");
+    }
+  };
 
   useEffect(() => {
     if (apiData) {
@@ -586,6 +693,272 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                           className="w-full px-3 py-2 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 resize-none transition-all" 
                         />
                       </div>
+                    </div>
+                  </div>
+                </SectionCard>
+              )}
+
+              {/* MASTER DATA KEPERLUAN */}
+              {activeSection === "Master Data Keperluan" && (
+                <SectionCard
+                  title="Master Data Purpose of Trip"
+                  subtitle="Kelola daftar pilihan keperluan perjalanan dinas yang dapat dipilih pengguna saat mengajukan armada."
+                >
+                  <div className="space-y-4">
+                    {/* Add Form */}
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newPurposeName}
+                        onChange={(e) => setNewPurposeName(e.target.value)}
+                        placeholder="Tambah Purpose Baru (contoh: Inspeksi Lapangan)..."
+                        className="flex-1 h-10 px-3 border border-slate-200 rounded-xl text-[13px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                      <button
+                        onClick={handleAddPurpose}
+                        className="h-10 px-4 bg-blue-700 hover:bg-blue-800 text-white text-[12.5px] font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Icon name="add" className="text-base" /> Tambah
+                      </button>
+                    </div>
+
+                    {/* Table */}
+                    <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100">
+                      <div className="bg-slate-50 px-4 py-2.5 grid grid-cols-12 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        <div className="col-span-1">#</div>
+                        <div className="col-span-7">Nama Keperluan / Purpose</div>
+                        <div className="col-span-2 text-center">Status</div>
+                        <div className="col-span-2 text-right">Aksi</div>
+                      </div>
+
+                      {purposes.length === 0 ? (
+                        <div className="p-4 text-center text-slate-400 italic text-[12.5px]">
+                          Belum ada Master Data Purpose.
+                        </div>
+                      ) : (
+                        purposes.map((p, idx) => {
+                          const isEdit = editingPurpose?.id === p.id;
+                          return (
+                            <div
+                              key={p.id}
+                              className="px-4 py-2.5 grid grid-cols-12 items-center text-[12.5px] hover:bg-slate-50/50"
+                            >
+                              <div className="col-span-1 font-mono font-bold text-slate-400">
+                                {idx + 1}
+                              </div>
+                              <div className="col-span-7 font-medium text-slate-800">
+                                {isEdit ? (
+                                  <input
+                                    value={editingPurpose.name}
+                                    onChange={(e) =>
+                                      setEditingPurpose({ ...editingPurpose, name: e.target.value })
+                                    }
+                                    className="w-full px-2 py-1 border border-blue-400 rounded-lg text-[12.5px]"
+                                  />
+                                ) : (
+                                  p.name
+                                )}
+                              </div>
+                              <div className="col-span-2 text-center">
+                                <span
+                                  className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                    p.is_active
+                                      ? "bg-green-100 text-green-700"
+                                      : "bg-slate-100 text-slate-500"
+                                  }`}
+                                >
+                                  {p.is_active ? "Aktif" : "Non-Aktif"}
+                                </span>
+                              </div>
+                              <div className="col-span-2 flex items-center justify-end gap-1.5">
+                                {isEdit ? (
+                                  <>
+                                    <button
+                                      onClick={handleUpdatePurpose}
+                                      className="p-1 text-green-600 hover:text-green-800 cursor-pointer"
+                                      title="Simpan"
+                                    >
+                                      <Icon name="check" className="text-lg" />
+                                    </button>
+                                    <button
+                                      onClick={() => setEditingPurpose(null)}
+                                      className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                      title="Batal"
+                                    >
+                                      <Icon name="close" className="text-lg" />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => setEditingPurpose(p)}
+                                      className="p-1 text-blue-600 hover:text-blue-800 cursor-pointer"
+                                      title="Edit"
+                                    >
+                                      <Icon name="edit" className="text-base" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeletePurpose(p.id)}
+                                      className="p-1 text-red-500 hover:text-red-700 cursor-pointer"
+                                      title="Hapus"
+                                    >
+                                      <Icon name="delete" className="text-base" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </SectionCard>
+              )}
+
+              {/* MASTER DATA KOTA */}
+              {activeSection === "Master Data Kota" && (
+                <SectionCard
+                  title="Master Data Destination City (Kota Tujuan)"
+                  subtitle="Kelola daftar Kota & Kabupaten se-Indonesia yang dapat dicari/dipilih pengguna saat mengajukan armada."
+                >
+                  <div className="space-y-4">
+                    {/* Add Form */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <input
+                        type="text"
+                        value={newCityName}
+                        onChange={(e) => setNewCityName(e.target.value)}
+                        placeholder="Nama Kota / Kabupaten (misal: Surabaya)..."
+                        className="h-10 px-3 border border-slate-200 rounded-xl text-[13px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                      <input
+                        type="text"
+                        value={newCityProvince}
+                        onChange={(e) => setNewCityProvince(e.target.value)}
+                        placeholder="Provinsi (misal: Jawa Timur)..."
+                        className="h-10 px-3 border border-slate-200 rounded-xl text-[13px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                      <button
+                        onClick={handleAddCity}
+                        className="h-10 px-4 bg-blue-700 hover:bg-blue-800 text-white text-[12.5px] font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Icon name="add" className="text-base" /> Tambah Kota
+                      </button>
+                    </div>
+
+                    {/* Filter Search */}
+                    <div className="relative">
+                      <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base" />
+                      <input
+                        type="text"
+                        value={citySearchTerm}
+                        onChange={(e) => setCitySearchTerm(e.target.value)}
+                        placeholder="Cari nama kota atau provinsi..."
+                        className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-lg text-[12px]"
+                      />
+                    </div>
+
+                    {/* Table */}
+                    <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100 max-h-96 overflow-y-auto">
+                      <div className="bg-slate-50 px-4 py-2.5 grid grid-cols-12 text-[11px] font-bold uppercase tracking-wider text-slate-500 sticky top-0 z-10">
+                        <div className="col-span-1">#</div>
+                        <div className="col-span-5">Nama Kota / Kabupaten</div>
+                        <div className="col-span-4">Provinsi</div>
+                        <div className="col-span-2 text-right">Aksi</div>
+                      </div>
+
+                      {(() => {
+                        const filtered = cities.filter(c => 
+                          c.name.toLowerCase().includes(citySearchTerm.toLowerCase()) || 
+                          (c.province && c.province.toLowerCase().includes(citySearchTerm.toLowerCase()))
+                        );
+
+                        if (filtered.length === 0) {
+                          return (
+                            <div className="p-4 text-center text-slate-400 italic text-[12.5px]">
+                              Tidak ada kota yang cocok.
+                            </div>
+                          );
+                        }
+
+                        return filtered.map((c, idx) => {
+                          const isEdit = editingCity?.id === c.id;
+                          return (
+                            <div
+                              key={c.id}
+                              className="px-4 py-2.5 grid grid-cols-12 items-center text-[12.5px] hover:bg-slate-50/50"
+                            >
+                              <div className="col-span-1 font-mono font-bold text-slate-400">
+                                {idx + 1}
+                              </div>
+                              <div className="col-span-5 font-bold text-slate-800">
+                                {isEdit ? (
+                                  <input
+                                    value={editingCity.name}
+                                    onChange={(e) =>
+                                      setEditingCity({ ...editingCity, name: e.target.value })
+                                    }
+                                    className="w-full px-2 py-1 border border-blue-400 rounded-lg text-[12.5px]"
+                                  />
+                                ) : (
+                                  c.name
+                                )}
+                              </div>
+                              <div className="col-span-4 text-slate-600">
+                                {isEdit ? (
+                                  <input
+                                    value={editingCity.province || ""}
+                                    onChange={(e) =>
+                                      setEditingCity({ ...editingCity, province: e.target.value })
+                                    }
+                                    className="w-full px-2 py-1 border border-blue-400 rounded-lg text-[12.5px]"
+                                  />
+                                ) : (
+                                  c.province || "-"
+                                )}
+                              </div>
+                              <div className="col-span-2 flex items-center justify-end gap-1.5">
+                                {isEdit ? (
+                                  <>
+                                    <button
+                                      onClick={handleUpdateCity}
+                                      className="p-1 text-green-600 hover:text-green-800 cursor-pointer"
+                                      title="Simpan"
+                                    >
+                                      <Icon name="check" className="text-lg" />
+                                    </button>
+                                    <button
+                                      onClick={() => setEditingCity(null)}
+                                      className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                      title="Batal"
+                                    >
+                                      <Icon name="close" className="text-lg" />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => setEditingCity(c)}
+                                      className="p-1 text-blue-600 hover:text-blue-800 cursor-pointer"
+                                      title="Edit"
+                                    >
+                                      <Icon name="edit" className="text-base" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteCity(c.id)}
+                                      className="p-1 text-red-500 hover:text-red-700 cursor-pointer"
+                                      title="Hapus"
+                                    >
+                                      <Icon name="delete" className="text-base" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 </SectionCard>
