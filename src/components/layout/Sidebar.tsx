@@ -196,6 +196,7 @@ export function Sidebar({
   const securityMenu = [
     { icon: "dashboard", label: "Dashboard", path: "/security/dashboard" },
     { icon: "work_history", label: "Scan History", path: "/security/history" },
+    { icon: "notifications", label: "Notifications", path: "/security/notifications" },
     { icon: "person", label: "My Profile", path: "/security/profile" },
   ];
 

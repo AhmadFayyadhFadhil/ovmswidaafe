@@ -123,6 +123,9 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Scan History":
           navigate("/security/history");
           break;
+        case "Notifications":
+          navigate("/security/notifications");
+          break;
         case "Audit Logs":
           navigate("/security/audit");
           break;
