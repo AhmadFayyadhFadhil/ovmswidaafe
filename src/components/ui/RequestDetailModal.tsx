@@ -284,22 +284,56 @@ export function RequestDetailModal({
             {/* Left Column: Requester & Trip Details (Span 2) */}
             <div className="md:col-span-2 space-y-5">
               {/* Rejection / Cancellation Alert Banner */}
-              {(request.rawStatus === "rejected" || request.rawStatus === "cancelled" || request.rejected_reason || request.rejectedReason) && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-                  <div className="flex items-center gap-2 text-red-800 font-bold text-[13px] mb-1">
-                    <Icon name="cancel" className="text-[18px] text-red-600" />
-                    <span>{request.rawStatus === "cancelled" ? "Permintaan Dibatalkan" : "Permintaan Ditolak"}</span>
+              {(request.rawStatus === "rejected" || request.rawStatus === "cancelled" || request.rejected_reason || request.rejectedReason) && (() => {
+                const isCancelled = request.rawStatus === "cancelled";
+                let actorName = "";
+                let reasonText = request.rejected_reason || request.rejectedReason || "";
+
+                if (isCancelled) {
+                  actorName = request.employee || request.requested_by?.name || "Pemohon";
+                } else {
+                  const rejApproval = request.approvals?.find((a: any) => a.status === "rejected");
+                  if (rejApproval) {
+                    actorName = rejApproval.approver?.name || getApprovalRoleLabel(rejApproval.role) || "Approver";
+                    if (!reasonText && rejApproval.notes) {
+                      reasonText = rejApproval.notes;
+                    }
+                  } else {
+                    const rejAssignment = request.assignments?.find((a: any) => a.status === "rejected");
+                    if (rejAssignment) {
+                      actorName = rejAssignment.driver_name || "Driver";
+                      if (!reasonText && rejAssignment.reject_reason) {
+                        reasonText = rejAssignment.reject_reason;
+                      }
+                    } else {
+                      actorName = "Kepala Departemen / GA";
+                    }
+                  }
+                }
+
+                if (!reasonText) {
+                  reasonText = request.notes || "Tidak ada catatan alasan tertulis.";
+                }
+
+                return (
+                  <div className="p-4 bg-red-50 border-2 border-red-200 rounded-xl mb-2 shadow-xs">
+                    <div className="flex items-center gap-2 text-red-800 font-bold text-[14px] mb-1.5">
+                      <Icon name="cancel" className="text-[20px] text-red-600" />
+                      <span>{isCancelled ? "Permintaan Dibatalkan" : "Permintaan Ditolak"}</span>
+                    </div>
+                    <div className="text-[12.5px] text-red-800 font-medium leading-relaxed pl-7 space-y-0.5">
+                      <div>
+                        <span className="font-bold">Di{isCancelled ? "batalkan" : "tolak"} Oleh: </span>
+                        <span className="font-semibold text-red-950">{actorName}</span>
+                      </div>
+                      <div>
+                        <span className="font-bold">Alasan: </span>
+                        <span className="italic font-semibold text-red-900">"{reasonText}"</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-[12px] text-red-700 font-medium leading-relaxed">
-                    <span className="font-bold">Alasan / Catatan: </span>
-                    {request.rejected_reason || request.rejectedReason || (
-                      request.approvals?.find((a: any) => a.status === "rejected" && a.notes)?.notes
-                    ) || (
-                      request.assignments?.find((a: any) => a.status === "rejected" && a.reject_reason)?.reject_reason
-                    ) || "Tidak ada alasan tertulis."}
-                  </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Requester Profile */}
               <div>
