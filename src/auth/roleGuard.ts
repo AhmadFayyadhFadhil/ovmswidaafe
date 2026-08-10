@@ -17,68 +17,52 @@ export function checkRolePermission(userRole: UserRole | null, requiredPermissio
  */
 export function canAccessRoute(user: AuthUser | null, route: string): GuardResult {
   if (!user) return 'unauthorized';
-  const userRole = user.role;
 
-  const routeAccess: Record<string, string[]> = {
-    '/admin': ['admin'],
-    '/admin/dashboard': ['admin'],
-    '/admin/drivers': ['admin'],
-    '/admin/requests': ['admin'],
-    '/admin/users': ['admin'],
-    '/admin/vehicles': ['admin', 'gahrd'],
-    '/admin/audit': ['admin'],
-    '/admin/roles': ['admin'],
-    '/admin/notifications': ['admin'],
-    '/admin/schedules': ['admin'],
-    '/admin/settings': ['admin'],
-    '/admin/profile': ['admin'],
+  const rawRole = (user.role || '').toLowerCase();
+  let normalizedRole: string = rawRole;
+  if (rawRole === 'ga') normalizedRole = 'gahrd';
 
-    '/approver': ['approver', 'admin'],
-    '/approver/dashboard': ['approver', 'admin'],
-    '/approver/requests': ['approver', 'admin'],
-    '/approver/history': ['approver', 'admin'],
-    '/approver/notifications': ['approver', 'admin'],
-    '/approver/profile': ['approver', 'admin'],
+  // Normalize path: strip query params, hashes, and trailing slashes
+  const pathWithoutQuery = (route || '').split('?')[0].split('#')[0];
+  const cleanPath = (pathWithoutQuery.replace(/\/+$/, '') || '/').toLowerCase();
 
-    '/employee': ['employee', 'admin', 'approver', 'gahrd', 'driver', 'security'],
-    '/employee/dashboard': ['employee', 'admin', 'approver', 'gahrd', 'driver', 'security'],
-    '/employee/createrequest': ['employee', 'admin', 'approver', 'gahrd', 'driver', 'security'],
-    '/employee/myrequests': ['employee', 'admin', 'approver', 'gahrd', 'driver', 'security'],
-    '/employee/history': ['employee', 'admin', 'approver', 'gahrd', 'driver', 'security'],
-    '/employee/notifications': ['employee', 'admin', 'approver', 'gahrd', 'driver', 'security'],
-    '/employee/profile': ['employee', 'admin', 'approver', 'gahrd', 'driver', 'security'],
-
-    '/driver': ['driver', 'admin'],
-    '/driver/dashboard': ['driver', 'admin'],
-    '/driver/profile': ['driver', 'admin'],
-    '/driver/notifications': ['driver', 'admin'],
-
-    '/gahrd': ['gahrd', 'admin'],
-    '/gahrd/dashboard': ['gahrd', 'admin'],
-    '/gahrd/requests': ['gahrd', 'admin'],
-    '/gahrd/requests/urgent': ['gahrd', 'admin'],
-    '/gahrd/history': ['gahrd', 'admin'],
-    '/gahrd/notifications': ['gahrd', 'admin'],
-    '/gahrd/driver': ['gahrd', 'admin'],
-    '/gahrd/calendar': ['gahrd', 'admin'],
-    '/gahrd/profile': ['gahrd', 'admin'],
-    '/gahrd/users': ['gahrd', 'admin'],
-
-    '/security': ['security', 'admin'],
-    '/security/dashboard': ['security', 'admin'],
-    '/security/history': ['security', 'admin'],
-    '/security/audit': ['admin'],
-    '/security/profile': ['security', 'admin'],
-  };
-
-  const allowedRoles = routeAccess[route] || [];
-  
-  if (allowedRoles.length === 0) {
-    // If no specific rules, allow admin only
-    return userRole === 'admin' ? 'allowed' : 'forbidden';
+  // Admin can access all routes
+  if (normalizedRole === 'admin') {
+    return 'allowed';
   }
 
-  return allowedRoles.includes(userRole) ? 'allowed' : 'forbidden';
+  // Common employee routes (accessible by all authenticated roles)
+  if (cleanPath.startsWith('/employee')) {
+    return 'allowed';
+  }
+
+  // Role-specific prefix checks
+  if (cleanPath.startsWith('/gahrd')) {
+    return normalizedRole === 'gahrd' ? 'allowed' : 'forbidden';
+  }
+
+  if (cleanPath.startsWith('/approver')) {
+    return normalizedRole === 'approver' ? 'allowed' : 'forbidden';
+  }
+
+  if (cleanPath.startsWith('/driver')) {
+    return normalizedRole === 'driver' ? 'allowed' : 'forbidden';
+  }
+
+  if (cleanPath.startsWith('/security')) {
+    return normalizedRole === 'security' ? 'allowed' : 'forbidden';
+  }
+
+  if (cleanPath.startsWith('/admin')) {
+    // GAHRD special access to /admin/vehicles
+    if (normalizedRole === 'gahrd' && cleanPath.startsWith('/admin/vehicles')) {
+      return 'allowed';
+    }
+    return 'forbidden';
+  }
+
+  // Default fallback for any unspecified routes
+  return 'allowed';
 }
 
 /**
