@@ -10,8 +10,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem("auth_user") || sessionStorage.getItem("auth_user");
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const stored = sessionStorage.getItem("auth_user") || localStorage.getItem("auth_user");
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
 
     const verifySession = async () => {
       try {
