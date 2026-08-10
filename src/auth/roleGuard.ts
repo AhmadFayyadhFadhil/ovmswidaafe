@@ -51,6 +51,11 @@ export function canAccessRoute(user: AuthUser | null, route: string): GuardResul
     return 'allowed';
   }
 
+  // Universal notification routes (accessible by ALL logged in users)
+  if (cleanPath.endsWith('/notifications') || cleanPath === '/notifications') {
+    return 'allowed';
+  }
+
   // Role-specific prefix checks
   if (cleanPath.startsWith('/gahrd')) {
     return allRoles.includes('gahrd') ? 'allowed' : 'forbidden';

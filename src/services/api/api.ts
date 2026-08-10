@@ -37,16 +37,32 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && !error.config?.url?.includes('/login')) {
-      const currentPath = window.location.pathname + window.location.search;
-      if (currentPath && currentPath !== '/login') {
-        sessionStorage.setItem('redirect_intent', currentPath);
+    const isUnauthenticated = error.response?.status === 401;
+    const requestUrl = error.config?.url || '';
+    const isLoginEndpoint = requestUrl.includes('/login');
+
+    if (isUnauthenticated && !isLoginEndpoint) {
+      // Do not kick user to login for background polling requests (e.g., notification badge polling)
+      const isBackgroundPolling = requestUrl.includes('/notifications') || 
+        requestUrl.includes('/public-stats') ||
+        requestUrl.includes('/trip-purposes') ||
+        requestUrl.includes('/destination-cities') ||
+        requestUrl.includes('/departments');
+
+      if (isBackgroundPolling) {
+        return Promise.reject(error);
       }
-      localStorage.removeItem('token');
-      localStorage.removeItem('auth_user');
-      sessionStorage.removeItem('token');
-      sessionStorage.removeItem('auth_user');
-      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+
+      // Only redirect if we are not already on the login page
+      const currentPath = window.location.pathname + window.location.search;
+      if (window.location.pathname !== '/login') {
+        sessionStorage.setItem('redirect_intent', currentPath);
+        localStorage.removeItem('token');
+        localStorage.removeItem('auth_user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('auth_user');
+        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+      }
     }
     return Promise.reject(error);
   }
