@@ -49,9 +49,10 @@ export default function SecurityDashboard() {
   };
 
   const handleConfirmScanClick = (type: "checkout" | "checkin", itId?: number, session?: 'morning' | 'afternoon') => {
+    setSelectedTripId(null);
     setConfirmingType(type);
-    if (itId) setSelectedItineraryId(itId);
-    if (session) setSelectedSession(session);
+    setSelectedItineraryId(itId ?? null);
+    setSelectedSession(session ?? null);
     setShowNameModal(true);
   };
 
