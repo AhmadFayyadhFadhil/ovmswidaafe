@@ -123,40 +123,31 @@ export function SearchableSelect({
       </div>
 
       {/* Autocomplete Recommendation Dropdown Popup */}
-      {isOpen && !disabled && (
+      {isOpen && !disabled && filteredOptions.length > 0 && (
         <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto py-1.5 divide-y divide-slate-100 animate-in fade-in slide-in-from-top-1 duration-150">
           <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 flex items-center justify-between">
             <span>Rekomendasi Master Data</span>
-            {options.length > 0 && <span>{filteredOptions.length} pilihan</span>}
+            <span>{filteredOptions.length} pilihan</span>
           </div>
 
           <div className="py-1">
-            {filteredOptions.length === 0 ? (
-              <div className="px-3 py-2 text-[12px] text-slate-500 italic flex items-center gap-1.5 bg-blue-50/50">
-                <Icon name="edit_note" className="text-base text-blue-600" />
-                <span>
-                  {value.trim() ? `Input kustom: "${value}"` : "Ketik untuk memilih atau menambah data..."}
-                </span>
-              </div>
-            ) : (
-              filteredOptions.map((opt) => {
-                const isSelected = value.toLowerCase() === opt.toLowerCase();
-                return (
-                  <div
-                    key={opt}
-                    onClick={() => handleSelectOption(opt)}
-                    className={`px-3 py-2 text-[12.5px] cursor-pointer flex items-center justify-between transition-colors ${
-                      isSelected
-                        ? "bg-blue-50 text-blue-800 font-bold"
-                        : "text-slate-700 hover:bg-slate-50 hover:text-blue-700"
-                    }`}
-                  >
-                    <span>{opt}</span>
-                    {isSelected && <Icon name="check" className="text-base text-blue-700" />}
-                  </div>
-                );
-              })
-            )}
+            {filteredOptions.map((opt) => {
+              const isSelected = value.toLowerCase() === opt.toLowerCase();
+              return (
+                <div
+                  key={opt}
+                  onClick={() => handleSelectOption(opt)}
+                  className={`px-3 py-2 text-[12.5px] cursor-pointer flex items-center justify-between transition-colors ${
+                    isSelected
+                      ? "bg-blue-50 text-blue-800 font-bold"
+                      : "text-slate-700 hover:bg-slate-50 hover:text-blue-700"
+                  }`}
+                >
+                  <span>{opt}</span>
+                  {isSelected && <Icon name="check" className="text-base text-blue-700" />}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
