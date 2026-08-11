@@ -128,25 +128,27 @@ export default function SecurityDashboard() {
     }
 
     // Build candidate tokens list (primary token + fallback candidate IDs)
-    const candidatesToTry: string[] = [finalId];
+    const candidatesToTry: string[] = finalId ? [finalId] : [];
 
-    // Extract REQ-{ID} pattern (e.g. REQ-17 from REQ-1786023277...)
-    const reqMatch = finalId.match(/REQ-(\d+)/i);
-    if (reqMatch && reqMatch[1]) {
-      const extractedId = reqMatch[1];
-      if (!candidatesToTry.includes(extractedId)) {
-        candidatesToTry.push(extractedId);
+    if (finalId) {
+      // Extract REQ-{ID} pattern (e.g. REQ-17 from REQ-1786023277...)
+      const reqMatch = finalId.match(/REQ-(\d+)/i);
+      if (reqMatch && reqMatch[1]) {
+        const extractedId = reqMatch[1];
+        if (!candidatesToTry.includes(extractedId)) {
+          candidatesToTry.push(extractedId);
+        }
+        const reqPref = `REQ-${extractedId}`;
+        if (!candidatesToTry.includes(reqPref)) {
+          candidatesToTry.push(reqPref);
+        }
       }
-      const reqPref = `REQ-${extractedId}`;
-      if (!candidatesToTry.includes(reqPref)) {
-        candidatesToTry.push(reqPref);
-      }
-    }
 
-    // Extract short digits sequence if reasonable length
-    const digitsOnly = finalId.replace(/[^0-9]/g, '');
-    if (digitsOnly && digitsOnly.length > 0 && digitsOnly.length <= 6 && !candidatesToTry.includes(digitsOnly)) {
-      candidatesToTry.push(digitsOnly);
+      // Extract short digits sequence if reasonable length
+      const digitsOnly = finalId.replace(/[^0-9]/g, '');
+      if (digitsOnly && digitsOnly.length > 0 && digitsOnly.length <= 6 && !candidatesToTry.includes(digitsOnly)) {
+        candidatesToTry.push(digitsOnly);
+      }
     }
 
     let lastErrorMsg = "Permintaan kendaraan tidak ditemukan. Periksa kembali format kode.";
