@@ -32,7 +32,7 @@ export function SearchableSelect({
   placeholder = "Pilih atau cari...",
   required = false,
   icon,
-  customOptionLabel = "✨ Lainnya (Tulis Sendiri)",
+  customOptionLabel = "Lainnya (Tulis Sendiri...)",
   disabled = false,
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -43,13 +43,14 @@ export function SearchableSelect({
   // Synchronize internal state with external value
   useEffect(() => {
     if (!value) {
-      setIsCustom(false);
       return;
     }
     // Check if value exists in standard options
     const match = options.find((o) => o.toLowerCase() === value.toLowerCase());
     if (!match && value.trim() !== "") {
       setIsCustom(true);
+    } else if (match) {
+      setIsCustom(false);
     }
   }, [value, options]);
 
@@ -71,7 +72,8 @@ export function SearchableSelect({
   const handleSelectOption = (opt: string) => {
     if (opt === "__CUSTOM__") {
       setIsCustom(true);
-      onChange("");
+      const initialVal = searchTerm.trim();
+      onChange(initialVal);
       setSearchTerm("");
       setIsOpen(false);
       return;

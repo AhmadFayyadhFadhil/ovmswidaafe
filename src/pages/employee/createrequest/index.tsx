@@ -445,7 +445,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                   options={purposeOptions}
                   placeholder="Pilih atau cari keperluan perjalanan..."
                   icon="info"
-                  customOptionLabel="✨ Lainnya (Tulis Sendiri...)"
+                  customOptionLabel="Lainnya (Tulis Sendiri...)"
                 />
               </div>
             </div>
@@ -472,7 +472,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                       placeholder="Pilih atau cari kota tujuan (e.g. Surabaya, Pasuruan)..."
                       required
                       icon="location_city"
-                      customOptionLabel="✨ Lainnya (Tulis Sendiri...)"
+                      customOptionLabel="Lainnya (Tulis Sendiri...)"
                     />
                   </div>
                   <div>

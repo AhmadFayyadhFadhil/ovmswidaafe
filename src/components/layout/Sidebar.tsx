@@ -189,6 +189,7 @@ export function Sidebar({
     { icon: "history",          label: "History",             path: "/gahrd/history" },
     { icon: "notifications",    label: "Notifications",       path: "/gahrd/notifications" },
     { icon: "group",            label: "User Activation",     path: "/gahrd/users" },
+    { icon: "settings",         label: "System Settings",     path: "/admin/settings" },
     { icon: "person",           label: "My Profile",          path: "/gahrd/profile" },
   ];
 

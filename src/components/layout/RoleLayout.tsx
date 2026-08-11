@@ -114,6 +114,9 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "User Activation":
           navigate("/gahrd/users");
           break;
+        case "System Settings":
+          navigate("/admin/settings");
+          break;
       }
     } else if (role === "security") {
       switch (page) {

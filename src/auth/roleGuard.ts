@@ -74,7 +74,7 @@ export function canAccessRoute(user: AuthUser | null, route: string): GuardResul
   }
 
   if (cleanPath.startsWith('/admin')) {
-    if (allRoles.includes('gahrd') && cleanPath.startsWith('/admin/vehicles')) {
+    if (allRoles.includes('gahrd') && (cleanPath.startsWith('/admin/vehicles') || cleanPath.startsWith('/admin/settings'))) {
       return 'allowed';
     }
     return 'forbidden';
@@ -163,6 +163,7 @@ export function getAllowedRoutes(user: AuthUser | null): string[] {
       '/gahrd/users',
       '/gahrd/profile',
       '/admin/vehicles',
+      '/admin/settings',
       '/employee/createrequest',
       '/employee/myrequests',
       '/employee/history',
