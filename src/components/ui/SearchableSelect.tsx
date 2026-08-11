@@ -32,27 +32,10 @@ export function SearchableSelect({
   placeholder = "Pilih atau cari...",
   required = false,
   icon,
-  customOptionLabel = "Lainnya (Tulis Sendiri...)",
   disabled = false,
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isCustom, setIsCustom] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Synchronize internal state with external value
-  useEffect(() => {
-    if (!value) {
-      return;
-    }
-    // Check if value exists in standard options
-    const match = options.find((o) => o.toLowerCase() === value.toLowerCase());
-    if (!match && value.trim() !== "") {
-      setIsCustom(true);
-    } else if (match) {
-      setIsCustom(false);
-    }
-  }, [value, options]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -65,62 +48,21 @@ export function SearchableSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const query = (value || "").trim().toLowerCase();
   const filteredOptions = options.filter((opt) =>
-    opt.toLowerCase().includes(searchTerm.toLowerCase())
+    opt.toLowerCase().includes(query)
   );
 
   const handleSelectOption = (opt: string) => {
-    if (opt === "__CUSTOM__") {
-      setIsCustom(true);
-      const initialVal = searchTerm.trim();
-      onChange(initialVal);
-      setSearchTerm("");
-      setIsOpen(false);
-      return;
-    }
-    setIsCustom(false);
     onChange(opt);
-    setSearchTerm("");
     setIsOpen(false);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const text = e.target.value;
-    if (isCustom) {
-      onChange(text);
-    } else {
-      setSearchTerm(text);
-      if (!isOpen) setIsOpen(true);
-    }
-  };
-
-  const handleInputFocus = () => {
-    if (!disabled && !isCustom) {
-      setIsOpen(true);
-    }
   };
 
   return (
     <div className="relative w-full" ref={containerRef}>
       {label && (
-        <label className="block text-[12px] font-semibold text-[#475569] mb-1.5 flex items-center justify-between">
-          <span>
-            {label} {required && <span className="text-red-500">*</span>}
-          </span>
-          {isCustom && (
-            <button
-              type="button"
-              onClick={() => {
-                setIsCustom(false);
-                onChange("");
-                setSearchTerm("");
-                setIsOpen(true);
-              }}
-              className="text-[11px] text-blue-600 hover:underline font-bold flex items-center gap-1 cursor-pointer"
-            >
-              <Icon name="list" className="text-xs" /> Pilih dari Master Data
-            </button>
-          )}
+        <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">
+          {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
 
@@ -132,80 +74,69 @@ export function SearchableSelect({
           />
         )}
 
-        {isCustom ? (
-          /* Input Text Bebas Kustom */
-          <div className="relative">
-            <input
-              required={required}
-              disabled={disabled}
-              value={value}
-              onChange={handleInputChange}
-              placeholder="Ketik kustom di sini..."
-              className={`w-full h-10 ${icon ? "pl-9" : "pl-3"} pr-9 border-2 border-blue-400 bg-white rounded-xl text-[13px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium`}
-            />
+        <div
+          className={`w-full h-10 ${icon ? "pl-9" : "pl-3"} pr-14 border border-[#e2e8f0] rounded-xl text-[13px] bg-[#f8fafc] focus-within:bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 flex items-center transition-all ${
+            disabled ? "opacity-60 pointer-events-none" : ""
+          }`}
+        >
+          <input
+            required={required && !value}
+            disabled={disabled}
+            value={value}
+            onChange={(e) => {
+              onChange(e.target.value);
+              if (!isOpen) setIsOpen(true);
+            }}
+            onFocus={() => {
+              if (!disabled) setIsOpen(true);
+            }}
+            placeholder={placeholder}
+            className="w-full bg-transparent text-[#0f172a] focus:outline-none placeholder:text-slate-400 text-[13px] font-medium"
+          />
+
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
             {value && (
               <button
                 type="button"
-                onClick={() => onChange("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                onClick={() => {
+                  onChange("");
+                  setIsOpen(true);
+                }}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                title="Bersihkan teks"
               >
                 <Icon name="cancel" className="text-base" />
               </button>
             )}
-          </div>
-        ) : (
-          /* Searchable Select Input */
-          <div
-            onClick={handleInputFocus}
-            className={`w-full h-10 ${icon ? "pl-9" : "pl-3"} pr-8 border border-[#e2e8f0] rounded-xl text-[13px] bg-[#f8fafc] hover:bg-white focus-within:bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 flex items-center transition-all cursor-pointer ${
-              disabled ? "opacity-60 pointer-events-none" : ""
-            }`}
-          >
-            <input
-              required={required && !value}
-              disabled={disabled}
-              value={isOpen ? searchTerm : value}
-              onChange={handleInputChange}
-              onFocus={handleInputFocus}
-              placeholder={value || placeholder}
-              className="w-full bg-transparent text-[#0f172a] focus:outline-none placeholder:text-slate-400 text-[13px] cursor-pointer"
-            />
-
-            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {value && !isOpen && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onChange("");
-                    setSearchTerm("");
-                  }}
-                  className="text-slate-400 hover:text-slate-600 cursor-pointer mr-0.5"
-                >
-                  <Icon name="cancel" className="text-base" />
-                </button>
-              )}
+            <button
+              type="button"
+              onClick={() => setIsOpen(!isOpen)}
+              className="text-[#94a3b8] hover:text-[#475569] cursor-pointer p-0.5"
+            >
               <Icon
                 name={isOpen ? "arrow_drop_up" : "arrow_drop_down"}
-                className="text-[#94a3b8] text-[20px] pointer-events-none"
+                className="text-[20px]"
               />
-            </div>
+            </button>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Dropdown Options Popup */}
-      {isOpen && !isCustom && (
+      {/* Autocomplete Recommendation Dropdown Popup */}
+      {isOpen && !disabled && (
         <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto py-1.5 divide-y divide-slate-100 animate-in fade-in slide-in-from-top-1 duration-150">
           <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 flex items-center justify-between">
-            <span>Daftar Pilihan Master Data</span>
-            {searchTerm && <span>{filteredOptions.length} hasil</span>}
+            <span>Rekomendasi Master Data</span>
+            {options.length > 0 && <span>{filteredOptions.length} pilihan</span>}
           </div>
 
           <div className="py-1">
             {filteredOptions.length === 0 ? (
-              <div className="px-3 py-2 text-[12px] text-slate-400 italic text-center">
-                Tidak ada data yang cocok dengan "{searchTerm}"
+              <div className="px-3 py-2 text-[12px] text-slate-500 italic flex items-center gap-1.5 bg-blue-50/50">
+                <Icon name="edit_note" className="text-base text-blue-600" />
+                <span>
+                  {value.trim() ? `Input kustom: "${value}"` : "Ketik untuk memilih atau menambah data..."}
+                </span>
               </div>
             ) : (
               filteredOptions.map((opt) => {
@@ -226,17 +157,6 @@ export function SearchableSelect({
                 );
               })
             )}
-          </div>
-
-          {/* Special Custom Option */}
-          <div className="p-1 bg-slate-50/80">
-            <div
-              onClick={() => handleSelectOption("__CUSTOM__")}
-              className="px-3 py-2 text-[12px] font-bold text-blue-700 bg-blue-50/60 hover:bg-blue-100/70 border border-blue-200/80 rounded-lg cursor-pointer flex items-center gap-1.5 transition-colors"
-            >
-              <Icon name="edit_note" className="text-base text-blue-700" />
-              <span>{customOptionLabel}</span>
-            </div>
           </div>
         </div>
       )}
