@@ -116,12 +116,12 @@ function AssignmentCard({
       <div className="flex flex-col sm:flex-row items-center gap-2 px-5 py-4 border-t border-[#f1f5f9] bg-[#fafbff] mt-auto">
         <button
           onClick={() => onViewDetail(cleanReqId)}
-          className="w-full sm:flex-1 h-9 bg-white border border-[#e2e8f0] text-[#475569] text-[12px] font-bold rounded-xl hover:bg-[#f8fafc] active:scale-95 transition-all cursor-pointer"
+          className={`w-full ${isPending ? 'sm:flex-1' : ''} h-9 bg-white border border-[#e2e8f0] text-[#475569] text-[12px] font-bold rounded-xl hover:bg-[#f8fafc] active:scale-95 transition-all cursor-pointer`}
         >
           View Detail
         </button>
 
-        {isPending ? (
+        {isPending && (
           <>
             <button
               onClick={() => onApprove(req.id)}
@@ -135,30 +135,6 @@ function AssignmentCard({
             >
               Reject
             </button>
-          </>
-        ) : (
-          <>
-            {req.tripStatus === "driver_assigned" && onStartTrip && (
-              <button
-                onClick={() => onStartTrip(cleanReqId)}
-                className="w-full sm:flex-1 h-9 bg-[#16a34a] text-white text-[12px] font-bold rounded-xl hover:bg-[#15803d] active:scale-95 transition-all cursor-pointer"
-              >
-                Mulai Perjalanan
-              </button>
-            )}
-            {isOngoing && onCompleteTrip && (
-              <button
-                onClick={() => onCompleteTrip(cleanReqId)}
-                className="w-full sm:flex-1 h-9 bg-[#16a34a] text-white text-[12px] font-bold rounded-xl hover:bg-[#15803d] active:scale-95 transition-all cursor-pointer"
-              >
-                Selesaikan
-              </button>
-            )}
-            {!["driver_assigned", "on_going"].includes(req.tripStatus || "") && (
-              <span className="text-[12px] font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">
-                Menunggu Konfirmasi GA/HRD
-              </span>
-            )}
           </>
         )}
       </div>
