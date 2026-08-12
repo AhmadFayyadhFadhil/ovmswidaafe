@@ -145,7 +145,7 @@ export default function GAHRDDashboard({ onNavigate }: { onNavigate: (p: string)
             </div>
 
             {/* Stat Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+            <div data-guide="gahrd-dashboard-overview" className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
               {statCards.map((s) => (
                 <div key={s.label} className={`bg-white border border-[#e2e8f0] border-l-4 ${s.border} rounded-2xl p-4 sm:p-5`}>
                   <div className="flex items-center justify-between mb-3">
@@ -162,7 +162,7 @@ export default function GAHRDDashboard({ onNavigate }: { onNavigate: (p: string)
             {/* Two-column layout */}
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
               {/* Left: Recent Requests Table */}
-              <div className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden">
+              <div data-guide="gahrd-recent-table" className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden">
                 <div className="px-5 sm:px-6 py-4 border-b border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Icon name="receipt_long" className="text-[18px] text-[#1e3a8a]" />

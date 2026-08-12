@@ -109,12 +109,12 @@ export default function EmployeeDashboard() {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Upcoming Trips */}
+          {/* Main content - Upcoming Trips */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm">
+            <div data-guide="employee-upcoming-trips" className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden">
               <div className="p-6 border-b border-[#e2e8f0]">
-                <h2 className="text-[18px] font-bold text-[#0f172a]">Upcoming Trips</h2>
-                <p className="text-[13px] text-[#64748b] mt-1">Your scheduled vehicle requests</p>
+                <h3 className="text-[16px] font-bold text-[#0f172a]">Upcoming Trips</h3>
+                <p className="text-[12px] text-[#64748b] mt-1">Your scheduled vehicle bookings and drivers</p>
               </div>
               <div className="divide-y divide-[#e2e8f0]">
                 {loading ? (
@@ -172,7 +172,7 @@ export default function EmployeeDashboard() {
 
           {/* Quick Actions */}
           <div>
-            <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-6">
+            <div data-guide="employee-quick-actions" className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-6">
               <h3 className="text-[16px] font-bold text-[#0f172a] mb-4">Quick Actions</h3>
               <div className="space-y-3">
                 <button

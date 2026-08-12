@@ -472,7 +472,7 @@ export default function ApprovalManagement() {
             <p className="text-[13px] text-[#64748b] mt-1">All requests have been processed.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div data-guide="approver-requests-list" className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {displayed.map((req) => (
               <RequestCard
                 key={req.id}

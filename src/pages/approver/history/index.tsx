@@ -388,7 +388,7 @@ export default function HistoryPage() {
         </div>
 
         {/* List */}
-        <div className="flex flex-col gap-3">
+        <div data-guide="approver-history-table" className="flex flex-col gap-3">
           {loading ? (
             <div className="text-center text-[#64748b] py-20 bg-white border border-[#e2e8f0] rounded-2xl">
               Loading decision history...

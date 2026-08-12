@@ -377,7 +377,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
     >
       <div className="p-4 sm:p-6 space-y-5 animate-fadein">
         {/* ── STAT CARDS ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div data-guide="admin-dashboard-stats" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {STATS.map(card => (
             <div key={card.label} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between mb-2">

@@ -389,7 +389,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
           ) : error ? (
             <div className="p-8 text-center text-[14px] text-red-500">Failed to load users data.</div>
           ) : (
-          <div className="overflow-x-auto">
+          <div data-guide="admin-users-table" className="overflow-x-auto">
           <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="bg-[#f8fafc]">

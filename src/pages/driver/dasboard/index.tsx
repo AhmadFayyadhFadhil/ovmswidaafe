@@ -620,10 +620,10 @@ export default function DriverDashboard() {
         })();
 
         return (
-          <div className="p-4 sm:p-8 space-y-6">
+          <div data-guide="driver-dashboard-overview" className="p-4 sm:p-8 space-y-6">
             {/* Hero current assignment */}
             {currentTrip ? (
-              <div className="relative bg-[#0f1f3d] rounded-2xl p-6 sm:p-7 overflow-hidden text-white shadow-lg">
+              <div data-guide="driver-task-card" className="relative bg-[#0f1f3d] rounded-2xl p-6 sm:p-7 overflow-hidden text-white shadow-lg">
                 <div className="absolute right-0 top-0 w-64 h-64 bg-[#1e3a8a]/30 rounded-full -translate-y-1/3 translate-x-1/3 pointer-events-none" />
                 <div className="absolute right-20 bottom-0 w-40 h-40 bg-[#1e3a8a]/20 rounded-full translate-y-1/2 pointer-events-none" />
 

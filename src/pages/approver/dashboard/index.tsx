@@ -294,7 +294,7 @@ export default function DashboardPage() {
     >
       <div className="p-4 sm:p-8 bg-[#f8f9ff] min-h-screen">
         {/* Page title + Quick Approval button */}
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
+        <div data-guide="approver-dashboard-header" className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
           <div>
             <h2 className="text-2xl sm:text-[26px] font-bold text-[#0f172a] leading-tight">
               Department Operations Dashboard
@@ -302,6 +302,7 @@ export default function DashboardPage() {
             <p className="text-[14px] text-[#64748b] mt-1">Monitor department approvals.</p>
           </div>
           <button
+            data-guide="approver-quick-approval"
             onClick={() => navigate("/approver/requests")}
             className="h-11 px-5 bg-[#1e3a8a] text-white text-[13px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all flex items-center gap-2 shadow-sm cursor-pointer self-start sm:self-auto"
           >
@@ -328,7 +329,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-7">
+        <div data-guide="approver-stat-cards" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-7">
           <StatCard icon="pending_actions" label="Pending Approvals"  value={loading ? "..." : String(pendingCount)}    iconBg="bg-[#f0f4ff]" iconColor="text-[#1e3a8a]" />
           <StatCard icon="list_alt"        label="Total Requests"     value={loading ? "..." : String(totalRequestsCount)} iconBg="bg-[#f0f4ff]" iconColor="text-[#1e3a8a]" />
           <StatCard icon="cancel"          label="Rejected Requests"  value={loading ? "..." : String(rejectedCount)}    iconBg="bg-[#fef2f2]" iconColor="text-[#dc2626]" />
