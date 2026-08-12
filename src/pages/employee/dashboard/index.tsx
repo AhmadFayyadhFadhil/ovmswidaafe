@@ -93,8 +93,8 @@ export default function EmployeeDashboard() {
           <p className="text-[14px] text-[#64748b] mt-1">Here's what's happening with your vehicle requests today.</p>
         </div>
 
-        {/* Stat Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Stat Cards Row */}
+        <div data-guide="employee-dashboard-stats" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {STATS.map((stat, i) => (
             <div key={i} className="bg-white rounded-2xl p-5 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
               <div className={`w-12 h-12 ${stat.iconBg} rounded-xl flex items-center justify-center mb-4`}>

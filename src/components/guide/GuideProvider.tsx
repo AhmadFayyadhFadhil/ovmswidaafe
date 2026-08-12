@@ -62,6 +62,19 @@ export function GuideProvider({ children }: { children: ReactNode }) {
 
   const currentStep = activeTour?.steps[currentStepIndex] || null;
 
+  // Helper function to check if a DOM element is physically visible in the viewport
+  const isElementVisible = (el: Element): boolean => {
+    const rect = el.getBoundingClientRect();
+    return (
+      rect.width > 0 &&
+      rect.height > 0 &&
+      rect.left >= 0 &&
+      rect.top >= 0 &&
+      rect.left < window.innerWidth &&
+      rect.top < window.innerHeight
+    );
+  };
+
   // Find & measure target element rect in DOM
   const updateTargetRect = useCallback(() => {
     if (!currentStep) {
@@ -78,15 +91,28 @@ export function GuideProvider({ children }: { children: ReactNode }) {
       el = document.querySelector(`[data-guide="${selector}"]`) || document.querySelector(selector);
     }
 
-    if (el) {
+    // Check if element exists AND is physically visible on screen
+    if (el && isElementVisible(el)) {
       const rect = el.getBoundingClientRect();
       setTargetRect(rect);
       setIsWaitingForElement(false);
-      // Ensure target element is scrolled into view smoothly
       el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
     } else {
-      setTargetRect(null);
-      setIsWaitingForElement(true);
+      // Fallback: search for prominent page-level container elements if sidebar target is collapsed
+      const fallbackEl = document.querySelector('[data-guide$="-header"]') ||
+                         document.querySelector('[data-guide$="-stats"]') ||
+                         document.querySelector('[data-guide$="-overview"]') ||
+                         document.querySelector('[data-guide$="-trips"]') ||
+                         document.querySelector('[data-guide$="-cards"]');
+      if (fallbackEl && isElementVisible(fallbackEl)) {
+        const rect = fallbackEl.getBoundingClientRect();
+        setTargetRect(rect);
+        setIsWaitingForElement(false);
+        fallbackEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      } else {
+        setTargetRect(null);
+        setIsWaitingForElement(true);
+      }
     }
   }, [currentStep]);
 
@@ -109,7 +135,7 @@ export function GuideProvider({ children }: { children: ReactNode }) {
     const interval = setInterval(() => {
       attempts++;
       updateTargetRect();
-      if (attempts > 20) {
+      if (attempts >= 20) {
         clearInterval(interval);
       }
     }, 200);
@@ -132,6 +158,10 @@ export function GuideProvider({ children }: { children: ReactNode }) {
     }
 
     if (tourToStart && tourToStart.steps.length > 0) {
+      const firstStep = tourToStart.steps[0];
+      if (firstStep?.route && location.pathname !== firstStep.route.split('?')[0]) {
+        navigate(firstStep.route);
+      }
       setActiveTour(tourToStart);
       setCurrentStepIndex(0);
     }
