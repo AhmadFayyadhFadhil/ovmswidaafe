@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      window.onerror = function(msg, url, lineNo, columnNo, error) {
+        var div = document.createElement('div');
+        div.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;color:#dc2626;padding:20px;z-index:999999;font-family:sans-serif;font-size:13px;word-break:break-all;overflow:auto;';
+        div.innerHTML = '<h3 style="font-size:16px;margin-bottom:8px;">⚠️ Error Terdeteksi di Perangkat Zebra:</h3><p><b>' + msg + '</b></p><p style="color:#64748b;margin-top:8px;">File: ' + url + '<br>Baris: ' + lineNo + ' | Kolom: ' + columnNo + '</p><p style="margin-top:12px;color:#0f172a;">Stack Trace:<br><pre style="white-space:pre-wrap;font-size:11px;">' + (error && error.stack ? error.stack : 'N/A') + '</pre></p>';
+        document.body.appendChild(div);
+        return false;
+      };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/core-js/3.36.0/minified.js" crossorigin="anonymous"></script>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Local Fonts Preload for instant FCP/LCP -->
+    <link rel="preload" href="/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/outfit.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/material-symbols-outlined.woff2" as="font" type="font/woff2" crossorigin>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Order Vehicle Management System (OVMS) dashboard for monitoring vehicle usage, schedules, and driver assignments." />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>ovms-frontend</title>
+    <script type="module" crossorigin src="/assets/index-BTBGltGJ.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-QTnfLwEv.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-core-DKONGLQ_.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-helpers-u9PAKso4.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-DXwqwi3p.css">
+    <script type="module">import'data:text/javascript,if(!import.meta.resolve)throw Error("import.meta.resolve not supported")';import.meta.url;import("_").catch(()=>1);(async function*(){})().next();window.__vite_is_modern_browser=true</script>
+    <script type="module">!function(){if(window.__vite_is_modern_browser)return;console.warn("vite: loading legacy chunks, syntax error above and the same error below should be ignored");var e=document.getElementById("vite-legacy-polyfill"),n=document.createElement("script");n.src=e.src,n.onload=function(){System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))},document.body.appendChild(n)}();</script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script nomodule>!function(){var e=document,t=e.createElement("script");if(!("noModule"in t)&&"onbeforeload"in t){var n=!1;e.addEventListener("beforeload",(function(e){if(e.target===t)n=!0;else if(!e.target.hasAttribute("nomodule")||!n)return;e.preventDefault()}),!0),t.type="module",t.src=".",e.head.appendChild(t),t.remove()}}();</script>
+    <script nomodule crossorigin id="vite-legacy-polyfill" src="/assets/polyfills-legacy-DqOS6Erc.js"></script>
+    <script nomodule crossorigin id="vite-legacy-entry" data-src="/assets/index-legacy-BPrCxsz3.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
+  </body>
+</html>
