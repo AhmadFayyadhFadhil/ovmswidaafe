@@ -595,7 +595,7 @@ export default function SecurityDashboard() {
                 SCAN QR DISINI
               </h2>
               <p className="text-sm text-slate-400 mt-1 max-w-xs leading-relaxed">
-                Pindai kode QR tiket perjalanan karyawan menggunakan kamera atau unggah foto scan tiket.
+                Pindai kode QR tiket perjalanan karyawan menggunakan kamera.
               </p>
 
               {/* Kamera Live Scanner / Captured Photo Container */}
@@ -703,13 +703,6 @@ export default function SecurityDashboard() {
                     <Icon name="refresh" className="text-base" /> Pindai Ulang
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 h-12 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Icon name="image" className="text-base" /> Upload Foto Scan
-                </button>
               </div>
 
               {/* Manual Request Search Input Form */}
