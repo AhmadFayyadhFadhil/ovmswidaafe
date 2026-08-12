@@ -309,7 +309,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
     >
       <div className="p-4 sm:p-6 space-y-5 animate-fadein">
         {/* Header */}
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div data-guide="admin-users-table" className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-[26px] font-bold text-[#0f172a]">User Management</h2>
             <p className="text-[13px] text-[#64748b] mt-1">Manage employees, drivers, approvers, and administrator access.</p>

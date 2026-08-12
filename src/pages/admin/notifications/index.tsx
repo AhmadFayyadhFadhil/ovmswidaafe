@@ -186,7 +186,7 @@ export default function Notification({
     >
       <div className="max-w-4xl mx-auto p-6 space-y-6 animate-in fade-in duration-200">
         {/* Category filter + Mark All Read + Delete All */}
-        <div className="bg-white p-4 rounded-xl border border-slate-100 flex items-center justify-between flex-wrap gap-4 shadow-sm">
+        <div data-guide="notification-center" className="bg-white p-4 rounded-xl border border-slate-100 flex items-center justify-between flex-wrap gap-4 shadow-sm">
           <div className="flex flex-wrap gap-2 bg-slate-100 p-0.5 rounded-xl text-xs font-semibold">
             {categories.map((cat) => (
               <button

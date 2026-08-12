@@ -764,7 +764,7 @@ export default function DriverDashboard() {
             </div>
 
             {/* 1. Daftar Tugas Baru (PRIORITAS UTAMA DRIVER) */}
-            <div className="space-y-4">
+            <div data-guide="driver-assignment" className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-[17px] font-bold text-[#0f172a]">Daftar Tugas Baru</div>

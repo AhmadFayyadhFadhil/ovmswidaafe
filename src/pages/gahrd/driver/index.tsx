@@ -421,7 +421,7 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
     >
       <div className="flex-1 overflow-y-auto bg-[#f8f9ff] p-4 sm:p-8">
 
-        <div className="text-[18px] font-bold text-[#0f172a] mb-1">Driver Availability Center</div>
+        <div data-guide="driver-assignment" className="text-[18px] font-bold text-[#0f172a] mb-1">Driver Availability Center</div>
         <div className="text-[13px] text-[#64748b] mb-6 max-w-2xl">
           Monitor driver readiness, operational schedules, ratings, and transportation workload across activities.
         </div>

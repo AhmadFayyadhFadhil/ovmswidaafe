@@ -247,7 +247,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
     >
       <div className="p-4 sm:p-6 space-y-5 animate-fadein">
         {/* Page Header */}
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div data-guide="vehicle-assignment" className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-[26px] font-bold text-[#0f172a]">Vehicle Fleet</h2>
             <p className="text-[13px] text-[#64748b] mt-1">Real-time oversight and asset optimization for your enterprise fleet.</p>

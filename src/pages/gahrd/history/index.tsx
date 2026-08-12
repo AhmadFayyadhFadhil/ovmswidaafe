@@ -83,7 +83,7 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
     >
       <div className="flex-1 overflow-y-auto bg-[#f8f9ff] p-4 sm:p-8">
         {/* Page header */}
-        <div className="mb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+        <div data-guide="gahrd-history" className="mb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
           <div>
             <h2 className="text-[24px] font-extrabold text-[#0f172a] tracking-tight">Riwayat Operasional Kendaraan</h2>
             <p className="text-[13.5px] text-[#64748b] mt-0.5">Arsip riwayat perjalanan dinas, persetujuan, dan pengajuan yang selesai atau ditolak.</p>

@@ -200,7 +200,7 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
     <Layout activeNav="Role Management" onNavigate={onNavigate} topbarTitle="Role Management" searchPlaceholder="Search roles..." userName="Admin User" userRole="Administrator">
       <div className="p-4 sm:p-6 space-y-5 animate-fadein pb-12">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div data-guide="role-management" className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div>
             <h2 className="text-[24px] font-bold text-[#0f172a]">Role Management</h2>
             <p className="text-[13px] text-[#64748b] mt-1">Manage system roles, permissions, and access control across the enterprise.</p>

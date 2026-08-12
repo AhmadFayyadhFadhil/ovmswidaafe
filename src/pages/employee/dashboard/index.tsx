@@ -88,7 +88,7 @@ export default function EmployeeDashboard() {
     >
       <div className="p-4 sm:p-6 space-y-6 animate-fadein">
         {/* Header */}
-        <div>
+        <div data-guide="dashboard">
           <h1 className="text-2xl sm:text-[32px] font-bold text-[#0f172a] leading-tight">Welcome back, {user?.name || "User"}!</h1>
           <p className="text-[14px] text-[#64748b] mt-1">Here's what's happening with your vehicle requests today.</p>
         </div>

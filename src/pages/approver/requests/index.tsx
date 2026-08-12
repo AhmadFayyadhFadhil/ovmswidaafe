@@ -405,7 +405,7 @@ export default function ApprovalManagement() {
     >
       <div className="p-4 sm:p-8 bg-[#f8f9ff] min-h-screen">
         {/* Page header */}
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-6 gap-4">
+        <div data-guide="approver-requests-list" className="flex flex-col sm:flex-row sm:items-start justify-between mb-6 gap-4">
           <div>
             <h2 className="text-[26px] font-bold text-[#0f172a] leading-tight">Approval Management</h2>
             <p className="text-[14px] text-[#64748b] mt-1">Review and manage vehicle requests across departments.</p>

@@ -328,7 +328,7 @@ export default function HistoryPage() {
     >
       <div className="p-4 sm:p-8 bg-[#f8f9ff] min-h-screen">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-8 gap-4">
+        <div data-guide="approver-history-table" className="flex flex-col sm:flex-row sm:items-start justify-between mb-8 gap-4">
           <div>
             <h2 className="text-[22px] font-bold text-[#0f172a]">Approval Decision History</h2>
             <p className="text-[13px] text-[#64748b] mt-1 max-w-md leading-relaxed">

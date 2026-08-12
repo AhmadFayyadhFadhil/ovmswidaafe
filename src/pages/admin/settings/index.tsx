@@ -432,7 +432,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
       <div className="flex-1 overflow-y-auto p-6">
 
           {/* Page header */}
-          <div className="flex items-start justify-between mb-5">
+          <div data-guide="system-settings" className="flex items-start justify-between mb-5">
             <div>
               <h2 className="text-[24px] font-bold text-[#0f172a]">Pengaturan Sistem</h2>
               <p className="text-[13px] text-[#64748b] mt-0.5">Kelola konfigurasi sistem, keamanan, notifikasi, dan pengaturan operasional.</p>

@@ -611,7 +611,7 @@ export default function GAHRDRequestsPage() {
     >
       <div className="flex-1 overflow-y-auto bg-[#f8f9ff] p-4 sm:p-8">
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div data-guide="gahrd-requests" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
             <div className="text-[18px] font-bold text-[#0f172a] mb-1">Driver Assignment Center</div>
             <div className="text-[13px] text-[#64748b] max-w-2xl">

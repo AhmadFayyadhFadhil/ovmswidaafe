@@ -413,7 +413,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
 
 
         {/* Page Header */}
-        <div className="max-w-4xl mx-auto mb-6">
+        <div data-guide="create-request" className="max-w-4xl mx-auto mb-6">
           <h2 className="text-[26px] font-bold text-[#0f172a]">Create Vehicle Request</h2>
           <p className="text-[13px] text-[#64748b] mt-1">Submit operational transportation requests efficiently for internal company activities.</p>
         </div>

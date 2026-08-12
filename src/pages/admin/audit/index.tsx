@@ -154,7 +154,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
     >
       <div className="p-4 sm:p-5 space-y-4">
         {/* Page header */}
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div data-guide="audit-logs" className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-[24px] font-bold text-[#0f172a]">Audit Logs</h2>
             <p className="text-[12.5px] text-[#64748b] mt-0.5 max-w-lg">

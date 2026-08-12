@@ -393,7 +393,7 @@ export default function MyRequestsPage() {
     >
       <div className="p-4 sm:p-6 animate-fadeup space-y-5">
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div data-guide="my-requests" className="flex items-start justify-between">
           <div>
             <h2 className="text-[26px] font-bold text-[#0f172a]">My Requests</h2>
             <p className="text-[13px] text-[#64748b] mt-1">Monitor operational vehicle requests, approvals, driver assignments, and progress.</p>

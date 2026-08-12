@@ -175,7 +175,7 @@ export default function GAHRDCalendarPage({ onNavigate }: { onNavigate?: (p: str
         ) : (
           <div className="space-y-4">
             {/* Header Filter Panel */}
-            <div className="bg-white border-b border-[#e2e8f0] p-6 sm:px-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div data-guide="gahrd-schedule" className="bg-white border-b border-[#e2e8f0] p-6 sm:px-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h1 className="text-[22px] font-extrabold text-[#0f172a] tracking-tight">Kalender Penugasan Driver</h1>
                 <p className="text-[12.5px] text-[#64748b]">Pantau dan filter seluruh jadwal tugas armada pengemudi.</p>
