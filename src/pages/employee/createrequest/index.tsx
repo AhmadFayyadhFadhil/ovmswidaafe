@@ -451,7 +451,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
             </div>
 
             {/* 2. Destination & Schedule */}
-            <div className="bg-[#ffffff] rounded-2xl border border-[#e2e8f0] shadow-sm p-5">
+            <div data-guide="request-destination" className="bg-[#ffffff] rounded-2xl border border-[#e2e8f0] shadow-sm p-5">
               <div className="flex items-start gap-3 mb-4">
                 <div className="w-10 h-10 bg-[#ffd9d5] rounded-xl flex items-center justify-center flex-shrink-0">
                   <Icon name="location_on" className="text-[#ba1a1a] text-[20px]" />
@@ -488,7 +488,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div data-guide="request-datetime" className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Departure Date &amp; Time <span className="text-red-500">*</span></label>
                     <input type="datetime-local" lang="id-ID" value={departure} onChange={e => setDeparture(e.target.value)}
@@ -512,7 +512,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                     )}
                   </div>
                 </div>
-                <div>
+                <div data-guide="request-priority">
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Priority</label>
                   <select value={priority} onChange={e => setPriority(e.target.value)}
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all">
@@ -795,6 +795,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
             {/* Action Buttons */}
             <div className="flex items-center justify-end gap-2.5 pt-2 flex-wrap">
               <button
+                data-guide="submit-request"
                 onClick={handlePreSubmitCheck}
                 disabled={!purpose || !destinationCity || !destinationPlace || !departure || submitting || submitted}
                 className={`h-10 px-6 rounded-xl text-[13px] font-bold transition-all active:scale-95 shadow-sm ${

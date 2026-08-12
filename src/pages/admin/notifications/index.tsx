@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import {
   Bell,
   CheckCircle,
-  X,
   MailOpen,
   Trash2,
 } from "lucide-react";
@@ -20,36 +19,6 @@ interface NotificationProps {
 
 const DELETED_KEY = "ovms_deleted_notification_ids";
 const READ_KEY = "ovms_read_notification_ids";
-
-function getLocalDeletedIds(): string[] {
-  try {
-    const raw = localStorage.getItem(DELETED_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveLocalDeletedIds(ids: string[]) {
-  try {
-    localStorage.setItem(DELETED_KEY, JSON.stringify(Array.from(new Set(ids))));
-  } catch {}
-}
-
-function getLocalReadIds(): string[] {
-  try {
-    const raw = localStorage.getItem(READ_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveLocalReadIds(ids: string[]) {
-  try {
-    localStorage.setItem(READ_KEY, JSON.stringify(Array.from(new Set(ids))));
-  } catch {}
-}
 
 /**
  * NotificationCenter — DUAL-LAYER PERSISTENCE (Server DB + LocalStorage Backup).

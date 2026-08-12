@@ -290,11 +290,22 @@ export function RequestDetailModal({
                 let reasonText = request.rejected_reason || request.rejectedReason || "";
 
                 if (isCancelled) {
-                  actorName = request.employee || request.requested_by?.name || "Pemohon";
+                  actorName = request.cancelled_by_name || request.cancelledByName || request.cancelled_by?.name || "";
+                  if (!actorName) {
+                    const rejApproval = request.approvals?.find((a: any) => a.status === "rejected" || a.status === "cancelled");
+                    if (rejApproval) {
+                      actorName = rejApproval.approver?.name ? `${rejApproval.approver.name} (${getApprovalRoleLabel(rejApproval.role)})` : getApprovalRoleLabel(rejApproval.role) || "GA / Approver";
+                      if (!reasonText && rejApproval.notes) {
+                        reasonText = rejApproval.notes;
+                      }
+                    } else {
+                      actorName = request.employee || request.requested_by?.name || "Pemohon";
+                    }
+                  }
                 } else {
                   const rejApproval = request.approvals?.find((a: any) => a.status === "rejected");
                   if (rejApproval) {
-                    actorName = rejApproval.approver?.name || getApprovalRoleLabel(rejApproval.role) || "Approver";
+                    actorName = rejApproval.approver?.name ? `${rejApproval.approver.name} (${getApprovalRoleLabel(rejApproval.role)})` : getApprovalRoleLabel(rejApproval.role) || "Approver";
                     if (!reasonText && rejApproval.notes) {
                       reasonText = rejApproval.notes;
                     }

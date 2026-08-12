@@ -3,9 +3,12 @@ import type { Vehicle } from '../../types';
 import type { ApiResponse } from '../../types/api';
 import { ENDPOINTS } from '../../constants/endpoints';
 
+let vehicleCache: any = null;
+
 export const vehicleService = {
-  clearCache: () => { /* no-op, cache removed */ },
+  clearCache: () => { vehicleCache = null; },
   getAll: async (params?: any): Promise<ApiResponse<Vehicle[]>> => {
+    if (vehicleCache && !params) return { data: vehicleCache, message: 'From cache' };
     const res = await apiClient.get<any>(ENDPOINTS.VEHICLES, { params });
     const list = Array.isArray(res.data?.data) ? res.data.data : [];
     

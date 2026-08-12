@@ -47,7 +47,7 @@ function ReqIdBadge({ id }: { id: string }) {
 }
 
 function AssignmentCard({
-  req, isPending, onApprove, onReject, onViewDetail, onStartTrip, onCompleteTrip
+  req, isPending, onApprove, onReject, onViewDetail, onStartTrip: _onStartTrip, onCompleteTrip: _onCompleteTrip
 }: {
   req: Assignment;
   isPending: boolean;
@@ -58,7 +58,6 @@ function AssignmentCard({
   onCompleteTrip?: (reqId: string) => void;
 }) {
   const cleanReqId = req.reqId.replace('#REQ-', '');
-  const isOngoing = req.tripStatus === "on_going";
 
   return (
     <div className="bg-white border border-[#e2e8f0] rounded-2xl flex flex-col overflow-hidden hover:border-[#c7d7f7] hover:shadow-sm transition-all">

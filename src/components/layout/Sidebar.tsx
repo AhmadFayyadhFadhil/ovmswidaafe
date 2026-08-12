@@ -103,7 +103,7 @@ export function Sidebar({
     window.location.href = "/login";
   };
 
-  const btn = (item: { icon: string; label: string }, path: string) => {
+  const btn = (item: { icon: string; label: string; guideKey?: string }, path: string) => {
     const currentPath = window.location.pathname;
     const currentSearch = window.location.search;
     
@@ -130,6 +130,7 @@ export function Sidebar({
     return (
       <button
         key={item.label}
+        data-guide={item.guideKey || item.label.toLowerCase().replace(/\s+/g, '-')}
         onClick={() => go(item.label, path)}
         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 ${
           isActive
@@ -148,76 +149,76 @@ export function Sidebar({
 
   // Employee menu
   const employeeMenu = [
-    { icon: "dashboard", label: "Dashboard", path: "/employee/dashboard" },
-    { icon: "add_box", label: "Create Request", path: "/employee/createrequest" },
-    { icon: "list_alt", label: "My Requests", path: "/employee/myrequests" },
-    { icon: "history", label: "History", path: "/employee/history" },
-    { icon: "notifications", label: "Notifications", path: "/employee/notifications" },
-    { icon: "person", label: "My Profile", path: "/employee/profile" },
+    { icon: "dashboard", label: "Dashboard", path: "/employee/dashboard", guideKey: "dashboard" },
+    { icon: "add_box", label: "Create Request", path: "/employee/createrequest", guideKey: "create-request" },
+    { icon: "list_alt", label: "My Requests", path: "/employee/myrequests", guideKey: "my-requests" },
+    { icon: "history", label: "History", path: "/employee/history", guideKey: "vehicle-schedule" },
+    { icon: "notifications", label: "Notifications", path: "/employee/notifications", guideKey: "notifications" },
+    { icon: "person", label: "My Profile", path: "/employee/profile", guideKey: "profile" },
   ];
 
 
   // Approver menu
   const approverMenu = [
-    { icon: "dashboard", label: "Dashboard", path: "/approver/dashboard" },
-    { icon: "add_box", label: "Create Request", path: "/employee/createrequest" },
-    { icon: "list_alt", label: "My Requests", path: "/employee/myrequests" },
-    { icon: "list_alt", label: "Pending Requests", path: "/approver/requests" },
-    { icon: "history", label: "History", path: "/approver/history" },
-    { icon: "notifications", label: "Notifications", path: "/approver/notifications" },
-    { icon: "person", label: "My Profile", path: "/approver/profile" },
+    { icon: "dashboard", label: "Dashboard", path: "/approver/dashboard", guideKey: "approver-dashboard" },
+    { icon: "add_box", label: "Create Request", path: "/employee/createrequest", guideKey: "create-request" },
+    { icon: "list_alt", label: "My Requests", path: "/employee/myrequests", guideKey: "my-requests" },
+    { icon: "list_alt", label: "Pending Requests", path: "/approver/requests", guideKey: "pending-requests" },
+    { icon: "history", label: "History", path: "/approver/history", guideKey: "approval-history" },
+    { icon: "notifications", label: "Notifications", path: "/approver/notifications", guideKey: "notifications" },
+    { icon: "person", label: "My Profile", path: "/approver/profile", guideKey: "profile" },
   ];
 
   // Driver menu
   const driverMenu = [
-    { icon: "dashboard", label: "Dashboard", path: "/driver/dashboard" },
-    { icon: "assignment", label: "My Tasks", path: "/driver/dashboard?tab=assignments" },
-    { icon: "history", label: "History", path: "/driver/dashboard?tab=schedule" },
-    { icon: "event", label: "Calendar", path: "/driver/dashboard?tab=calendar" },
-    { icon: "directions_car", label: "My Vehicle", path: "/driver/dashboard?tab=vehicle" },
-    { icon: "notifications", label: "Notifications", path: "/driver/notifications" },
-    { icon: "person", label: "My Profile", path: "/driver/profile" },
+    { icon: "dashboard", label: "Dashboard", path: "/driver/dashboard", guideKey: "driver-dashboard" },
+    { icon: "assignment", label: "My Tasks", path: "/driver/dashboard?tab=assignments", guideKey: "driver-assignment" },
+    { icon: "history", label: "History", path: "/driver/dashboard?tab=schedule", guideKey: "driver-history" },
+    { icon: "event", label: "Calendar", path: "/driver/dashboard?tab=calendar", guideKey: "driver-schedule" },
+    { icon: "directions_car", label: "My Vehicle", path: "/driver/dashboard?tab=vehicle", guideKey: "driver-vehicle" },
+    { icon: "notifications", label: "Notifications", path: "/driver/notifications", guideKey: "notifications" },
+    { icon: "person", label: "My Profile", path: "/driver/profile", guideKey: "profile" },
   ];
 
   // GAHRD menu
   const gahrdMenu = [
-    { icon: "dashboard",        label: "Dashboard",           path: "/gahrd/dashboard" },
-    { icon: "monitor_heart",    label: "Requests",            path: "/gahrd/requests" },
-    { icon: "directions_car",   label: "Vehicle Management",  path: "/admin/vehicles" },
-    { icon: "person",           label: "Driver Availability", path: "/gahrd/driver" },
-    { icon: "event",            label: "Calendar",            path: "/gahrd/calendar" },
-    { icon: "history",          label: "History",             path: "/gahrd/history" },
-    { icon: "notifications",    label: "Notifications",       path: "/gahrd/notifications" },
-    { icon: "group",            label: "User Activation",     path: "/gahrd/users" },
-    { icon: "settings",         label: "System Settings",     path: "/admin/settings" },
-    { icon: "person",           label: "My Profile",          path: "/gahrd/profile" },
+    { icon: "dashboard",        label: "Dashboard",           path: "/gahrd/dashboard", guideKey: "gahrd-dashboard" },
+    { icon: "monitor_heart",    label: "Requests",            path: "/gahrd/requests", guideKey: "gahrd-requests" },
+    { icon: "directions_car",   label: "Vehicle Management",  path: "/admin/vehicles", guideKey: "vehicle-assignment" },
+    { icon: "person",           label: "Driver Availability", path: "/gahrd/driver", guideKey: "driver-assignment" },
+    { icon: "event",            label: "Calendar",            path: "/gahrd/calendar", guideKey: "gahrd-schedule" },
+    { icon: "history",          label: "History",             path: "/gahrd/history", guideKey: "gahrd-history" },
+    { icon: "notifications",    label: "Notifications",       path: "/gahrd/notifications", guideKey: "notifications" },
+    { icon: "group",            label: "User Activation",     path: "/gahrd/users", guideKey: "user-management" },
+    { icon: "settings",         label: "System Settings",     path: "/admin/settings", guideKey: "system-settings" },
+    { icon: "person",           label: "My Profile",          path: "/gahrd/profile", guideKey: "profile" },
   ];
 
   // Security menu
   const securityMenu = [
-    { icon: "dashboard", label: "Dashboard", path: "/security/dashboard" },
-    { icon: "work_history", label: "Scan History", path: "/security/history" },
-    { icon: "notifications", label: "Notifications", path: "/security/notifications" },
-    { icon: "person", label: "My Profile", path: "/security/profile" },
+    { icon: "dashboard", label: "Dashboard", path: "/security/dashboard", guideKey: "dashboard" },
+    { icon: "work_history", label: "Scan History", path: "/security/history", guideKey: "history" },
+    { icon: "notifications", label: "Notifications", path: "/security/notifications", guideKey: "notifications" },
+    { icon: "person", label: "My Profile", path: "/security/profile", guideKey: "profile" },
   ];
 
 
   // Admin menu navigation
   const adminNavMain = [
-    { icon: "dashboard", label: "Dashboard", path: "/admin/dashboard" },
-    { icon: "directions_car", label: "Vehicle Management", path: "/admin/vehicles" },
-    { icon: "person", label: "Driver Management", path: "/admin/drivers" },
-    { icon: "monitor_heart", label: "Request Monitoring", path: "/admin/requests" },
-    { icon: "calendar_month", label: "Vehicle Schedule", path: "/admin/schedules" },
+    { icon: "dashboard", label: "Dashboard", path: "/admin/dashboard", guideKey: "admin-dashboard" },
+    { icon: "directions_car", label: "Vehicle Management", path: "/admin/vehicles", guideKey: "vehicle-assignment" },
+    { icon: "person", label: "Driver Management", path: "/admin/drivers", guideKey: "driver-assignment" },
+    { icon: "monitor_heart", label: "Request Monitoring", path: "/admin/requests", guideKey: "reports" },
+    { icon: "calendar_month", label: "Vehicle Schedule", path: "/admin/schedules", guideKey: "reports" },
   ];
 
   const adminNavAdmin = [
-    { icon: "group", label: "User Management", path: "/admin/users" },
-    { icon: "admin_panel_settings", label: "Role Management", path: "/admin/roles" },
-    { icon: "notifications", label: "Notification Center", path: "/admin/notifications" },
-    { icon: "history", label: "Audit Logs", path: "/admin/audit" },
-    { icon: "settings", label: "System Settings", path: "/admin/settings" },
-    { icon: "person", label: "My Profile", path: "/admin/profile" },
+    { icon: "group", label: "User Management", path: "/admin/users", guideKey: "user-management" },
+    { icon: "admin_panel_settings", label: "Role Management", path: "/admin/roles", guideKey: "role-management" },
+    { icon: "notifications", label: "Notification Center", path: "/admin/notifications", guideKey: "notification-center" },
+    { icon: "history", label: "Audit Logs", path: "/admin/audit", guideKey: "audit-logs" },
+    { icon: "settings", label: "System Settings", path: "/admin/settings", guideKey: "system-settings" },
+    { icon: "person", label: "My Profile", path: "/admin/profile", guideKey: "profile" },
   ];
 
   return (
