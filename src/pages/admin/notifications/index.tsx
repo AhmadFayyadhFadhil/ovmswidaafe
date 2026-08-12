@@ -180,6 +180,26 @@ export default function Notification({
     }
   };
 
+  /**
+   * Delete all notifications — Server API + Optimistic UI.
+   */
+  const handleDeleteAllNotifications = async () => {
+    const allIds = notifications.map(n => String(n.id));
+
+    // 1. Clear React state immediately
+    setInternalNotifs([]);
+
+    // 2. Dispatch badge update
+    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+
+    // 3. Send to Backend API for permanent cross-device bulk deletion
+    try {
+      await notificationService.deleteAllNotifications(allIds);
+    } catch (err) {
+      console.error("API deleteAllNotifications error:", err);
+    }
+  };
+
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("All Categories");
   const categories = ["All Categories", "Operational", "Approvals", "Security", "System"];
 
@@ -196,7 +216,7 @@ export default function Notification({
       searchPlaceholder="Cari notifikasi..."
     >
       <div className="max-w-4xl mx-auto p-6 space-y-6 animate-in fade-in duration-200">
-        {/* Category filter + Mark All Read */}
+        {/* Category filter + Mark All Read + Delete All */}
         <div className="bg-white p-4 rounded-xl border border-slate-100 flex items-center justify-between flex-wrap gap-4 shadow-sm">
           <div className="flex flex-wrap gap-2 bg-slate-100 p-0.5 rounded-xl text-xs font-semibold">
             {categories.map((cat) => (
@@ -212,12 +232,21 @@ export default function Notification({
             ))}
           </div>
 
-          <button
-            onClick={handleMarkAllAsRead}
-            className="flex items-center gap-1.5 text-xs font-bold text-[#00236f] hover:text-[#1e3a8a] bg-blue-50 hover:bg-blue-100 px-3.5 py-2 rounded-xl transition-all cursor-pointer shadow-2xs"
-          >
-            <MailOpen className="w-4 h-4" /> Tandai Semua Dibaca
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={handleMarkAllAsRead}
+              className="flex items-center gap-1.5 text-xs font-bold text-[#00236f] hover:text-[#1e3a8a] bg-blue-50 hover:bg-blue-100 px-3.5 py-2 rounded-xl transition-all cursor-pointer shadow-2xs"
+            >
+              <MailOpen className="w-4 h-4" /> Tandai Semua Dibaca
+            </button>
+
+            <button
+              onClick={handleDeleteAllNotifications}
+              className="flex items-center gap-1.5 text-xs font-bold text-rose-700 hover:text-white bg-rose-50 hover:bg-rose-600 px-3.5 py-2 rounded-xl transition-all cursor-pointer shadow-2xs border border-rose-200/80"
+            >
+              <Trash2 className="w-4 h-4" /> Hapus Semua
+            </button>
+          </div>
         </div>
 
         {/* Notifications list */}

@@ -86,4 +86,19 @@ export const notificationService = {
       return { success: false };
     }
   },
+
+  /**
+   * Delete (hide) all notifications permanently on the server.
+   */
+  deleteAllNotifications: async (ids?: string[]): Promise<{ success: boolean }> => {
+    try {
+      const cleaned = ids?.map(cleanId);
+      const res = await apiClient.post('/notifications/delete-all', { ids: cleaned });
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+      return { success: res.data?.status === 'success' };
+    } catch (err) {
+      console.error('Failed to delete all notifications:', err);
+      return { success: false };
+    }
+  },
 };
