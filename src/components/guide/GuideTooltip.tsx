@@ -57,16 +57,30 @@ export function GuideTooltip({
     const isMobile = viewportWidth < 768;
 
     if (isMobile) {
-      // Mobile positioning: bottom fixed sheet or centered to prevent overflow
-      tooltipStyle = {
-        position: 'fixed',
-        bottom: '24px',
-        left: '16px',
-        right: '16px',
-        margin: '0 auto',
-        maxWidth: '420px',
-        zIndex: 99999,
-      };
+      // Mobile positioning: avoid covering target element if target is in bottom half
+      const targetIsBottomHalf = targetRect.top > viewportHeight / 2;
+      
+      if (targetIsBottomHalf) {
+        tooltipStyle = {
+          position: 'fixed',
+          top: `${Math.max(16, Math.min(targetRect.top - 210, viewportHeight - 240))}px`,
+          left: '16px',
+          right: '16px',
+          margin: '0 auto',
+          maxWidth: '420px',
+          zIndex: 99999,
+        };
+      } else {
+        tooltipStyle = {
+          position: 'fixed',
+          top: `${Math.min(targetRect.bottom + 16, viewportHeight - 220)}px`,
+          left: '16px',
+          right: '16px',
+          margin: '0 auto',
+          maxWidth: '420px',
+          zIndex: 99999,
+        };
+      }
     } else {
       // Desktop positioning around targetRect
       const margin = 16;

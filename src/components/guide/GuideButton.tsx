@@ -43,17 +43,17 @@ export function GuideButton() {
       {/* Topbar Guide Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="h-9 px-3 bg-slate-100 hover:bg-slate-200 text-[#1e3a8a] text-[12px] font-bold rounded-xl border border-slate-200/80 shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+        className="h-8 sm:h-9 px-2.5 sm:px-3 bg-slate-100 hover:bg-slate-200 text-[#1e3a8a] text-[11px] sm:text-[12px] font-bold rounded-xl border border-slate-200/80 shadow-2xs transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer active:scale-95"
         title="Buka Menu Panduan / Interactive Guide"
         data-guide="guide-button"
       >
-        <Icon name="help_outline" className="text-[18px]" />
-        <span className="hidden sm:inline">Guide</span>
+        <Icon name="help_outline" className="text-[16px] sm:text-[18px]" />
+        <span>Guide</span>
       </button>
 
       {/* Guide Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl border border-slate-200 shadow-xl py-2 z-50 animate-fadein text-slate-800">
+        <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-32px)] bg-white rounded-2xl border border-slate-200 shadow-xl py-2 z-[9999] animate-fadein text-slate-800">
           {/* Quick Tour Option */}
           {quickTour && (
             <div className="px-1">

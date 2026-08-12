@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Icon } from "@/components/ui/Icon";
 import { useAuthContext } from "@/auth/authContext";
 import { systemConfigService } from "@/services/modules/systemConfigService";
+import { useGuide } from "@/hooks/useGuide";
+import { getQuickTourForRole } from "@/guides";
 
 export function Sidebar({ 
   activeNav, 
@@ -17,6 +19,7 @@ export function Sidebar({
 }) {
   const navigate = useNavigate();
   const { user, logout } = useAuthContext();
+  const { startTour } = useGuide();
 
   const [branding, setBranding] = useState({
     systemName: "OVMS",
@@ -304,11 +307,23 @@ export function Sidebar({
         )}
       </nav>
 
-      {/* Bottom section for Logout */}
-      <div className="px-3 py-4 border-t border-[#e2e8f0] mt-auto">
+      {/* Bottom section for Guide & Logout */}
+      <div className="px-3 py-3 border-t border-[#e2e8f0] mt-auto space-y-1">
+        <button
+          onClick={() => {
+            onClose?.();
+            const role = user?.role?.toLowerCase() || 'employee';
+            const quickTour = getQuickTourForRole(role);
+            if (quickTour) startTour(quickTour.id);
+          }}
+          className="w-full flex items-center gap-3 py-2 px-3 rounded-md hover:bg-blue-50 text-[#1e3a8a] transition-colors cursor-pointer"
+        >
+          <Icon name="help_outline" className="text-[20px]" />
+          <span className="text-[13px] font-bold">Panduan Sistem</span>
+        </button>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 py-2.5 rounded-md hover:bg-[#f1f5f9] text-[#475569] transition-colors"
+          className="w-full flex items-center gap-3 py-2 px-3 rounded-md hover:bg-[#f1f5f9] text-[#475569] transition-colors cursor-pointer"
         >
           <Icon name="logout" className="text-[20px]" />
           <span className="text-[13px] font-medium">Logout</span>
