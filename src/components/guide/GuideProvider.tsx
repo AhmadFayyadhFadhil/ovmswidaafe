@@ -62,16 +62,17 @@ export function GuideProvider({ children }: { children: ReactNode }) {
 
   const currentStep = activeTour?.steps[currentStepIndex] || null;
 
-  // Helper function to check if a DOM element is physically visible in the viewport
-  const isElementVisible = (el: Element): boolean => {
+  // Helper function to check if a DOM element exists & is rendered in layout
+  const isElementValid = (el: Element): boolean => {
+    if (el.closest('#sidebar-drawer') || el.closest('[data-sidebar-hidden="true"]')) {
+      return false;
+    }
     const rect = el.getBoundingClientRect();
+    const style = window.getComputedStyle(el);
     return (
-      rect.width > 0 &&
-      rect.height > 0 &&
-      rect.left >= 0 &&
-      rect.top >= 0 &&
-      rect.left < window.innerWidth &&
-      rect.top < window.innerHeight
+      style.display !== 'none' &&
+      style.visibility !== 'hidden' &&
+      (rect.width > 0 || rect.height > 0 || el.getClientRects().length > 0)
     );
   };
 
@@ -91,27 +92,29 @@ export function GuideProvider({ children }: { children: ReactNode }) {
       el = document.querySelector(`[data-guide="${selector}"]`) || document.querySelector(selector);
     }
 
-    // Check if element exists AND is physically visible on screen
-    if (el && isElementVisible(el)) {
+    if (el && isElementValid(el)) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
       const rect = el.getBoundingClientRect();
       setTargetRect(rect);
       setIsWaitingForElement(false);
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
     } else {
       // Fallback: search for prominent page-level container elements if sidebar target is collapsed
       const fallbackEl = document.querySelector('[data-guide$="-header"]') ||
                          document.querySelector('[data-guide$="-stats"]') ||
                          document.querySelector('[data-guide$="-overview"]') ||
-                         document.querySelector('[data-guide$="-trips"]') ||
-                         document.querySelector('[data-guide$="-cards"]');
-      if (fallbackEl && isElementVisible(fallbackEl)) {
+                         document.querySelector('[data-guide$="-requests"]') ||
+                         document.querySelector('[data-guide$="-table"]') ||
+                         document.querySelector('main') ||
+                         document.getElementById('root');
+      if (fallbackEl && isElementValid(fallbackEl)) {
+        fallbackEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
         const rect = fallbackEl.getBoundingClientRect();
         setTargetRect(rect);
         setIsWaitingForElement(false);
-        fallbackEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
       } else {
-        setTargetRect(null);
-        setIsWaitingForElement(true);
+        // Fallback rect centered in viewport so tooltip is always displayed nicely
+        setTargetRect(new DOMRect(16, 80, window.innerWidth - 32, 180));
+        setIsWaitingForElement(false);
       }
     }
   }, [currentStep]);
@@ -120,34 +123,37 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!activeTour || !currentStep) return;
 
-    // Check if step specifies another route
-    if (currentStep.route && location.pathname !== currentStep.route.split('?')[0]) {
-      setIsWaitingForElement(true);
-      navigate(currentStep.route);
-      return;
+    // Check if current step specifies another route and navigate if needed
+    if (currentStep.route) {
+      const targetPath = currentStep.route.split('?')[0];
+      if (location.pathname !== targetPath) {
+        setIsWaitingForElement(true);
+        navigate(currentStep.route);
+        return;
+      }
     }
 
-    // Try finding element immediately
-    updateTargetRect();
+    // Auto-scroll to top when page changes
+    window.scrollTo({ top: 0, behavior: 'instant' });
 
-    // Poll for DOM element render if page transition is occurring
+    // Poll for DOM element render if page transition or lazy loading is occurring
     let attempts = 0;
     const interval = setInterval(() => {
       attempts++;
       updateTargetRect();
-      if (attempts >= 20) {
+      if (attempts >= 25) {
         clearInterval(interval);
       }
-    }, 200);
+    }, 100);
 
-    const handleResize = () => updateTargetRect();
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('scroll', handleResize, true);
+    const handleScrollOrResize = () => updateTargetRect();
+    window.addEventListener('resize', handleScrollOrResize);
+    window.addEventListener('scroll', handleScrollOrResize, true);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('scroll', handleResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
     };
   }, [activeTour, currentStepIndex, currentStep, location.pathname, navigate, updateTargetRect]);
 
@@ -184,15 +190,32 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   const nextStep = () => {
     if (!activeTour) return;
     if (currentStepIndex < activeTour.steps.length - 1) {
-      setCurrentStepIndex(prev => prev + 1);
+      const nextIdx = currentStepIndex + 1;
+      const nextStepObj = activeTour.steps[nextIdx];
+      setCurrentStepIndex(nextIdx);
+      if (nextStepObj?.route) {
+        const targetPath = nextStepObj.route.split('?')[0];
+        if (location.pathname !== targetPath) {
+          navigate(nextStepObj.route);
+        }
+      }
     } else {
       finishTour();
     }
   };
 
   const prevStep = () => {
+    if (!activeTour) return;
     if (currentStepIndex > 0) {
-      setCurrentStepIndex(prev => prev - 1);
+      const prevIdx = currentStepIndex - 1;
+      const prevStepObj = activeTour.steps[prevIdx];
+      setCurrentStepIndex(prevIdx);
+      if (prevStepObj?.route) {
+        const targetPath = prevStepObj.route.split('?')[0];
+        if (location.pathname !== targetPath) {
+          navigate(prevStepObj.route);
+        }
+      }
     }
   };
 
