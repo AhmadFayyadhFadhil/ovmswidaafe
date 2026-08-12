@@ -57,30 +57,22 @@ export function GuideTooltip({
     const isMobile = viewportWidth < 768;
 
     if (isMobile) {
-      // Mobile positioning: avoid covering target element if target is in bottom half
+      // Mobile positioning: Center horizontally, position above/below target
       const targetIsBottomHalf = targetRect.top > viewportHeight / 2;
       
-      if (targetIsBottomHalf) {
-        tooltipStyle = {
-          position: 'fixed',
-          top: `${Math.max(16, Math.min(targetRect.top - 210, viewportHeight - 240))}px`,
-          left: '16px',
-          right: '16px',
-          margin: '0 auto',
-          maxWidth: '420px',
-          zIndex: 99999,
-        };
-      } else {
-        tooltipStyle = {
-          position: 'fixed',
-          top: `${Math.min(targetRect.bottom + 16, viewportHeight - 220)}px`,
-          left: '16px',
-          right: '16px',
-          margin: '0 auto',
-          maxWidth: '420px',
-          zIndex: 99999,
-        };
-      }
+      const topPos = targetIsBottomHalf
+        ? Math.max(16, targetRect.top - 220)
+        : Math.min(targetRect.bottom + 16, viewportHeight - 230);
+
+      tooltipStyle = {
+        position: 'fixed',
+        top: `${Math.max(16, Math.min(topPos, viewportHeight - 240))}px`,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 'calc(100vw - 32px)',
+        maxWidth: '400px',
+        zIndex: 99999,
+      };
     } else {
       // Desktop positioning around targetRect
       const margin = 16;
@@ -109,14 +101,14 @@ export function GuideTooltip({
   return (
     <div
       style={tooltipStyle}
-      className="bg-white rounded-2xl p-5 shadow-2xl border border-slate-200 animate-fadein text-slate-800 focus:outline-none"
+      className="bg-white rounded-2xl p-4 sm:p-5 shadow-2xl border border-slate-200/80 animate-fadein text-slate-800 focus:outline-none backdrop-blur-md"
       role="dialog"
       aria-labelledby="guide-step-title"
       aria-describedby="guide-step-desc"
     >
       {/* Step Header */}
       <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="text-[10px] font-black uppercase tracking-wider text-[#1e3a8a] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100">
+        <span className="text-[10px] font-black uppercase tracking-wider text-[#1e3a8a] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100/80">
           Langkah {currentStepIndex + 1} dari {totalSteps}
         </span>
         <button
@@ -129,10 +121,10 @@ export function GuideTooltip({
       </div>
 
       {/* Title & Description */}
-      <h3 id="guide-step-title" className="text-[15px] font-extrabold text-slate-900 tracking-tight mb-1.5">
+      <h3 id="guide-step-title" className="text-[14px] sm:text-[15px] font-extrabold text-slate-900 tracking-tight mb-1.5">
         {step.title}
       </h3>
-      <p id="guide-step-desc" className="text-[12.5px] text-slate-600 leading-relaxed mb-4 whitespace-pre-line">
+      <p id="guide-step-desc" className="text-[12px] sm:text-[12.5px] text-slate-600 leading-relaxed mb-4 whitespace-pre-line">
         {step.description}
       </p>
 
@@ -158,7 +150,7 @@ export function GuideTooltip({
           {!isFirst && (
             <button
               onClick={onPrev}
-              className="h-8 px-3 rounded-xl border border-slate-200 text-[11.5px] font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+              className="h-8 px-3 rounded-xl border border-slate-200 text-[11.5px] font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors cursor-pointer"
             >
               Back
             </button>
@@ -167,14 +159,14 @@ export function GuideTooltip({
           {isLast ? (
             <button
               onClick={onFinish}
-              className="h-8 px-4 rounded-xl bg-[#059669] hover:bg-[#047857] text-white text-[11.5px] font-bold shadow-sm transition-colors flex items-center gap-1 cursor-pointer"
+              className="h-8 px-4 rounded-xl bg-[#059669] hover:bg-[#047857] active:bg-[#065f46] text-white text-[11.5px] font-bold shadow-sm transition-colors flex items-center gap-1 cursor-pointer"
             >
               Finish <Icon name="check" className="text-[14px]" />
             </button>
           ) : (
             <button
               onClick={onNext}
-              className="h-8 px-4 rounded-xl bg-[#1e3a8a] hover:bg-[#1e40af] text-white text-[11.5px] font-bold shadow-sm transition-colors flex items-center gap-1 cursor-pointer"
+              className="h-8 px-4 rounded-xl bg-[#1e3a8a] hover:bg-[#1e40af] active:bg-[#1e3a8a] text-white text-[11.5px] font-bold shadow-sm transition-colors flex items-center gap-1 cursor-pointer"
             >
               Next <Icon name="arrow_forward" className="text-[14px]" />
             </button>

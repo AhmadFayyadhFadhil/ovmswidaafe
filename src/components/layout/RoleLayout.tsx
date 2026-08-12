@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { useAuthContext } from "../../auth/authContext";
-import { GuideProvider } from "@/components/guide/GuideProvider";
 export { Icon } from "@/components/ui/Icon";
 export { Sidebar } from "./Sidebar";
 export { Topbar } from "./Topbar";
@@ -171,48 +170,46 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
   };
 
   return (
-    <GuideProvider>
-      <div className="flex h-screen bg-[#f8fafc] font-sans antialiased overflow-hidden text-[#0f172a]">
-        <Sidebar 
-          activeNav={activeNav} 
-          onNavigate={handleNavigate}
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
+    <div className="flex h-screen bg-[#f8fafc] font-sans antialiased overflow-hidden text-[#0f172a]">
+      <Sidebar 
+        activeNav={activeNav} 
+        onNavigate={handleNavigate}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <Topbar 
+          title={topbarTitle} 
+          userName={displayUserName} 
+          userRole={displayUserRole} 
+          avatarUrl={user?.avatar_url}
+          searchPlaceholder={searchPlaceholder} 
+          searchValue={searchValue} 
+          onSearchChange={onSearchChange} 
+          showSearch={activeNav === "History" || window.location.pathname.includes('/history') || window.location.pathname.includes('/audit')}
+          onMenuClick={() => setSidebarOpen(true)}
+          onProfileClick={() => {
+            const role = user?.role || "employee";
+            navigate(`/${role}/profile`);
+            setSidebarOpen(false);
+          }}
         />
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <Topbar 
-            title={topbarTitle} 
-            userName={displayUserName} 
-            userRole={displayUserRole} 
-            avatarUrl={user?.avatar_url}
-            searchPlaceholder={searchPlaceholder} 
-            searchValue={searchValue} 
-            onSearchChange={onSearchChange} 
-            showSearch={activeNav === "History" || window.location.pathname.includes('/history') || window.location.pathname.includes('/audit')}
-            onMenuClick={() => setSidebarOpen(true)}
-            onProfileClick={() => {
-              const role = user?.role || "employee";
-              navigate(`/${role}/profile`);
-              setSidebarOpen(false);
-            }}
-          />
-          <main className="flex-1 overflow-y-auto">
-            {children}
-          </main>
-        </div>
-        <style>{`
-          .material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-smoothing:antialiased;vertical-align:middle;}
-          ::-webkit-scrollbar{width:4px;height:4px;}
-          ::-webkit-scrollbar-track{background:transparent;}
-          ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px;}
-          @keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-          .animate-fadein{animation:fadein 0.25s ease-out;}
-          @keyframes slidein{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
-          .animate-slidein{animation:slidein 0.2s ease-out;}
-          @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
-          .animate-pulse-dot{animation:pulse-dot 1.5s ease-in-out infinite;}
-        `}</style>
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
       </div>
-    </GuideProvider>
+      <style>{`
+        .material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-smoothing:antialiased;vertical-align:middle;}
+        ::-webkit-scrollbar{width:4px;height:4px;}
+        ::-webkit-scrollbar-track{background:transparent;}
+        ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px;}
+        @keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .animate-fadein{animation:fadein 0.25s ease-out;}
+        @keyframes slidein{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+        .animate-slidein{animation:slidein 0.2s ease-out;}
+        @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
+        .animate-pulse-dot{animation:pulse-dot 1.5s ease-in-out infinite;}
+      `}</style>
+    </div>
   );
 }
