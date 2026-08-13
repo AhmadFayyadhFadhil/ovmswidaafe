@@ -192,7 +192,7 @@ export function Sidebar({
     { icon: "event",            label: "Calendar",            path: "/gahrd/calendar", guideKey: "gahrd-schedule" },
     { icon: "history",          label: "History",             path: "/gahrd/history", guideKey: "gahrd-history" },
     { icon: "notifications",    label: "Notifications",       path: "/gahrd/notifications", guideKey: "notifications" },
-    { icon: "group",            label: "User Activation",     path: "/gahrd/users", guideKey: "user-management" },
+    { icon: "group",            label: "User Management",     path: "/gahrd/users", guideKey: "user-management" },
     { icon: "settings",         label: "System Settings",     path: "/admin/settings", guideKey: "system-settings" },
     { icon: "person",           label: "My Profile",          path: "/gahrd/profile", guideKey: "profile" },
   ];
