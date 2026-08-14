@@ -1,12 +1,22 @@
 import axios from 'axios';
 
+const getDynamicBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host.includes('ovmsdev')) {
+      return 'https://api.ovmsdev.widatra.com/api';
+    }
+  }
+  return import.meta.env.VITE_API_BASE_URL || 'https://api.ovms.widatra.com/api';
+};
+
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: getDynamicBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  withCredentials: true, // Sangat membantu jika backend Laravel menggunakan Laravel Sanctum cookie-based authentication
+  withCredentials: true,
 });
 
 // Request interceptor to add authorization token if present
@@ -33,9 +43,25 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle global errors (e.g. 401 unauth)
+// Response interceptor to handle global errors and auto-fix image URLs for dev environment
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response && response.data && typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      if (host.includes('ovmsdev')) {
+        try {
+          const str = JSON.stringify(response.data);
+          if (str.includes('ovms.widatra.com') && !str.includes('ovmsdev.widatra.com')) {
+            const fixedStr = str.replace(/https?:\/\/(api\.)?ovms\.widatra\.com/g, 'https://api.ovmsdev.widatra.com');
+            response.data = JSON.parse(fixedStr);
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+    return response;
+  },
   (error) => {
     const isUnauthenticated = error.response?.status === 401;
     const requestUrl = error.config?.url || '';
