@@ -3,8 +3,9 @@ import axios from 'axios';
 const getDynamicBaseUrl = () => {
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
+    const protocol = window.location.protocol; // 'http:' or 'https:'
     if (host.includes('ovmsdev')) {
-      return 'https://api.ovmsdev.widatra.com/api';
+      return `${protocol}//api.ovmsdev.widatra.com/api`;
     }
   }
   return import.meta.env.VITE_API_BASE_URL || 'https://api.ovms.widatra.com/api';
@@ -48,11 +49,13 @@ apiClient.interceptors.response.use(
   (response) => {
     if (response && response.data && typeof window !== 'undefined') {
       const host = window.location.hostname;
+      const protocol = window.location.protocol;
       if (host.includes('ovmsdev')) {
         try {
           const str = JSON.stringify(response.data);
           if (str.includes('ovms.widatra.com') && !str.includes('ovmsdev.widatra.com')) {
-            const fixedStr = str.replace(/https?:\/\/(api\.)?ovms\.widatra\.com/g, 'https://api.ovmsdev.widatra.com');
+            const targetDomain = `${protocol}//api.ovmsdev.widatra.com`;
+            const fixedStr = str.replace(/https?:\/\/(api\.)?ovms\.widatra\.com/g, targetDomain);
             response.data = JSON.parse(fixedStr);
           }
         } catch (e) {
