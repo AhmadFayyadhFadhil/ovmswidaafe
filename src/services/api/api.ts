@@ -48,13 +48,12 @@ apiClient.interceptors.response.use(
   (response) => {
     if (response && response.data && typeof window !== 'undefined') {
       const host = window.location.hostname;
-      const protocol = window.location.protocol;
       if (host.includes('ovmsdev')) {
         try {
           const str = JSON.stringify(response.data);
-          if (str.includes('ovms.widatra.com') && !str.includes('ovmsdev.widatra.com')) {
-            const targetDomain = `${protocol}//api.ovmsdev.widatra.com`;
-            const fixedStr = str.replace(/https?:\/\/(api\.)?ovms\.widatra\.com/g, targetDomain);
+          if (str.includes('/storage/')) {
+            const origin = window.location.origin;
+            const fixedStr = str.replace(/https?:\/\/[^\/]+\/storage\//g, `${origin}/storage/`);
             response.data = JSON.parse(fixedStr);
           }
         } catch (e) {
