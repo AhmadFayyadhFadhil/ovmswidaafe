@@ -7,7 +7,7 @@ export function Icon({ name, className = "", style, size }: { name: string; clas
       translate="no"
       data-no-translation="true"
       style={{ 
-        fontFamily: "'Material Symbols Outlined', sans-serif",
+        fontFamily: "'Material Symbols Outlined'",
         fontVariationSettings: "'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24", 
         fontSize: size, 
         ...style 
