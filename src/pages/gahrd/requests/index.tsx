@@ -673,286 +673,239 @@ export default function GAHRDRequestsPage() {
         </div>
 
         {/* Content grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
-          <div>
-            {/* Tab filter */}
-            <div className="overflow-x-auto max-w-full mb-5">
-              <div className="flex gap-1 bg-white border border-[#e2e8f0] rounded-xl p-1 w-fit shadow-sm">
-                {(["All", "Normal", "Urgent", "Critical"] as TabFilter[]).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTab(t)}
-                    className={`px-5 h-9 rounded-lg text-[13px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                      tab === t ? "bg-[#1e3a8a] text-white shadow-sm" : "text-[#64748b] hover:text-[#334155]"
-                    }`}
-                  >
-                    {t}
-                    {t === "Urgent" && urgentCount > 0 && (
-                      <span className={`w-2 h-2 rounded-full ${tab === "Urgent" ? "bg-white" : "bg-[#f97316]"}`} />
-                    )}
-                    {t === "Critical" && criticalCount > 0 && (
-                      <span className={`w-2 h-2 rounded-full ${tab === "Critical" ? "bg-white" : "bg-[#dc2626]"}`} />
-                    )}
-                  </button>
-                ))}
-              </div>
+        <div className="w-full space-y-5">
+          {/* Tab filter */}
+          <div className="overflow-x-auto max-w-full mb-5">
+            <div className="flex gap-1 bg-white border border-[#e2e8f0] rounded-xl p-1 w-fit shadow-sm">
+              {(["All", "Normal", "Urgent", "Critical"] as TabFilter[]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-5 h-9 rounded-lg text-[13px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    tab === t ? "bg-[#1e3a8a] text-white shadow-sm" : "text-[#64748b] hover:text-[#334155]"
+                  }`}
+                >
+                  {t}
+                  {t === "Urgent" && urgentCount > 0 && (
+                    <span className={`w-2 h-2 rounded-full ${tab === "Urgent" ? "bg-white" : "bg-[#f97316]"}`} />
+                  )}
+                  {t === "Critical" && criticalCount > 0 && (
+                    <span className={`w-2 h-2 rounded-full ${tab === "Critical" ? "bg-white" : "bg-[#dc2626]"}`} />
+                  )}
+                </button>
+              ))}
             </div>
+          </div>
 
-            {/* Request list */}
-            {loading ? (
-              <div className="bg-white border border-[#e2e8f0] rounded-2xl py-20 flex flex-col items-center justify-center">
-                <div className="w-8 h-8 border-4 border-t-blue-600 border-blue-200 rounded-full animate-spin mb-3" />
-                <p className="text-[13px] text-[#64748b] font-medium">Memuat data permintaan...</p>
+          {/* Request list */}
+          {loading ? (
+            <div className="bg-white border border-[#e2e8f0] rounded-2xl py-20 flex flex-col items-center justify-center">
+              <div className="w-8 h-8 border-4 border-t-blue-600 border-blue-200 rounded-full animate-spin mb-3" />
+              <p className="text-[13px] text-[#64748b] font-medium">Memuat data permintaan...</p>
+            </div>
+          ) : error ? (
+            <div className="bg-white border border-[#e2e8f0] rounded-2xl p-6 flex items-center gap-3 text-red-600 text-[13.5px] font-semibold">
+              <Icon name="error" className="text-[20px]" />
+              {error}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="bg-white border border-[#e2e8f0] rounded-2xl py-20 flex flex-col items-center justify-center text-center p-6">
+              <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mb-3">
+                <Icon name="inbox" className="text-3xl text-slate-400" />
               </div>
-            ) : error ? (
-              <div className="bg-white border border-[#e2e8f0] rounded-2xl p-6 flex items-center gap-3 text-red-600 text-[13.5px] font-semibold">
-                <Icon name="error" className="text-[20px]" />
-                {error}
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="bg-white border border-[#e2e8f0] rounded-2xl py-16 flex flex-col items-center">
-                <Icon name="inbox" className="text-[40px] text-[#cbd5e1] mb-2" />
-                <p className="font-bold text-[#0f172a]">Tidak ada data request ditemukan</p>
-                <p className="text-[13px] text-[#64748b] mt-1">Ganti filter atau lakukan pencarian lain.</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {filtered.map((req) => {
-                  const isUrgentReq = (req.priority || "").toUpperCase() === "URGENT" || (req.priority || "").toUpperCase() === "CRITICAL";
-                  const showAssign =
-                    req.rawStatus === "approved_department" ||
-                    req.rawStatus === "assigned_by_ga" ||
-                    req.rawStatus === "approved_hrd" ||
-                    req.rawStatus === "approved_hrd_ga" ||
-                    (isUrgentReq && req.rawStatus === "submitted") ||
-                    (req.rawStatus === "driver_assigned" && req.driverName === "Not Assigned");
-                  const isPendingDeptHead = req.rawStatus === "submitted" && !isUrgentReq;
-                  const showCancel = req.rawStatus === "waiting_driver";
-                  const canCancelRequest = ["submitted", "approved_department", "waiting_driver", "driver_assigned"].includes(req.rawStatus);
-                  const showEdit =
-                    (req.rawStatus === "waiting_driver" && !req.all_drivers_approved) ||
-                    (req.is_external && ["assigned_by_ga", "on_going", "completed"].includes(req.rawStatus));
+              <h3 className="text-base font-bold text-slate-700 mb-1">Belum Ada Permintaan</h3>
+              <p className="text-xs text-slate-400 max-w-sm">
+                Tidak ada data permintaan kendaraan yang sesuai dengan filter atau pencarian Anda.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filtered.map((req) => {
+                const isUrgentReq = (req.priority || "").toUpperCase() === "URGENT" || (req.priority || "").toUpperCase() === "CRITICAL";
+                const showAssign =
+                  req.rawStatus === "approved_department" ||
+                  req.rawStatus === "assigned_by_ga" ||
+                  req.rawStatus === "approved_hrd" ||
+                  req.rawStatus === "approved_hrd_ga" ||
+                  (isUrgentReq && req.rawStatus === "submitted") ||
+                  (req.rawStatus === "driver_assigned" && req.driverName === "Not Assigned");
+                const isPendingDeptHead = req.rawStatus === "submitted" && !isUrgentReq;
+                const showCancel = req.rawStatus === "waiting_driver";
+                const canCancelRequest = ["submitted", "approved_department", "waiting_driver", "driver_assigned"].includes(req.rawStatus);
+                const showEdit =
+                  (req.rawStatus === "waiting_driver" && !req.all_drivers_approved) ||
+                  (req.is_external && ["assigned_by_ga", "on_going", "completed"].includes(req.rawStatus));
 
-                  return (
-                    <div
-                      key={req.id}
-                      onClick={() => {
-                        setDetailRequest(req);
-                        setIsDetailModalOpen(true);
-                      }}
-                      className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden hover:border-[#1e3a8a] hover:shadow-md transition-all cursor-pointer"
-                    >
-                      {/* Header */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 pt-5 pb-4 border-b border-[#f8fafc] bg-[#fafbfc]">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-[#1e3a8a] font-bold text-[14px]">
-                            {req.employee ? req.employee.charAt(0).toUpperCase() : "E"}
-                          </div>
-                          <div>
-                            <div className="text-[13.5px] font-bold text-[#0f172a] tracking-wide">{req.employee}</div>
-                            <div className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-wider">
-                              REQUEST #{req.id} • {req.department}
-                            </div>
-                          </div>
+                return (
+                  <div
+                    key={req.id}
+                    onClick={() => {
+                      setDetailRequest(req);
+                      setIsDetailModalOpen(true);
+                    }}
+                    className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden hover:border-[#1e3a8a] hover:shadow-md transition-all cursor-pointer"
+                  >
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 pt-5 pb-4 border-b border-[#f8fafc] bg-[#fafbfc]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-[#1e3a8a] font-bold text-[14px]">
+                          {req.employee ? req.employee.charAt(0).toUpperCase() : "E"}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <PriBadge p={req.priority} />
-                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${getStatusBadgeClass(req.status)}`}>
-                            {req.status}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Body */}
-                      <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                          <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1">Tujuan Perjalanan</div>
-                          <div className="flex items-center gap-1 text-[13.5px] font-semibold text-[#0f172a]">
-                            <Icon name="location_on" className="text-[16px] text-blue-500" />
-                            {req.destination}
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1">Jadwal Keberangkatan</div>
-                          <div className="text-[13px] font-semibold text-[#334155]">{req.date || "-"}</div>
-                          <div className="text-[11px] text-[#94a3b8]">{req.time || "09:00"}</div>
-                        </div>
-
-                        <div>
-                          <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1">Keperluan & Penumpang</div>
-                          <div className="text-[12.5px] text-[#475569] italic">"{req.purpose}"</div>
-                          <div className="text-[11px] font-medium text-[#64748b] mt-1">
-                            {req.passengerCount} Penumpang
+                          <div className="text-[13.5px] font-bold text-[#0f172a] tracking-wide">{req.employee}</div>
+                          <div className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-wider">
+                            REQUEST #{req.id} • {req.department}
                           </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <PriBadge p={req.priority} />
+                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${getStatusBadgeClass(req.status)}`}>
+                          {req.status}
+                        </span>
+                      </div>
+                    </div>
 
-                      {/* Info on Assigned Driver/Vehicle & Ticket QR */}
-                      {(req.driverName !== "Not Assigned" || req.vehicleModel !== "Not Assigned" || req.qr_code_token) && (
-                        <div className="px-6 py-2.5 bg-[#f8fafc] border-t border-[#f1f5f9] flex flex-wrap items-center justify-between gap-4 text-[12px]">
-                          <div className="flex items-center gap-6">
-                            {req.driverName !== "Not Assigned" && (
-                              <span className="text-[#475569]">
-                                <strong>Driver:</strong> {req.driverName}
-                              </span>
-                            )}
-                            {req.vehicleModel !== "Not Assigned" && (
-                              <span className="text-[#475569]">
-                                <strong>Kendaraan:</strong> {req.vehicleModel}
-                              </span>
-                            )}
-                          </div>
-                          {req.qr_code_token && (
-                            ["driver_assigned", "on_going"].includes(req.rawStatus) ||
-                            (req.is_external && req.rawStatus === "assigned_by_ga")
-                          ) && (
-                            <div className="flex items-center gap-2 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-3xs">
-                              <img
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=40x40&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${req.qr_code_token}`)}`}
-                                alt="Ticket QR Code"
-                                className="w-6 h-6 object-contain"
-                              />
-                              <span className="text-[10px] font-mono font-bold text-slate-500">
-                                {req.qr_code_token}
-                              </span>
-                            </div>
+                    {/* Body */}
+                    <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1">Tujuan Perjalanan</div>
+                        <div className="flex items-center gap-1 text-[13.5px] font-semibold text-[#0f172a]">
+                          <Icon name="location_on" className="text-[16px] text-blue-500" />
+                          {req.destination}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1">Jadwal Keberangkatan</div>
+                        <div className="text-[13px] font-semibold text-[#334155]">{req.date || "-"}</div>
+                        <div className="text-[11px] text-[#94a3b8]">{req.time || "09:00"}</div>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1">Keperluan & Penumpang</div>
+                        <div className="text-[12.5px] text-[#475569] italic">"{req.purpose}"</div>
+                        <div className="text-[11px] font-medium text-[#64748b] mt-1">
+                          {req.passengerCount} Penumpang
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Info on Assigned Driver/Vehicle & Ticket QR */}
+                    {(req.driverName !== "Not Assigned" || req.vehicleModel !== "Not Assigned" || req.qr_code_token) && (
+                      <div className="px-6 py-2.5 bg-[#f8fafc] border-t border-[#f1f5f9] flex flex-wrap items-center justify-between gap-4 text-[12px]">
+                        <div className="flex items-center gap-6">
+                          {req.driverName !== "Not Assigned" && (
+                            <span className="text-[#475569]">
+                              <strong>Driver:</strong> {req.driverName}
+                            </span>
+                          )}
+                          {req.vehicleModel !== "Not Assigned" && (
+                            <span className="text-[#475569]">
+                              <strong>Kendaraan:</strong> {req.vehicleModel}
+                            </span>
                           )}
                         </div>
+                        {req.qr_code_token && (
+                          ["driver_assigned", "on_going"].includes(req.rawStatus) ||
+                          (req.is_external && req.rawStatus === "assigned_by_ga")
+                        ) && (
+                          <div className="flex items-center gap-2 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-3xs">
+                            <img
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=40x40&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${req.qr_code_token}`)}`}
+                              alt="Ticket QR Code"
+                              className="w-6 h-6 object-contain"
+                            />
+                            <span className="text-[10px] font-mono font-bold text-slate-500">
+                              {req.qr_code_token}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="px-6 pb-5 pt-3 border-t border-[#f8fafc] flex flex-wrap items-center justify-end gap-2">
+                      {isPendingDeptHead && (
+                        <span className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 text-[11.5px] font-bold rounded-xl flex items-center gap-1.5">
+                          <Icon name="hourglass_empty" className="text-[15px]" />
+                          Menunggu Persetujuan K.Dep Asal
+                        </span>
                       )}
 
-                      {/* Actions */}
-                      <div className="px-6 pb-5 pt-3 border-t border-[#f8fafc] flex flex-wrap items-center justify-end gap-2">
-                        {isPendingDeptHead && (
-                          <span className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 text-[11.5px] font-bold rounded-xl flex items-center gap-1.5">
-                            <Icon name="hourglass_empty" className="text-[15px]" />
-                            Menunggu Persetujuan K.Dep Asal
-                          </span>
-                        )}
-
-                        {showAssign && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenAssignModal(req);
-                            }}
-                            disabled={actionLoading}
-                            className="px-5 h-9 bg-green-600 text-white text-[12.5px] font-bold rounded-xl hover:bg-green-700 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                          >
-                            <Icon name="person_add" className="text-[16px]" />
-                            Tugaskan Driver
-                          </button>
-                        )}
-
-                        {showEdit && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenAssignModal(req);
-                            }}
-                            disabled={actionLoading}
-                            className="px-5 h-9 bg-[#1e3a8a] text-white text-[12.5px] font-bold rounded-xl hover:bg-[#1d4ed8] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                          >
-                            <Icon name="edit" className="text-[16px]" />
-                            Edit Penugasan
-                          </button>
-                        )}
-
-                        {showCancel && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCancelConfirmRequestId(req.id);
-                            }}
-                            disabled={actionLoading}
-                            className="px-5 h-9 bg-white border border-red-200 text-red-600 text-[12.5px] font-bold rounded-xl hover:bg-red-50 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                          >
-                            <Icon name="cancel" className="text-[16px]" />
-                            Batalkan Penugasan
-                          </button>
-                        )}
-
-                        {canCancelRequest && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteReason("");
-                              setDeleteConfirmRequestId(req.id);
-                            }}
-                            disabled={actionLoading}
-                            className="px-5 h-9 bg-white border border-red-200 text-red-600 text-[12.5px] font-bold rounded-xl hover:bg-red-50 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                          >
-                            <Icon name="delete" className="text-[16px]" />
-                            Batalkan Pengajuan
-                          </button>
-                        )}
-
+                      {showAssign && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setDetailRequest(req);
-                            setIsDetailModalOpen(true);
+                            handleOpenAssignModal(req);
                           }}
-                          className="w-9 h-9 bg-white border border-[#e2e8f0] rounded-xl flex items-center justify-center hover:bg-[#f1f5f9] transition-colors cursor-pointer"
+                          disabled={actionLoading}
+                          className="px-5 h-9 bg-green-600 text-white text-[12.5px] font-bold rounded-xl hover:bg-green-700 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
-                          <Icon name="info" className="text-[18px] text-[#64748b]" />
+                          <Icon name="person_add" className="text-[16px]" />
+                          Tugaskan Driver
                         </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                      )}
 
-          {/* Drivers availability sidebar */}
-          <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 h-fit shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3">
-              <div className="text-[14px] font-bold text-[#0f172a]">Status Pengemudi</div>
-              <span className="text-[11px] font-bold text-white bg-[#1e3a8a] px-2.5 py-0.5 rounded-full">
-                {readyDrivers.length} Siap
-              </span>
-            </div>
-            <div className="flex flex-col gap-3">
-              {drivers.slice(0, 5).map((d) => (
-                <div key={d.id} className="border border-[#e2e8f0] rounded-xl p-3 flex items-center gap-3">
-                  <div className="relative">
-                    <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-[#1e3a8a] font-bold text-[13px]">
-                      {d.name.charAt(0).toUpperCase()}
+                      {showEdit && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenAssignModal(req);
+                          }}
+                          disabled={actionLoading}
+                          className="px-5 h-9 bg-[#1e3a8a] text-white text-[12.5px] font-bold rounded-xl hover:bg-[#1d4ed8] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          <Icon name="edit" className="text-[16px]" />
+                          Edit Penugasan
+                        </button>
+                      )}
+
+                      {showCancel && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCancelConfirmRequestId(req.id);
+                          }}
+                          disabled={actionLoading}
+                          className="px-5 h-9 bg-white border border-red-200 text-red-600 text-[12.5px] font-bold rounded-xl hover:bg-red-50 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          <Icon name="cancel" className="text-[16px]" />
+                          Batalkan Penugasan
+                        </button>
+                      )}
+
+                      {canCancelRequest && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteReason("");
+                            setDeleteConfirmRequestId(req.id);
+                          }}
+                          disabled={actionLoading}
+                          className="px-5 h-9 bg-white border border-red-200 text-red-600 text-[12.5px] font-bold rounded-xl hover:bg-red-50 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          <Icon name="delete" className="text-[16px]" />
+                          Batalkan Pengajuan
+                        </button>
+                      )}
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDetailRequest(req);
+                          setIsDetailModalOpen(true);
+                        }}
+                        className="w-9 h-9 bg-white border border-[#e2e8f0] rounded-xl flex items-center justify-center hover:bg-[#f1f5f9] transition-colors cursor-pointer"
+                      >
+                        <Icon name="info" className="text-[18px] text-[#64748b]" />
+                      </button>
                     </div>
-                    <span
-                      className={`absolute bottom-0 right-0 w-2.5 h-2.5 border-2 border-white rounded-full ${
-                        d.status === "AVAILABLE" 
-                          ? "bg-green-500" 
-                          : (d.status === "ON TRIP" 
-                            ? "bg-amber-500" 
-                            : (d.status === "ASSIGNED" ? "bg-blue-500" : "bg-gray-400"))
-                      }`}
-                    />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-bold text-[#0f172a] truncate">{d.name}</div>
-                    <span className={`text-[9px] font-bold px-2 py-0.2 rounded-full ${
-                      d.status === "AVAILABLE" 
-                        ? "bg-[#dcfce7] text-[#16a34a]" 
-                        : (d.status === "ON TRIP" 
-                          ? "bg-amber-100 text-amber-700" 
-                          : (d.status === "ASSIGNED" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"))
-                    }`}>
-                      {d.status === "AVAILABLE" 
-                        ? "Tersedia" 
-                        : (d.status === "ON TRIP" 
-                          ? "Dalam Perjalanan" 
-                          : (d.status === "ASSIGNED" ? "Ditugaskan" : "Off"))}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              {drivers.length === 0 && (
-                <p className="text-[12px] text-[#94a3b8] text-center py-4">Tidak ada driver terdaftar.</p>
-              )}
+                );
+              })}
             </div>
-          </div>
+          )}
         </div>
       </div>
 
