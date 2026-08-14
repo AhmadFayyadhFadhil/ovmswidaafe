@@ -122,7 +122,7 @@ function mapRequestFromBackend(r: any): FleetRequest {
     userId: r.user_id ? String(r.user_id) : (r.requested_by?.id ? String(r.requested_by.id) : null),
     requestedById: r.requested_by?.id ? String(r.requested_by.id) : (r.user_id ? String(r.user_id) : null),
     requested_by: r.requested_by || null,
-    department: r.department_name || r.department_id || 'IT',
+    department: r.department_name || r.department?.name || (typeof r.department === 'string' ? r.department : null) || 'General Affairs & HRD',
     destination: `${r.destination_city || ''}${r.destination_place ? ' - ' + r.destination_place : ''}`,
     vehicleModel: r.vehicle_model || r.operational_trip?.vehicle?.name || r.vehicle?.name || 'Not Assigned',
     driverName: r.driver_name || r.operational_trip?.driver?.name || r.driver?.name || 'Not Assigned',

@@ -4,6 +4,7 @@ import { Layout } from "@/components/layout/RoleLayout";
 import { Icon } from "@/components/ui/Icon";
 import { apiClient } from "@/services/api/api";
 import { useAuthContext } from "@/auth/authContext";
+import { departmentService, type Department } from "@/services/modules/departmentService";
 
 interface Props { onNavigate?: (page: string) => void; }
 
@@ -63,13 +64,30 @@ export default function MyProfilePage({ onNavigate }: Props) {
     setLoading(true);
     setErrorMsg("");
     try {
-      // Fetch profile data
+      // 1. Fetch departments master list for dynamic department name resolution
+      let deptList: Department[] = [];
+      try {
+        const deptRes = await departmentService.getAll();
+        if (deptRes.data) deptList = deptRes.data;
+      } catch (dErr) {
+        console.error("Could not fetch departments master list", dErr);
+      }
+
+      // 2. Fetch profile data
       const res = await apiClient.get("/profile");
       if (res.data?.status === "success") {
         const u = res.data.data;
         setName(u.name || "");
         setEmail(u.email || "");
-        setDepartment(u.department_id || "Operations");
+        
+        // Resolve official human-readable department name from API or master list
+        const foundDept = deptList.find(d => String(d.id) === String(u.department_id));
+        const officialDeptName = u.department_name 
+          || (typeof u.department === 'object' ? u.department?.name : u.department)
+          || (foundDept ? foundDept.name : null)
+          || "Plant Management";
+
+        setDepartment(officialDeptName);
         setPhone(u.phone || "+62 812-3456-7890");
         setPosition(u.position || (u.roles?.[0] ? u.roles[0].toUpperCase() : "Staff"));
         setLocation(u.location && !u.location.includes("Jakarta") ? u.location : "Pandaan Head Office");
