@@ -389,8 +389,10 @@ export const requestService = {
   },
   delete: async (id: string, reason?: string): Promise<ApiResponse<void>> => {
     requestCache = null;
-    const res = await apiClient.delete<any>(`${ENDPOINTS.REQUESTS}/${id}`, {
-      data: { rejected_reason: reason || '' }
+    const finalReason = reason && reason.trim().length >= 3 ? reason.trim() : 'Dibatalkan oleh pemohon / koordinator';
+    const queryParam = encodeURIComponent(finalReason);
+    const res = await apiClient.delete<any>(`${ENDPOINTS.REQUESTS}/${id}?rejected_reason=${queryParam}`, {
+      data: { rejected_reason: finalReason }
     });
     return {
       data: undefined,
