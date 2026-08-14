@@ -3,12 +3,11 @@ import axios from 'axios';
 const getDynamicBaseUrl = () => {
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
-    const protocol = window.location.protocol; // 'http:' or 'https:'
     if (host.includes('ovmsdev')) {
-      return `${protocol}//api.ovmsdev.widatra.com/api`;
+      return '/api';
     }
   }
-  return import.meta.env.VITE_API_BASE_URL || 'https://api.ovms.widatra.com/api';
+  return import.meta.env.VITE_API_BASE_URL || '/api';
 };
 
 export const apiClient = axios.create({
