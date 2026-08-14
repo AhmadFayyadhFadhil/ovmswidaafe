@@ -140,6 +140,8 @@ export default function AppRoutes() {
 
             {/* GAHRD Routes */}
             <Route path="/gahrd/dashboard" element={<GAHRDDashboardWrapper />} />
+            <Route path="/gahrd/createrequest" element={<CreateRequest />} />
+            <Route path="/gahrd/myrequests" element={<MyRequests />} />
             <Route path="/gahrd/requests" element={<GAHRDRequests />} />
             <Route path="/gahrd/requests/urgent" element={<CreateUrgentRequest />} />
             <Route path="/gahrd/history" element={<GAHRDHistory onNavigate={(_p) => {}} />} />

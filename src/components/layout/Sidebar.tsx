@@ -186,7 +186,9 @@ export function Sidebar({
   // GAHRD menu
   const gahrdMenu = [
     { icon: "dashboard",        label: "Dashboard",           path: "/gahrd/dashboard", guideKey: "gahrd-dashboard" },
-    { icon: "monitor_heart",    label: "Requests",            path: "/gahrd/requests", guideKey: "gahrd-requests" },
+    { icon: "add_box",          label: "Create Request",      path: "/gahrd/createrequest", guideKey: "create-request" },
+    { icon: "list_alt",         label: "My Requests",         path: "/gahrd/myrequests", guideKey: "my-requests" },
+    { icon: "monitor_heart",    label: "Fleet Requests",      path: "/gahrd/requests", guideKey: "gahrd-requests" },
     { icon: "directions_car",   label: "Vehicle Management",  path: "/admin/vehicles", guideKey: "vehicle-assignment" },
     { icon: "person",           label: "Driver Availability", path: "/gahrd/driver", guideKey: "driver-assignment" },
     { icon: "event",            label: "Calendar",            path: "/gahrd/calendar", guideKey: "gahrd-schedule" },
