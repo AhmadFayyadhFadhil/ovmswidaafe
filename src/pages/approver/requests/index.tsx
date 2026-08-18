@@ -329,6 +329,20 @@ export default function ApprovalManagement() {
       approvals: r.approvals || [],
     }));
 
+  // Auto-open request detail if ?open_request=X or ?req_id=X is present in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const targetId = params.get('open_request') || params.get('req_id') || params.get('id');
+    if (targetId && requestsList.length > 0) {
+      const found = requestsList.find(r => String(r.id) === String(targetId));
+      if (found) {
+        setSelectedRequest(found);
+        setDetailModalOpen(true);
+        setActiveCardId(found.id);
+      }
+    }
+  }, [requestsList]);
+
   // Auto-set the first mapped request as active if none is selected
   useEffect(() => {
     if (mappedRequests.length > 0 && !activeCardId) {
