@@ -291,7 +291,7 @@ export default function ApprovalManagement() {
     (user?.department_id === "HR&GA" || user?.department_id === "HRD&GA" || user?.department_id === "HRD & GA" || user?.department_name === "HRD & GA") && 
     !!user?.is_department_head;
 
-  const { data: fetchedRequests, loading, error, refetch } = useApi(async () => {
+  const { data: fetchedRequests, loading, error, refetch, setData } = useApi(async () => {
     const res = await requestService.getAll({ per_page: 1000 });
     return { data: res.data || [] };
   }, true, []);
@@ -371,23 +371,34 @@ export default function ApprovalManagement() {
 
   const handleApprove = async (id: string) => {
     try {
+      setDetailModalOpen(false);
+      setSelectedRequest(null);
+      setActiveCardId(null);
+      setData((prev: any) => (Array.isArray(prev) ? prev.filter((r: any) => String(r.id) !== String(id)) : []));
       requestService.clearCache();
       await requestService.approve(id, "Disetujui");
-      setActiveCardId(null);
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
       await refetch();
     } catch (err) {
       console.error("Gagal menyetujui request", err);
+      await refetch();
     }
   };
 
   const handleReject = async (id: string, notes: string = "Ditolak") => {
     try {
+      setDetailModalOpen(false);
+      setSelectedRequest(null);
+      setActiveCardId(null);
+      setRejectModal({ isOpen: false, requestId: null, reason: "" });
+      setData((prev: any) => (Array.isArray(prev) ? prev.filter((r: any) => String(r.id) !== String(id)) : []));
       requestService.clearCache();
       await requestService.reject(id, notes);
-      setActiveCardId(null);
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
       await refetch();
     } catch (err) {
       console.error("Gagal menolak request", err);
+      await refetch();
     }
   };
 

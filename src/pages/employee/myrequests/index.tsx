@@ -1380,10 +1380,10 @@ export default function MyRequestsPage() {
               })()}
             </div>
 
-            <div className="pt-2 border-t border-slate-100 flex justify-end">
+            <div className="pt-3 border-t border-slate-100">
               <button
                 onClick={() => setContactDriverModal({ isOpen: false, request: null })}
-                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+                className="w-full h-10 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-xs cursor-pointer active:scale-98 flex items-center justify-center"
               >
                 Tutup
               </button>

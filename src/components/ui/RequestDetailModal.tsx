@@ -216,8 +216,8 @@ export function RequestDetailModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-2 sm:p-4 md:p-6 animate-fadein">
       <div className="bg-white w-full max-w-4xl lg:max-w-5xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-slate-100 relative my-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-6 py-3.5 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
             <span className="text-[16px] sm:text-[18px] font-extrabold text-slate-800">Detail Permintaan</span>
             <span className="text-[11px] sm:text-[12px] font-extrabold text-blue-800 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md">
               #REQ-{request.id}
@@ -232,7 +232,7 @@ export function RequestDetailModal({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-end gap-1.5 shrink-0 self-end sm:self-auto">
             {/* Direct PDF Download Button */}
             <button
               onClick={() => {
@@ -250,7 +250,7 @@ export function RequestDetailModal({
                 });
               }}
               title="Download PDF Langsung (1-Touch)"
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors text-[11px] font-bold cursor-pointer"
+              className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors text-[11px] font-bold cursor-pointer shadow-2xs"
             >
               <Icon name="picture_as_pdf" className="text-[15px] text-red-600" />
               <span>Download PDF</span>
@@ -723,32 +723,35 @@ export function RequestDetailModal({
                               const vehicleModels = rawVehicleModel.includes(',') ? rawVehicleModel.split(',').map((s: string) => s.trim()) : [rawVehicleModel];
 
                               return driverNames.map((dName: string, dIdx: number) => {
-                                const dInitials = dName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
                                 const isAssigned = dName !== "Not Assigned" && dName !== "Belum Ditugaskan" && dName.trim() !== "";
-                                const currentVehicle = (vehicleModels[dIdx] || vehicleModels[0] || "Armada Belum Dipilih").replace(/\s*\(\s*\)/g, '').trim();
+                                const displayName = isAssigned ? dName : "Belum Ditugaskan";
+                                const dInitials = isAssigned ? dName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : "GA";
+                                const currentVehicle = (vehicleModels[dIdx] || vehicleModels[0] || (isAssigned ? "Armada Terdaftar" : "Belum Dipilih")).replace(/\s*\(\s*\)/g, '').trim();
 
                                 return (
                                   <div key={dIdx} className="p-3.5 bg-slate-50/90 border border-slate-200/80 rounded-2xl space-y-2.5 shadow-2xs">
                                     {/* Top Header: Avatar + Driver Name on Left, Status Badge on Right */}
-                                    <div className="flex items-center justify-between gap-2 border-b border-slate-200/60 pb-2.5">
-                                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                        <div className="w-10 h-10 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-xs font-black shrink-0 shadow-xs border border-blue-900">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-2.5">
+                                      <div className="flex items-center gap-2.5 min-w-0">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black shrink-0 shadow-xs border ${
+                                          isAssigned ? "bg-[#1e3a8a] text-white border-blue-900" : "bg-slate-200 text-slate-600 border-slate-300"
+                                        }`}>
                                           {dInitials}
                                         </div>
-                                        <div className="min-w-0 flex-1">
-                                          <div className="text-[13.5px] font-extrabold text-slate-800 leading-tight truncate">
-                                            {dName}
+                                        <div className="min-w-0">
+                                          <div className="text-[13.5px] font-extrabold text-slate-800 leading-tight">
+                                            {displayName}
                                           </div>
                                           <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                                            Driver Terdaftar
+                                            {isAssigned ? "Driver Terdaftar" : "Menunggu Alokasi GA"}
                                           </div>
                                         </div>
                                       </div>
 
-                                      <span className={`text-[9.5px] font-extrabold px-2.5 py-1 rounded-full shrink-0 ${
+                                      <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full self-start sm:self-center shrink-0 ${
                                         isAssigned 
                                           ? "bg-blue-100 text-blue-900 border border-blue-200" 
-                                          : "bg-slate-100 text-slate-500 border border-slate-200"
+                                          : "bg-amber-100 text-amber-900 border border-amber-200"
                                       }`}>
                                         {isAssigned ? "Driver Internal" : "Menunggu Penugasan"}
                                       </span>
@@ -768,7 +771,7 @@ export function RequestDetailModal({
                                     </div>
 
                                     {/* WhatsApp Button Row */}
-                                    {request.driverPhone && (
+                                    {request.driverPhone && isAssigned && (
                                       <a
                                         href={`https://wa.me/${request.driverPhone.replace(/[^0-9]/g, '')}`}
                                         target="_blank"
@@ -842,23 +845,25 @@ export function RequestDetailModal({
                         const cleanPhone = rawPhone ? String(rawPhone).replace(/[^0-9]/g, '') : '';
 
                         return (
-                          <div key={p.id || idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl text-[13px] transition-all">
-                            <div className="font-semibold text-slate-700 flex flex-wrap items-center gap-2">
-                              <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center text-[11px] font-extrabold flex-shrink-0 border border-blue-200">
-                                {idx + 1}
-                              </span>
-                              <span className="font-bold text-slate-900 text-[13.5px]">{p.name}</span>
-                              {isPicPassenger && (
-                                <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
-                                  👑 PIC Penumpang
+                          <div key={p.id || idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl text-[13px] transition-all">
+                            <div className="font-semibold text-slate-700 flex flex-col sm:flex-row sm:items-center gap-2 flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center text-[11px] font-extrabold flex-shrink-0 border border-blue-200">
+                                  {idx + 1}
                                 </span>
-                              )}
+                                <span className="font-bold text-slate-900 text-[13.5px]">{p.name}</span>
+                                {isPicPassenger && (
+                                  <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
+                                    👑 PIC Penumpang
+                                  </span>
+                                )}
+                              </div>
                               {(isPicPassenger || cleanPhone) && (
                                 <a
                                   href={cleanPhone ? `https://wa.me/${cleanPhone}` : '#'}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex-shrink-0 shadow-2xs cursor-pointer ${
+                                  className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex-shrink-0 shadow-2xs cursor-pointer ${
                                     cleanPhone
                                       ? 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95'
                                       : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
@@ -871,7 +876,7 @@ export function RequestDetailModal({
                                 </a>
                               )}
                             </div>
-                            <span className="text-[11px] font-extrabold text-slate-500 bg-white px-2.5 py-1 rounded-md border border-slate-200 uppercase flex-shrink-0 self-start sm:self-auto">
+                            <span className="text-[10.5px] font-extrabold text-slate-500 bg-white px-2.5 py-1 rounded-md border border-slate-200 uppercase self-start sm:self-center shrink-0">
                               {p.department_name || p.department_id || request.department}
                             </span>
                           </div>

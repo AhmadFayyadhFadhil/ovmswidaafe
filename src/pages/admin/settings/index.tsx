@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Layout } from "@/components/layout/RoleLayout";
+import { useAuthContext } from "@/auth/authContext";
 import { useApi } from "@/hooks/useApi";
 import { systemConfigService } from "@/services/modules/systemConfigService";
 import { tripPurposeService, type TripPurposeItem } from "@/services/modules/tripPurposeService";
@@ -66,6 +67,7 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle: s
 }
 
 export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: string) => void }) {
+  const { user } = useAuthContext();
   const [activeSection, setActiveSection] = useState("General Settings");
   const [saved,         setSaved]         = useState(false);
   const [resetDone,     setResetDone]     = useState(false);
@@ -406,9 +408,9 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
       <Layout
         activeNav="System Settings"
         onNavigate={onNavigate}
-        topbarTitle="System Settings"
-        userName="jokowi"
-        userRole="Administrator"
+        topbarTitle="Pengaturan Sistem"
+        userName={user?.name || "Admin"}
+        userRole={user?.role || "Administrator"}
       >
         <div className="flex-1 flex items-center justify-center p-6 bg-slate-50">
           <div className="flex flex-col items-center gap-3">
@@ -424,28 +426,28 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
     <Layout
       activeNav="System Settings"
       onNavigate={onNavigate}
-      topbarTitle="System Settings"
+      topbarTitle="Pengaturan Sistem"
       searchPlaceholder="Search settings..."
-      userName="jokowi"
-      userRole="Administrator"
+      userName={user?.name || "Admin"}
+      userRole={user?.role || "Administrator"}
     >
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
 
           {/* Page header */}
-          <div data-guide="system-settings" className="flex items-start justify-between mb-5">
+          <div data-guide="system-settings" className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
             <div>
-              <h2 className="text-[24px] font-bold text-[#0f172a]">Pengaturan Sistem</h2>
-              <p className="text-[13px] text-[#64748b] mt-0.5">Kelola konfigurasi sistem, keamanan, notifikasi, dan pengaturan operasional.</p>
+              <h2 className="text-[20px] sm:text-[24px] font-bold text-[#0f172a]">Pengaturan Sistem</h2>
+              <p className="text-[12.5px] sm:text-[13px] text-[#64748b] mt-0.5">Kelola konfigurasi sistem, keamanan, notifikasi, dan pengaturan operasional.</p>
             </div>
-            <div className="flex gap-2.5">
+            <div className="flex items-center gap-2.5 w-full sm:w-auto">
               <button onClick={handleReset}
-                className={`h-10 px-5 border rounded-xl text-[13px] font-bold transition-all active:scale-95 ${
-                  resetDone ? "bg-[#f1f5f9] border-[#e2e8f0] text-[#64748b]" : "border-[#e2e8f0] bg-white text-[#475569] hover:bg-[#f8fafc] shadow-sm"
+                className={`flex-1 sm:flex-initial h-10 px-4 sm:px-5 border rounded-xl text-[12.5px] sm:text-[13px] font-bold transition-all active:scale-95 cursor-pointer ${
+                  resetDone ? "bg-[#f1f5f9] border-[#e2e8f0] text-[#64748b]" : "border-[#e2e8f0] bg-white text-[#475569] hover:bg-[#f8fafc] shadow-xs"
                 }`}>
                 {resetDone ? "✓ Resetted" : "Reset Changes"}
               </button>
               <button onClick={handleSave} disabled={saving}
-                className={`h-10 px-6 rounded-xl text-[13px] font-bold transition-all active:scale-95 shadow-sm ${
+                className={`flex-1 sm:flex-initial h-10 px-5 sm:px-6 rounded-xl text-[12.5px] sm:text-[13px] font-bold transition-all active:scale-95 shadow-xs cursor-pointer ${
                   saved ? "bg-[#16a34a] text-white" : "bg-[#1e3a8a] hover:bg-[#1e40af] text-white"
                 } ${saving ? "opacity-75 cursor-not-allowed" : ""}`}>
                 {saving ? "Saving..." : (saved ? "✓ Saved!" : "Save Settings")}
@@ -454,7 +456,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
           </div>
 
           {/* System Status Bar (Real stats from backend) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3 mb-5">
             {[
               { 
                 label: "USERS", 
@@ -509,7 +511,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
               { 
                 label: "TIMEZONE", 
                 value: statsData?.timezone ? (statsData.timezone.includes("Asia/Jakarta") || statsData.timezone.includes("GMT") ? "WIB (GMT+7)" : statsData.timezone) : "WIB (GMT+7)", 
-                sub: "Zona Waktu Sistem", 
+                sub: "Zona Waktu", 
                 valueColor: "text-[#0f172a]", 
                 subColor: "text-[#16a34a]", 
                 icon: "schedule", 
@@ -517,13 +519,13 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                 iconCol: "text-[#16a34a]" 
               },
             ].map(c => (
-              <div key={c.label} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-shadow">
+              <div key={c.label} className="bg-white rounded-2xl p-3 sm:p-4 border border-[#e2e8f0] shadow-xs hover:shadow-sm transition-shadow min-w-0">
                 <div className={`w-8 h-8 ${c.bg} rounded-lg flex items-center justify-center mb-2`}>
                   <Icon name={c.icon} className={`${c.iconCol} text-[17px]`} />
                 </div>
                 <div className="text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">{c.label}</div>
-                <div className={`text-[15px] font-bold leading-tight mt-0.5 ${c.valueColor}`}>{c.value}</div>
-                <div className={`text-[10px] font-medium mt-0.5 ${c.subColor}`}>{c.sub}</div>
+                <div className={`text-[14px] sm:text-[15px] font-bold leading-tight mt-0.5 truncate ${c.valueColor}`}>{c.value}</div>
+                <div className={`text-[10px] font-medium mt-0.5 truncate ${c.subColor}`}>{c.sub}</div>
               </div>
             ))}
           </div>
