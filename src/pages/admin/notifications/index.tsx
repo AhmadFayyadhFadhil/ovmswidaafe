@@ -129,37 +129,66 @@ export default function Notification({
     }
   };
 
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    type: "all" | "single";
+    id?: string;
+    title?: string;
+  }>({
+    isOpen: false,
+    type: "all",
+  });
+
   /**
-   * Delete single notification.
+   * Delete single notification handler (triggers modal).
    */
-  const handleDeleteNotification = async (id: string) => {
-    if (propOnDeleteNotification) propOnDeleteNotification(id);
-
-    const stringId = String(id);
-    setInternalNotifs(prev => prev.filter(n => String(n.id) !== stringId));
-    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
-
-    try {
-      await notificationService.deleteNotification(stringId);
-    } catch (err) {
-      console.error("API delete notification error:", err);
-    }
+  const handleDeleteSingleClick = (id: string, title?: string) => {
+    setDeleteModal({
+      isOpen: true,
+      type: "single",
+      id: String(id),
+      title: title || "Notifikasi",
+    });
   };
 
   /**
-   * Delete all notifications.
+   * Delete all notifications handler (triggers modal).
    */
-  const handleDeleteAllNotifications = async () => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus semua notifikasi?")) return;
+  const handleDeleteAllClick = () => {
+    if (notifications.length === 0) return;
+    setDeleteModal({
+      isOpen: true,
+      type: "all",
+    });
+  };
 
-    const allIds = notifications.map(n => String(n.id));
-    setInternalNotifs([]);
-    window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+  /**
+   * Confirmed execution of deletion.
+   */
+  const handleConfirmDelete = async () => {
+    if (deleteModal.type === "all") {
+      const allIds = notifications.map(n => String(n.id));
+      setInternalNotifs([]);
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+      setDeleteModal({ isOpen: false, type: "all" });
 
-    try {
-      await notificationService.deleteAllNotifications(allIds);
-    } catch (err) {
-      console.error("API deleteAllNotifications error:", err);
+      try {
+        await notificationService.deleteAllNotifications(allIds);
+      } catch (err) {
+        console.error("API deleteAllNotifications error:", err);
+      }
+    } else if (deleteModal.id) {
+      const stringId = deleteModal.id;
+      if (propOnDeleteNotification) propOnDeleteNotification(stringId);
+      setInternalNotifs(prev => prev.filter(n => String(n.id) !== stringId));
+      window.dispatchEvent(new CustomEvent('ovms-notif-read'));
+      setDeleteModal({ isOpen: false, type: "all" });
+
+      try {
+        await notificationService.deleteNotification(stringId);
+      } catch (err) {
+        console.error("API delete notification error:", err);
+      }
     }
   };
 
@@ -258,7 +287,7 @@ export default function Notification({
             </button>
 
             <button
-              onClick={handleDeleteAllNotifications}
+              onClick={handleDeleteAllClick}
               disabled={notifications.length === 0}
               className="flex items-center justify-center gap-1.5 text-xs font-bold text-rose-700 bg-rose-50/80 hover:bg-rose-600 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed px-3 py-2 rounded-xl transition-all cursor-pointer border border-rose-200 shadow-2xs"
               title="Hapus Semua Notifikasi"
@@ -394,7 +423,7 @@ export default function Notification({
                       )}
 
                       <button
-                        onClick={() => handleDeleteNotification(not.id)}
+                        onClick={() => handleDeleteSingleClick(not.id, not.title)}
                         className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-rose-200 shadow-2xs cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -405,6 +434,63 @@ export default function Notification({
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Custom Confirmation Modal Dialog for Deleting Notifications */}
+        {deleteModal.isOpen && (
+          <div 
+            className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200"
+            onClick={() => setDeleteModal({ isOpen: false, type: "all" })}
+          >
+            <div 
+              className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 p-6 sm:p-7 text-center relative overflow-hidden animate-in zoom-in-95 duration-150 space-y-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Top Close X Button */}
+              <button
+                onClick={() => setDeleteModal({ isOpen: false, type: "all" })}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer text-sm font-bold"
+              >
+                ✕
+              </button>
+
+              {/* Top Graphic / Icon */}
+              <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto ring-8 ring-rose-50/60 shadow-inner">
+                <Trash2 className="w-8 h-8 text-rose-600" />
+              </div>
+
+              {/* Text Info */}
+              <div className="space-y-2">
+                <h3 className="text-lg sm:text-xl font-extrabold text-slate-900">
+                  {deleteModal.type === "all" ? "Hapus Semua Notifikasi?" : "Hapus Notifikasi?"}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-xs mx-auto">
+                  {deleteModal.type === "all"
+                    ? `Seluruh riwayat notifikasi Anda (${notifications.length} notifikasi) akan dihapus secara permanen dari sistem. Tindakan ini tidak dapat dibatalkan.`
+                    : `Notifikasi "${deleteModal.title || 'ini'}" akan dihapus dari daftar notifikasi Anda.`}
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteModal({ isOpen: false, type: "all" })}
+                  className="flex-1 h-11 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs sm:text-sm rounded-xl transition-all cursor-pointer active:scale-95"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  className="flex-1 h-11 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs sm:text-sm rounded-xl transition-all shadow-md shadow-rose-600/25 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>{deleteModal.type === "all" ? "Ya, Hapus Semua" : "Ya, Hapus"}</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
