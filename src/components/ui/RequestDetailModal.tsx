@@ -1214,8 +1214,9 @@ export function RequestDetailModal({
                 type="button"
                 disabled={isApproving}
                 onClick={() => setIsConfirmRejectOpen(true)}
-                className="w-full sm:w-auto h-10 px-4 text-[#dc2626] border border-[#dc2626] rounded-xl text-[13px] font-bold bg-white hover:bg-red-50 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto h-10 px-4 bg-red-50 text-red-600 border border-red-200 rounded-xl text-[13px] font-bold hover:bg-red-100 hover:border-red-300 active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
+                <Icon name="close" className="text-[16px]" />
                 Tolak Permintaan
               </button>
               <button

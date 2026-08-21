@@ -241,31 +241,36 @@ function RequestCard({
 
       {/* Action buttons — only shown when isActive */}
       {req.isActive && (
-        <div className="px-5 pb-5 pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 border-t border-[#f1f5f9] mt-2" onClick={e => e.stopPropagation()}>
-          {req.canApprove && (
-            <>
+        <div className="px-5 pb-5 pt-3 border-t border-[#f1f5f9] mt-2" onClick={e => e.stopPropagation()}>
+          {req.canApprove ? (
+            <div className="flex items-center gap-2.5 w-full">
               <button
-                onClick={() => onApprove(req.id)}
-                className="w-full sm:flex-1 h-10 bg-[#1e3a8a] text-white text-[13px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
-              >
-                <Icon name="fact_check" className="text-[16px]" />
-                Review & Approve
-              </button>
-              <button
+                type="button"
                 onClick={() => onReject(req.id)}
-                className="w-full sm:flex-1 h-10 bg-white text-[#dc2626] border border-[#dc2626] text-[13px] font-bold rounded-xl hover:bg-[#fef2f2] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                className="h-10 px-4 bg-red-50 text-red-600 border border-red-200 rounded-xl text-[12.5px] font-bold hover:bg-red-100 hover:border-red-300 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
               >
                 <Icon name="close" className="text-[16px]" />
-                Reject
+                <span>Tolak</span>
               </button>
-            </>
+              <button
+                type="button"
+                onClick={() => onApprove(req.id)}
+                className="flex-1 h-10 bg-[#1e3a8a] text-white rounded-xl text-[12.5px] font-bold hover:bg-[#1e40af] active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <Icon name="fact_check" className="text-[17px]" />
+                <span>Tinjau & Setujui</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onViewDetail(req.id)}
+              className="w-full h-10 bg-[#f8fafc] text-[#334155] border border-[#e2e8f0] text-[12.5px] font-bold rounded-xl hover:bg-[#f1f5f9] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <Icon name="visibility" className="text-[17px] text-[#64748b]" />
+              <span>Lihat Detail Pengajuan</span>
+            </button>
           )}
-          <button
-            onClick={() => onViewDetail(req.id)}
-            className="w-full sm:flex-1 h-10 bg-[#f8fafc] text-[#334155] border border-[#e2e8f0] text-[13px] font-bold rounded-xl hover:bg-[#f1f5f9] active:scale-95 transition-all cursor-pointer"
-          >
-            View Detail
-          </button>
         </div>
       )}
     </div>
