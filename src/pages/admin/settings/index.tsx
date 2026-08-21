@@ -594,17 +594,6 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                         options={["English (United States)", "English (United Kingdom)", "Bahasa Indonesia", "Mandarin Chinese"]} 
                       />
                     </div>
-                    <div className="col-span-1 sm:col-span-2 border-t border-[#f1f5f9] pt-4 mt-2">
-                      <label className="block text-[12px] font-semibold text-[#475569] mb-1">Batas Minimal Waktu Pengajuan (Lead Time dalam Jam)</label>
-                      <p className="text-[11px] text-[#64748b] mb-2">Tentukan minimal jam pengajuan sebelum berangkat (contoh: masukkan 24 untuk wajib H-1 penuh berdasarkan jam, atau 0 untuk bebas).</p>
-                      <input 
-                        type="number"
-                        min="0"
-                        value={formData.minLeadTimeHours !== undefined && formData.minLeadTimeHours !== null ? formData.minLeadTimeHours : 24} 
-                        onChange={e => setFormData({ ...formData, minLeadTimeHours: parseInt(e.target.value, 10) || 0 })}
-                        className="w-full h-10 px-3 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all max-w-xs" 
-                      />
-                    </div>
                   </div>
                 </SectionCard>
               )}

@@ -25,6 +25,7 @@ export function RequestDetailModal({
   const [rejectReason, setRejectReason] = useState("");
   const [previewFile, setPreviewFile] = useState<any | null>(null);
   const [isQrZoomed, setIsQrZoomed] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
 
   if (!isOpen || !request) return null;
 
@@ -280,6 +281,21 @@ export function RequestDetailModal({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Review Banner for Approver */}
+          {request.canApprove && onApprove && (
+            <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-2xl flex items-center gap-3.5 text-blue-900 shadow-2xs">
+              <div className="w-10 h-10 rounded-xl bg-[#1e3a8a] text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+                <Icon name="fact_check" className="text-[22px]" />
+              </div>
+              <div className="text-xs">
+                <div className="font-bold text-[13.5px] text-[#0f2a5e]">Pengecekan Ulang Pengajuan Kendaraan</div>
+                <div className="text-blue-700 font-medium mt-0.5 leading-relaxed">
+                  Silakan periksa kembali rincian perjalanan, jadwal keberangkatan, dan daftar penumpang di bawah ini sebelum memberikan persetujuan resmi.
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Left Column: Requester & Trip Details (Span 2) */}
             <div className="md:col-span-2 space-y-5">
@@ -1187,20 +1203,37 @@ export function RequestDetailModal({
           {request.canApprove && onApprove && onReject ? (
             <>
               <button
+                type="button"
+                disabled={isApproving}
+                onClick={onClose}
+                className="w-full sm:w-auto h-10 px-4 border border-[#e2e8f0] text-[#475569] rounded-xl text-[13px] font-bold bg-white hover:bg-slate-50 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={isApproving}
                 onClick={() => setIsConfirmRejectOpen(true)}
-                className="w-full sm:w-auto h-10 px-4 text-[#dc2626] border border-[#dc2626] rounded-xl text-[13px] font-bold bg-white hover:bg-red-50 active:scale-95 transition-all cursor-pointer"
+                className="w-full sm:w-auto h-10 px-4 text-[#dc2626] border border-[#dc2626] rounded-xl text-[13px] font-bold bg-white hover:bg-red-50 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
               >
                 Tolak Permintaan
               </button>
               <button
+                type="button"
+                disabled={isApproving}
                 onClick={async () => {
-                  await onApprove(request.id);
-                  onClose();
+                  setIsApproving(true);
+                  try {
+                    await onApprove(request.id);
+                    onClose();
+                  } finally {
+                    setIsApproving(false);
+                  }
                 }}
-                className="w-full sm:w-auto h-10 px-5 bg-blue-800 text-white rounded-xl text-[13px] font-bold hover:bg-blue-900 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full sm:w-auto h-10 px-6 bg-[#1e3a8a] text-white rounded-xl text-[13px] font-bold hover:bg-[#1e40af] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-sm"
               >
-                <Icon name="check_circle" className="text-[16px]" />
-                Setujui Permintaan
+                <Icon name={isApproving ? "sync" : "check_circle"} className={`text-[16px] ${isApproving ? "animate-spin" : ""}`} />
+                {isApproving ? "Menyetujui..." : "Setujui Permintaan"}
               </button>
             </>
           ) : (

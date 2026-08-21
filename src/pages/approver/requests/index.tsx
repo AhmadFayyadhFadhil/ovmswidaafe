@@ -246,14 +246,16 @@ function RequestCard({
             <>
               <button
                 onClick={() => onApprove(req.id)}
-                className="w-full sm:flex-1 h-10 bg-[#1e3a8a] text-white text-[13px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all cursor-pointer"
+                className="w-full sm:flex-1 h-10 bg-[#1e3a8a] text-white text-[13px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
               >
-                Approve
+                <Icon name="fact_check" className="text-[16px]" />
+                Review & Approve
               </button>
               <button
                 onClick={() => onReject(req.id)}
-                className="w-full sm:flex-1 h-10 bg-white text-[#dc2626] border border-[#dc2626] text-[13px] font-bold rounded-xl hover:bg-[#fef2f2] active:scale-95 transition-all cursor-pointer"
+                className="w-full sm:flex-1 h-10 bg-white text-[#dc2626] border border-[#dc2626] text-[13px] font-bold rounded-xl hover:bg-[#fef2f2] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
               >
+                <Icon name="close" className="text-[16px]" />
                 Reject
               </button>
             </>
@@ -502,7 +504,7 @@ export default function ApprovalManagement() {
               <RequestCard
                 key={req.id}
                 req={req}
-                onApprove={handleApprove}
+                onApprove={handleViewDetail}
                 onReject={(id) => setRejectModal({ isOpen: true, requestId: id, reason: "" })}
                 onViewDetail={handleViewDetail}
                 onSelect={setActiveCardId}
