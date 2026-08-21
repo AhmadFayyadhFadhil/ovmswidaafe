@@ -211,8 +211,28 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
     setIsAssignModalOpen(true);
     
     try {
-      const res = await driverService.getAll({ per_page: 1000 });
-      const available = (res.data || []).filter((d: any) => d.status === "AVAILABLE");
+      driverService.clearCache();
+      const res = await driverService.getAll({ per_page: 1000, exclude_busy_for_request_id: req.id });
+      const targetStart = new Date(req.startTime || req.start_time).getTime();
+      const targetEnd = new Date(req.rawEndTime || req.end_time || (targetStart + 3 * 3600000)).getTime();
+
+      const available = (res.data || []).filter((d: any) => {
+        if (d.status === "OFF DUTY") return false;
+        if (!isNaN(targetStart) && Array.isArray(allRequestsData)) {
+          const isConflict = allRequestsData.some((r: any) => {
+            if (String(r.id) === String(req.id)) return false;
+            if (["completed", "rejected", "cancelled"].includes(r.rawStatus)) return false;
+            const isThisDriver = String(r.driverId || r.driver_id || r.driver?.id || "") === String(d.id);
+            if (!isThisDriver) return false;
+            const rStart = new Date(r.startTime || r.start_time).getTime();
+            const rEnd = new Date(r.rawEndTime || r.end_time || (rStart + 3 * 3600000)).getTime();
+            if (isNaN(rStart)) return false;
+            return rStart < targetEnd && rEnd > targetStart;
+          });
+          if (isConflict) return false;
+        }
+        return true;
+      });
       setDrivers(available);
     } catch (err) {
       console.error(err);

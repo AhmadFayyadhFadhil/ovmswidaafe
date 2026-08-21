@@ -323,13 +323,23 @@ export default function GAHRDRequestsPage() {
     setLoadingVehicles(true);
     try {
       vehicleService.clearCache();
-      const res = await vehicleService.getAll({ per_page: 1000 });
-      const vList = res.data || [];
-      console.log('[DEBUG-VEHICLES] Fresh fetch result:', JSON.stringify(vList.map((v: any) => ({ id: v.id, model: v.model, plate: v.plate, status: v.status }))));
-      console.log('[DEBUG-VEHICLES] Total vehicles fetched:', vList.length);
+      driverService.clearCache();
+      const [vRes, dRes] = await Promise.all([
+        vehicleService.getAll({ per_page: 1000, exclude_busy_for_request_id: req.id }),
+        driverService.getAll({ per_page: 1000 }),
+      ]);
+      const vList = vRes.data || [];
       setVehicles(vList);
+
+      const mappedDrivers: Driver[] = (dRes.data || []).map((d: any) => ({
+        id: String(d.id),
+        name: d.name,
+        email: d.email,
+        status: d.status === "AVAILABLE" ? "AVAILABLE" : (d.status === "ON DUTY" ? "ON TRIP" : (d.status === "ASSIGNED" ? "ASSIGNED" : "OFF DUTY")),
+      } as Driver));
+      setDrivers(mappedDrivers);
     } catch (err) {
-      console.error("Gagal memuat kendaraan:", err);
+      console.error("Gagal memuat kendaraan atau driver:", err);
     } finally {
       setLoadingVehicles(false);
     }
@@ -527,25 +537,95 @@ export default function GAHRDRequestsPage() {
 
   const readyDrivers = drivers.filter((d) => d.status === "AVAILABLE");
 
+  // Check if a driver has a schedule conflict with target request
+  const isDriverConflictForRequest = (driverId: string, targetReq: any) => {
+    if (!targetReq || !driverId) return false;
+    const targetStart = new Date(targetReq.startTime || targetReq.start_time).getTime();
+    const targetEnd = new Date(targetReq.rawEndTime || targetReq.end_time || (targetStart + 3 * 3600000)).getTime();
+    if (isNaN(targetStart)) return false;
+
+    return requests.some((r) => {
+      if (String(r.id) === String(targetReq.id)) return false;
+      if (["completed", "rejected", "cancelled"].includes(r.rawStatus)) return false;
+
+      const isAssigned =
+        String(r.driverId || r.driver_id || r.driver?.id || "") === String(driverId) ||
+        (Array.isArray(r.assignments) && r.assignments.some((a: any) => String(a.driver_id || a.driver?.id) === String(driverId))) ||
+        (Array.isArray(r.itineraries) && r.itineraries.some((it: any) => String(it.driver_id || it.driver?.id) === String(driverId)));
+
+      if (!isAssigned) return false;
+
+      const rStart = new Date(r.startTime || r.start_time).getTime();
+      const rEnd = new Date(r.rawEndTime || r.end_time || (rStart + 3 * 3600000)).getTime();
+      if (isNaN(rStart)) return false;
+
+      return rStart < targetEnd && rEnd > targetStart;
+    });
+  };
+
+  // Check if a vehicle has a schedule conflict with target request
+  const isVehicleConflictForRequest = (vehicleId: string, targetReq: any) => {
+    if (!targetReq || !vehicleId) return false;
+    const targetStart = new Date(targetReq.startTime || targetReq.start_time).getTime();
+    const targetEnd = new Date(targetReq.rawEndTime || targetReq.end_time || (targetStart + 3 * 3600000)).getTime();
+    if (isNaN(targetStart)) return false;
+
+    return requests.some((r) => {
+      if (String(r.id) === String(targetReq.id)) return false;
+      if (["completed", "rejected", "cancelled"].includes(r.rawStatus)) return false;
+
+      const isAssigned =
+        String(r.vehicleId || r.vehicle_id || r.vehicle?.id || "") === String(vehicleId) ||
+        (Array.isArray(r.assignments) && r.assignments.some((a: any) => String(a.vehicle_id || a.vehicle?.id) === String(vehicleId))) ||
+        (Array.isArray(r.itineraries) && r.itineraries.some((it: any) => String(it.vehicle_id || it.vehicle?.id) === String(vehicleId)));
+
+      if (!isAssigned) return false;
+
+      const rStart = new Date(r.startTime || r.start_time).getTime();
+      const rEnd = new Date(r.rawEndTime || r.end_time || (rStart + 3 * 3600000)).getTime();
+      if (isNaN(rStart)) return false;
+
+      return rStart < targetEnd && rEnd > targetStart;
+    });
+  };
+
   const getAvailableDriversForRequest = (req: any) => {
-    return drivers.filter((d) => 
-      d.status === "AVAILABLE" || 
-      String(d.id) === String(selectedDriverId) || 
-      String(d.id) === String(selectedDriverId2) ||
-      (req && (String(d.id) === String(req.driverId) || String(d.id) === String(req.driver_id)))
-    );
+    return drivers.filter((d) => {
+      // If currently selected or already assigned to this request, always allow
+      if (String(d.id) === String(selectedDriverId) || String(d.id) === String(selectedDriverId2)) return true;
+      if (req && (String(d.id) === String(req.driverId) || String(d.id) === String(req.driver_id))) return true;
+
+      // Exclude if driver is completely off duty / deactivated
+      if (d.status === "OFF DUTY") return false;
+
+      // Check schedule conflict with target request
+      if (req && isDriverConflictForRequest(d.id, req)) {
+        return false;
+      }
+
+      return true;
+    });
   };
 
   const availableDrivers = getAvailableDriversForRequest(selectedRequest);
 
   const getAvailableVehiclesForRequest = (req: any) => {
     if (!Array.isArray(vehicles)) return [];
-    return vehicles.filter(v => {
+    return vehicles.filter((v) => {
+      // If currently selected or already assigned to this request, always allow
+      if (String(v.id) === String(selectedVehicleId) || String(v.id) === String(selectedVehicleId2)) return true;
+      if (req && (String(v.id) === String(req.vehicleId) || String(v.id) === String(req.vehicle_id))) return true;
+
       const s = String(v.status || 'Available').toUpperCase();
-      const isAvailable = s === "AVAILABLE";
-      const isSelected = String(v.id) === String(selectedVehicleId) || String(v.id) === String(selectedVehicleId2);
-      const isReqVehicle = req && (String(v.id) === String(req.vehicleId) || String(v.id) === String(req.vehicle_id));
-      return isAvailable || isSelected || isReqVehicle;
+      // Exclude if vehicle is in maintenance or retired
+      if (s === "MAINTENANCE" || s === "RETIRED") return false;
+
+      // Check schedule conflict with target request
+      if (req && isVehicleConflictForRequest(v.id, req)) {
+        return false;
+      }
+
+      return true;
     });
   };
 
@@ -987,24 +1067,43 @@ export default function GAHRDRequestsPage() {
                       const itDate = asg.date;
                       // Filter drivers available for this specific date
                       const dateAvailableDrivers = drivers.filter(d => {
-                        if (d.status !== "AVAILABLE" && String(d.id) !== String(asg.driver_id)) return false;
+                        if (String(d.id) === String(asg.driver_id)) return true;
+                        if (d.status === "OFF DUTY") return false;
                         // Check if driver has other assignment on itDate
                         const isBusy = requests.some(r => {
                           if (String(r.id) === String(selectedRequest.id)) return false;
                           if (["completed", "rejected", "cancelled"].includes(r.rawStatus)) return false;
-                          if (r.startTime && r.startTime.substring(0, 10) === itDate && String(r.driverId) === String(d.id)) return true;
-                          return false;
+                          const isDriver = String(r.driverId || r.driver_id || r.driver?.id || "") === String(d.id) ||
+                            (Array.isArray(r.assignments) && r.assignments.some((a: any) => String(a.driver_id || a.driver?.id) === String(d.id))) ||
+                            (Array.isArray(r.itineraries) && r.itineraries.some((it: any) => String(it.driver_id || it.driver?.id) === String(d.id) && (it.date === itDate || it.trip_date === itDate)));
+                          if (!isDriver) return false;
+                          const rStart = (r.startTime || r.start_time || "").substring(0, 10);
+                          const rEnd = (r.rawEndTime || r.end_time || r.startTime || "").substring(0, 10);
+                          if (rStart && rEnd) {
+                            return itDate >= rStart && itDate <= rEnd;
+                          }
+                          return rStart === itDate;
                         });
                         return !isBusy;
                       });
 
                       const dateAvailableVehicles = vehicles.filter(v => {
-                        if (v.status !== "AVAILABLE" && String(v.id) !== String(asg.vehicle_id)) return false;
+                        if (String(v.id) === String(asg.vehicle_id)) return true;
+                        const s = String(v.status || 'Available').toUpperCase();
+                        if (s === "MAINTENANCE" || s === "RETIRED") return false;
                         const isBusy = requests.some(r => {
                           if (String(r.id) === String(selectedRequest.id)) return false;
                           if (["completed", "rejected", "cancelled"].includes(r.rawStatus)) return false;
-                          if (r.startTime && r.startTime.substring(0, 10) === itDate && String(r.vehicleId) === String(v.id)) return true;
-                          return false;
+                          const isVehicle = String(r.vehicleId || r.vehicle_id || r.vehicle?.id || "") === String(v.id) ||
+                            (Array.isArray(r.assignments) && r.assignments.some((a: any) => String(a.vehicle_id || a.vehicle?.id) === String(v.id))) ||
+                            (Array.isArray(r.itineraries) && r.itineraries.some((it: any) => String(it.vehicle_id || it.vehicle?.id) === String(v.id) && (it.date === itDate || it.trip_date === itDate)));
+                          if (!isVehicle) return false;
+                          const rStart = (r.startTime || r.start_time || "").substring(0, 10);
+                          const rEnd = (r.rawEndTime || r.end_time || r.startTime || "").substring(0, 10);
+                          if (rStart && rEnd) {
+                            return itDate >= rStart && itDate <= rEnd;
+                          }
+                          return rStart === itDate;
                         });
                         return !isBusy;
                       });
@@ -1701,7 +1800,7 @@ export default function GAHRDRequestsPage() {
                               ) : (
                                 <>
                                   <option value="">-- Pilih Mobil --</option>
-                                  {vehicles.map((v) => (
+                                  {(availableVehicles && availableVehicles.length > 0 ? availableVehicles : vehicles).map((v) => (
                                     <option key={v.id} value={v.id}>{v.model || v.name} ({v.plate || v.plate_number})</option>
                                   ))}
                                 </>
@@ -1743,7 +1842,7 @@ export default function GAHRDRequestsPage() {
                                 ) : (
                                   <>
                                     <option value="">-- Tanpa Mobil 2 --</option>
-                                    {vehicles
+                                    {(availableVehicles && availableVehicles.length > 0 ? availableVehicles : vehicles)
                                       .filter(v => String(v.id) !== String(selectedVehicleId))
                                       .map((v) => (
                                         <option key={v.id} value={v.id}>{v.model || v.name} ({v.plate || v.plate_number})</option>
