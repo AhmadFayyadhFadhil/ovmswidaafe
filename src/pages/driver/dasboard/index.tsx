@@ -150,6 +150,7 @@ export default function DriverDashboard() {
   const [rawAssignments, setRawAssignments] = useState<any[]>([]);
   const [rawRequests, setRawRequests] = useState<any[]>([]);
   const [rawVehicles, setRawVehicles] = useState<any[]>([]);
+  const [driverProfile, setDriverProfile] = useState<any | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -215,7 +216,16 @@ export default function DriverDashboard() {
       setRawVehicles(vehicleRes.data || []);
 
       if (profileRes?.data?.status === "success" && profileRes.data.data) {
-        updateUser({ availability_status: profileRes.data.data.availability_status });
+        const pData = profileRes.data.data;
+        setDriverProfile(pData);
+        updateUser({
+          availability_status: pData.availability_status,
+          sim_number: pData.sim_number,
+          sim_type: pData.sim_type,
+          sim_expiry_date: pData.sim_expiry_date,
+          sim_status: pData.sim_status,
+          sim_expiry_days_left: pData.sim_expiry_days_left,
+        });
       }
     } catch (err: any) {
       console.error(err);
@@ -621,6 +631,64 @@ export default function DriverDashboard() {
 
         return (
           <div data-guide="driver-dashboard-overview" className="p-4 sm:p-8 space-y-6">
+            {/* SIM Status Alert Banner (H-30 Warning / Expired Alert) */}
+            {(() => {
+              const profile = driverProfile || user;
+              const simStatus = profile?.sim_status || (profile?.sim_expiry_date ? "valid" : "not_set");
+              const daysLeft = profile?.sim_expiry_days_left;
+              const expiryDate = profile?.sim_expiry_date;
+              const simNo = profile?.sim_number;
+              const simType = profile?.sim_type || "SIM A";
+
+              if (simStatus === "expired") {
+                return (
+                  <div className="p-4 bg-red-50 border-2 border-red-400 rounded-2xl flex items-start gap-3 shadow-sm animate-fadein">
+                    <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center flex-shrink-0">
+                      <Icon name="error" className="text-[24px]" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-[14px] font-extrabold text-red-900">
+                          PERINGATAN: MASA BERLAKU SIM TELAH HABIS!
+                        </h4>
+                        <span className="text-[10px] font-bold bg-red-600 text-white px-2.5 py-0.5 rounded-full">
+                          EXPIRED
+                        </span>
+                      </div>
+                      <p className="text-[12px] text-red-800 mt-1 font-medium leading-relaxed">
+                        Dokumen <strong>{simType}</strong> {simNo ? `(${simNo})` : ""} Anda telah kedaluwarsa pada <strong>{expiryDate || "tanggal yang ditentukan"}</strong>. Mohon segera lakukan perpanjangan SIM dan hubungi admin atau GA/HRD untuk memperbarui data lisensi Anda.
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (simStatus === "expiring_soon") {
+                return (
+                  <div className="p-4 bg-amber-50 border-2 border-amber-400 rounded-2xl flex items-start gap-3 shadow-sm animate-fadein">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 animate-pulse">
+                      <Icon name="warning" className="text-[24px]" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-[14px] font-extrabold text-amber-900">
+                          PERINGATAN MASA BERLAKU SIM (H-30)
+                        </h4>
+                        <span className="text-[10px] font-bold bg-amber-500 text-white px-2.5 py-0.5 rounded-full">
+                          {daysLeft !== null && daysLeft !== undefined ? `${daysLeft} Hari Tersisa` : "Segera Habis"}
+                        </span>
+                      </div>
+                      <p className="text-[12px] text-amber-800 mt-1 font-medium leading-relaxed">
+                        Masa berlaku <strong>{simType}</strong> {simNo ? `(No: ${simNo})` : ""} Anda akan segera berakhir pada <strong>{expiryDate}</strong> ({daysLeft !== null && daysLeft !== undefined ? `${daysLeft} hari lagi` : "kurang dari 30 hari"}). Harap segera persiapkan proses perpanjangan SIM.
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+
+              return null;
+            })()}
+
             {/* Hero current assignment */}
             {currentTrip ? (
               <div data-guide="driver-task-card" className="relative bg-[#0f1f3d] rounded-2xl p-6 sm:p-7 overflow-hidden text-white shadow-lg">

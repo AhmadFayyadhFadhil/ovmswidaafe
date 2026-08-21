@@ -29,6 +29,11 @@ export interface Driver {
   email?: string;
   status: "AVAILABLE" | "ON TRIP" | "OFF DUTY" | "ASSIGNED";
   avatar?: string;
+  simNumber?: string;
+  simType?: string;
+  simExpiryDate?: string;
+  simStatus?: "valid" | "expiring_soon" | "expired" | "not_set";
+  simExpiryDaysLeft?: number | null;
 }
 
 type TabFilter = "All" | "Normal" | "Urgent" | "Critical";
@@ -1781,7 +1786,14 @@ export default function GAHRDRequestsPage() {
                             >
                               <option value="">-- Pilih Driver --</option>
                               {availableDrivers.map((d) => (
-                                <option key={d.id} value={d.id}>{d.name}</option>
+                                <option key={d.id} value={d.id}>
+                                  {d.name}
+                                  {d.simStatus === "expired"
+                                    ? " ⛔ (SIM Expired!)"
+                                    : d.simStatus === "expiring_soon"
+                                    ? ` ⚠️ (SIM H-30: ${d.simExpiryDaysLeft !== null && d.simExpiryDaysLeft !== undefined ? `${d.simExpiryDaysLeft} hr lagi` : d.simExpiryDate})`
+                                    : ""}
+                                </option>
                               ))}
                             </select>
                           </div>
@@ -1824,7 +1836,14 @@ export default function GAHRDRequestsPage() {
                               >
                                 <option value="">-- Tanpa Driver 2 --</option>
                                 {(availableDrivers && availableDrivers.length > 0 ? availableDrivers : drivers).filter(d => String(d.id) !== String(selectedDriverId)).map((d) => (
-                                  <option key={d.id} value={d.id}>{d.name}</option>
+                                  <option key={d.id} value={d.id}>
+                                    {d.name}
+                                    {d.simStatus === "expired"
+                                      ? " ⛔ (SIM Expired!)"
+                                      : d.simStatus === "expiring_soon"
+                                      ? ` ⚠️ (SIM H-30: ${d.simExpiryDaysLeft !== null && d.simExpiryDaysLeft !== undefined ? `${d.simExpiryDaysLeft} hr lagi` : d.simExpiryDate})`
+                                      : ""}
+                                  </option>
                                 ))}
                               </select>
                             </div>

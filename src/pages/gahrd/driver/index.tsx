@@ -17,6 +17,12 @@ export interface Driver {
   phone?: string;
   location?: string;
   licenseType?: string;
+  simNumber?: string;
+  simType?: string;
+  simExpiryDate?: string;
+  simStatus?: "valid" | "expiring_soon" | "expired" | "not_set";
+  simExpiryDaysLeft?: number | null;
+  simPhotoUrl?: string;
 }
 
 export const DRIVERS: Driver[] = [
@@ -139,13 +145,32 @@ function DriverCard({
               </span>
               <span>•</span>
               <span className="text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-md">{driver.trips || 0} Trips</span>
-              {driver.licenseType && (
-                <>
-                  <span>•</span>
-                  <span className={driver.licenseType === "SIM A Aktif" ? "text-emerald-600 font-bold" : "text-amber-500 font-bold"}>
-                    {driver.licenseType}
-                  </span>
-                </>
+            </div>
+
+            {/* SIM & Expiry Info Row */}
+            <div className="flex items-center gap-2 flex-wrap pt-1 text-[11px]">
+              <span className="font-bold text-blue-900 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
+                {driver.simType || "SIM A"}
+              </span>
+              {driver.simNumber && (
+                <span className="font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                  {driver.simNumber}
+                </span>
+              )}
+              {driver.simStatus === "expired" ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-red-100 text-red-700 border border-red-200">
+                  <Icon name="error" className="text-[12px]" /> SIM Expired ({driver.simExpiryDate || "-"})
+                </span>
+              ) : driver.simStatus === "expiring_soon" ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
+                  <Icon name="warning" className="text-[12px]" /> H-30 ({driver.simExpiryDaysLeft !== null && driver.simExpiryDaysLeft !== undefined ? `${driver.simExpiryDaysLeft} hari lagi` : driver.simExpiryDate})
+                </span>
+              ) : driver.simExpiryDate && driver.simExpiryDate !== "-" ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <Icon name="check_circle" className="text-[12px]" /> Berlaku s/d {driver.simExpiryDate}
+                </span>
+              ) : (
+                <span className="text-slate-400 text-[10px]">Masa berlaku belum diatur</span>
               )}
             </div>
 
@@ -285,7 +310,13 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
             email: d.email || "",
             phone: d.phone || "",
             location: d.location || "Pandaan Head Office",
-            licenseType: d.sim_a_photo ? "SIM A Aktif" : "No SIM A",
+            licenseType: d.simType || d.sim_type || "SIM A",
+            simNumber: d.simNumber || d.sim_number || "",
+            simType: d.simType || d.sim_type || "SIM A",
+            simExpiryDate: d.simExpiryDate || d.sim_expiry_date || "",
+            simStatus: d.simStatus || (d.simExpiryDate ? "valid" : "not_set"),
+            simExpiryDaysLeft: d.simExpiryDaysLeft ?? null,
+            simPhotoUrl: d.simPhotoUrl || d.sim_a_photo_url || undefined,
           } as Driver;
         });
         setDriversList(mapped);

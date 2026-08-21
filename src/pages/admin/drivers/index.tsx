@@ -44,6 +44,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
   };
 
   const [simTypeFilter, setSimTypeFilter] = useState("All");
+  const [simStatusFilter, setSimStatusFilter] = useState("All");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -53,6 +54,8 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     password: "password",
     department: "",
     sim_type: "SIM A",
+    sim_number: "",
+    sim_expiry_date: "",
   });
   const [adding, setAdding] = useState(false);
   const [simFile, setSimFile] = useState<File | null>(null);
@@ -70,6 +73,8 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     password: "",
     department: "",
     sim_type: "SIM A",
+    sim_number: "",
+    sim_expiry_date: "",
   });
   const [editSimFile, setEditSimFile] = useState<File | null>(null);
   const [editSimPreview, setEditSimPreview] = useState("");
@@ -117,7 +122,9 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       email: d.email || "",
       password: "", // dikosongkan kecuali ingin ganti
       department: d.department_id ? String(d.department_id) : "",
-      sim_type: d.sim_type || d.simType || "SIM A",
+      sim_type: d.simType || d.sim_type || "SIM A",
+      sim_number: d.simNumber || d.sim_number || "",
+      sim_expiry_date: d.simExpiryDate || d.sim_expiry_date || "",
     });
     setEditSimFile(null);
     setEditSimPreview(d.simPhotoUrl || "");
@@ -156,6 +163,12 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       }
       data.append("role", "Driver");
       data.append("sim_type", editFormData.sim_type);
+      if (editFormData.sim_number) {
+        data.append("sim_number", editFormData.sim_number.trim());
+      }
+      if (editFormData.sim_expiry_date) {
+        data.append("sim_expiry_date", editFormData.sim_expiry_date);
+      }
       
       if (editFormData.department) {
         const parsedDeptId = parseInt(editFormData.department);
@@ -208,6 +221,13 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       data.append("position", "Driver");
       data.append("sim_type", formData.sim_type);
       
+      if (formData.sim_number) {
+        data.append("sim_number", formData.sim_number.trim());
+      }
+      if (formData.sim_expiry_date) {
+        data.append("sim_expiry_date", formData.sim_expiry_date);
+      }
+      
       const parsedDeptId = formData.department ? parseInt(formData.department) : (departments[0]?.id || 1);
       data.append("department_id", String(isNaN(parsedDeptId) ? 1 : parsedDeptId));
 
@@ -224,6 +244,8 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
         password: "password",
         department: departments[0]?.id ? String(departments[0].id) : "",
         sim_type: "SIM A",
+        sim_number: "",
+        sim_expiry_date: "",
       });
       setSimFile(null);
       setSimPreview("");
@@ -243,13 +265,26 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
   };
 
   const rawList = (paginatedData || []).filter((d: any) => !deletedIds.includes(String(d.id)));
-  const list = simTypeFilter === "All"
-    ? rawList
-    : rawList.filter((d: any) => {
-        const type = (d.sim_type || d.simType || "SIM A").toUpperCase();
-        if (simTypeFilter === "SIM B") return type.includes("SIM B") || type.includes("B1") || type.includes("B2");
-        return type.includes(simTypeFilter.toUpperCase());
-      });
+  const list = rawList.filter((d: any) => {
+    // 1. Sim type filter
+    if (simTypeFilter !== "All") {
+      const type = (d.sim_type || d.simType || "SIM A").toUpperCase();
+      if (simTypeFilter === "SIM B") {
+        if (!(type.includes("SIM B") || type.includes("B1") || type.includes("B2"))) return false;
+      } else if (!type.includes(simTypeFilter.toUpperCase())) {
+        return false;
+      }
+    }
+    // 2. Sim status filter
+    if (simStatusFilter === "expiring_soon") {
+      return d.simStatus === "expiring_soon";
+    } else if (simStatusFilter === "expired") {
+      return d.simStatus === "expired";
+    } else if (simStatusFilter === "valid") {
+      return d.simStatus === "valid";
+    }
+    return true;
+  });
 
   const pagination = (paginatedData as any)?.pagination || { total: 0, currentPage: 1, lastPage: 1, from: null, to: null };
 
@@ -258,8 +293,8 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
 
   const statsList = statsData || [];
   const totalDriversCount = (statsList as any)?.pagination?.total ?? statsList.length;
-  const onDutyCount = statsList.filter(d => d.status === "ON DUTY").length;
-  const expiringSoonCount = 0; // Hardcoded or calculated if needed
+  const onDutyCount = statsList.filter((d: any) => d.status === "ON DUTY").length;
+  const expiringSoonCount = statsList.filter((d: any) => d.simStatus === "expiring_soon" || d.simStatus === "expired").length;
 
   return (
     <Layout
@@ -279,7 +314,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
           <div className="flex gap-2.5 flex-shrink-0">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all shadow-sm active:scale-95"
+              className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <Icon name="person_add" className="text-[17px]" />
               Add Driver
@@ -292,7 +327,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
           {[
             { label: "Total Drivers", value: totalDriversCount, sub: "+4% vs last month", icon: "groups", color: "text-[#1e3a8a]", bg: "bg-[#e8edf8]" },
             { label: "Active / On Duty", value: onDutyCount, sub: `${totalDriversCount ? Math.round((onDutyCount / totalDriversCount) * 100) : 0}%`, icon: "commute", color: "text-[#0369a1]", bg: "bg-[#e0f2fe]", bar: true, barVal: totalDriversCount ? Math.round((onDutyCount / totalDriversCount) * 100) : 0 },
-            { label: "Expiring Soon", value: expiringSoonCount, sub: "Requires immediate action", icon: "notification_important", color: "text-[#dc2626]", bg: "bg-[#fee2e2]", border: "border-[#fecdd3]", urgent: expiringSoonCount > 0 },
+            { label: "Expiring Soon (H-30)", value: expiringSoonCount, sub: expiringSoonCount > 0 ? `${expiringSoonCount} Driver perlu perpanjangan SIM` : "Semua SIM driver aman", icon: "notification_important", color: "text-[#dc2626]", bg: "bg-[#fee2e2]", border: "border-[#fecdd3]", urgent: expiringSoonCount > 0 },
           ].map(c => (
             <div key={c.label} className={`bg-white rounded-2xl p-5 border ${c.border || "border-[#e2e8f0]"} shadow-sm hover:shadow-md transition-shadow ${c.urgent ? "border-l-4 border-l-[#dc2626]" : ""}`}>
               <div className="flex items-start justify-between mb-3">
@@ -331,7 +366,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
             <select
               value={statusFilter}
               onChange={e => handleStatusChange(e.target.value)}
-              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-semibold text-[#475569] focus:outline-none flex-shrink-0"
+              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-semibold text-[#475569] focus:outline-none flex-shrink-0 cursor-pointer"
             >
               {["All", "AVAILABLE", "ON DUTY", "OFF DUTY"].map(s => <option key={s} value={s}>Status: {s}</option>)}
             </select>
@@ -347,8 +382,18 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
               <option value="SIM B2">SIM B2</option>
               <option value="SIM C">SIM C (Motor)</option>
             </select>
+            <select 
+              value={simStatusFilter}
+              onChange={e => { setSimStatusFilter(e.target.value); setCurrentPage(1); }}
+              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#b45309] focus:outline-none flex-shrink-0 cursor-pointer shadow-2xs"
+            >
+              <option value="All">Masa Berlaku SIM: Semua</option>
+              <option value="valid">🟢 SIM Masih Berlaku</option>
+              <option value="expiring_soon">🟡 Peringatan H-30 (Segera Habis)</option>
+              <option value="expired">🔴 SIM Kadaluarsa (Expired)</option>
+            </select>
             <button
-              onClick={() => { setSearch(""); setStatusFilter("All"); setSimTypeFilter("All"); setCurrentPage(1); }}
+              onClick={() => { setSearch(""); setStatusFilter("All"); setSimTypeFilter("All"); setSimStatusFilter("All"); setCurrentPage(1); }}
               className="h-9 px-4 border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#475569] hover:bg-[#f1f5f9] flex-shrink-0 cursor-pointer"
             >
               Reset
@@ -361,19 +406,19 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
             <div className="p-8 text-center text-[14px] text-red-500">Failed to load drivers data.</div>
           ) : (
             <>
-              {/* Desktop Table View (Hidden on mobile, visible on medium screens and up) */}
+              {/* Desktop Table View */}
               <div className="hidden md:block">
                 <div className="overflow-x-auto max-w-full">
-                  <table className="w-full min-w-[900px]">
+                  <table className="w-full min-w-[950px]">
                   <thead>
                     <tr className="bg-[#f8fafc]">
-                      {["DRIVER", "STATUS", "ASSIGNED VEHICLE", "GOLONGAN SIM", "ACTIONS"].map(h => (
+                      {["DRIVER", "STATUS", "ASSIGNED VEHICLE", "SIM & MASA BERLAKU", "ACTIONS"].map(h => (
                         <th key={h} className="px-5 py-3 text-left text-[10.5px] font-bold text-[#94a3b8] uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {list.map(d => (
+                    {list.map((d: any) => (
                       <tr key={d.id} className="border-t border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors group">
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
@@ -395,29 +440,60 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                           {d.assignedVehicleId || "Unassigned"}
                         </td>
                         <td className="px-5 py-3.5">
-                          {d.simPhotoUrl ? (
-                            <button
-                              onClick={() => setViewingSimDriver(d)}
-                              className="px-3 py-1 rounded-full text-[10px] font-bold bg-[#dcfce7] hover:bg-[#bbf7d0] text-[#15803d] border border-[#86efac] shadow-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
-                            >
-                              <Icon name="visibility" className="text-[13px]" />
-                              View Card
-                            </button>
-                          ) : (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#fee2e2] text-[#991b1b]">Not Uploaded</span>
-                          )}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-[12px] text-[#1e3a8a] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
+                                {d.simType || d.sim_type || "SIM A"}
+                              </span>
+                              {d.simNumber ? (
+                                <span className="text-[11px] font-mono text-[#475569] bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                  {d.simNumber}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 italic">No SIM: -</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                              {d.simStatus === "expired" ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-red-100 text-red-700 border border-red-200">
+                                  <Icon name="error" className="text-[12px]" /> Expired ({d.simExpiryDate || d.licenseExpiry})
+                                </span>
+                              ) : d.simStatus === "expiring_soon" ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
+                                  <Icon name="warning" className="text-[12px]" /> H-30 ({d.simExpiryDaysLeft !== null && d.simExpiryDaysLeft !== undefined ? `${d.simExpiryDaysLeft} hari lagi` : d.simExpiryDate})
+                                </span>
+                              ) : d.simExpiryDate && d.simExpiryDate !== "-" ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <Icon name="check_circle" className="text-[12px]" /> Berlaku s/d {d.simExpiryDate}
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                                  Masa berlaku belum diatur
+                                </span>
+                              )}
+                              {d.simPhotoUrl && (
+                                <button
+                                  onClick={() => setViewingSimDriver(d)}
+                                  title="Lihat Foto Kartu SIM"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#e8edf8] text-[#1e3a8a] hover:bg-[#dbeafe] transition cursor-pointer"
+                                >
+                                  <Icon name="badge" className="text-[12px]" /> Foto
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleEditClick(d)}
-                              className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#eef2ff] text-[#1e3a8a] text-[12px] font-semibold hover:bg-[#dbeafe] transition"
+                              className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#eef2ff] text-[#1e3a8a] text-[12px] font-semibold hover:bg-[#dbeafe] transition cursor-pointer"
                             >
                               <Icon name="edit" className="text-[14px]" />Edit
                             </button>
                             <button
                               onClick={() => handleDelete(d.id)}
-                              className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#fee2e2] text-[#b91c1c] text-[12px] font-semibold hover:bg-[#fecaca] transition"
+                              className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#fee2e2] text-[#b91c1c] text-[12px] font-semibold hover:bg-[#fecaca] transition cursor-pointer"
                             >
                               <Icon name="delete" className="text-[14px]" />Delete
                             </button>
@@ -610,18 +686,40 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Golongan / Jenis SIM</label>
+                  <select
+                    value={formData.sim_type || "SIM A"}
+                    onChange={e => setFormData({ ...formData, sim_type: e.target.value })}
+                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] font-bold text-[#1e3a8a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                  >
+                    <option value="SIM A">SIM A (Mobil Penumpang / MPV)</option>
+                    <option value="SIM B1">SIM B1 (Truk / Bus &gt; 3.5 Ton)</option>
+                    <option value="SIM B2">SIM B2 (Truk Gandeng / Alat Berat)</option>
+                    <option value="SIM C">SIM C (Sepeda Motor Operasional)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Masa Berlaku SIM</label>
+                  <input
+                    type="date"
+                    value={formData.sim_expiry_date}
+                    onChange={e => setFormData({ ...formData, sim_expiry_date: e.target.value })}
+                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Golongan / Jenis SIM</label>
-                <select
-                  value={formData.sim_type || "SIM A"}
-                  onChange={e => setFormData({ ...formData, sim_type: e.target.value })}
-                  className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] font-bold text-[#1e3a8a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
-                >
-                  <option value="SIM A">SIM A (Mobil Penumpang / MPV)</option>
-                  <option value="SIM B1">SIM B1 (Truk / Bus &gt; 3.5 Ton)</option>
-                  <option value="SIM B2">SIM B2 (Truk Gandeng / Alat Berat)</option>
-                  <option value="SIM C">SIM C (Sepeda Motor Operasional)</option>
-                </select>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nomor SIM (Driver License No.)</label>
+                <input
+                  type="text"
+                  value={formData.sim_number}
+                  onChange={e => setFormData({ ...formData, sim_number: e.target.value })}
+                  placeholder="Contoh: 3507123456780001"
+                  className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 font-mono"
+                />
               </div>
 
               <div>
@@ -655,7 +753,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                 <button
                   type="submit"
                   disabled={adding}
-                  className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50"
+                  className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {adding ? "Adding..." : "Add Driver"}
                 </button>
@@ -671,7 +769,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
             {/* Header */}
             <div className="px-6 py-4 border-b border-[#f1f5f9] flex justify-between items-center bg-[#f8fafc]">
               <h3 className="text-[16px] font-bold text-[#0f172a]">Edit Driver</h3>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-[#94a3b8] hover:text-[#64748b]">
+              <button onClick={() => setIsEditModalOpen(false)} className="text-[#94a3b8] hover:text-[#64748b] cursor-pointer">
                 <Icon name="close" className="text-[20px]" />
               </button>
             </div>
@@ -745,18 +843,40 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Golongan / Jenis SIM</label>
+                  <select
+                    value={editFormData.sim_type || "SIM A"}
+                    onChange={e => setEditFormData({ ...editFormData, sim_type: e.target.value })}
+                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] font-bold text-[#1e3a8a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                  >
+                    <option value="SIM A">SIM A (Mobil Penumpang / MPV)</option>
+                    <option value="SIM B1">SIM B1 (Truk / Bus &gt; 3.5 Ton)</option>
+                    <option value="SIM B2">SIM B2 (Truk Gandeng / Alat Berat)</option>
+                    <option value="SIM C">SIM C (Sepeda Motor Operasional)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Masa Berlaku SIM</label>
+                  <input
+                    type="date"
+                    value={editFormData.sim_expiry_date}
+                    onChange={e => setEditFormData({ ...editFormData, sim_expiry_date: e.target.value })}
+                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Golongan / Jenis SIM</label>
-                <select
-                  value={editFormData.sim_type || "SIM A"}
-                  onChange={e => setEditFormData({ ...editFormData, sim_type: e.target.value })}
-                  className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] font-bold text-[#1e3a8a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
-                >
-                  <option value="SIM A">SIM A (Mobil Penumpang / MPV)</option>
-                  <option value="SIM B1">SIM B1 (Truk / Bus &gt; 3.5 Ton)</option>
-                  <option value="SIM B2">SIM B2 (Truk Gandeng / Alat Berat)</option>
-                  <option value="SIM C">SIM C (Sepeda Motor Operasional)</option>
-                </select>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nomor SIM (Driver License No.)</label>
+                <input
+                  type="text"
+                  value={editFormData.sim_number}
+                  onChange={e => setEditFormData({ ...editFormData, sim_number: e.target.value })}
+                  placeholder="Contoh: 3507123456780001"
+                  className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 font-mono"
+                />
               </div>
 
               <div>
@@ -783,14 +903,14 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[13px] font-bold text-[#475569] transition-colors"
+                  className="h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[13px] font-bold text-[#475569] transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={updating}
-                  className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50"
+                  className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {updating ? "Saving..." : "Save Changes"}
                 </button>
@@ -806,7 +926,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-base font-bold text-slate-800">Foto SIM A Driver</h3>
+                <h3 className="text-base font-bold text-slate-800">Detail & Foto SIM Driver</h3>
                 <p className="text-xs text-slate-500">{viewingSimDriver.name} ({viewingSimDriver.nik ? `NIK: ${viewingSimDriver.nik}` : viewingSimDriver.email})</p>
               </div>
               <button onClick={() => setViewingSimDriver(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 cursor-pointer">
@@ -814,10 +934,40 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
               </button>
             </div>
 
+            {/* SIM Summary Box */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-slate-400 block font-semibold">Golongan SIM:</span>
+                <span className="font-bold text-slate-800 text-sm">{viewingSimDriver.simType || viewingSimDriver.sim_type || "SIM A"}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-semibold">Nomor SIM:</span>
+                <span className="font-mono font-bold text-slate-800 text-sm">{viewingSimDriver.simNumber || viewingSimDriver.sim_number || "-"}</span>
+              </div>
+              <div className="col-span-2 pt-2 border-t border-slate-200 flex items-center justify-between">
+                <span className="text-slate-500 font-semibold">Masa Berlaku:</span>
+                {viewingSimDriver.simStatus === "expired" ? (
+                  <span className="px-2 py-0.5 rounded text-[11px] font-extrabold bg-red-100 text-red-700">
+                    Expired ({viewingSimDriver.simExpiryDate || viewingSimDriver.licenseExpiry})
+                  </span>
+                ) : viewingSimDriver.simStatus === "expiring_soon" ? (
+                  <span className="px-2 py-0.5 rounded text-[11px] font-extrabold bg-amber-100 text-amber-800 animate-pulse">
+                    H-30 ({viewingSimDriver.simExpiryDaysLeft !== null && viewingSimDriver.simExpiryDaysLeft !== undefined ? `${viewingSimDriver.simExpiryDaysLeft} hari lagi` : viewingSimDriver.simExpiryDate})
+                  </span>
+                ) : viewingSimDriver.simExpiryDate ? (
+                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                    Berlaku s/d {viewingSimDriver.simExpiryDate}
+                  </span>
+                ) : (
+                  <span className="text-slate-400">Belum diatur</span>
+                )}
+              </div>
+            </div>
+
             <div className="bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center p-2 min-h-[220px]">
               <img
                 src={viewingSimDriver.simPhotoUrl}
-                alt={`SIM A ${viewingSimDriver.name}`}
+                alt={`SIM ${viewingSimDriver.name}`}
                 className="max-h-[380px] w-auto object-contain rounded-lg shadow-md"
               />
             </div>

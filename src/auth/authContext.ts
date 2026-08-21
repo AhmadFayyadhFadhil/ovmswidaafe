@@ -15,6 +15,12 @@ export interface AuthUser {
   is_department_head?: boolean;
   availability_status?: 'available' | 'unavailable' | 'on_trip' | 'assigned';
   avatar_url?: string | null;
+  sim_number?: string | null;
+  sim_type?: string | null;
+  sim_expiry_date?: string | null;
+  sim_status?: string | null;
+  sim_expiry_days_left?: number | null;
+  sim_a_photo_url?: string | null;
 }
 
 export interface AuthContextType {

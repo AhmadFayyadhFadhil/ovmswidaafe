@@ -34,9 +34,14 @@ export interface Vehicle {
 export interface Driver {
   id: string;
   nik?: string;
+  simNumber?: string;
+  simType?: string;
+  simExpiryDate?: string;
+  simStatus?: "valid" | "expiring_soon" | "expired" | "not_set";
+  simExpiryDaysLeft?: number | null;
   name: string;
   status: "AVAILABLE" | "ON DUTY" | "OFF DUTY" | "ASSIGNED";
-  licenseType: "Class A" | "Class B" | "Class C";
+  licenseType: string;
   licenseExpiry: string;
   performance: number; // e.g. 4.8
   assignedVehicleId?: string;
@@ -44,6 +49,8 @@ export interface Driver {
   simPhotoUrl?: string;
   phone?: string;
   email?: string;
+  department?: string;
+  department_id?: string;
 }
 
 export interface FleetRequest {
@@ -216,6 +223,11 @@ export interface AuditLog {
 export interface UserAccount {
   id: string;
   nik?: string;
+  simNumber?: string;
+  simType?: string;
+  simExpiryDate?: string;
+  simStatus?: "valid" | "expiring_soon" | "expired" | "not_set";
+  simExpiryDaysLeft?: number | null;
   fullName: string;
   username: string;
   email: string;
@@ -226,6 +238,8 @@ export interface UserAccount {
   status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
   lastLogin: string;
   avatarUrl?: string;
+  isDepartmentHead?: boolean;
+  simPhoto?: string;
 }
 
 export interface RolePermission {

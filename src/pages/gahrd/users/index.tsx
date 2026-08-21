@@ -18,6 +18,11 @@ interface UserItem {
   rank?: string;
   is_department_head?: boolean;
   avatar_url?: string;
+  sim_type?: string;
+  sim_number?: string;
+  sim_expiry_date?: string;
+  sim_status?: string;
+  sim_expiry_days_left?: number | null;
 }
 
 export default function GAHRDUsersPage() {
@@ -70,6 +75,9 @@ export default function GAHRDUsersPage() {
     rank: "",
     department_id: "",
     is_department_head: false,
+    sim_type: "SIM A",
+    sim_number: "",
+    sim_expiry_date: "",
   });
   const [addSimFile, setAddSimFile] = useState<File | null>(null);
   const [addFormError, setAddFormError] = useState("");
@@ -85,6 +93,9 @@ export default function GAHRDUsersPage() {
     rank: "",
     department_id: "",
     is_department_head: false,
+    sim_type: "SIM A",
+    sim_number: "",
+    sim_expiry_date: "",
   });
   const [editSimFile, setEditSimFile] = useState<File | null>(null);
   const [editFormError, setEditFormError] = useState("");
@@ -121,6 +132,11 @@ export default function GAHRDUsersPage() {
           rank: u.rank || "",
           is_department_head: Boolean(u.is_department_head),
           avatar_url: u.sim_a_photo_url || u.avatar_url,
+          sim_type: u.sim_type || "SIM A",
+          sim_number: u.sim_number || "",
+          sim_expiry_date: u.sim_expiry_date || "",
+          sim_status: u.sim_status || (u.sim_expiry_date ? "valid" : "not_set"),
+          sim_expiry_days_left: u.sim_expiry_days_left ?? null,
         }));
         setUsers(mapped);
       } else {
@@ -229,10 +245,12 @@ export default function GAHRDUsersPage() {
       formData.append("email", addForm.email.trim());
       formData.append("password", addForm.password);
       formData.append("role", addForm.role);
-      if (addForm.rank.trim()) formData.append("rank", addForm.rank.trim());
-      if (addForm.department_id) formData.append("department_id", addForm.department_id);
-      formData.append("is_department_head", addForm.is_department_head ? "1" : "0");
-      if (addSimFile) formData.append("sim_a_photo", addSimFile);
+      if (addForm.role === "Driver") {
+        formData.append("sim_type", addForm.sim_type || "SIM A");
+        if (addForm.sim_number.trim()) formData.append("sim_number", addForm.sim_number.trim());
+        if (addForm.sim_expiry_date) formData.append("sim_expiry_date", addForm.sim_expiry_date);
+        if (addSimFile) formData.append("sim_a_photo", addSimFile);
+      }
 
       await userService.create(formData);
       showToast("Pengguna baru berhasil ditambahkan!");
@@ -246,6 +264,9 @@ export default function GAHRDUsersPage() {
         rank: "",
         department_id: "",
         is_department_head: false,
+        sim_type: "SIM A",
+        sim_number: "",
+        sim_expiry_date: "",
       });
       setAddSimFile(null);
       fetchUsers();
@@ -269,6 +290,9 @@ export default function GAHRDUsersPage() {
       rank: userItem.rank || "",
       department_id: userItem.department_id || "",
       is_department_head: Boolean(userItem.is_department_head),
+      sim_type: userItem.sim_type || "SIM A",
+      sim_number: userItem.sim_number || "",
+      sim_expiry_date: userItem.sim_expiry_date || "",
     });
     setEditSimFile(null);
     setEditFormError("");
@@ -298,7 +322,12 @@ export default function GAHRDUsersPage() {
       if (editForm.rank.trim()) formData.append("rank", editForm.rank.trim());
       if (editForm.department_id) formData.append("department_id", editForm.department_id);
       formData.append("is_department_head", editForm.is_department_head ? "1" : "0");
-      if (editSimFile) formData.append("sim_a_photo", editSimFile);
+      if (editForm.role === "Driver") {
+        formData.append("sim_type", editForm.sim_type || "SIM A");
+        if (editForm.sim_number.trim()) formData.append("sim_number", editForm.sim_number.trim());
+        if (editForm.sim_expiry_date) formData.append("sim_expiry_date", editForm.sim_expiry_date);
+        if (editSimFile) formData.append("sim_a_photo", editSimFile);
+      }
 
       await userService.update(editingUser.id, formData);
       showToast(`Data pengguna ${editForm.name} berhasil diperbarui!`);
@@ -907,14 +936,54 @@ export default function GAHRDUsersPage() {
                 </div>
 
                 {addForm.role === "Driver" && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Upload Foto SIM A (Driver)</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setAddSimFile(e.target.files?.[0] || null)}
-                      className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-800 hover:file:bg-blue-100 cursor-pointer"
-                    />
+                  <div className="space-y-3 p-3 bg-blue-50/50 border border-blue-100 rounded-2xl">
+                    <div className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                      <Icon name="badge" className="text-sm" />
+                      Informasi Dokumen SIM Driver
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Golongan SIM</label>
+                        <select
+                          value={addForm.sim_type || "SIM A"}
+                          onChange={(e) => setAddForm({ ...addForm, sim_type: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800 text-xs font-bold focus:ring-2 focus:ring-blue-600 focus:outline-none cursor-pointer"
+                        >
+                          <option value="SIM A">SIM A (Penumpang / MPV)</option>
+                          <option value="SIM B1">SIM B1 (Truk / Bus &gt; 3.5 Ton)</option>
+                          <option value="SIM B2">SIM B2 (Truk Gandeng)</option>
+                          <option value="SIM C">SIM C (Sepeda Motor)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Masa Berlaku SIM</label>
+                        <input
+                          type="date"
+                          value={addForm.sim_expiry_date || ""}
+                          onChange={(e) => setAddForm({ ...addForm, sim_expiry_date: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Nomor SIM</label>
+                      <input
+                        type="text"
+                        value={addForm.sim_number || ""}
+                        onChange={(e) => setAddForm({ ...addForm, sim_number: e.target.value })}
+                        placeholder="Contoh: 3507123456780001"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800 text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Upload Foto SIM Driver</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setAddSimFile(e.target.files?.[0] || null)}
+                        className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-800 hover:file:bg-blue-100 cursor-pointer"
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -1076,14 +1145,54 @@ export default function GAHRDUsersPage() {
                 </div>
 
                 {editForm.role === "Driver" && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Perbarui Foto SIM A (Driver)</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setEditSimFile(e.target.files?.[0] || null)}
-                      className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-800 hover:file:bg-blue-100 cursor-pointer"
-                    />
+                  <div className="space-y-3 p-3 bg-blue-50/50 border border-blue-100 rounded-2xl">
+                    <div className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                      <Icon name="badge" className="text-sm" />
+                      Informasi Dokumen SIM Driver
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Golongan SIM</label>
+                        <select
+                          value={editForm.sim_type || "SIM A"}
+                          onChange={(e) => setEditForm({ ...editForm, sim_type: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800 text-xs font-bold focus:ring-2 focus:ring-blue-600 focus:outline-none cursor-pointer"
+                        >
+                          <option value="SIM A">SIM A (Penumpang / MPV)</option>
+                          <option value="SIM B1">SIM B1 (Truk / Bus &gt; 3.5 Ton)</option>
+                          <option value="SIM B2">SIM B2 (Truk Gandeng)</option>
+                          <option value="SIM C">SIM C (Sepeda Motor)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Masa Berlaku SIM</label>
+                        <input
+                          type="date"
+                          value={editForm.sim_expiry_date || ""}
+                          onChange={(e) => setEditForm({ ...editForm, sim_expiry_date: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Nomor SIM</label>
+                      <input
+                        type="text"
+                        value={editForm.sim_number || ""}
+                        onChange={(e) => setEditForm({ ...editForm, sim_number: e.target.value })}
+                        placeholder="Contoh: 3507123456780001"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800 text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Perbarui Foto SIM Driver</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setEditSimFile(e.target.files?.[0] || null)}
+                        className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-800 hover:file:bg-blue-100 cursor-pointer"
+                      />
+                    </div>
                   </div>
                 )}
 

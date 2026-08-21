@@ -24,6 +24,11 @@ export const userService = {
     const mapped = users.map((u: any) => ({
       id: String(u.id),
       nik: u.nik || '',
+      simNumber: u.sim_number || '',
+      simType: u.sim_type || 'SIM A',
+      simExpiryDate: u.sim_expiry_date || '',
+      simStatus: u.sim_status || (u.sim_expiry_date ? 'valid' : 'not_set'),
+      simExpiryDaysLeft: u.sim_expiry_days_left ?? null,
       fullName: u.name || 'No Name',
       username: u.email ? u.email.split('@')[0] : 'user',
       email: u.email || '',

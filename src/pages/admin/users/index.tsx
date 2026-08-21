@@ -53,6 +53,9 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
     rank: "",
     department: "",
     isDepartmentHead: false,
+    sim_type: "SIM A",
+    sim_number: "",
+    sim_expiry_date: "",
   });
   const [simFile, setSimFile] = useState<File | null>(null);
   const [simPreview, setSimPreview] = useState("");
@@ -71,6 +74,9 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
     rank: "",
     department: "",
     isDepartmentHead: false,
+    sim_type: "SIM A",
+    sim_number: "",
+    sim_expiry_date: "",
   });
   const [editSimFile, setEditSimFile] = useState<File | null>(null);
   const [editSimPreview, setEditSimPreview] = useState("");
@@ -100,16 +106,16 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
     error: null,
   });
 
+  const [deletedIds, setDeletedIds] = useState<string[]>([]);
+
   const handleOpenDeleteModal = (u: any) => {
     setDeleteModal({
       isOpen: true,
       user: u,
       deleting: false,
-      error: null,
+      error: null
     });
   };
-
-  const [deletedIds, setDeletedIds] = useState<string[]>([]);
 
   const handleConfirmDeleteUser = async () => {
     if (!deleteModal.user) return;
@@ -117,13 +123,13 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
     setDeletedIds(prev => [...prev, targetId]);
     setDeleteModal(prev => ({ ...prev, deleting: true, error: null }));
     try {
-      await userService.delete(deleteModal.user.id, deleteModal.user);
+      await userService.delete(deleteModal.user.id);
       setDeleteModal({ isOpen: false, user: null, deleting: false, error: null });
       refetch();
     } catch (err: any) {
       console.error("Failed to delete user", err);
       setDeletedIds(prev => prev.filter(i => i !== targetId));
-      let msg = err.response?.data?.message || err.response?.data?.error || err.message || "Gagal menghapus user.";
+      const msg = err.response?.data?.message || err.message || "Gagal menghapus user.";
       setDeleteModal(prev => ({
         ...prev,
         deleting: false,
@@ -151,6 +157,9 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
       rank: u.position && u.roleName === "Approver" ? u.position : "",
       department: u.department_id ? String(u.department_id) : "",
       isDepartmentHead: !!u.isDepartmentHead,
+      sim_type: u.simType || "SIM A",
+      sim_number: u.simNumber || "",
+      sim_expiry_date: u.simExpiryDate || "",
     });
     setEditSimFile(null);
     setEditSimPreview(u.simPhoto || "");
@@ -200,8 +209,11 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
       if (editFormData.role === "Approver") {
         data.append("rank", editFormData.rank);
       }
-      if (editFormData.role === "Driver" && editSimFile) {
-        data.append("sim_a_photo", editSimFile);
+      if (editFormData.role === "Driver") {
+        data.append("sim_type", editFormData.sim_type || "SIM A");
+        if (editFormData.sim_number) data.append("sim_number", editFormData.sim_number.trim());
+        if (editFormData.sim_expiry_date) data.append("sim_expiry_date", editFormData.sim_expiry_date);
+        if (editSimFile) data.append("sim_a_photo", editSimFile);
       }
 
       await userService.update(editingUser.id, data);
@@ -252,8 +264,11 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
       if (formData.role === "Approver") {
         data.append("rank", formData.rank);
       }
-      if (formData.role === "Driver" && simFile) {
-        data.append("sim_a_photo", simFile);
+      if (formData.role === "Driver") {
+        data.append("sim_type", formData.sim_type || "SIM A");
+        if (formData.sim_number) data.append("sim_number", formData.sim_number.trim());
+        if (formData.sim_expiry_date) data.append("sim_expiry_date", formData.sim_expiry_date);
+        if (simFile) data.append("sim_a_photo", simFile);
       }
 
       await userService.create(data);
@@ -267,6 +282,9 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
         rank: "",
         department: departments[0]?.id ? String(departments[0].id) : "",
         isDepartmentHead: false,
+        sim_type: "SIM A",
+        sim_number: "",
+        sim_expiry_date: "",
       });
       setSimFile(null);
       setSimPreview("");
@@ -654,23 +672,65 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
               </div>
 
               {formData.role === "Driver" && (
-                <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">SIM A Photo</label>
-                  <div className="flex items-center gap-4">
+                <div className="space-y-4 p-4 bg-blue-50/50 border border-blue-100 rounded-2xl">
+                  <div className="text-[12px] font-bold text-[#1e3a8a] flex items-center gap-1.5">
+                    <Icon name="badge" className="text-[16px]" />
+                    Informasi Dokumen SIM Driver
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Golongan / Jenis SIM</label>
+                      <select
+                        value={formData.sim_type || "SIM A"}
+                        onChange={e => setFormData({ ...formData, sim_type: e.target.value })}
+                        className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] font-bold text-[#1e3a8a] bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                      >
+                        <option value="SIM A">SIM A (Mobil Penumpang / MPV)</option>
+                        <option value="SIM B1">SIM B1 (Truk / Bus &gt; 3.5 Ton)</option>
+                        <option value="SIM B2">SIM B2 (Truk Gandeng / Alat Berat)</option>
+                        <option value="SIM C">SIM C (Sepeda Motor Operasional)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Masa Berlaku SIM</label>
+                      <input
+                        type="date"
+                        value={formData.sim_expiry_date || ""}
+                        onChange={e => setFormData({ ...formData, sim_expiry_date: e.target.value })}
+                        className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nomor SIM (Driver License No.)</label>
                     <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleSimChange}
-                      className="hidden"
-                      id="user-sim-upload"
+                      type="text"
+                      value={formData.sim_number || ""}
+                      onChange={e => setFormData({ ...formData, sim_number: e.target.value })}
+                      placeholder="Contoh: 3507123456780001"
+                      className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 font-mono"
                     />
-                    <label htmlFor="user-sim-upload" className="cursor-pointer h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
-                      <Icon name="upload" className="text-[16px]" />
-                      Upload SIM A Image
-                    </label>
-                    {simPreview && (
-                      <img src={simPreview} alt="SIM Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0]" />
-                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Foto Kartu SIM Driver</label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleSimChange}
+                        className="hidden"
+                        id="user-sim-upload"
+                      />
+                      <label htmlFor="user-sim-upload" className="cursor-pointer h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
+                        <Icon name="upload" className="text-[16px]" />
+                        Upload Foto SIM
+                      </label>
+                      {simPreview && (
+                        <img src={simPreview} alt="SIM Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0]" />
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -818,23 +878,65 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
               </div>
 
               {editFormData.role === "Driver" && (
-                <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">SIM A Photo</label>
-                  <div className="flex items-center gap-4">
+                <div className="space-y-4 p-4 bg-blue-50/50 border border-blue-100 rounded-2xl">
+                  <div className="text-[12px] font-bold text-[#1e3a8a] flex items-center gap-1.5">
+                    <Icon name="badge" className="text-[16px]" />
+                    Informasi Dokumen SIM Driver
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Golongan / Jenis SIM</label>
+                      <select
+                        value={editFormData.sim_type || "SIM A"}
+                        onChange={e => setEditFormData({ ...editFormData, sim_type: e.target.value })}
+                        className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] font-bold text-[#1e3a8a] bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                      >
+                        <option value="SIM A">SIM A (Mobil Penumpang / MPV)</option>
+                        <option value="SIM B1">SIM B1 (Truk / Bus &gt; 3.5 Ton)</option>
+                        <option value="SIM B2">SIM B2 (Truk Gandeng / Alat Berat)</option>
+                        <option value="SIM C">SIM C (Sepeda Motor Operasional)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Masa Berlaku SIM</label>
+                      <input
+                        type="date"
+                        value={editFormData.sim_expiry_date || ""}
+                        onChange={e => setEditFormData({ ...editFormData, sim_expiry_date: e.target.value })}
+                        className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nomor SIM (Driver License No.)</label>
                     <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleEditSimChange}
-                      className="hidden"
-                      id="edit-user-sim-upload"
+                      type="text"
+                      value={editFormData.sim_number || ""}
+                      onChange={e => setEditFormData({ ...editFormData, sim_number: e.target.value })}
+                      placeholder="Contoh: 3507123456780001"
+                      className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 font-mono"
                     />
-                    <label htmlFor="edit-user-sim-upload" className="cursor-pointer h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
-                      <Icon name="upload" className="text-[16px]" />
-                      Upload SIM A Image
-                    </label>
-                    {editSimPreview && (
-                      <img src={editSimPreview} alt="SIM Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0]" />
-                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Foto Kartu SIM Driver</label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleEditSimChange}
+                        className="hidden"
+                        id="edit-user-sim-upload"
+                      />
+                      <label htmlFor="edit-user-sim-upload" className="cursor-pointer h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
+                        <Icon name="upload" className="text-[16px]" />
+                        Upload Foto SIM
+                      </label>
+                      {editSimPreview && (
+                        <img src={editSimPreview} alt="SIM Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0]" />
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
