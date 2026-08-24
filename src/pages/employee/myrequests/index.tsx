@@ -381,6 +381,21 @@ export default function MyRequestsPage() {
     }
   };
 
+  const handleCompleteExternal = async (id: string) => {
+    if (!window.confirm("Apakah Anda yakin ingin menyelesaikan perjalanan sewa eksternal ini?")) return;
+    setActionLoading(true);
+    try {
+      await requestService.complete(id);
+      alert("Perjalanan sewa eksternal berhasil diselesaikan!");
+      refetch();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Gagal menyelesaikan perjalanan.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <Layout
       activeNav="My Requests"
@@ -968,6 +983,16 @@ export default function MyRequestsPage() {
                             <button className="min-h-[38px] px-3.5 bg-[#0f2a5e] text-white rounded-xl text-[11.5px] sm:text-[12px] font-bold hover:bg-[#1e3a8a] transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs">
                               <Icon name="track_changes" className="text-[15px]" /> Track Real-time
                             </button>
+                            {r.is_external && !["completed", "rejected", "cancelled"].includes(r.rawStatus) && (
+                              <button
+                                onClick={() => handleCompleteExternal(r.id)}
+                                disabled={actionLoading}
+                                className="min-h-[38px] px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11.5px] sm:text-[12px] font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs disabled:opacity-50"
+                              >
+                                <Icon name="check_circle" className="text-[15px]" />
+                                <span>Selesaikan Perjalanan (Drop-Off)</span>
+                              </button>
+                            )}
                             {r.driverName && r.driverName !== "Not Assigned" && (
                               <button
                                 onClick={() => setContactDriverModal({ isOpen: true, request: r })}
