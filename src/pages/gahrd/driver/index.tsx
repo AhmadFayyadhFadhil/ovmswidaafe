@@ -102,11 +102,13 @@ function DriverCard({
   onToggleDuty,
   onViewReviews,
   onEditDriver,
+  onViewSimPhoto,
 }: { 
   driver: Driver; 
   onToggleDuty: (id: string, name: string, status: DriverStatus) => void;
   onViewReviews: (driver: Driver) => void;
   onEditDriver: (driver: Driver) => void;
+  onViewSimPhoto: (driver: Driver) => void;
 }) {
   const cfg = STATUS_CONFIG[driver.status];
   const isAvailable = driver.status === "AVAILABLE";
@@ -152,13 +154,25 @@ function DriverCard({
 
             {/* SIM & Expiry Info Row */}
             <div className="flex items-center gap-2 flex-wrap pt-1 text-[11px]">
-              <span className="font-bold text-blue-900 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
-                {driver.simType || "SIM A"}
-              </span>
+              <button
+                type="button"
+                onClick={() => onViewSimPhoto(driver)}
+                title="Klik untuk lihat Detail & Foto SIM"
+                className="font-bold text-blue-900 bg-blue-50 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 px-2.5 py-0.5 rounded-md flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+              >
+                <Icon name="badge" className="text-[13px] text-blue-700" />
+                <span>{driver.simType || "SIM A"}</span>
+                <Icon name="visibility" className="text-[12px] text-blue-600" />
+              </button>
               {driver.simNumber && (
-                <span className="font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => onViewSimPhoto(driver)}
+                  title="Klik untuk lihat Detail & Foto SIM"
+                  className="font-mono text-slate-700 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded border border-slate-200 transition-all cursor-pointer"
+                >
                   {driver.simNumber}
-                </span>
+                </button>
               )}
               {driver.simStatus === "expired" ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-red-100 text-red-700 border border-red-200">
@@ -201,6 +215,13 @@ function DriverCard({
         </div>
 
         <div className="flex flex-wrap sm:flex-col gap-2 w-full sm:w-auto flex-shrink-0 pt-2 sm:pt-0">
+          <button
+            onClick={() => onViewSimPhoto(driver)}
+            className="w-full sm:w-auto h-9 px-3.5 bg-blue-50 text-blue-900 hover:bg-blue-100 border border-blue-200 text-[12px] font-bold rounded-xl active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+          >
+            <Icon name="visibility" className="text-[14px]" />
+            Lihat SIM
+          </button>
           <button
             onClick={() => onEditDriver(driver)}
             className="w-full sm:w-auto h-9 px-4 bg-[#1e3a8a] text-white hover:bg-blue-900 text-[12px] font-bold rounded-xl active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
@@ -306,6 +327,7 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
     error: "",
   });
 
+  const [viewingSimDriver, setViewingSimDriver] = useState<Driver | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
   useEffect(() => {
@@ -644,6 +666,7 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
                     onToggleDuty={handleToggleClick} 
                     onViewReviews={handleOpenReviews} 
                     onEditDriver={handleOpenEditDriver}
+                    onViewSimPhoto={setViewingSimDriver}
                   />
                 ))
               )}
@@ -1098,6 +1121,126 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* SIM Card Lightbox Modal */}
+      {viewingSimDriver && (
+        <div 
+          className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4 animate-fadein backdrop-blur-xs"
+          onClick={() => setViewingSimDriver(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative border border-slate-100 animate-scalein"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#1e3a8a] flex items-center justify-center font-bold">
+                  <Icon name="badge" className="text-lg" />
+                </div>
+                <div>
+                  <h3 className="text-[16px] font-extrabold text-slate-800">Detail & Foto SIM Driver</h3>
+                  <p className="text-xs text-slate-500">{viewingSimDriver.name} ({viewingSimDriver.driverId})</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setViewingSimDriver(null)} 
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                <Icon name="close" className="text-[18px]" />
+              </button>
+            </div>
+
+            {/* SIM Summary Box */}
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-slate-400 block font-semibold mb-0.5">Golongan SIM:</span>
+                <span className="font-extrabold text-blue-900 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md text-xs inline-block">
+                  {viewingSimDriver.simType || "SIM A"}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-semibold mb-0.5">Nomor SIM:</span>
+                <span className="font-mono font-bold text-slate-800 text-sm">
+                  {viewingSimDriver.simNumber || "-"}
+                </span>
+              </div>
+              <div className="col-span-2 pt-2.5 border-t border-slate-200/60 flex items-center justify-between">
+                <span className="text-slate-500 font-semibold">Status Masa Berlaku:</span>
+                {viewingSimDriver.simStatus === "expired" ? (
+                  <span className="px-2.5 py-1 rounded-md text-[11px] font-extrabold bg-red-100 text-red-700 border border-red-200 flex items-center gap-1">
+                    <Icon name="error" className="text-[13px]" /> Expired ({viewingSimDriver.simExpiryDate || "-"})
+                  </span>
+                ) : viewingSimDriver.simStatus === "expiring_soon" ? (
+                  <span className="px-2.5 py-1 rounded-md text-[11px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse flex items-center gap-1">
+                    <Icon name="warning" className="text-[13px]" /> H-30 ({viewingSimDriver.simExpiryDaysLeft !== null && viewingSimDriver.simExpiryDaysLeft !== undefined ? `${viewingSimDriver.simExpiryDaysLeft} hari lagi` : viewingSimDriver.simExpiryDate})
+                  </span>
+                ) : viewingSimDriver.simExpiryDate && viewingSimDriver.simExpiryDate !== "-" ? (
+                  <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                    <Icon name="check_circle" className="text-[13px]" /> Berlaku s/d {viewingSimDriver.simExpiryDate}
+                  </span>
+                ) : (
+                  <span className="text-slate-400 font-medium">Masa berlaku belum diatur</span>
+                )}
+              </div>
+            </div>
+
+            {/* Foto SIM Display Container */}
+            <div className="bg-slate-900 rounded-2xl overflow-hidden flex items-center justify-center p-3 min-h-[220px] relative border border-slate-800">
+              {viewingSimDriver.simPhotoUrl ? (
+                <img
+                  src={viewingSimDriver.simPhotoUrl}
+                  alt={`Foto SIM ${viewingSimDriver.name}`}
+                  className="max-h-[360px] w-auto object-contain rounded-xl shadow-lg"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="text-center py-10 px-4 text-slate-400 space-y-2">
+                  <Icon name="badge" className="text-4xl text-slate-600 mx-auto" />
+                  <p className="font-bold text-slate-300 text-sm">Foto SIM Belum Diunggah</p>
+                  <p className="text-xs text-slate-500">Driver ini belum mengunggah foto kartu SIM fisik.</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = viewingSimDriver;
+                      setViewingSimDriver(null);
+                      handleOpenEditDriver(d);
+                    }}
+                    className="mt-3 px-4 py-2 bg-[#1e3a8a] hover:bg-blue-900 text-white font-bold text-xs rounded-xl transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Icon name="upload" className="text-sm" />
+                    Upload Foto SIM Sekarang
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-between items-center pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const d = viewingSimDriver;
+                  setViewingSimDriver(null);
+                  handleOpenEditDriver(d);
+                }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <Icon name="edit" className="text-sm" />
+                Edit Data SIM
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewingSimDriver(null)}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}
