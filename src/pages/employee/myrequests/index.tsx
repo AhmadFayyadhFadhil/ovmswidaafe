@@ -1026,7 +1026,7 @@ export default function MyRequestsPage() {
                             <button className="min-h-[38px] px-3.5 bg-[#0f2a5e] text-white rounded-xl text-[11.5px] sm:text-[12px] font-bold hover:bg-[#1e3a8a] transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs">
                               <Icon name="track_changes" className="text-[15px]" /> Track Real-time
                             </button>
-                            {r.is_external && !["completed", "rejected", "cancelled"].includes(r.rawStatus) && (
+                            {r.is_external && (r.external_trip_type === "one_way" || !r.is_return_to_factory) && (r.rawStatus === "on_going" || !!r.security_checked_out_at) && (
                               <button
                                 onClick={() => handleCompleteExternalClick(r.id)}
                                 disabled={actionLoading}

@@ -215,7 +215,8 @@ export function RequestDetailModal({
   };
 
   const isExternalOneWay = !!(request.is_external && (request.external_trip_type === "one_way" || !request.is_return_to_factory));
-  const isEligibleToComplete = isExternalOneWay && ["assigned_by_ga", "on_going", "driver_assigned", "approved_department", "submitted"].includes(request.rawStatus || request.status || "");
+  const isTripEnRoute = request.rawStatus === "on_going" || request.status === "on_going" || !!request.security_checked_out_at;
+  const isEligibleToComplete = isExternalOneWay && isTripEnRoute;
   const canUserComplete = !!(
     user?.id === request.userId ||
     user?.id === request.user_id ||
