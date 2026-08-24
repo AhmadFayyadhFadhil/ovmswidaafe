@@ -73,15 +73,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
   // 1. Stats data: load once for KPI cards
   const { data: statsData } = useApi<any>(() => auditLogService.getAll({ per_page: 1 }), true);
 
-  const stats = (statsData as any)?.stats || {
-    total_logs: 125,
-    security_alerts: 4,
-    failed_logins: 14,
-    permissions: 9,
-    operational: 102,
-    suspicious: 1,
-    data_integrity: 92
-  };
+  const rawStats = (statsData as any)?.stats;
 
   // 2. Paginated data: load for active page/filters
   const { data: paginatedData, loading: logsLoading, error: logsError, refetch: refetchLogs } = useApi(
@@ -135,11 +127,11 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
         secCount++;
       }
       // Failed Logins
-      if (actLower.includes("login") || actionLower.includes("login") || actLower.includes("auth") || actLower.includes("user") || (idx % 8 === 0)) {
+      if (actLower.includes("login") || actionLower.includes("login") || actLower.includes("auth") || actLower.includes("user")) {
         failedCount++;
       }
       // Permissions (Assignment / Role / Permission / Updated)
-      if (actLower.includes("assignment") || actLower.includes("role") || actLower.includes("permission") || actionLower.includes("update") || (idx % 3 === 0)) {
+      if (actLower.includes("assignment") || actLower.includes("role") || actLower.includes("permission") || actionLower.includes("update")) {
         permCount++;
       }
       // Operational
@@ -147,20 +139,31 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
         opsCount++;
       }
       // Suspicious
-      if (sevLower === "critical" || sevLower === "high" || actionLower.includes("delete") || (idx === 0)) {
+      if (sevLower === "critical" || actionLower.includes("delete")) {
         suspCount++;
       }
     });
 
+    if (rawStats) {
+      return {
+        total: typeof rawStats.total_logs === 'number' ? rawStats.total_logs : LOGS.length,
+        security_alerts: typeof rawStats.security_alerts === 'number' ? rawStats.security_alerts : secCount,
+        failed_logins: typeof rawStats.failed_logins === 'number' ? rawStats.failed_logins : failedCount,
+        permissions: typeof rawStats.permissions === 'number' ? rawStats.permissions : permCount,
+        operational: typeof rawStats.operational === 'number' ? rawStats.operational : opsCount,
+        suspicious: typeof rawStats.suspicious === 'number' ? rawStats.suspicious : suspCount,
+      };
+    }
+
     return {
-      total: stats.total_logs || LOGS.length || 125,
-      security_alerts: stats.security_alerts || secCount || 4,
-      failed_logins: stats.failed_logins || failedCount || 14,
-      permissions: stats.permissions || permCount || 9,
-      operational: stats.operational || opsCount || 102,
-      suspicious: stats.suspicious || suspCount || 1,
+      total: LOGS.length,
+      security_alerts: secCount,
+      failed_logins: failedCount,
+      permissions: permCount,
+      operational: opsCount,
+      suspicious: suspCount,
     };
-  }, [LOGS, stats]);
+  }, [LOGS, rawStats]);
 
   // Card Meta Configurations
   const cardMetas: CardMetaInfo[] = useMemo(() => [
