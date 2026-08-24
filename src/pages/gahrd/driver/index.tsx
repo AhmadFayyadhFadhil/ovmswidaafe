@@ -338,62 +338,64 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
   }, [toast]);
 
   const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [driversRes, reqsRes] = await Promise.all([
-          driverService.getAll({ per_page: 1000 }),
-          requestService.getAll({ per_page: 1000 }).catch(() => ({ data: [] })),
-        ]);
-        
-        const reqs = reqsRes.data || [];
-        setAllRequests(reqs);
+    setLoading(true);
+    setError(null);
+    try {
+      const [driversRes, reqsRes] = await Promise.all([
+        driverService.getAll({ per_page: 1000 }),
+        requestService.getAll({ per_page: 1000 }).catch(() => ({ data: [] })),
+      ]);
+      
+      const reqs = reqsRes.data || [];
+      setAllRequests(reqs);
 
-        const mapped = (driversRes.data || []).map((d: any) => {
-          const driverRatedReqs = reqs.filter((r: any) => 
-            isDriverForReq(r, d.id, d.name) && (r.rating && Number(r.rating) > 0)
-          );
+      const mapped = (driversRes.data || []).map((d: any) => {
+        const driverRatedReqs = reqs.filter((r: any) => 
+          isDriverForReq(r, d.id, d.name) && (r.rating && Number(r.rating) > 0)
+        );
 
-          const driverAllReqs = reqs.filter((r: any) => isDriverForReq(r, d.id, d.name));
+        const driverAllReqs = reqs.filter((r: any) => isDriverForReq(r, d.id, d.name));
 
-          const driverCompletedReqs = driverAllReqs.filter((r: any) => 
-            r.rawStatus === "completed" || r.status === "completed" || r.status === "COMPLETED"
-          );
+        const driverCompletedReqs = driverAllReqs.filter((r: any) => 
+          r.rawStatus === "completed" || r.status === "completed" || r.status === "COMPLETED"
+        );
 
-          const ratingSum = driverRatedReqs.reduce((acc: number, r: any) => acc + Number(r.rating || 0), 0);
-          const computedRating = driverRatedReqs.length > 0 ? Number((ratingSum / driverRatedReqs.length).toFixed(1)) : 0;
+        const ratingSum = driverRatedReqs.reduce((acc: number, r: any) => acc + Number(r.rating || 0), 0);
+        const computedRating = driverRatedReqs.length > 0 ? Number((ratingSum / driverRatedReqs.length).toFixed(1)) : 0;
 
-          // Use completed trips count, fallback to all associated requests count
-          const computedTrips = d.trips_count || driverCompletedReqs.length || driverAllReqs.length || 0;
+        // Use completed trips count, fallback to all associated requests count
+        const computedTrips = d.trips_count || driverCompletedReqs.length || driverAllReqs.length || 0;
 
-          return {
-            id: d.id,
-            name: d.name,
-            status: d.status === "AVAILABLE" ? "AVAILABLE" : (d.status === "ON TRIP" || d.status === "ON DUTY" || d.status === "ASSIGNED" ? "ON TRIP" : "OFF DUTY"),
-            avatar: d.avatarUrl || d.avatar,
-            driverId: `DRV-${String(d.id).padStart(3, "0")}`,
-            trips: computedTrips,
-            rating: computedRating,
-            email: d.email || "",
-            phone: d.phone || "",
-            location: d.location || "Pandaan Head Office",
-            licenseType: d.simType || d.sim_type || "SIM A",
-            simNumber: d.simNumber || d.sim_number || "",
-            simType: d.simType || d.sim_type || "SIM A",
-            simExpiryDate: d.simExpiryDate || d.sim_expiry_date || "",
-            simStatus: d.simStatus || (d.simExpiryDate ? "valid" : "not_set"),
-            simExpiryDaysLeft: d.simExpiryDaysLeft ?? null,
-            simPhotoUrl: d.simPhotoUrl || d.sim_a_photo_url || undefined,
-          } as Driver;
-        });
-        setDriversList(mapped);
-      } catch (err: any) {
-        console.error(err);
-        setError("Gagal memuat data pengemudi dari database.");
-      } finally {
-        setLoading(false);
-      }
-    };
+        return {
+          id: d.id,
+          name: d.name,
+          status: d.status === "AVAILABLE" ? "AVAILABLE" : (d.status === "ON TRIP" || d.status === "ON DUTY" || d.status === "ASSIGNED" ? "ON TRIP" : "OFF DUTY"),
+          avatar: d.avatarUrl || d.avatar,
+          driverId: `DRV-${String(d.id).padStart(3, "0")}`,
+          trips: computedTrips,
+          rating: computedRating,
+          email: d.email || "",
+          phone: d.phone || "",
+          location: d.location || "Pandaan Head Office",
+          licenseType: d.simType || d.sim_type || "SIM A",
+          simNumber: d.simNumber || d.sim_number || "",
+          simType: d.simType || d.sim_type || "SIM A",
+          simExpiryDate: d.simExpiryDate || d.sim_expiry_date || "",
+          simStatus: d.simStatus || (d.simExpiryDate ? "valid" : "not_set"),
+          simExpiryDaysLeft: d.simExpiryDaysLeft ?? null,
+          simPhotoUrl: d.simPhotoUrl || d.sim_a_photo_url || undefined,
+        } as Driver;
+      });
+      setDriversList(mapped);
+    } catch (err: any) {
+      console.error(err);
+      setError("Gagal memuat data pengemudi dari database.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
