@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import { useApi } from "@/hooks/useApi";
 import { requestService } from "@/services/modules/requestService";
 import { useAuthContext } from "@/auth/authContext";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 interface StepState { 
   done: boolean; 
@@ -262,6 +263,17 @@ export default function MyRequestsPage() {
     rating: 5,
     notes: "",
   });
+  const [completeModal, setCompleteModal] = useState<{ isOpen: boolean; requestId: string | null; notes: string }>({
+    isOpen: false,
+    requestId: null,
+    notes: "",
+  });
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title: string; message: string; variant: "success" | "danger" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    variant: "info",
+  });
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
 
   const handleRatingSubmit = async () => {
@@ -364,7 +376,12 @@ export default function MyRequestsPage() {
   const handleConfirmCancel = async () => {
     if (!cancelModal.requestId) return;
     if (!cancelReason.trim() || cancelReason.trim().length < 5) {
-      alert('Alasan pembatalan wajib diisi minimal 5 karakter.');
+      setAlertModal({
+        isOpen: true,
+        title: "Alasan Wajib Diisi",
+        message: "Harap masukkan alasan pembatalan minimal 5 karakter.",
+        variant: "warning",
+      });
       return;
     }
     setActionLoading(true);
@@ -372,25 +389,51 @@ export default function MyRequestsPage() {
       await requestService.delete(cancelModal.requestId, cancelReason.trim());
       setCancelModal({ isOpen: false, requestId: null });
       setCancelReason('');
+      setAlertModal({
+        isOpen: true,
+        title: "Permintaan Dibatalkan",
+        message: "Permintaan kendaraan berhasil dibatalkan.",
+        variant: "success",
+      });
       refetch();
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || err.response?.data?.errors?.rejected_reason?.[0] || 'Gagal membatalkan permintaan.');
+      setAlertModal({
+        isOpen: true,
+        title: "Gagal Membatalkan",
+        message: err.response?.data?.message || err.response?.data?.errors?.rejected_reason?.[0] || 'Gagal membatalkan permintaan.',
+        variant: "danger",
+      });
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleCompleteExternal = async (id: string) => {
-    if (!window.confirm("Apakah Anda yakin ingin menyelesaikan perjalanan sewa eksternal ini?")) return;
+  const handleCompleteExternalClick = (id: string) => {
+    setCompleteModal({ isOpen: true, requestId: id, notes: "" });
+  };
+
+  const handleConfirmCompleteExternal = async () => {
+    if (!completeModal.requestId) return;
     setActionLoading(true);
     try {
-      await requestService.complete(id);
-      alert("Perjalanan sewa eksternal berhasil diselesaikan!");
+      await requestService.complete(completeModal.requestId);
+      setCompleteModal({ isOpen: false, requestId: null, notes: "" });
+      setAlertModal({
+        isOpen: true,
+        title: "Perjalanan Selesai!",
+        message: "Perjalanan sewa eksternal berhasil diselesaikan. Status telah diperbarui menjadi COMPLETED.",
+        variant: "success",
+      });
       refetch();
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || 'Gagal menyelesaikan perjalanan.');
+      setAlertModal({
+        isOpen: true,
+        title: "Gagal Menyelesaikan Perjalanan",
+        message: err.response?.data?.message || "Terjadi kendala saat menyelesaikan perjalanan sewa eksternal.",
+        variant: "danger",
+      });
     } finally {
       setActionLoading(false);
     }
@@ -985,7 +1028,7 @@ export default function MyRequestsPage() {
                             </button>
                             {r.is_external && !["completed", "rejected", "cancelled"].includes(r.rawStatus) && (
                               <button
-                                onClick={() => handleCompleteExternal(r.id)}
+                                onClick={() => handleCompleteExternalClick(r.id)}
                                 disabled={actionLoading}
                                 className="min-h-[38px] px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11.5px] sm:text-[12px] font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs disabled:opacity-50"
                               >
@@ -1498,6 +1541,30 @@ export default function MyRequestsPage() {
           </div>
         </div>
       )}
+
+      {/* Confirm External Completion Modal */}
+      <ConfirmModal
+        isOpen={completeModal.isOpen}
+        onClose={() => setCompleteModal({ isOpen: false, requestId: null, notes: "" })}
+        onConfirm={handleConfirmCompleteExternal}
+        title="Selesaikan Perjalanan Sewa Eksternal?"
+        message="Apakah Anda yakin penumpang telah tiba di lokasi tujuan? Menandai selesai akan memperbarui status permintaan menjadi COMPLETED."
+        confirmText="Ya, Selesaikan"
+        cancelText="Batal"
+        variant="success"
+        isLoading={actionLoading}
+      />
+
+      {/* Alert / Notification Modal */}
+      <ConfirmModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        title={alertModal.title}
+        message={alertModal.message}
+        confirmText="Mengerti"
+        variant={alertModal.variant}
+        isAlertOnly={true}
+      />
     </Layout>
   );
 }
