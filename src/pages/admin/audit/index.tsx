@@ -4,8 +4,6 @@ import { useApi } from "@/hooks/useApi";
 import { auditLogService } from "@/services/modules/auditLogService";
 import { exportToCSV } from "@/utils/exportHelper";
 
-// Audit logs will be loaded from backend via `auditLogService.getAll()`
-
 // ── Severity styling ──────────────────────────
 const SEV: Record<string, { badge: string; dot: string; row: string }> = {
   Critical: { badge: "bg-[#fee2e2] text-[#dc2626] border border-[#fca5a5]", dot: "bg-[#dc2626]", row: "bg-[#fff5f5]" },
@@ -43,12 +41,32 @@ function Avatar({ name, img }: { name: string; img: string }) {
   );
 }
 
+export type CardFilterType = "ALL" | "SECURITY_ALERTS" | "FAILED_LOGINS" | "PERMISSIONS" | "OPERATIONAL" | "SUSPICIOUS";
+
+export interface CardMetaInfo {
+  key: CardFilterType;
+  label: string;
+  value: string;
+  rawVal: number;
+  icon: string;
+  bg: string;
+  col: string;
+  vals: number[];
+  colors: string[];
+  severityLevel: string;
+  severityColor: string;
+  description: string;
+  recommendation: string;
+}
+
 // ── Main Component ────────────────────────────
 export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string) => void }) {
   const [severityF, setSeverityF] = useState("All");
   const [userRoleF, setUserRoleF] = useState("All");
   const [departmentF, setDepartmentF] = useState("All");
   const [search, setSearch] = useState("");
+  const [cardFilter, setCardFilter] = useState<CardFilterType>("ALL");
+  const [selectedCardModal, setSelectedCardModal] = useState<CardMetaInfo | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 200;
 
@@ -56,12 +74,12 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
   const { data: statsData } = useApi<any>(() => auditLogService.getAll({ per_page: 1 }), true);
 
   const stats = (statsData as any)?.stats || {
-    total_logs: 213,
-    security_alerts: 3,
-    failed_logins: 24,
-    permissions: 18,
-    operational: 142,
-    suspicious: 2,
+    total_logs: 125,
+    security_alerts: 4,
+    failed_logins: 14,
+    permissions: 9,
+    operational: 102,
+    suspicious: 1,
     data_integrity: 92
   };
 
@@ -100,8 +118,131 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
     }));
   }, [list]);
 
+  // Card Meta Configurations with detailed explanations for Admin
+  const cardMetas: CardMetaInfo[] = useMemo(() => [
+    {
+      key: "ALL",
+      label: "Total Logs",
+      value: String(stats.total_logs || 125),
+      rawVal: stats.total_logs || 125,
+      icon: "database",
+      bg: "bg-[#e8edf8]",
+      col: "text-[#1e3a8a]",
+      vals: [4, 5, 4, 6, 5, 7, 8],
+      colors: ["bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#1e3a8a]"],
+      severityLevel: "Informational",
+      severityColor: "text-blue-700 bg-blue-50 border-blue-200",
+      description: "Menampilkan akumulasi seluruh jejak rekaman aktivitas pengguna, peristiwa sistem, dan transaksi operasional armada di dalam OVMS.",
+      recommendation: "Lakukan pencadangan (backup) log berkala dan ekspor laporan bulanan secara rutin untuk arsip audit kepatuhan perusahaan."
+    },
+    {
+      key: "SECURITY_ALERTS",
+      label: "Security Alerts",
+      value: String(stats.security_alerts || 4).padStart(2, '0'),
+      rawVal: stats.security_alerts || 4,
+      icon: "shield",
+      bg: "bg-[#fee2e2]",
+      col: "text-[#dc2626]",
+      vals: [2, 3, 2, 4, 3, 5, 4],
+      colors: ["bg-[#fecaca]", "bg-[#fecaca]", "bg-[#fecaca]", "bg-[#ef4444]", "bg-[#fecaca]", "bg-[#ef4444]", "bg-[#dc2626]"],
+      severityLevel: "Tinggi (Critical / High)",
+      severityColor: "text-rose-700 bg-rose-50 border-rose-200",
+      description: "Memantau peringatan keselamatan dan ancaman keamanan sistem yang terdeteksi otomatis (termasuk akses endpoint terlarang atau percobaan manipulasi parameter).",
+      recommendation: "Segera lakukan verifikasi identitas pengguna dan alokasi alamat IP terkait. Lakukan penangguhan akun jika terbukti melakukan aktivitas tidak sah."
+    },
+    {
+      key: "FAILED_LOGINS",
+      label: "Failed Logins",
+      value: String(stats.failed_logins || 14),
+      rawVal: stats.failed_logins || 14,
+      icon: "login",
+      bg: "bg-[#f1f5f9]",
+      col: "text-[#64748b]",
+      vals: [5, 6, 4, 7, 5, 6, 8],
+      colors: ["bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#94a3b8]"],
+      severityLevel: "Sedang (Warning)",
+      severityColor: "text-amber-800 bg-amber-50 border-amber-200",
+      description: "Mencatat seluruh kegagalan autentikasi masuk (login) akibat password salah, kredensial tidak berlaku, atau otentikasi bermasalah dari perangkat pengguna.",
+      recommendation: "Pantau potensi serangan tebak kata kunci (Brute-force). Jika angka meningkat tajam pada akun tertentu, aktifkan verifikasi 2FA atau atur ulang kata sandi pengguna."
+    },
+    {
+      key: "PERMISSIONS",
+      label: "Permissions",
+      value: String(stats.permissions || 9),
+      rawVal: stats.permissions || 9,
+      icon: "key",
+      bg: "bg-[#f1f5f9]",
+      col: "text-[#64748b]",
+      vals: [4, 4, 5, 4, 5, 4, 5],
+      colors: ["bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#e2e8f0]", "bg-[#94a3b8]"],
+      severityLevel: "Sedang (Audit Access)",
+      severityColor: "text-[#1e3a8a] bg-indigo-50 border-indigo-200",
+      description: "Memantau perubahan peran pengguna (*role assignment*), modifikasi hak akses modul (*permission matrix*), dan pemberian izin khusus dalam sistem.",
+      recommendation: "Pastikan setiap pembaruan peran pengguna didasari oleh formulir persetujuan manajerial resmi untuk mencegah eskalasi wewenang (*Privilege Escalation*)."
+    },
+    {
+      key: "OPERATIONAL",
+      label: "Operational",
+      value: String(stats.operational || 102),
+      rawVal: stats.operational || 102,
+      icon: "settings",
+      bg: "bg-[#e0f2fe]",
+      col: "text-[#0369a1]",
+      vals: [5, 6, 7, 6, 8, 7, 9],
+      colors: ["bg-[#bae6fd]", "bg-[#bae6fd]", "bg-[#7dd3fc]", "bg-[#bae6fd]", "bg-[#38bdf8]", "bg-[#7dd3fc]", "bg-[#0ea5e9]"],
+      severityLevel: "Normal (Routine Transaction)",
+      severityColor: "text-emerald-700 bg-emerald-50 border-emerald-200",
+      description: "Mencatat transaksi harian operasional armada (pengajuan kendaraan, persetujuan request, penugasan driver, scan QR security pos gerbang, dan odometer).",
+      recommendation: "Gunakan data ini untuk menganalisis efisiensi penggunaan unit kendaraan dan mendeteksi adanya kemacetan (*bottleneck*) alur persetujuan."
+    },
+    {
+      key: "SUSPICIOUS",
+      label: "Suspicious",
+      value: String(stats.suspicious || 1).padStart(2, '0'),
+      rawVal: stats.suspicious || 1,
+      icon: "verified_user",
+      bg: "bg-[#e8edf8]",
+      col: "text-[#1e3a8a]",
+      vals: [1, 0, 1, 0, 1, 0, 1],
+      colors: ["bg-[#e2e8f0]", "bg-[#f1f5f9]", "bg-[#e2e8f0]", "bg-[#f1f5f9]", "bg-[#cbd5e1]", "bg-[#f1f5f9]", "bg-[#94a3b8]"],
+      severityLevel: "Tinggi (Cyber Anomaly)",
+      severityColor: "text-purple-800 bg-purple-50 border-purple-200",
+      description: "Mengidentifikasi perilaku tidak wajar pengguna, seperti login beruntun dari beberapa IP berbeda dalam durasi singkat atau pembuatan request fiktif.",
+      recommendation: "Lakukan inspeksi menyeluruh pada akun terkait, tinjau riwayat IP address, dan hubungi pengguna secara langsung untuk mengonfirmasi keabsahan transaksi."
+    }
+  ], [stats]);
+
   const filtered = useMemo(() => {
     return LOGS.filter((l: any) => {
+      // 0. Card Filter Category
+      if (cardFilter !== "ALL") {
+        const actLower = String(l.activity || "").toLowerCase();
+        const actionLower = String(l.action || "").toLowerCase();
+        const sevLower = String(l.severity || "").toLowerCase();
+
+        if (cardFilter === "SECURITY_ALERTS") {
+          if (sevLower !== "critical" && sevLower !== "high" && !actLower.includes("security") && !actLower.includes("alert")) {
+            return false;
+          }
+        } else if (cardFilter === "FAILED_LOGINS") {
+          if (!actLower.includes("login") && !actionLower.includes("login") && !actionLower.includes("failed") && !actLower.includes("auth")) {
+            return false;
+          }
+        } else if (cardFilter === "PERMISSIONS") {
+          if (!actLower.includes("permission") && !actLower.includes("role") && !actionLower.includes("permission") && !actionLower.includes("grant")) {
+            return false;
+          }
+        } else if (cardFilter === "OPERATIONAL") {
+          if (!actLower.includes("request") && !actLower.includes("assignment") && !actLower.includes("vehicle") && !actLower.includes("approval") && !actLower.includes("operational")) {
+            return false;
+          }
+        } else if (cardFilter === "SUSPICIOUS") {
+          if (sevLower !== "critical" && !actLower.includes("suspicious") && !actionLower.includes("suspicious") && !actLower.includes("block")) {
+            return false;
+          }
+        }
+      }
+
       // 1. Department Filter
       if (departmentF !== "All") {
         const dept = String(l.department || "").toLowerCase().trim();
@@ -139,7 +280,12 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
 
       return true;
     });
-  }, [LOGS, departmentF, userRoleF, severityF]);
+  }, [LOGS, cardFilter, departmentF, userRoleF, severityF]);
+
+  const handleCardClick = (card: CardMetaInfo) => {
+    setCardFilter(card.key);
+    setSelectedCardModal(card);
+  };
 
   return (
     <Layout
@@ -147,26 +293,39 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
       onNavigate={onNavigate}
       topbarTitle="Audit Logs"
       searchPlaceholder="Search audit logs..."
-      userName="Admin User"
-      userRole="Administrator"
-      searchValue={search}
-      onSearchChange={handleSearchChange}
     >
-      <div className="p-4 sm:p-5 space-y-4">
+      <div className="p-4 sm:p-6 space-y-5 animate-fadein">
         {/* Page header */}
-        <div data-guide="audit-logs" className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
-            <h2 className="text-[24px] font-bold text-[#0f172a]">Audit Logs</h2>
-            <p className="text-[12.5px] text-[#64748b] mt-0.5 max-w-lg">
+            <h2 className="text-[26px] font-bold text-[#0f172a]">Audit Logs</h2>
+            <p className="text-[13.5px] text-[#64748b] mt-1 max-w-xl leading-relaxed">
               Monitor system activities, operational events, and security logs for comprehensive oversight of the enterprise fleet environment.
             </p>
           </div>
-          <div className="flex gap-2 flex-shrink-0">
-            <button 
+          <div className="flex items-center gap-2">
+            {cardFilter !== "ALL" && (
+              <button
+                onClick={() => setCardFilter("ALL")}
+                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[12px] font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Icon name="close" className="text-[16px]" /> Reset Filter Card
+              </button>
+            )}
+            <button
               onClick={() => {
-                const headers = ["Log ID", "User", "Role", "Activity Type", "Action", "Department", "Severity", "IP / Target", "Time"];
-                const rows = filtered.map((l: any) => [l.id, l.name, l.role, l.activity, l.action, l.department, l.severity, l.email, l.time]);
-                exportToCSV("System_Audit_Logs_Report.csv", headers, rows);
+                const csvData = filtered.map(l => ({
+                  ID: l.id,
+                  User: l.name,
+                  Role: l.role,
+                  Activity: l.activity,
+                  Action: l.action,
+                  Department: l.department,
+                  Severity: l.severity,
+                  IP_Address: l.email,
+                  Time: l.time,
+                }));
+                exportToCSV(csvData, `audit_logs_${cardFilter.toLowerCase()}`);
               }}
               className="flex items-center gap-1.5 h-9 px-5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[12px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
             >
@@ -175,27 +334,42 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
           </div>
         </div>
 
-        {/* KPI Cards */}
+        {/* KPI Cards (Interactive Buttons) */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {[
-            { label: "Total Logs", value: String(stats.total_logs), icon: "database", bg: "bg-[#e8edf8]", col: "text-[#1e3a8a]", vals: [4, 5, 4, 6, 5, 7, 8], colors: ["bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#bfdbfe]", "bg-[#1e3a8a]"] },
-            { label: "Security Alerts", value: String(stats.security_alerts).padStart(2, '0'), icon: "shield", bg: "bg-[#fee2e2]", col: "text-[#dc2626]", vals: [2, 3, 2, 4, 3, 5, 4], colors: ["bg-[#fecaca]", "bg-[#fecaca]", "bg-[#fecaca]", "bg-[#ef4444]", "bg-[#fecaca]", "bg-[#ef4444]", "bg-[#dc2626]"] },
-            { label: "Failed Logins", value: String(stats.failed_logins), icon: "login", bg: "bg-[#f1f5f9]", col: "text-[#64748b]", vals: [5, 6, 4, 7, 5, 6, 8], colors: ["bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#94a3b8]"] },
-            { label: "Permissions", value: String(stats.permissions), icon: "key", bg: "bg-[#f1f5f9]", col: "text-[#64748b]", vals: [4, 4, 5, 4, 5, 4, 5], colors: ["bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#e2e8f0]", "bg-[#cbd5e1]", "bg-[#e2e8f0]", "bg-[#94a3b8]"] },
-            { label: "Operational", value: String(stats.operational), icon: "settings", bg: "bg-[#e0f2fe]", col: "text-[#0369a1]", vals: [5, 6, 7, 6, 8, 7, 9], colors: ["bg-[#bae6fd]", "bg-[#bae6fd]", "bg-[#7dd3fc]", "bg-[#bae6fd]", "bg-[#38bdf8]", "bg-[#7dd3fc]", "bg-[#0ea5e9]"] },
-            { label: "Suspicious", value: String(stats.suspicious).padStart(2, '0'), icon: "verified_user", bg: "bg-[#e8edf8]", col: "text-[#1e3a8a]", vals: [1, 0, 1, 0, 1, 0, 1], colors: ["bg-[#e2e8f0]", "bg-[#f1f5f9]", "bg-[#e2e8f0]", "bg-[#f1f5f9]", "bg-[#cbd5e1]", "bg-[#f1f5f9]", "bg-[#94a3b8]"] },
-          ].map(c => (
-            <div key={c.label} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between">
-                <div className={`w-8 h-8 ${c.bg} rounded-lg flex items-center justify-center`}>
-                  <Icon name={c.icon} className={`${c.col} text-[17px]`} />
+          {cardMetas.map(c => {
+            const isActive = cardFilter === c.key;
+            return (
+              <button
+                key={c.key}
+                onClick={() => handleCardClick(c)}
+                className={`text-left bg-white rounded-2xl p-4 border transition-all cursor-pointer relative group ${
+                  isActive
+                    ? "ring-2 ring-[#1e3a8a] border-[#1e3a8a] bg-blue-50/20 shadow-md"
+                    : "border-[#e2e8f0] shadow-sm hover:shadow-md hover:border-blue-400 hover:scale-[1.01]"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className={`w-8 h-8 ${c.bg} rounded-lg flex items-center justify-center`}>
+                    <Icon name={c.icon} className={`${c.col} text-[17px]`} />
+                  </div>
+                  {isActive ? (
+                    <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-[#1e3a8a] text-white shadow-2xs">
+                      Aktif
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 group-hover:text-blue-600 transition-colors">
+                      <Icon name="info" className="text-[15px]" />
+                    </span>
+                  )}
                 </div>
-              </div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mt-2 h-8 flex items-end leading-tight">{c.label}</div>
-              <div className="text-[22px] font-bold text-[#0f172a] leading-tight mt-1">{c.value}</div>
-              <MiniSparkbar vals={c.vals} colors={c.colors} />
-            </div>
-          ))}
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mt-2 h-8 flex items-end leading-tight">
+                  {c.label}
+                </div>
+                <div className="text-[22px] font-bold text-[#0f172a] leading-tight mt-1">{c.value}</div>
+                <MiniSparkbar vals={c.vals} colors={c.colors} />
+              </button>
+            );
+          })}
         </div>
 
         {/* Filters */}
@@ -236,7 +410,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
                 <option value="Technical and Development">Technical and Development</option>
                 <option value="Driver">Driver</option>
               </select>
-              <button onClick={() => { setSeverityF("All"); setUserRoleF("All"); setDepartmentF("All"); setSearch(""); setCurrentPage(1); }}
+              <button onClick={() => { setCardFilter("ALL"); setSeverityF("All"); setUserRoleF("All"); setDepartmentF("All"); setSearch(""); setCurrentPage(1); }}
                 className="w-10 h-10 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-center hover:bg-[#eff6ff] hover:border-[#1e3a8a]/30 transition-colors cursor-pointer" title="Reset Filters">
                 <Icon name="refresh" className="text-[#64748b] text-[18px]" />
               </button>
@@ -342,6 +516,92 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
           )}
         </div>
       </div>
+
+      {/* ── CARD INFORMATION POPOVER MODAL ── */}
+      {selectedCardModal && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadein"
+          onClick={() => setSelectedCardModal(null)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative border border-slate-100 animate-scalein"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header Modal */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 ${selectedCardModal.bg} rounded-xl flex items-center justify-center shadow-xs`}>
+                  <Icon name={selectedCardModal.icon} className={`${selectedCardModal.col} text-xl`} />
+                </div>
+                <div>
+                  <h3 className="text-[17px] font-extrabold text-[#0f172a]">{selectedCardModal.label}</h3>
+                  <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border mt-0.5 ${selectedCardModal.severityColor}`}>
+                    Tingkat Risiko: {selectedCardModal.severityLevel}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedCardModal(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 cursor-pointer"
+              >
+                <Icon name="close" className="text-lg" />
+              </button>
+            </div>
+
+            {/* Metric Summary Bar */}
+            <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-bold uppercase text-slate-400 block">Total Kejadian</span>
+                <span className="text-2xl font-black text-[#0f172a]">{selectedCardModal.value} Log</span>
+              </div>
+              <div className="text-right">
+                <span className="text-[11px] font-bold uppercase text-slate-400 block">Status Pemantauan</span>
+                <span className="text-xs font-extrabold text-blue-900">🟢 Terhubung Real-Time</span>
+              </div>
+            </div>
+
+            {/* Description & Function Analysis */}
+            <div className="space-y-3 text-xs sm:text-sm">
+              <div>
+                <span className="text-slate-500 block text-xs font-bold uppercase tracking-wider mb-1">💡 Apa Kegunaan Card Ini Bagi Admin?</span>
+                <p className="text-slate-700 font-medium leading-relaxed bg-blue-50/40 p-3 rounded-xl border border-blue-100">
+                  {selectedCardModal.description}
+                </p>
+              </div>
+
+              <div>
+                <span className="text-slate-500 block text-xs font-bold uppercase tracking-wider mb-1">🛡️ Rekomendasi Tindakan Admin:</span>
+                <p className="text-slate-800 font-semibold leading-relaxed bg-amber-50/50 p-3 rounded-xl border border-amber-200/70 text-amber-950">
+                  {selectedCardModal.recommendation}
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Action Buttons */}
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setCardFilter(selectedCardModal.key);
+                  setSelectedCardModal(null);
+                }}
+                className="px-4 py-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Icon name="filter_alt" className="text-sm" />
+                Filter Data Menurut Kategori Ini
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedCardModal(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Global Styles ── */}
       <style>{`
