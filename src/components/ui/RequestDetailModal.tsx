@@ -974,6 +974,7 @@ export function RequestDetailModal({
                     <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                       <Icon name="zoom_in" className="text-slate-700 text-lg drop-shadow-sm bg-white/80 p-1.5 rounded-full" />
                     </div>
+                  </div>
                   <span className="text-[10px] font-mono font-semibold text-slate-400 mt-2">
                     {request.qr_code_token}
                   </span>
