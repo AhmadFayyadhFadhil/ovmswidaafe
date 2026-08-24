@@ -63,6 +63,29 @@ export interface CardMetaInfo {
   recommendation: string;
 }
 
+export function matchAuditCategory(l: any, category: CardFilterType): boolean {
+  if (category === "ALL") return true;
+
+  const actLower = String(l.activity || "").toLowerCase();
+  const actionLower = String(l.action || "").toLowerCase();
+  const sevLower = String(l.severity || "").toLowerCase();
+
+  switch (category) {
+    case "SECURITY_ALERTS":
+      return sevLower === "critical" || sevLower === "high" || actionLower.includes("delete") || actLower.includes("security");
+    case "FAILED_LOGINS":
+      return actLower.includes("login") || actionLower.includes("login") || actLower.includes("auth") || actionLower.includes("failed");
+    case "PERMISSIONS":
+      return actLower.includes("permission") || actLower.includes("role") || actionLower.includes("permission") || actionLower.includes("role");
+    case "OPERATIONAL":
+      return actLower.includes("request") || actLower.includes("vehicle") || actLower.includes("assignment") || actionLower.includes("create") || actionLower.includes("update");
+    case "SUSPICIOUS":
+      return sevLower === "critical" || actionLower.includes("suspicious") || actionLower.includes("unauthorized");
+    default:
+      return true;
+  }
+}
+
 // ── Main Component ────────────────────────────
 export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string) => void }) {
   const [severityF, setSeverityF] = useState("All");
@@ -113,59 +136,19 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
     }));
   }, [list]);
 
-  // Dynamic Card Counts & Filter Match Helpers
+  // Dynamic Card Counts & Filter Match Helpers (Strict 100% Sync)
   const cardCounts = useMemo(() => {
-    let secCount = 0;
-    let failedCount = 0;
-    let permCount = 0;
-    let opsCount = 0;
-    let suspCount = 0;
-
-    LOGS.forEach((l: any) => {
-      const actLower = String(l.activity || "").toLowerCase();
-      const actionLower = String(l.action || "").toLowerCase();
-      const sevLower = String(l.severity || "").toLowerCase();
-
-      // Security Alerts
-      if (sevLower === "critical" || sevLower === "high" || actionLower.includes("delete")) {
-        secCount++;
-      }
-      // Failed Logins
-      if (actLower.includes("login") || actionLower.includes("login") || actLower.includes("auth") || actLower.includes("user")) {
-        failedCount++;
-      }
-      // Permissions (Assignment / Role / Permission / Updated)
-      if (actLower.includes("assignment") || actLower.includes("role") || actLower.includes("permission") || actionLower.includes("update")) {
-        permCount++;
-      }
-      // Operational
-      if (actLower.includes("request") || actLower.includes("vehicle") || actLower.includes("assignment") || actionLower.includes("create") || actionLower.includes("update")) {
-        opsCount++;
-      }
-      // Suspicious
-      if (sevLower === "critical" || actionLower.includes("delete")) {
-        suspCount++;
-      }
-    });
-
-    if (rawStats) {
-      return {
-        total: typeof rawStats.total_logs === 'number' ? rawStats.total_logs : LOGS.length,
-        security_alerts: typeof rawStats.security_alerts === 'number' ? rawStats.security_alerts : secCount,
-        failed_logins: typeof rawStats.failed_logins === 'number' ? rawStats.failed_logins : failedCount,
-        permissions: typeof rawStats.permissions === 'number' ? rawStats.permissions : permCount,
-        operational: typeof rawStats.operational === 'number' ? rawStats.operational : opsCount,
-        suspicious: typeof rawStats.suspicious === 'number' ? rawStats.suspicious : suspCount,
-      };
+    if (rawStats && rawStats.total_logs === 0) {
+      return { total: 0, security_alerts: 0, failed_logins: 0, permissions: 0, operational: 0, suspicious: 0 };
     }
 
     return {
       total: LOGS.length,
-      security_alerts: secCount,
-      failed_logins: failedCount,
-      permissions: permCount,
-      operational: opsCount,
-      suspicious: suspCount,
+      security_alerts: LOGS.filter(l => matchAuditCategory(l, "SECURITY_ALERTS")).length,
+      failed_logins: LOGS.filter(l => matchAuditCategory(l, "FAILED_LOGINS")).length,
+      permissions: LOGS.filter(l => matchAuditCategory(l, "PERMISSIONS")).length,
+      operational: LOGS.filter(l => matchAuditCategory(l, "OPERATIONAL")).length,
+      suspicious: LOGS.filter(l => matchAuditCategory(l, "SUSPICIOUS")).length,
     };
   }, [LOGS, rawStats]);
 
@@ -265,28 +248,9 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
 
   const filtered = useMemo(() => {
     return LOGS.filter((l: any, idx: number) => {
-      // 0. Card Filter Category with guaranteed fallback matching so table data ALWAYS matches card
+      // 0. Card Filter Category with guaranteed 100% exact match to card count
       if (cardFilter !== "ALL") {
-        const actLower = String(l.activity || "").toLowerCase();
-        const actionLower = String(l.action || "").toLowerCase();
-        const sevLower = String(l.severity || "").toLowerCase();
-
-        if (cardFilter === "SECURITY_ALERTS") {
-          const isSec = sevLower === "critical" || sevLower === "high" || actionLower.includes("delete") || actLower.includes("security");
-          if (!isSec && idx > 3) return false;
-        } else if (cardFilter === "FAILED_LOGINS") {
-          const isFailed = actLower.includes("login") || actionLower.includes("login") || actLower.includes("auth") || actLower.includes("user");
-          if (!isFailed) return false;
-        } else if (cardFilter === "PERMISSIONS") {
-          const isPerm = actLower.includes("assignment") || actLower.includes("role") || actLower.includes("permission") || actionLower.includes("update");
-          if (!isPerm) return false;
-        } else if (cardFilter === "OPERATIONAL") {
-          const isOps = actLower.includes("request") || actLower.includes("vehicle") || actLower.includes("assignment") || actionLower.includes("create") || actionLower.includes("update");
-          if (!isOps) return false;
-        } else if (cardFilter === "SUSPICIOUS") {
-          const isSusp = sevLower === "critical" || actionLower.includes("delete");
-          if (!isSusp) return false;
-        }
+        if (!matchAuditCategory(l, cardFilter)) return false;
       }
 
       // 1. Department Filter
