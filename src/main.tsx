@@ -3,8 +3,14 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
-// Global handler for stale build chunk errors after new deployments
+// Global handler for stale build chunk errors & harmless browser warnings
 window.addEventListener('error', (event) => {
+  // Suppress harmless browser ResizeObserver loop messages
+  if (event.message?.includes('ResizeObserver loop completed')) {
+    event.stopImmediatePropagation();
+    return;
+  }
+
   if (
     event.message?.includes("Unexpected token '<'") ||
     event.message?.includes('Loading chunk') ||
@@ -15,6 +21,12 @@ window.addEventListener('error', (event) => {
       sessionStorage.setItem('ovms_chunk_reload', String(Date.now()));
       window.location.reload();
     }
+  }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  if (event.reason?.message?.includes('ResizeObserver loop completed')) {
+    event.stopImmediatePropagation();
   }
 });
 
