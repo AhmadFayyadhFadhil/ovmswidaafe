@@ -306,35 +306,37 @@ export function RequestDetailModal({
                 let reasonText = request.rejected_reason || request.rejectedReason || "";
 
                 if (isCancelled) {
-                  actorName = request.cancelled_by_name || request.cancelledByName || request.cancelled_by?.name || "";
-                  if (!actorName) {
-                    const rejApproval = request.approvals?.find((a: any) => a.status === "rejected" || a.status === "cancelled");
-                    if (rejApproval) {
-                      actorName = rejApproval.approver?.name ? `${rejApproval.approver.name} (${getApprovalRoleLabel(rejApproval.role)})` : getApprovalRoleLabel(rejApproval.role) || "GA / Approver";
-                      if (!reasonText && rejApproval.notes) {
-                        reasonText = rejApproval.notes;
-                      }
+                  let rawActor = request.cancelled_by_name || request.cancelledByName || request.cancelled_by?.name || "";
+                  const rejApproval = request.approvals?.find((a: any) => a.status === "rejected" || a.status === "cancelled");
+                  
+                  if (rejApproval && rejApproval.approver?.name) {
+                    actorName = `${rejApproval.approver.name} (${getApprovalRoleLabel(rejApproval.role)})`;
+                    if (!reasonText && rejApproval.notes) reasonText = rejApproval.notes;
+                  } else if (rawActor) {
+                    const reqName = request.employee || request.requested_by?.name || "";
+                    if (reqName && rawActor.toLowerCase().trim() === reqName.toLowerCase().trim()) {
+                      actorName = `${rawActor} (Pemohon)`;
                     } else {
-                      actorName = request.employee || request.requested_by?.name || "Pemohon";
-                    }
-                  }
-                } else {
-                  const rejApproval = request.approvals?.find((a: any) => a.status === "rejected");
-                  if (rejApproval) {
-                    actorName = rejApproval.approver?.name ? `${rejApproval.approver.name} (${getApprovalRoleLabel(rejApproval.role)})` : getApprovalRoleLabel(rejApproval.role) || "Approver";
-                    if (!reasonText && rejApproval.notes) {
-                      reasonText = rejApproval.notes;
+                      actorName = rawActor;
                     }
                   } else {
-                    const rejAssignment = request.assignments?.find((a: any) => a.status === "rejected");
-                    if (rejAssignment) {
-                      actorName = rejAssignment.driver_name || "Driver";
-                      if (!reasonText && rejAssignment.reject_reason) {
-                        reasonText = rejAssignment.reject_reason;
-                      }
-                    } else {
-                      actorName = "Kepala Departemen / GA";
-                    }
+                    actorName = request.employee || request.requested_by?.name || "Pemohon";
+                  }
+                } else {
+                  let rawActor = request.cancelled_by_name || request.cancelledByName || request.cancelled_by?.name || "";
+                  const rejApproval = request.approvals?.find((a: any) => a.status === "rejected" || a.status === "cancelled");
+                  const rejAssignment = request.assignments?.find((a: any) => a.status === "rejected");
+
+                  if (rejApproval && rejApproval.approver?.name) {
+                    actorName = `${rejApproval.approver.name} (${getApprovalRoleLabel(rejApproval.role)})`;
+                    if (!reasonText && rejApproval.notes) reasonText = rejApproval.notes;
+                  } else if (rejAssignment && rejAssignment.driver_name) {
+                    actorName = `${rejAssignment.driver_name} (Driver)`;
+                    if (!reasonText && rejAssignment.reject_reason) reasonText = rejAssignment.reject_reason;
+                  } else if (rawActor) {
+                    actorName = rawActor;
+                  } else {
+                    actorName = "Kepala Departemen / GA";
                   }
                 }
 

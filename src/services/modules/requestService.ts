@@ -152,6 +152,9 @@ function mapRequestFromBackend(r: any): FleetRequest {
     notes: r.notes || '',
     rejected_reason: r.rejected_reason || r.rejection_reason || null,
     rejectedReason: r.rejected_reason || r.rejection_reason || null,
+    cancelled_by: r.cancelled_by || null,
+    cancelled_by_name: r.cancelled_by_name || r.cancelled_by?.name || null,
+    cancelledByName: r.cancelled_by_name || r.cancelled_by?.name || null,
     passengers: r.passengers || [],
     // data tambahan alur persetujuan:
     canApprove: !!r.can_approve,
