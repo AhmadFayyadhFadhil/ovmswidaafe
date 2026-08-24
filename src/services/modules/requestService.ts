@@ -2,6 +2,7 @@ import { apiClient } from '../api/api';
 import type { FleetRequest } from '../../types';
 import type { ApiResponse } from '../../types/api';
 import { ENDPOINTS } from '../../constants/endpoints';
+import { formatDate } from '../../utils/formatDate';
 
 function mapStatus(backendStatus: string): "APPROVED" | "PENDING" | "ONGOING" | "COMPLETED" | "REJECTED" | "CANCELLED" {
   switch (backendStatus) {
@@ -113,6 +114,9 @@ function parseDateTime(dtStr: string | undefined) {
 function mapRequestFromBackend(r: any): FleetRequest {
   const start = parseDateTime(r.start_time);
   const end = parseDateTime(r.end_time);
+  const formattedStart = formatDate(r.start_time);
+  const formattedEnd = formatDate(r.end_time);
+
   return {
     id: String(r.id),
     employee: r.requested_by?.name || 'Staff',
@@ -132,9 +136,9 @@ function mapRequestFromBackend(r: any): FleetRequest {
     ratingNotes: r.rating_notes || '',
     ratedAt: r.rated_at || null,
     vehicleId: r.vehicle?.id || r.operational_trip?.vehicle?.id || null,
-    date: start.date,
+    date: formattedStart !== '-' ? formattedStart : start.date,
     time: start.time,
-    endDate: end.date,
+    endDate: formattedEnd !== '-' ? formattedEnd : end.date,
     endTime: end.time,
     status: mapStatus(r.status),
     priority: mapPriority(r.priority),

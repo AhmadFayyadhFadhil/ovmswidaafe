@@ -50,6 +50,14 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
 
   useEffect(() => {
     fetchHistory();
+    const handleConfigUpdate = () => {
+      requestService.clearCache();
+      fetchHistory();
+    };
+    window.addEventListener("system-config-update", handleConfigUpdate);
+    return () => {
+      window.removeEventListener("system-config-update", handleConfigUpdate);
+    };
   }, []);
 
   const historyOnly = rawRequests.filter(req => 

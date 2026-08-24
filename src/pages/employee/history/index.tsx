@@ -208,6 +208,17 @@ export default function EmployeeHistoryPage() {
     return { data: res.data || [] };
   }, true, []);
 
+  React.useEffect(() => {
+    const handleConfigUpdate = () => {
+      requestService.clearCache();
+      refetch();
+    };
+    window.addEventListener("system-config-update", handleConfigUpdate);
+    return () => {
+      window.removeEventListener("system-config-update", handleConfigUpdate);
+    };
+  }, [refetch]);
+
   const handleRatingSubmit = async () => {
     if (!ratingModal.request) return;
     setRatingSubmitting(true);
