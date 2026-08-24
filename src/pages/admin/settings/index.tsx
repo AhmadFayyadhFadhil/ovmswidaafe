@@ -214,16 +214,21 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
       if (res && res.data) {
         setData(res.data);
         
-        // Sync Sidebar branding cache instantly
-        const branding = {
+        // Sync System Config cache instantly for DateFormat, Timezone, Language & Branding
+        const sysConfig = {
           systemName: res.data.systemName || "OVMS",
           companyName: res.data.companyName || "Enterprise Fleet",
-          companyLogo: res.data.companyLogo || ""
+          companyLogo: res.data.companyLogo || "",
+          timezone: res.data.timezone || "GMT +7 (Western Indonesia Time)",
+          dateFormat: res.data.dateFormat || "DD/MM/YYYY",
+          systemLanguage: res.data.systemLanguage || "Bahasa Indonesia",
         };
-        localStorage.setItem("ovms_branding_config", JSON.stringify(branding));
+        localStorage.setItem("ovms_system_config", JSON.stringify(sysConfig));
+        localStorage.setItem("ovms_branding_config", JSON.stringify(sysConfig));
         localStorage.setItem("ovms_branding_last_fetch", Date.now().toString());
-        // Trigger Sidebar custom event update
+        // Trigger custom events
         window.dispatchEvent(new Event("branding-update"));
+        window.dispatchEvent(new Event("system-config-update"));
       }
       setSaved(true);
       refetchStats(); // Refresh status bar

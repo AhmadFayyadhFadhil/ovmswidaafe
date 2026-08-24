@@ -3,6 +3,7 @@ import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { auditLogService } from "@/services/modules/auditLogService";
 import { exportToCSV } from "@/utils/exportHelper";
+import { formatDateTime } from "@/utils/formatDate";
 
 // ── Severity styling ──────────────────────────
 const SEV: Record<string, { badge: string; dot: string; row: string }> = {
@@ -107,7 +108,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
       department: a.department || "",
       severity: a.severity === "Normal" ? "Medium" : (a.severity || "Low"),
       email: a.ipAddress || "",
-      time: a.timestamp || "",
+      time: formatDateTime(a.timestamp),
       createdAtRaw: a.timestamp || "",
     }));
   }, [list]);
