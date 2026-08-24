@@ -3,6 +3,7 @@ import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useAuthContext } from "@/auth/authContext";
 import { driverService } from "@/services/modules/driverService";
 import { requestService } from "@/services/modules/requestService";
+import { userService } from "@/services/modules/userService";
 
 export type DriverStatus = "AVAILABLE" | "ON TRIP" | "OFF DUTY";
 export interface Driver {
@@ -100,10 +101,12 @@ function DriverCard({
   driver, 
   onToggleDuty,
   onViewReviews,
+  onEditDriver,
 }: { 
   driver: Driver; 
   onToggleDuty: (id: string, name: string, status: DriverStatus) => void;
   onViewReviews: (driver: Driver) => void;
+  onEditDriver: (driver: Driver) => void;
 }) {
   const cfg = STATUS_CONFIG[driver.status];
   const isAvailable = driver.status === "AVAILABLE";
@@ -199,6 +202,13 @@ function DriverCard({
 
         <div className="flex flex-wrap sm:flex-col gap-2 w-full sm:w-auto flex-shrink-0 pt-2 sm:pt-0">
           <button
+            onClick={() => onEditDriver(driver)}
+            className="w-full sm:w-auto h-9 px-4 bg-[#1e3a8a] text-white hover:bg-blue-900 text-[12px] font-bold rounded-xl active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+          >
+            <Icon name="edit" className="text-[14px]" />
+            Edit Data SIM
+          </button>
+          <button
             onClick={() => onViewReviews(driver)}
             className="w-full sm:w-auto h-9 px-4 bg-slate-100 text-slate-700 hover:bg-slate-200 text-[12px] font-bold rounded-xl active:scale-95 transition-all flex items-center justify-center shadow-xs cursor-pointer"
           >
@@ -269,8 +279,43 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
 
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Edit Driver & SIM Modal State
+  const [editModal, setEditModal] = useState<{
+    isOpen: boolean;
+    driver: Driver | null;
+    name: string;
+    phone: string;
+    sim_type: string;
+    sim_number: string;
+    sim_expiry_date: string;
+    sim_file: File | null;
+    sim_preview: string;
+    isSubmitting: boolean;
+    error: string;
+  }>({
+    isOpen: false,
+    driver: null,
+    name: "",
+    phone: "",
+    sim_type: "SIM A",
+    sim_number: "",
+    sim_expiry_date: "",
+    sim_file: null,
+    sim_preview: "",
+    isSubmitting: false,
+    error: "",
+  });
+
+  const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+
   useEffect(() => {
-    const fetchData = async () => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
@@ -329,6 +374,48 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
     };
     fetchData();
   }, []);
+
+  const handleOpenEditDriver = (driver: Driver) => {
+    setEditModal({
+      isOpen: true,
+      driver,
+      name: driver.name || "",
+      phone: driver.phone || "",
+      sim_type: driver.simType || "SIM A",
+      sim_number: driver.simNumber || "",
+      sim_expiry_date: driver.simExpiryDate && driver.simExpiryDate !== "-" ? driver.simExpiryDate : "",
+      sim_file: null,
+      sim_preview: driver.simPhotoUrl || "",
+      isSubmitting: false,
+      error: "",
+    });
+  };
+
+  const handleSaveDriverSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editModal.driver) return;
+    setEditModal(prev => ({ ...prev, isSubmitting: true, error: "" }));
+
+    try {
+      const formData = new FormData();
+      formData.append("_method", "PUT");
+      formData.append("name", editModal.name.trim());
+      if (editModal.phone.trim()) formData.append("phone", editModal.phone.trim());
+      formData.append("sim_type", editModal.sim_type || "SIM A");
+      if (editModal.sim_number.trim()) formData.append("sim_number", editModal.sim_number.trim());
+      if (editModal.sim_expiry_date) formData.append("sim_expiry_date", editModal.sim_expiry_date);
+      if (editModal.sim_file) formData.append("sim_a_photo", editModal.sim_file);
+
+      await userService.update(editModal.driver.id, formData);
+      setToast({ type: "success", msg: `Data SIM pengemudi ${editModal.name} berhasil diperbarui!` });
+      setEditModal(prev => ({ ...prev, isOpen: false }));
+      fetchData();
+    } catch (err: any) {
+      console.error(err);
+      const apiMsg = err.response?.data?.message || err.message || "Gagal memperbarui data SIM pengemudi.";
+      setEditModal(prev => ({ ...prev, isSubmitting: false, error: apiMsg }));
+    }
+  };
 
   const handleOpenReviews = (driver: Driver) => {
     setReviewsModal({ isOpen: true, driver, reviews: [], loading: true });
@@ -556,6 +643,7 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
                     driver={d} 
                     onToggleDuty={handleToggleClick} 
                     onViewReviews={handleOpenReviews} 
+                    onEditDriver={handleOpenEditDriver}
                   />
                 ))
               )}
@@ -830,6 +918,186 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[9999] animate-slidein">
+          <div className={`px-5 py-3.5 rounded-2xl shadow-xl border font-bold text-xs flex items-center gap-2.5 text-white ${
+            toast.type === "success" ? "bg-emerald-600 border-emerald-500" : "bg-rose-600 border-rose-500"
+          }`}>
+            <Icon name={toast.type === "success" ? "check_circle" : "error"} className="text-lg" />
+            {toast.msg}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Driver & SIM Modal */}
+      {editModal.isOpen && editModal.driver && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadein p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl border border-slate-100 w-full max-w-lg shadow-2xl overflow-hidden my-8 animate-scalein">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/80">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#1e3a8a] flex items-center justify-center font-bold">
+                  <Icon name="edit" className="text-lg" />
+                </div>
+                <div>
+                  <h3 className="text-[16px] font-extrabold text-[#0f172a]">Edit Data SIM Driver</h3>
+                  <p className="text-[11px] text-slate-400">Perbarui dokumen & kontak pengemudi</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditModal(prev => ({ ...prev, isOpen: false }))}
+                className="text-slate-400 hover:text-slate-600 rounded-lg p-1 transition-colors cursor-pointer"
+              >
+                <Icon name="close" className="text-xl" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDriverSubmit} className="p-6 space-y-4 text-xs sm:text-sm">
+              {editModal.error && (
+                <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl font-medium flex items-center gap-2">
+                  <Icon name="error" className="text-lg shrink-0" />
+                  {editModal.error}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Driver *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editModal.name}
+                    onChange={e => setEditModal({ ...editModal, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">No. Telepon / WhatsApp</label>
+                  <input
+                    type="text"
+                    value={editModal.phone}
+                    onChange={e => setEditModal({ ...editModal, phone: e.target.value })}
+                    placeholder="Contoh: 08123456789"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* SIM Details Box */}
+              <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl space-y-3">
+                <div className="text-xs font-extrabold text-[#1e3a8a] flex items-center gap-1.5">
+                  <Icon name="badge" className="text-base" />
+                  Dokumen Lisensi Mengemudi (SIM)
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Golongan SIM</label>
+                    <select
+                      value={editModal.sim_type || "SIM A"}
+                      onChange={e => setEditModal({ ...editModal, sim_type: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800 text-xs font-bold focus:ring-2 focus:ring-blue-600 focus:outline-none cursor-pointer"
+                    >
+                      <option value="SIM A">SIM A (Mobil Penumpang / MPV)</option>
+                      <option value="SIM B1">SIM B1 (Truk / Bus &gt; 3.5 Ton)</option>
+                      <option value="SIM B2">SIM B2 (Truk Gandeng / Alat Berat)</option>
+                      <option value="SIM C">SIM C (Sepeda Motor Operasional)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Masa Berlaku SIM</label>
+                    <input
+                      type="date"
+                      value={editModal.sim_expiry_date}
+                      onChange={e => setEditModal({ ...editModal, sim_expiry_date: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800 text-xs font-medium focus:ring-2 focus:ring-blue-600 focus:outline-none cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor SIM Driver</label>
+                  <input
+                    type="text"
+                    value={editModal.sim_number}
+                    onChange={e => setEditModal({ ...editModal, sim_number: e.target.value })}
+                    placeholder="Contoh: 3507123456780001"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800 text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Foto Kartu SIM Driver</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setEditModal(prev => ({
+                            ...prev,
+                            sim_file: file,
+                            sim_preview: URL.createObjectURL(file),
+                          }));
+                        }
+                      }}
+                      className="hidden"
+                      id="gahrd-edit-sim-file"
+                    />
+                    <label
+                      htmlFor="gahrd-edit-sim-file"
+                      className="cursor-pointer h-9 px-4 border border-slate-200 bg-white rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5"
+                    >
+                      <Icon name="upload" className="text-base" />
+                      Upload Foto SIM
+                    </label>
+                    {editModal.sim_preview && (
+                      <img
+                        src={editModal.sim_preview}
+                        alt="SIM Preview"
+                        className="w-12 h-9 rounded-lg object-cover border border-slate-200 shadow-xs"
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditModal(prev => ({ ...prev, isOpen: false }))}
+                  className="px-4 py-2.5 border border-slate-200 text-slate-600 font-bold rounded-xl text-xs hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={editModal.isSubmitting}
+                  className="px-5 py-2.5 bg-[#1e3a8a] text-white font-bold rounded-xl text-xs hover:bg-blue-900 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {editModal.isSubmitting ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="save" className="text-base" />
+                      Simpan Perubahan SIM
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
