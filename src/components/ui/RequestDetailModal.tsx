@@ -214,6 +214,36 @@ export function RequestDetailModal({
     onClose();
   };
 
+  const isExternalOneWay = !!(request.is_external && (request.external_trip_type === "one_way" || !request.is_return_to_factory));
+  const isEligibleToComplete = isExternalOneWay && ["assigned_by_ga", "on_going", "driver_assigned", "approved_department", "submitted"].includes(request.rawStatus || request.status || "");
+  const canUserComplete = !!(
+    user?.id === request.userId ||
+    user?.id === request.user_id ||
+    user?.id === request.requestedById ||
+    user?.role === "GA" ||
+    user?.role === "Administrator" ||
+    user?.role === "Superadmin" ||
+    user?.role === "HRD"
+  );
+
+  const handleConfirmCompleteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCompleting(true);
+    try {
+      await requestService.complete(request.id);
+      alert("Perjalanan sewa eksternal (drop-off) berhasil diselesaikan!");
+      setIsConfirmCompleteOpen(false);
+      onClose();
+      if (typeof window !== 'undefined' && window.location) {
+        window.location.reload();
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Gagal menyelesaikan perjalanan.");
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
   const passengers = request.passengers || [];
   const approvals = request.approvals || [];
 
