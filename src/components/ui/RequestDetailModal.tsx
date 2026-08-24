@@ -974,7 +974,6 @@ export function RequestDetailModal({
                     <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                       <Icon name="zoom_in" className="text-slate-700 text-lg drop-shadow-sm bg-white/80 p-1.5 rounded-full" />
                     </div>
-                  </div>
                   <span className="text-[10px] font-mono font-semibold text-slate-400 mt-2">
                     {request.qr_code_token}
                   </span>
@@ -1015,9 +1014,9 @@ export function RequestDetailModal({
                             logs.push({
                               type: 'checkin',
                               title: 'Scan Kembali Sesi 1 (Pagi)',
-                              time: it.morning_checked_in_at || it.security_checked_in_at || it.updated_at || request.completed_at || new Date().toISOString(),
-                              by: it.morning_checkin_by || it.security_checkin_by || request.security_checkin_by || "System",
-                              notes: it.morning_checkin_notes || it.security_checkin_notes || request.security_checkin_notes,
+                              time: it.morning_checked_in_at || it.updated_at,
+                              by: it.morning_checkin_by || request.security_checkin_by || `${request.employee || 'Pemohon'} (Pemohon / Requestor)`,
+                              notes: it.morning_checkin_notes || request.security_checkin_notes || 'Selesai Sesi 1',
                             });
                           }
                           if (it.afternoon_checked_out_at) {
@@ -1033,30 +1032,26 @@ export function RequestDetailModal({
                             logs.push({
                               type: 'checkin',
                               title: 'Scan Kembali Sesi 2 (Sore)',
-                              time: it.afternoon_checked_in_at || it.security_checked_in_at || it.updated_at || request.completed_at || new Date().toISOString(),
-                              by: it.afternoon_checkin_by || it.security_checkin_by || request.security_checkin_by || "System",
-                              notes: it.afternoon_checkin_notes || it.security_checkin_notes || request.security_checkin_notes,
+                              time: it.afternoon_checked_in_at || it.updated_at,
+                              by: it.afternoon_checkin_by || request.security_checkin_by || `${request.employee || 'Pemohon'} (Pemohon / Requestor)`,
+                              notes: it.afternoon_checkin_notes || request.security_checkin_notes || 'Selesai Sesi 2',
                             });
                           }
 
                           return (
-                            <div key={it.id || idx} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
-                              {/* Day Header */}
-                              <div className="px-3 py-2 bg-slate-100/70 border-b border-slate-200/80 flex items-center justify-between">
-                                <span className="font-bold text-xs text-slate-800 flex items-center gap-1">
-                                  <span>📅</span> {dayLabel}
-                                </span>
-                                <span className={`text-[9.5px] font-extrabold px-2 py-0.5 rounded-md ${
+                            <div key={it.id || idx} className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                                <span className="font-extrabold text-[#00236f] text-[12px]">{dayLabel}</span>
+                                <span className={`text-[9.5px] font-black px-2 py-0.5 rounded-full uppercase ${
                                   isDone ? 'bg-emerald-100 text-emerald-800' :
                                   isOngoing ? 'bg-amber-100 text-amber-800 animate-pulse' :
-                                  'bg-slate-200 text-slate-600'
+                                  'bg-slate-100 text-slate-600'
                                 }`}>
                                   {isDone ? '✓ Completed' : isOngoing ? '⚡ On Going' : 'Scheduled'}
                                 </span>
                               </div>
-
-                              {/* Log List for this day */}
-                              <div className="p-2 space-y-1.5 text-xs">
+                              
+                              <div className="space-y-1.5">
                                 {logs.length > 0 ? (
                                   logs.map((log: any, li: number) => (
                                     <div key={li} className="p-2 bg-slate-50/80 border border-slate-100 rounded-lg space-y-0.5">
@@ -1093,7 +1088,14 @@ export function RequestDetailModal({
                   );
                 }
 
-                if (!request.security_checked_out_at && !request.security_checked_in_at) return null;
+                const isCompleted = request.rawStatus === 'completed' || request.status === 'completed';
+                const checkinTime = request.security_checked_in_at || (isCompleted ? (request.completed_at || request.updated_at) : null);
+                const checkinBy = request.security_checkin_by || (isCompleted ? `${request.employee || 'Pemohon'} (Pemohon / Requestor)` : null);
+                const checkinNotes = request.security_checkin_notes || (isCompleted ? 'Diselesaikan secara mandiri oleh pemohon di lokasi tujuan (Sewa Eksternal / Drop-Off Only)' : null);
+
+                if (!request.security_checked_out_at && !checkinTime) return null;
+
+                const isSelfCompleted = String(checkinBy || '').includes('Pemohon') || String(checkinBy || '').includes('Requestor') || String(checkinBy || '').includes('GA') || String(checkinBy || '').includes('Admin');
 
                 return (
                   <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
@@ -1103,30 +1105,44 @@ export function RequestDetailModal({
                     </div>
                     <div className="text-xs space-y-2">
                       {request.security_checked_out_at && (
-                        <div className="bg-white p-2 border border-slate-100 rounded-lg">
+                        <div className="bg-white p-2.5 border border-slate-100 rounded-xl shadow-2xs">
                           <div className="flex justify-between items-start gap-2">
-                            <div className="font-bold text-amber-700 text-[12.5px] leading-tight">Scan Berangkat (Checkout)</div>
-                            <span className="text-[10.5px] text-slate-400 font-bold font-mono whitespace-nowrap flex-shrink-0 mt-0.5">
+                            <div className="font-extrabold text-amber-800 text-[12px] flex items-center gap-1">
+                              <span>🛫</span> Scan Berangkat (Checkout)
+                            </div>
+                            <span className="text-[10.5px] text-slate-400 font-bold font-mono whitespace-nowrap flex-shrink-0">
                               {formatScanTime(request.security_checked_out_at)}
                             </span>
                           </div>
-                          <div className="text-slate-500 font-medium mt-0.5">Petugas: {request.security_checkout_by}</div>
+                          <div className="text-slate-600 font-semibold text-[11.5px] mt-1">Petugas: <span className="font-bold text-slate-800">{request.security_checkout_by || "Security Pos Gerbang"}</span></div>
                           {request.security_checkout_notes && (
-                            <div className="mt-1 text-[11px] text-slate-600 italic">" {request.security_checkout_notes} "</div>
+                            <div className="mt-1 text-[11px] text-slate-500 italic bg-amber-50/50 p-1.5 rounded-lg border border-amber-100/60">" {request.security_checkout_notes} "</div>
                           )}
                         </div>
                       )}
-                      {request.security_checked_in_at && (
-                        <div className="bg-white p-2 border border-slate-100 rounded-lg">
+
+                      {checkinTime && (
+                        <div className={`p-2.5 border rounded-xl shadow-2xs ${
+                          isSelfCompleted ? 'bg-emerald-50/60 border-emerald-200' : 'bg-white border-slate-100'
+                        }`}>
                           <div className="flex justify-between items-start gap-2">
-                            <div className="font-bold text-emerald-700 text-[12.5px] leading-tight">Scan Kembali (Checkin)</div>
-                            <span className="text-[10.5px] text-slate-400 font-bold font-mono whitespace-nowrap flex-shrink-0 mt-0.5">
-                              {formatScanTime(request.security_checked_in_at)}
+                            <div className={`font-extrabold text-[12px] flex items-center gap-1 ${
+                              isSelfCompleted ? 'text-emerald-900' : 'text-emerald-700'
+                            }`}>
+                              <span>{isSelfCompleted ? '🏁' : '🛬'}</span>
+                              <span>{isSelfCompleted ? 'Penyelesaian Perjalanan (Checkin / Drop-Off)' : 'Scan Kembali (Checkin)'}</span>
+                            </div>
+                            <span className="text-[10.5px] text-slate-400 font-bold font-mono whitespace-nowrap flex-shrink-0">
+                              {formatScanTime(checkinTime)}
                             </span>
                           </div>
-                          <div className="text-slate-500 font-medium mt-0.5">Petugas: {request.security_checkin_by}</div>
-                          {request.security_checkin_notes && (
-                            <div className="mt-1 text-[11px] text-slate-600 italic">" {request.security_checkin_notes} "</div>
+                          <div className="text-slate-700 font-semibold text-[11.5px] mt-1">
+                            Petugas / Oleh: <span className="font-extrabold text-slate-900">{checkinBy}</span>
+                          </div>
+                          {checkinNotes && (
+                            <div className="mt-1 text-[11px] text-emerald-800 italic bg-white/80 p-2 rounded-lg border border-emerald-200/60 font-medium">
+                              " {checkinNotes} "
+                            </div>
                           )}
                         </div>
                       )}
