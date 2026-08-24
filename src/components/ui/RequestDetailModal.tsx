@@ -4,6 +4,7 @@ import { PriorityBadge } from "../layout/PriorityBadge";
 import type { FleetRequest } from "../../types";
 import { useAuthContext } from "@/auth/authContext";
 import { downloadItemPDF } from "@/utils/exportHelper";
+import { requestService } from "@/services/modules/requestService";
 
 interface RequestDetailModalProps {
   isOpen: boolean;
@@ -23,6 +24,9 @@ export function RequestDetailModal({
   const { user } = useAuthContext();
   const [isConfirmRejectOpen, setIsConfirmRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [isConfirmCompleteOpen, setIsConfirmCompleteOpen] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [completionNotes, setCompletionNotes] = useState("");
   const [previewFile, setPreviewFile] = useState<any | null>(null);
   const [isQrZoomed, setIsQrZoomed] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
@@ -1200,8 +1204,68 @@ export function RequestDetailModal({
           </div>
         )}
 
+        {/* Confirm Complete Overlay dialog */}
+        {isConfirmCompleteOpen && (
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs z-20 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full border border-slate-100 shadow-2xl animate-fadein space-y-4">
+              <div className="text-center">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                  <Icon name="check_circle" className="text-2xl" />
+                </div>
+                <h4 className="text-base font-bold text-slate-800">Selesaikan Perjalanan External?</h4>
+                <p className="text-xs text-slate-500 mt-1">
+                  Perjalanan sewa eksternal ini tidak kembali ke pabrik (*Drop-off Only*). Menandai selesai akan memperbarui status permintaan menjadi <b>COMPLETED</b>.
+                </p>
+              </div>
+
+              <form onSubmit={handleConfirmCompleteSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Catatan Penyelesaian (Opsional)</label>
+                  <textarea
+                    value={completionNotes}
+                    onChange={(e) => setCompletionNotes(e.target.value)}
+                    placeholder="Contoh: Penumpang telah diantar sampai Bandara Juanda jam 14:00..."
+                    rows={3}
+                    className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                </div>
+
+                <div className="flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmCompleteOpen(false)}
+                    className="flex-1 py-2 text-xs font-bold text-slate-500 border border-slate-200 hover:bg-slate-50 rounded-xl cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCompleting}
+                    className="flex-1 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    <Icon name={isCompleting ? "sync" : "check"} className={`text-sm ${isCompleting ? "animate-spin" : ""}`} />
+                    <span>{isCompleting ? "Memproses..." : "Selesaikan"}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2">
+          {isEligibleToComplete && canUserComplete && (
+            <button
+              type="button"
+              disabled={isCompleting}
+              onClick={() => setIsConfirmCompleteOpen(true)}
+              className="w-full sm:w-auto h-10 px-5 bg-emerald-600 text-white rounded-xl text-[13px] font-bold hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+            >
+              <Icon name="check_circle" className="text-[17px]" />
+              <span>Selesaikan Perjalanan (Drop-Off)</span>
+            </button>
+          )}
+
           {request.canApprove && onApprove && onReject ? (
             <>
               <button
