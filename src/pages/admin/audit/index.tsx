@@ -12,14 +12,17 @@ const SEV: Record<string, { badge: string; dot: string; row: string }> = {
   Low: { badge: "bg-[#f0fdf4] text-[#16a34a] border border-[#86efac]", dot: "bg-[#22c55e]", row: "" },
 };
 
-// ── Mini sparkbar ─────────────────────────────
-function MiniSparkbar({ vals, colors }: { vals: number[]; colors: string[] }) {
-  const max = Math.max(...vals);
+// ── Mini sparkbar with Flat Neutral State for 0 Counts ─────────────────────────────
+function MiniSparkbar({ vals, colors, isZero }: { vals: number[]; colors: string[]; isZero?: boolean }) {
+  const max = Math.max(...vals, 1);
   return (
     <div className="flex items-end gap-0.5 h-8 mt-2">
       {vals.map((v, i) => (
-        <div key={i} className={`flex-1 rounded-sm ${colors[i] || colors[colors.length - 1]}`}
-          style={{ height: `${(v / max) * 100}%`, minHeight: 2 }} />
+        <div
+          key={i}
+          className={`flex-1 rounded-sm ${isZero || v === 0 ? "bg-slate-200/90" : (colors[i] || colors[colors.length - 1])}`}
+          style={{ height: isZero || v === 0 ? "4px" : `${(v / max) * 100}%`, minHeight: 2 }}
+        />
       ))}
     </div>
   );
@@ -117,7 +120,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
     let opsCount = 0;
     let suspCount = 0;
 
-    LOGS.forEach((l: any, idx: number) => {
+    LOGS.forEach((l: any) => {
       const actLower = String(l.activity || "").toLowerCase();
       const actionLower = String(l.action || "").toLowerCase();
       const sevLower = String(l.severity || "").toLowerCase();
@@ -271,16 +274,16 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
           const isSec = sevLower === "critical" || sevLower === "high" || actionLower.includes("delete") || actLower.includes("security");
           if (!isSec && idx > 3) return false;
         } else if (cardFilter === "FAILED_LOGINS") {
-          const isFailed = actLower.includes("login") || actionLower.includes("login") || actLower.includes("auth") || actLower.includes("user") || (idx % 8 === 0);
+          const isFailed = actLower.includes("login") || actionLower.includes("login") || actLower.includes("auth") || actLower.includes("user");
           if (!isFailed) return false;
         } else if (cardFilter === "PERMISSIONS") {
-          const isPerm = actLower.includes("assignment") || actLower.includes("role") || actLower.includes("permission") || actionLower.includes("update") || (idx % 3 === 0);
+          const isPerm = actLower.includes("assignment") || actLower.includes("role") || actLower.includes("permission") || actionLower.includes("update");
           if (!isPerm) return false;
         } else if (cardFilter === "OPERATIONAL") {
           const isOps = actLower.includes("request") || actLower.includes("vehicle") || actLower.includes("assignment") || actionLower.includes("create") || actionLower.includes("update");
           if (!isOps) return false;
         } else if (cardFilter === "SUSPICIOUS") {
-          const isSusp = sevLower === "critical" || sevLower === "high" || actionLower.includes("delete") || (idx === 0);
+          const isSusp = sevLower === "critical" || actionLower.includes("delete");
           if (!isSusp) return false;
         }
       }
@@ -380,6 +383,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {cardMetas.map(c => {
             const isActive = cardFilter === c.key;
+            const isZero = c.rawVal === 0;
             return (
               <button
                 key={c.key}
@@ -408,7 +412,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
                   {c.label}
                 </div>
                 <div className="text-[22px] font-bold text-[#0f172a] leading-tight mt-1">{c.value}</div>
-                <MiniSparkbar vals={c.vals} colors={c.colors} />
+                <MiniSparkbar vals={c.vals} colors={c.colors} isZero={isZero} />
               </button>
             );
           })}
@@ -517,8 +521,49 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
                   <td className="px-4 py-4 text-[11px] text-[#94a3b8]">{log.time}</td>
                 </tr>
               ))}
+
+              {/* Informative Empty State */}
               {filtered.length === 0 && !logsLoading && (
-                <tr><td colSpan={7} className="px-4 py-10 text-center text-[13px] text-[#94a3b8]">No logs match the current filters.</td></tr>
+                <tr>
+                  <td colSpan={7} className="px-4 py-16 text-center">
+                    <div className="max-w-md mx-auto space-y-3">
+                      <div className="w-16 h-16 bg-blue-50 text-[#1e3a8a] rounded-3xl flex items-center justify-center mx-auto shadow-inner border border-blue-100">
+                        <Icon name="verified_user" className="text-3xl" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-base font-extrabold text-[#0f172a]">
+                          Sistem Audit Log Dalam Keadaan Bersih
+                        </h4>
+                        <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto">
+                          Belum ada rekaman aktivitas baru yang tercatat sejak pembersihan (*purge*) terakhir atau tidak ada data yang cocok dengan kriteria filter aktif saat ini.
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-center gap-2 pt-2">
+                        <button
+                          onClick={() => refetchLogs()}
+                          className="px-4 py-2 bg-[#1e3a8a] hover:bg-blue-900 text-white font-bold text-xs rounded-xl shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Icon name="refresh" className="text-sm" />
+                          Refresh Data Log
+                        </button>
+                        {(cardFilter !== "ALL" || severityF !== "All" || userRoleF !== "All" || departmentF !== "All" || search) && (
+                          <button
+                            onClick={() => {
+                              setCardFilter("ALL");
+                              setSeverityF("All");
+                              setUserRoleF("All");
+                              setDepartmentF("All");
+                              setSearch("");
+                            }}
+                            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                          >
+                            Reset Filter
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -599,7 +644,9 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
               </div>
               <div className="text-right">
                 <span className="text-[11px] font-bold uppercase text-slate-400 block">Status Pemantauan</span>
-                <span className="text-xs font-extrabold text-blue-900">🟢 Terhubung Real-Time</span>
+                <span className="text-xs font-extrabold text-blue-900">
+                  {selectedCardModal.rawVal === 0 ? "🟢 0 Data (Sistem Bersih)" : "🟢 Terhubung Real-Time"}
+                </span>
               </div>
             </div>
 
