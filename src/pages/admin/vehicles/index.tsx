@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { vehicleService } from "@/services/modules/vehicleService";
+import { VehicleStatusBadge } from "@/components/ui/VehicleStatusBadge";
+import { getVehicleStatusInfo } from "@/utils/vehicleStatusHelper";
 
 const getVehicleImage = (imageType: string) => {
   const map: Record<string, string> = {
@@ -235,8 +237,9 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
 
   const statsList = statsData || [];
   const totalVehiclesCount = (statsList as any)?.pagination?.total ?? statsList.length;
-  const availableCount = statsList.filter(v => v.status === "AVAILABLE").length;
-  const inTransitCount = statsList.filter(v => v.status === "IN TRANSIT").length;
+  const availableCount = statsList.filter(v => getVehicleStatusInfo(v.status).rawStatus === "Available").length;
+  const inTransitCount = statsList.filter(v => getVehicleStatusInfo(v.status).rawStatus === "On Trip").length;
+  const maintenanceCount = statsList.filter(v => getVehicleStatusInfo(v.status).rawStatus === "Maintenance").length;
 
   return (
     <Layout
@@ -254,7 +257,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all shadow-sm hover:shadow-md active:scale-95"
+            className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all shadow-sm hover:shadow-md active:scale-95 cursor-pointer"
           >
             <Icon name="add" className="text-[18px]" />
             Add Vehicle
@@ -262,20 +265,21 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           {[
-            { label: "Total Vehicles", value: totalVehiclesCount,  badgeColor: "bg-[#dcfce7] text-[#16a34a]", icon: "directions_car" },
-            { label: "Active / In Transit", value: inTransitCount, badgeColor: "bg-[#dbeafe] text-[#1d4ed8]", icon: "commute" },
-            { label: "Available", value: availableCount,           badgeColor: "bg-[#dcfce7] text-[#16a34a]", icon: "check_circle" },
+            { label: "Total Armada", value: totalVehiclesCount, icon: "directions_car" },
+            { label: "Tersedia", value: availableCount, icon: "check_circle" },
+            { label: "Sedang Berjalan", value: inTransitCount, icon: "commute" },
+            { label: "Dalam Perbaikan", value: maintenanceCount, icon: "build" },
           ].map(c => (
-            <div key={c.label} className="bg-white rounded-2xl p-5 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 bg-[#e8edf8] rounded-xl flex items-center justify-center">
-                  <Icon name={c.icon} className="text-[#1e3a8a] text-[20px]" />
+            <div key={c.label} className="bg-white rounded-2xl p-4 sm:p-5 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between mb-2 sm:mb-3">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#e8edf8] rounded-xl flex items-center justify-center">
+                  <Icon name={c.icon} className="text-[#1e3a8a] text-[18px] sm:text-[20px]" />
                 </div>
               </div>
-              <div className="text-[13px] text-[#64748b] font-medium">{c.label}</div>
-              <div className="text-[32px] font-bold text-[#0f172a] leading-tight">{loading ? "..." : c.value}</div>
+              <div className="text-[12px] sm:text-[13px] text-[#64748b] font-medium">{c.label}</div>
+              <div className="text-[26px] sm:text-[32px] font-bold text-[#0f172a] leading-tight">{loading ? "..." : c.value}</div>
             </div>
           ))}
         </div>
@@ -297,7 +301,13 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
               onChange={e => handleStatusChange(e.target.value)}
               className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer shadow-2xs"
             >
-              {["All Statuses", "AVAILABLE", "IN TRANSIT"].map(s => <option key={s} value={s}>Status: {s}</option>)}
+              {[
+                { label: "Semua Status", value: "All Statuses" },
+                { label: "Status: Tersedia", value: "Available" },
+                { label: "Status: Sedang Berjalan", value: "On Trip" },
+                { label: "Status: Dalam Perbaikan", value: "Maintenance" },
+                { label: "Status: Tidak Aktif", value: "Decommissioned" },
+              ].map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
             <select
               value={typeFilter}
@@ -351,7 +361,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                         </td>
                         <td className="px-5 py-3.5 text-[13px] text-[#475569]">{v.type}</td>
                         <td className="px-5 py-3.5">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(v.status)}`}>{v.status}</span>
+                          <VehicleStatusBadge status={v.status} />
                         </td>
                         <td className="px-5 py-3.5 text-[13px] font-semibold text-[#0f172a]">{v.capacity || 0} orang</td>
                         <td className="px-5 py-3.5">
@@ -414,7 +424,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                             <div className="text-[11px] text-[#94a3b8]">{v.plate}</div>
                           </div>
                         </div>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${getStatusColor(v.status)}`}>{v.status}</span>
+                        <VehicleStatusBadge status={v.status} />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 pt-1">
