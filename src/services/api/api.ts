@@ -1,27 +1,28 @@
 import axios from 'axios';
 
 const getDynamicBaseUrl = () => {
-  // Priority 1: Explicit env variable (.env / .env.production) — always wins if provided
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL;
-  }
-
-  // Priority 2: Auto-detect from browser location for 100% symmetrical DEV and LIVE environments
+  // Priority 1: Absolute Browser Hostname Detection (Immune to server .env residue)
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
+    const port = window.location.port;
 
-    // DEV Environment
-    if (host.includes('ovmsdev')) {
+    // DEV Environment (ovmsdev.widatra.com or dev port 8282)
+    if (host.includes('ovmsdev') || port === '8282') {
       return 'https://api.ovmsdev.widatra.com/api';
     }
 
-    // LIVE Production Environment
+    // LIVE Production Environment (ovms.widatra.com)
     if (host.includes('ovms.widatra.com') || host.includes('widatra.com')) {
       return 'https://api.ovms.widatra.com/api';
     }
   }
 
-  // Default fallback for local development or production
+  // Priority 2: Explicit env variable (.env / .env.development) for local development
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+
+  // Default fallback
   return 'https://api.ovms.widatra.com/api';
 };
 
