@@ -1,16 +1,26 @@
 import axios from 'axios';
 
 const getDynamicBaseUrl = () => {
+  // Priority 1: Explicit env variable (.env / .env.production) — always wins if provided
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+
+  // Priority 2: Auto-detect from browser location
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
-    // DEV: memanggil domain absolut backend DEV
-    if (host.includes('ovmsdev')) {
-      return 'https://api.ovmsdev.widatra.com/api';
+    const port = window.location.port;
+
+    // DEV environment (hostname includes ovmsdev or port 8282)
+    if (host.includes('ovmsdev') || port === '8282') {
+      return port === '8282'
+        ? `${window.location.protocol}//api.ovmsdev.widatra.com:8383/api`
+        : 'https://api.ovmsdev.widatra.com/api';
     }
   }
-  // LIVE Production: menggunakan path relatif /api yang di-forward Nginx Proxy ke backend
-  // Ini pola yang sudah terbukti bekerja di production sebelum merge dev hari ini
-  return import.meta.env.VITE_API_BASE_URL || '/api';
+
+  // Priority 3: LIVE Production environment — relative /api path (Nginx Proxy)
+  return '/api';
 };
 
 export const apiClient = axios.create({
