@@ -1,12 +1,6 @@
 import axios from 'axios';
 
 const getDynamicBaseUrl = () => {
-  // Priority 1: Explicit env variable (.env / .env.production) — always wins if provided
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL;
-  }
-
-  // Priority 2: Auto-detect from browser location
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
     const port = window.location.port;
@@ -17,10 +11,16 @@ const getDynamicBaseUrl = () => {
         ? `${window.location.protocol}//api.ovmsdev.widatra.com:8383/api`
         : 'https://api.ovmsdev.widatra.com/api';
     }
+
+    // LIVE Production environment (ovms.widatra.com)
+    // Strictly force relative '/api' path for Nginx Reverse Proxy
+    if (host.includes('ovms.widatra.com') || host.includes('widatra.com')) {
+      return '/api';
+    }
   }
 
-  // Priority 3: LIVE Production environment — relative /api path (Nginx Proxy)
-  return '/api';
+  // Fallback for custom env or local development
+  return import.meta.env.VITE_API_BASE_URL || '/api';
 };
 
 export const apiClient = axios.create({
