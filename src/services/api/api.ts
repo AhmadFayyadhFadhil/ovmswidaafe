@@ -1,26 +1,24 @@
 import axios from 'axios';
 
 const getDynamicBaseUrl = () => {
-  // 1. Prioritaskan VITE_API_BASE_URL jika ada di .env / .env.production
+  // Priority 1: Explicit env variable (.env / .env.production) — always wins
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
 
-  // 2. Deteksi otomatis berdasarkan domain browser
+  // Priority 2: Auto-detect from hostname
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
-    // DEV Environment
     if (host.includes('ovmsdev')) {
       return 'https://api.ovmsdev.widatra.com/api';
     }
-    // LIVE / Production Environment
-    if (host.includes('ovms.widatra.com') || host.includes('widatra.com')) {
+    if (host.includes('ovms.widatra.com')) {
       return 'https://api.ovms.widatra.com/api';
     }
   }
 
-  // 3. Fallback default
-  return 'https://api.ovmsdev.widatra.com/api';
+  // Priority 3: Fallback for local development
+  return 'http://localhost:8000/api';
 };
 
 export const apiClient = axios.create({
