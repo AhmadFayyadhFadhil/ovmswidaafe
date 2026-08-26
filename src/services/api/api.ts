@@ -1,16 +1,16 @@
 import axios from 'axios';
 
 const getDynamicBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
     if (host.includes('ovmsdev')) {
       return 'https://api.ovmsdev.widatra.com/api';
     }
-    if (host.includes('ovms.widatra.com') || host.includes('widatra.com')) {
-      return 'https://api.ovms.widatra.com/api';
-    }
   }
-  return import.meta.env.VITE_API_BASE_URL || 'https://api.ovms.widatra.com/api';
+  return 'https://api.ovmsdev.widatra.com/api';
 };
 
 export const apiClient = axios.create({
