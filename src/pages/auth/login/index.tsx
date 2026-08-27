@@ -82,7 +82,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const userRole = await login(nik, password);
+      const userRole = await login(nik.trim(), password);
 
       const dashboards: Record<string, string> = {
         employee: "/employee/dashboard",

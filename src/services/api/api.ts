@@ -11,9 +11,9 @@ const getDynamicBaseUrl = () => {
       return 'https://api.ovmsdev.widatra.com/api';
     }
 
-    // LIVE Production Environment (ovms.widatra.com)
+    // LIVE Production Environment (ovms.widatra.com) -> Uses Option 2 Reverse Proxy
     if (host.includes('ovms.widatra.com') || host.includes('widatra.com')) {
-      return 'https://api.ovms.widatra.com/api';
+      return 'https://ovms.widatra.com/api';
     }
   }
 
