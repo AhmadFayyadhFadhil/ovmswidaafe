@@ -199,42 +199,12 @@ export const userService = {
       message: res.data?.message
     };
   },
-  delete: async (id: string, userObj?: any): Promise<ApiResponse<void>> => {
-    try {
-      const res = await apiClient.delete<any>(`${ENDPOINTS.USERS}/${id}`);
-      return {
-        data: undefined,
-        message: res.data?.message
-      };
-    } catch (err: any) {
-      if (err.response?.status === 500 || err.response?.status === 422 || err.response?.status === 409) {
-        try {
-          const payload: any = {
-            status: 'inactive',
-            availability_status: 'unavailable',
-            is_active: 0,
-            active: 0,
-          };
-          if (userObj) {
-            if (userObj.fullName) payload.name = userObj.fullName;
-            if (userObj.email) payload.email = userObj.email;
-            if (userObj.roleName) payload.role = userObj.roleName;
-            if (userObj.department_id) {
-              const pDept = parseInt(userObj.department_id);
-              payload.department_id = isNaN(pDept) ? 1 : pDept;
-            }
-          }
-          const res2 = await apiClient.put<any>(`${ENDPOINTS.USERS}/${id}`, payload);
-          return {
-            data: undefined,
-            message: res2.data?.message || 'User berhasil dinonaktifkan.'
-          };
-        } catch (err2: any) {
-          console.error("User deactivation fallback error:", err2);
-        }
-      }
-      throw err;
-    }
+  delete: async (id: string): Promise<ApiResponse<void>> => {
+    const res = await apiClient.delete<any>(`${ENDPOINTS.USERS}/${id}`);
+    return {
+      data: undefined,
+      message: res.data?.message || 'User berhasil dihapus'
+    };
   },
 };
 
