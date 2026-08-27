@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Bell,
   CheckCircle,
@@ -8,7 +9,8 @@ import {
   Clock,
   Car,
   ShieldCheck,
-  FileCheck
+  FileCheck,
+  ExternalLink
 } from "lucide-react";
 import type { SystemNotification } from "@/types";
 import { Layout } from "@/components/layout/RoleLayout";
@@ -37,15 +39,18 @@ export default function Notification({
   onDeleteNotification: propOnDeleteNotification,
   onNavigate
 }: NotificationProps) {
+  const navigate = useNavigate();
   const [internalNotifs, setInternalNotifs] = useState<SystemNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
 
   /**
-   * Load notifications from backend API.
+   * Load notifications from backend API with SWR Silent Polling (Zero Flickering).
    */
-  const loadNotifications = async () => {
-    setLoading(true);
+  const loadNotifications = async (isInitial = false) => {
+    if (isInitial) {
+      setLoading(true);
+    }
     try {
       const res = await notificationService.getAll();
       if (res.data && Array.isArray(res.data)) {
@@ -55,9 +60,9 @@ export default function Notification({
       }
     } catch (err) {
       console.error("Failed to load notifications", err);
-      setInternalNotifs([]);
+      if (isInitial) setInternalNotifs([]);
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
@@ -67,12 +72,12 @@ export default function Notification({
       localStorage.removeItem(READ_KEY);
     } catch {}
 
-    loadNotifications().then(() => {
+    loadNotifications(true).then(() => {
       window.dispatchEvent(new CustomEvent('ovms-notif-read'));
     });
 
-    const interval = setInterval(loadNotifications, 10000);
-    const handleFocus = () => loadNotifications();
+    const interval = setInterval(() => loadNotifications(false), 15000);
+    const handleFocus = () => loadNotifications(false);
     window.addEventListener('focus', handleFocus);
 
     return () => {
@@ -216,7 +221,7 @@ export default function Notification({
 
   return (
     <Layout
-      activeNav="Notification Center"
+      activeNav="Notifications"
       onNavigate={onNavigate}
       topbarTitle="Notifikasi"
       searchPlaceholder="Cari notifikasi..."
@@ -407,6 +412,19 @@ export default function Notification({
 
                     {/* Bottom Action Buttons: Full Width on Mobile, Inline on Desktop */}
                     <div className="flex items-center justify-end gap-2 pt-2.5 sm:pt-1 border-t border-slate-100 sm:border-0 pl-0 sm:pl-12">
+                      {not.actionUrl && (
+                        <button
+                          onClick={() => {
+                            if (!not.isRead) handleMarkAsRead(not.id);
+                            navigate(not.actionUrl!);
+                          }}
+                          className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Lihat Tiket</span>
+                        </button>
+                      )}
+
                       {!not.isRead ? (
                         <button
                           onClick={() => handleMarkAsRead(not.id)}

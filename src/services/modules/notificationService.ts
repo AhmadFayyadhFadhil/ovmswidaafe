@@ -3,9 +3,7 @@ import type { ApiResponse } from '../../types/api';
 import { apiClient } from '../api/api';
 
 const cleanId = (id: string | number): string => {
-  const str = String(id);
-  const digits = str.replace(/[^0-9]/g, '');
-  return digits.length > 0 ? digits : str.trim();
+  return String(id).trim();
 };
 
 /**
