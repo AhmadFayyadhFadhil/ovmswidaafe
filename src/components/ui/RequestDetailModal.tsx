@@ -1013,12 +1013,13 @@ export function RequestDetailModal({
                             });
                           }
                           if (it.morning_checked_in_at || it.morning_status === 'completed') {
+                            const isMorningSecCheckin = Boolean(it.morning_checked_in_at);
                             logs.push({
                               type: 'checkin',
                               title: 'Scan Kembali Sesi 1 (Pagi)',
                               time: it.morning_checked_in_at || it.updated_at,
-                              by: it.morning_checkin_by || request.security_checkin_by || `${request.employee || 'Pemohon'} (Pemohon / Requestor)`,
-                              notes: it.morning_checkin_notes || request.security_checkin_notes || 'Selesai Sesi 1',
+                              by: it.morning_checkin_by || (isMorningSecCheckin ? (request.security_checkin_by || "Petugas Security Pos Gerbang") : `${request.employee || 'Pemohon'} (Pemohon / Requestor)`),
+                              notes: it.morning_checkin_notes || (isMorningSecCheckin ? null : (it.is_external ? 'Diselesaikan secara mandiri (Sewa Eksternal)' : null)),
                             });
                           }
                           if (it.afternoon_checked_out_at) {
@@ -1031,12 +1032,13 @@ export function RequestDetailModal({
                             });
                           }
                           if (it.afternoon_checked_in_at || it.afternoon_status === 'completed') {
+                            const isAfternoonSecCheckin = Boolean(it.afternoon_checked_in_at);
                             logs.push({
                               type: 'checkin',
                               title: 'Scan Kembali Sesi 2 (Sore)',
                               time: it.afternoon_checked_in_at || it.updated_at,
-                              by: it.afternoon_checkin_by || request.security_checkin_by || `${request.employee || 'Pemohon'} (Pemohon / Requestor)`,
-                              notes: it.afternoon_checkin_notes || request.security_checkin_notes || 'Selesai Sesi 2',
+                              by: it.afternoon_checkin_by || (isAfternoonSecCheckin ? (request.security_checkin_by || "Petugas Security Pos Gerbang") : `${request.employee || 'Pemohon'} (Pemohon / Requestor)`),
+                              notes: it.afternoon_checkin_notes || (isAfternoonSecCheckin ? null : (it.is_external ? 'Diselesaikan secara mandiri (Sewa Eksternal)' : null)),
                             });
                           }
 
@@ -1091,13 +1093,17 @@ export function RequestDetailModal({
                 }
 
                 const isCompleted = request.rawStatus === 'completed' || request.status === 'completed';
+                const hasSecurityCheckin = Boolean(request.security_checked_in_at);
+
                 const checkinTime = request.security_checked_in_at || (isCompleted ? (request.completed_at || request.updated_at) : null);
-                const checkinBy = request.security_checkin_by || (isCompleted ? `${request.employee || 'Pemohon'} (Pemohon / Requestor)` : null);
-                const checkinNotes = request.security_checkin_notes || (isCompleted ? 'Diselesaikan secara mandiri oleh pemohon di lokasi tujuan (Sewa Eksternal / Drop-Off Only)' : null);
+                const checkinBy = request.security_checkin_by || (hasSecurityCheckin ? "Petugas Security Pos Gerbang" : (isCompleted ? `${request.employee || 'Pemohon'} (Pemohon / Requestor)` : null));
+                
+                // Catatan hanya menampilkan catatan asli security, atau jika benar-benar diselesaikan mandiri di lokasi tujuan
+                const checkinNotes = request.security_checkin_notes || (!hasSecurityCheckin && isCompleted && request.is_external ? 'Diselesaikan secara mandiri oleh pemohon di lokasi tujuan (Sewa Eksternal / Drop-Off Only)' : null);
 
                 if (!request.security_checked_out_at && !checkinTime) return null;
 
-                const isSelfCompleted = String(checkinBy || '').includes('Pemohon') || String(checkinBy || '').includes('Requestor') || String(checkinBy || '').includes('GA') || String(checkinBy || '').includes('Admin');
+                const isSelfCompleted = !hasSecurityCheckin && (String(checkinBy || '').includes('Pemohon') || String(checkinBy || '').includes('Requestor') || String(checkinBy || '').includes('GA') || String(checkinBy || '').includes('Admin'));
 
                 return (
                   <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
