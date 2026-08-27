@@ -44,110 +44,10 @@ const PriorityBadge = React.memo(function PriorityBadge({ priority }: { priority
   );
 });
 
-// ── Chart ────────────────────────────────────
-const UsageChart = React.memo(function UsageChart({
-  labels,
-  thisPeriodPct,
-  prevPeriodPct,
-  periodName
-}: {
-  labels: string[];
-  thisPeriodPct: number[];
-  prevPeriodPct: number[];
-  periodName: string;
-}) {
-  const count = labels.length;
-  const startX = 44;
-  const endX = 626;
-  const step = count > 1 ? (endX - startX) / (count - 1) : 0;
-  const xCoords = labels.map((_, i) => startX + i * step);
 
-  const thisPeriodPoints = thisPeriodPct.map((p, i) => ({
-    x: xCoords[i],
-    y: 190 - (Math.min(100, Math.max(0, p)) / 100) * 160
-  }));
-
-  const prevPeriodPoints = prevPeriodPct.map((p, i) => ({
-    x: xCoords[i],
-    y: 190 - (Math.min(100, Math.max(0, p)) / 100) * 160
-  }));
-
-  const getSplinePath = (points: { x: number; y: number }[]) => {
-    if (points.length === 0) return "";
-    let path = `M ${points[0].x},${points[0].y}`;
-    for (let i = 1; i < points.length; i++) {
-      const p0 = points[i - 1];
-      const p1 = points[i];
-      const cpX = (p1.x - p0.x) * 0.4;
-      path += ` C ${p0.x + cpX},${p0.y} ${p1.x - cpX},${p1.y} ${p1.x},${p1.y}`;
-    }
-    return path;
-  };
-
-  const thisPath = getSplinePath(thisPeriodPoints);
-  const prevPath = getSplinePath(prevPeriodPoints);
-  const fillPath = thisPath ? `${thisPath} L ${xCoords[xCoords.length - 1]},210 L ${xCoords[0]},210 Z` : "";
-
-  const now = new Date();
-  let activeIdx = 0;
-  if (periodName === "Weekly") {
-    let dayIndex = now.getDay() - 1; // 0 = Mon, ..., 6 = Sun
-    if (dayIndex === -1) dayIndex = 6;
-    activeIdx = dayIndex;
-  } else {
-    activeIdx = now.getMonth(); // 0 = Jan, ..., 11 = Dec
-  }
-  if (activeIdx >= count) activeIdx = count - 1;
-
-  const todayX = xCoords[activeIdx];
-  const todayY = thisPeriodPoints[activeIdx]?.y || 190;
-  const todayPct = thisPeriodPct[activeIdx] || 0;
-
-  return (
-    <div className="relative w-full" style={{ height: 248 }}>
-      <svg viewBox="0 0 670 210" preserveAspectRatio="none" className="w-full h-full overflow-visible">
-        <defs>
-          <linearGradient id="waveGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#1e3a8a" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0.01" />
-          </linearGradient>
-        </defs>
-        {[40, 80, 120, 160, 200].map(y => (
-          <line key={y} x1="44" y1={y} x2="626" y2={y} stroke="#e2e8f0" strokeWidth="1" />
-        ))}
-        <path d={prevPath} fill="none" stroke="#93c5fd" strokeWidth="1.8" strokeDasharray="6 4" strokeOpacity="0.8" />
-        <path d={fillPath} fill="url(#waveGrad)" />
-        <path d={thisPath} fill="none" stroke="#1e3a8a" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-        
-        <circle cx={todayX} cy={todayY} r="5.5" fill="#1e3a8a" />
-        <circle cx={todayX} cy={todayY} r="11" fill="none" stroke="#1e3a8a" strokeWidth="1.5" strokeOpacity="0.25">
-          <animate attributeName="r"              from="6"   to="18"  dur="1.8s" repeatCount="indefinite" />
-          <animate attributeName="stroke-opacity" from="0.4" to="0"   dur="1.8s" repeatCount="indefinite" />
-        </circle>
-        
-        <g>
-          <rect x={todayX - 50} y={todayY - 30} width="100" height="26" rx="6" fill="#1e3a8a" />
-          <polygon points={`${todayX - 5},${todayY - 4} ${todayX + 5},${todayY - 4} ${todayX},${todayY + 4}`} fill="#1e3a8a" />
-          <text x={todayX} y={todayY - 12} textAnchor="middle" fill="white" fontSize="12" fontWeight="700" fontFamily="Inter, sans-serif">
-            Usage: {todayPct}%
-          </text>
-        </g>
-      </svg>
-      <div className="absolute bottom-0 left-0 right-0 flex" style={{ paddingLeft: 30, paddingRight: 16 }}>
-        {labels.map((d, i) => (
-          <div key={d} className="flex-1 text-center" style={{ fontSize: labels.length > 7 ? 10 : 12, color: i === activeIdx ? "#1e3a8a" : "#94a3b8", fontWeight: i === activeIdx ? 700 : 500 }}>
-            {d}
-            {i === activeIdx && <div className="w-1 h-1 rounded-full bg-[#1e3a8a] mx-auto mt-1" />}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-});
 
 export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => void }) {
   const [statusFilter, setStatusFilter] = useState("All Status");
-  const [periodFilter, setPeriodFilter] = useState<"Weekly" | "Monthly">("Weekly");
 
   // Fetch all dashboard metrics in parallel
   const { data: dashboardData, loading: reqLoading, error: reqError, refetch } = useApi(async () => {
@@ -168,116 +68,6 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
   const requestsList = dashboardData?.requests || [];
   const vehiclesList = dashboardData?.vehicles || [];
   const usersList = dashboardData?.users || [];
-
-  // Calculate dynamic usage analytics based on REAL database request data for Weekly & Monthly modes
-  const { labels, finalThisPct, finalPrevPct, legendThis, legendPrev } = useMemo(() => {
-    const totalVehiclesCount = Math.max(1, vehiclesList.length);
-
-    if (periodFilter === "Weekly") {
-      const getStartOfWeek = (date: Date) => {
-        const d = new Date(date);
-        const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-        const monday = new Date(d.setDate(diff));
-        monday.setHours(0, 0, 0, 0);
-        return monday;
-      };
-
-      const formatDate = (d: Date) => {
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
-      };
-
-      const todayDate = new Date();
-      const startOfThisWeek = getStartOfWeek(todayDate);
-      const startOfPrevWeek = new Date(startOfThisWeek);
-      startOfPrevWeek.setDate(startOfPrevWeek.getDate() - 7);
-
-      const thisWeekUsage = Array(7).fill(0);
-      const prevWeekUsage = Array(7).fill(0);
-
-      for (let d = 0; d < 7; d++) {
-        const dateThis = new Date(startOfThisWeek);
-        dateThis.setDate(dateThis.getDate() + d);
-        const strThis = formatDate(dateThis);
-
-        const datePrev = new Date(startOfPrevWeek);
-        datePrev.setDate(datePrev.getDate() + d);
-        const strPrev = formatDate(datePrev);
-
-        const countThis = requestsList.filter((r: any) => (r.date === strThis || r.start_time?.startsWith(strThis)) && r.status !== 'REJECTED' && r.status !== 'rejected').length;
-        const countPrev = requestsList.filter((r: any) => (r.date === strPrev || r.start_time?.startsWith(strPrev)) && r.status !== 'REJECTED' && r.status !== 'rejected').length;
-
-        thisWeekUsage[d] = Math.min(100, Math.round((countThis / totalVehiclesCount) * 100));
-        prevWeekUsage[d] = Math.min(100, Math.round((countPrev / totalVehiclesCount) * 100));
-      }
-
-      return {
-        labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-        finalThisPct: thisWeekUsage,
-        finalPrevPct: prevWeekUsage,
-        legendThis: "Minggu Ini (This Week)",
-        legendPrev: "Minggu Lalu (Prev. Week)"
-      };
-    } else {
-      // Monthly Mode
-      const currentYear = new Date().getFullYear();
-      const prevYear = currentYear - 1;
-
-      const thisYearUsage = Array(12).fill(0);
-      const prevYearUsage = Array(12).fill(0);
-
-      requestsList.forEach((r: any) => {
-        if (r.status === 'REJECTED' || r.status === 'rejected') return;
-        const dateStr = r.date || r.start_time || r.created_at;
-        if (!dateStr) return;
-
-        try {
-          // Parse DD-MM-YYYY or YYYY-MM-DD
-          let y = currentYear;
-          let m = -1;
-
-          if (/^\d{2}-\d{2}-\d{4}/.test(dateStr)) {
-            const parts = dateStr.split(' ')[0].split('-');
-            y = parseInt(parts[2], 10);
-            m = parseInt(parts[1], 10) - 1;
-          } else if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
-            const parts = dateStr.split(' ')[0].split('-');
-            y = parseInt(parts[0], 10);
-            m = parseInt(parts[1], 10) - 1;
-          } else {
-            const d = new Date(dateStr);
-            if (!isNaN(d.getTime())) {
-              y = d.getFullYear();
-              m = d.getMonth();
-            }
-          }
-
-          if (m >= 0 && m < 12) {
-            if (y === currentYear) {
-              thisYearUsage[m] += 1;
-            } else if (y === prevYear) {
-              prevYearUsage[m] += 1;
-            }
-          }
-        } catch {}
-      });
-
-      const monthlyCapacity = Math.max(1, totalVehiclesCount * 10);
-      const thisMonthPct = thisYearUsage.map(c => Math.min(100, Math.round((c / monthlyCapacity) * 100)));
-      const prevMonthPct = prevYearUsage.map(c => Math.min(100, Math.round((c / monthlyCapacity) * 100)));
-
-      return {
-        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-        finalThisPct: thisMonthPct,
-        finalPrevPct: prevMonthPct,
-        legendThis: `Tahun ${currentYear}`,
-        legendPrev: `Tahun ${prevYear}`
-      };
-    }
-  }, [periodFilter, requestsList, vehiclesList]);
 
   // Calculate stats dynamically from actual database data
   const STATS: StatCard[] = useMemo(() => {
@@ -399,78 +189,51 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
           ))}
         </div>
 
-        {/* ── CHART + SCHEDULES ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          <div className="col-span-8 bg-white rounded-2xl border border-[#e2e8f0] p-5 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div className="flex flex-col min-w-0">
-                <span className="text-[16px] font-bold text-[#0f172a] truncate">Vehicle Usage Analytics</span>
-                <div className="flex items-center gap-3.5 mt-1 flex-wrap">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#1e3a8a]" />
-                    <span className="text-[10.5px] font-semibold text-[#64748b] uppercase tracking-wider">{legendThis}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <svg width="18" height="6"><line x1="0" y1="3" x2="18" y2="3" stroke="#93c5fd" strokeWidth="2" strokeDasharray="4 2" /></svg>
-                    <span className="text-[10.5px] font-semibold text-[#64748b] uppercase tracking-wider">{legendPrev}</span>
-                  </div>
-                </div>
+        {/* ── UPCOMING SCHEDULES ── */}
+        <div className="bg-white rounded-2xl border border-[#e2e8f0] p-5 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#e8edf8] flex items-center justify-center">
+                <Icon name="calendar_month" className="text-[#1e3a8a] text-[20px]" />
               </div>
-              <div className="flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
-                <select 
-                  aria-label="Analytics Filter Period" 
-                  value={periodFilter}
-                  onChange={(e) => setPeriodFilter(e.target.value as "Weekly" | "Monthly")}
-                  className="text-[12px] font-bold border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-[#1e3a8a] bg-[#f8fafc] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer shadow-2xs"
-                >
-                  <option value="Weekly">Weekly (Mingguan)</option>
-                  <option value="Monthly">Monthly (Bulanan)</option>
-                </select>
-                <button 
-                  onClick={() => refetch()} 
-                  title="Segarkan Data Analytics"
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#f1f5f9] transition-colors cursor-pointer"
-                >
-                  <Icon name="refresh" className="text-[#94a3b8] hover:text-[#1e3a8a] text-[18px]" />
-                </button>
+              <div>
+                <span className="text-[16px] font-bold text-[#0f172a]">Upcoming Vehicle Schedules</span>
+                <div className="text-[12px] text-[#64748b]">Jadwal keberangkatan kendaraan operasional terdekat</div>
               </div>
             </div>
-            <UsageChart 
-              labels={labels} 
-              thisPeriodPct={finalThisPct} 
-              prevPeriodPct={finalPrevPct} 
-              periodName={periodFilter}
-            />
+            <button 
+              onClick={() => onNavigate ? onNavigate("Vehicle Schedule") : window.location.href = "/admin/schedules"}
+              className="px-4 py-2 rounded-xl border border-[#e2e8f0] text-[12.5px] font-bold text-[#1e3a8a] hover:bg-[#eff6ff] hover:border-[#1e3a8a]/20 transition-all cursor-pointer shadow-2xs flex items-center gap-2 self-start sm:self-auto"
+            >
+              <span>View Full Calendar</span>
+              <Icon name="arrow_forward" className="text-[15px]" />
+            </button>
           </div>
-
-          <div className="col-span-4 bg-white rounded-2xl border border-[#e2e8f0] p-5 shadow-sm flex flex-col">
-            <div className="text-[11px] font-bold uppercase tracking-widest text-[#94a3b8] mb-4">Upcoming Schedules</div>
-            <div className="flex-1 space-y-2.5 overflow-y-auto">
-              {SCHEDULES.map((s, i) => (
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {SCHEDULES.length === 0 ? (
+              <div className="col-span-3 py-8 text-center text-[13px] text-[#64748b] bg-[#f8fafc] rounded-xl border border-dashed border-[#cbd5e1]">
+                Belum ada jadwal perjalanan kendaraan terdekat.
+              </div>
+            ) : (
+              SCHEDULES.map((s, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 bg-[#f8fafc] rounded-xl p-3 border-l-[3px]"
+                  className="flex items-center gap-3 bg-[#f8fafc] rounded-xl p-3.5 border-l-[4px] border border-[#e2e8f0] hover:shadow-sm transition-shadow"
                   style={{ borderLeftColor: s.accentColor }}
                 >
-                  <div className="flex flex-col items-center justify-center bg-white rounded-lg shadow-sm px-2.5 py-1.5 min-w-[44px] border border-[#e2e8f0]">
-                    <span className="text-[9px] font-bold text-[#1e3a8a] uppercase">{s.month}</span>
+                  <div className="flex flex-col items-center justify-center bg-white rounded-lg shadow-2xs px-2.5 py-1.5 min-w-[46px] border border-[#e2e8f0]">
+                    <span className="text-[9px] font-bold text-[#1e3a8a] uppercase tracking-wider">{s.month}</span>
                     <span className="text-[18px] font-bold text-[#0f172a] leading-tight">{s.day}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[13px] font-bold text-[#0f172a] truncate">{s.title}</div>
-                    <div className="text-[11px] text-[#64748b] mt-0.5 leading-snug">{s.sub}</div>
+                    <div className="text-[11.5px] text-[#64748b] mt-0.5 leading-snug truncate">{s.sub}</div>
                   </div>
-                  <span className="text-[11px] font-semibold text-[#94a3b8] whitespace-nowrap">{s.time}</span>
+                  <span className="text-[11px] font-semibold text-[#1e3a8a] bg-[#e8edf8] px-2.5 py-1 rounded-md whitespace-nowrap">{s.time}</span>
                 </div>
-              ))}
-            </div>
-            <button 
-              onClick={() => onNavigate ? onNavigate("Vehicle Schedule") : window.location.href = "/admin/schedules"}
-              className="mt-4 w-full py-2.5 rounded-xl border border-[#e2e8f0] text-[13px] font-bold text-[#1e3a8a] hover:bg-[#eff6ff] hover:border-[#1e3a8a]/20 transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-2"
-            >
-              <Icon name="calendar_month" className="text-[17px]" />
-              View Calendar
-            </button>
+              ))
+            )}
           </div>
         </div>
 
