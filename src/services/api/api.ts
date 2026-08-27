@@ -8,12 +8,12 @@ const getDynamicBaseUrl = () => {
 
     // DEV Environment (ovmsdev.widatra.com or dev port 8282)
     if (host.includes('ovmsdev') || port === '8282') {
-      return 'https://api.ovmsdev.widatra.com/api';
+      return `${window.location.origin}/api`;
     }
 
-    // LIVE Production Environment (ovms.widatra.com) -> Uses Option 2 Reverse Proxy
+    // LIVE Production Environment (ovms.widatra.com)
     if (host.includes('ovms.widatra.com') || host.includes('widatra.com')) {
-      return 'https://ovms.widatra.com/api';
+      return `${window.location.origin}/api`;
     }
   }
 
@@ -22,8 +22,8 @@ const getDynamicBaseUrl = () => {
     return import.meta.env.VITE_API_BASE_URL;
   }
 
-  // Default fallback
-  return 'https://api.ovms.widatra.com/api';
+  // Default fallback for local testing
+  return 'http://127.0.0.1:8000/api';
 };
 
 export const apiClient = axios.create({
