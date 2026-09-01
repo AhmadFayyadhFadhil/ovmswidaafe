@@ -25,6 +25,7 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
 
   const displayUserName = user?.name || userName || "User";
   const displayUserRole = user?.role ? (roleDisplayMap[user.role] || user.role) : (userRole || "User");
+  const displayUserSubtitle = user?.department_name || displayUserRole;
 
   const handleNavigate = (page: string) => {
     if (onNavigate) {
@@ -181,7 +182,7 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         <Topbar 
           title={topbarTitle} 
           userName={displayUserName} 
-          userRole={displayUserRole} 
+          userRole={displayUserSubtitle} 
           avatarUrl={user?.avatar_url}
           searchPlaceholder={searchPlaceholder} 
           searchValue={searchValue} 
