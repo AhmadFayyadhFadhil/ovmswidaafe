@@ -37,9 +37,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               roles: lowerRoles,
               token,
               department_id: apiUser.department_id,
+              department_name: apiUser.department_name || apiUser.department?.name || "",
               is_department_head: !!apiUser.is_department_head,
               availability_status: apiUser.availability_status,
               avatar_url: apiUser.avatar_url,
+              sim_number: apiUser.sim_number,
+              sim_type: apiUser.sim_type,
+              sim_expiry_date: apiUser.sim_expiry_date,
+              sim_status: apiUser.sim_status,
+              sim_expiry_days_left: apiUser.sim_expiry_days_left,
+              sim_a_photo_url: apiUser.sim_a_photo_url,
             };
             setUser(updatedUser);
             localStorage.setItem("auth_user", JSON.stringify(updatedUser));
@@ -129,9 +136,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             roles: lowerRoles,
             token,
             department_id: apiUser.department_id,
+            department_name: apiUser.department_name || apiUser.department?.name || "",
             is_department_head: !!apiUser.is_department_head,
             availability_status: apiUser.availability_status,
             avatar_url: apiUser.avatar_url,
+            sim_number: apiUser.sim_number,
+            sim_type: apiUser.sim_type,
+            sim_expiry_date: apiUser.sim_expiry_date,
+            sim_status: apiUser.sim_status,
+            sim_expiry_days_left: apiUser.sim_expiry_days_left,
+            sim_a_photo_url: apiUser.sim_a_photo_url,
           };
 
           setUser(authUser);
