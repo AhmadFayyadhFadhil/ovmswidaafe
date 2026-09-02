@@ -112,30 +112,18 @@ function AssignmentCard({
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center gap-2 px-5 py-4 border-t border-[#f1f5f9] bg-[#fafbff] mt-auto">
+      <div className="flex items-center justify-between px-5 py-4 border-t border-[#f1f5f9] bg-[#fafbff] mt-auto">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 border border-green-200 text-[11.5px] font-bold rounded-lg">
+          <Icon name="check_circle" className="text-[14px]" />
+          Terjadwal
+        </span>
         <button
           onClick={() => onViewDetail(cleanReqId)}
-          className={`w-full ${isPending ? 'sm:flex-1' : ''} h-9 bg-white border border-[#e2e8f0] text-[#475569] text-[12px] font-bold rounded-xl hover:bg-[#f8fafc] active:scale-95 transition-all cursor-pointer`}
+          className="h-9 px-4 bg-[#2563eb] text-white text-[12px] font-bold rounded-xl hover:bg-[#1d4ed8] active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
         >
-          View Detail
+          <Icon name="visibility" className="text-[15px]" />
+          Lihat Detail
         </button>
-
-        {isPending && (
-          <>
-            <button
-              onClick={() => onApprove(req.id)}
-              className="w-full sm:flex-1 h-9 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all cursor-pointer"
-            >
-              Approve
-            </button>
-            <button
-              onClick={() => onReject(req.id)}
-              className="w-full sm:flex-1 h-9 bg-white border border-[#dc2626] text-[#dc2626] text-[12px] font-bold rounded-xl hover:bg-[#fef2f2] active:scale-95 transition-all cursor-pointer"
-            >
-              Reject
-            </button>
-          </>
-        )}
       </div>
     </div>
   );

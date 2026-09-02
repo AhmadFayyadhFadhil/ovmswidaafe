@@ -1,0 +1,1 @@
+import{l as e}from"./index-BQrunR96.js";var t={getAll:async()=>{let t=await e.get(`/departments`);return{data:(Array.isArray(t.data?.data)?t.data.data:[]).map(e=>({id:Number(e.id),name:e.name})),message:t.data?.message}}};export{t};

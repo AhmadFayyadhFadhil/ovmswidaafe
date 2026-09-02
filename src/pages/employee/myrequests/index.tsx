@@ -16,8 +16,8 @@ interface StepState {
   icon?: string;
 }
 
-const STEP_LABELS = ["Submitted", "Dep Head", "GA Koor", "Assignment driver", "Terjadwal", "Selesai"];
-const STEP_ICONS  = ["send", "how_to_reg", "commute", "person_pin", "schedule", "flag"];
+const STEP_LABELS = ["Submitted", "Dep Head", "Koor Driver", "GA Koor", "Terjadwal", "Selesai"];
+const STEP_ICONS  = ["send", "how_to_reg", "person_pin", "verified_user", "schedule", "flag"];
 
 function getRequestSteps(rawStatus: string): StepState[] {
   const isRejected = rawStatus === "rejected" || rawStatus === "cancelled";
@@ -35,11 +35,12 @@ function getRequestSteps(rawStatus: string): StepState[] {
 
   // 1. Submitted
   const step0Done = true;
-  const step0Active = rawStatus === "submitted";
+  const step0Active = false;
 
   // 2. Dep Head
   const step1Done = [
     "approved_department",
+    "assigned_by_ga",
     "waiting_driver",
     "driver_assigned",
     "on_going",
@@ -47,22 +48,22 @@ function getRequestSteps(rawStatus: string): StepState[] {
   ].includes(rawStatus);
   const step1Active = rawStatus === "submitted";
 
-  // 3. GA Koor
+  // 3. Koor Driver (Alokasi Armada)
   const step2Done = [
-    "waiting_driver",
+    "assigned_by_ga",
     "driver_assigned",
     "on_going",
     "completed"
   ].includes(rawStatus);
   const step2Active = rawStatus === "approved_department";
 
-  // 4. Assignment driver
+  // 4. GA Koor (Review & Persetujuan)
   const step3Done = [
     "driver_assigned",
     "on_going",
     "completed"
   ].includes(rawStatus);
-  const step3Active = rawStatus === "waiting_driver";
+  const step3Active = rawStatus === "assigned_by_ga" || rawStatus === "waiting_driver";
 
   // 5. Terjadwal / In Progress
   const step4Done = rawStatus === "completed";

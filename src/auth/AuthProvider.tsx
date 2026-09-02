@@ -22,11 +22,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             let role: UserRole = "employee";
             const userRoles = apiUser.roles || [];
             const lowerRoles = userRoles.map((r: string) => r.toLowerCase());
+            const isDriverCoordinator = lowerRoles.includes("driver coordinator") || lowerRoles.includes("driver_coordinator") || lowerRoles.includes("coordinator");
+
             if (lowerRoles.includes("admin")) role = "admin";
             else if (lowerRoles.includes("ga")) role = "gahrd";
             else if (lowerRoles.includes("approver")) role = "approver";
             else if (lowerRoles.includes("driver")) role = "driver";
             else if (lowerRoles.includes("security")) role = "security";
+            else if (isDriverCoordinator) role = "driver";
             else role = "employee";
 
             const updatedUser: AuthUser = {
@@ -39,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               department_id: apiUser.department_id,
               department_name: apiUser.department_name || apiUser.department?.name || "",
               is_department_head: !!apiUser.is_department_head,
+              is_driver_coordinator: isDriverCoordinator,
               availability_status: apiUser.availability_status,
               avatar_url: apiUser.avatar_url,
               sim_number: apiUser.sim_number,
@@ -121,11 +125,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           let role: UserRole = "employee";
           const userRoles = apiUser.roles || [];
           const lowerRoles = userRoles.map((r: string) => r.toLowerCase());
+          const isDriverCoordinator = lowerRoles.includes("driver coordinator") || lowerRoles.includes("driver_coordinator") || lowerRoles.includes("coordinator");
+
           if (lowerRoles.includes("admin")) role = "admin";
           else if (lowerRoles.includes("ga")) role = "gahrd";
           else if (lowerRoles.includes("approver")) role = "approver";
           else if (lowerRoles.includes("driver")) role = "driver";
           else if (lowerRoles.includes("security")) role = "security";
+          else if (isDriverCoordinator) role = "driver";
           else role = "employee";
 
           const authUser: AuthUser = {
@@ -138,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             department_id: apiUser.department_id,
             department_name: apiUser.department_name || apiUser.department?.name || "",
             is_department_head: !!apiUser.is_department_head,
+            is_driver_coordinator: isDriverCoordinator,
             availability_status: apiUser.availability_status,
             avatar_url: apiUser.avatar_url,
             sim_number: apiUser.sim_number,

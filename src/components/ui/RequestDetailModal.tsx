@@ -81,12 +81,13 @@ export function RequestDetailModal({
   const getStageLabel = (rawStatus: string | undefined, mappedStatus: string) => {
     switch (rawStatus) {
       case "submitted":
+        return "MENUNGGU PERSETUJUAN DEP HEAD";
       case "approved_department":
-        return "MENUNGGU PENUGASAN GA";
+        return "MENUNGGU ALOKASI KOORDINATOR DRIVER";
       case "assigned_by_ga":
-        return "MENUNGGU KONFIRMASI";
+        return "MENUNGGU REVIEW GA KOORDINATOR";
       case "waiting_driver":
-        return "MENUNGGU KONFIRMASI DRIVER";
+        return "MENUNGGU KONFIRMASI";
       case "driver_assigned":
         return "TERJADWAL / SIAP JALAN";
       case "on_going":

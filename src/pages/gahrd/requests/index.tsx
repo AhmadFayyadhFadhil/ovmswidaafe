@@ -526,6 +526,26 @@ export default function GAHRDRequestsPage() {
     }
   };
 
+  const handleApproveAllocation = async (requestId: string) => {
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/requests/${requestId}/approve`, {
+        role: "hrd_head",
+        notes: "Disetujui oleh GA Koordinator",
+      });
+      if (res.data?.status === "success") {
+        showToast("Alokasi armada disetujui & jadwal berhasil diterbitkan!");
+        await fetchData();
+      } else {
+        alert(res.data?.message || "Gagal menyetujui alokasi.");
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Gagal menyetujui alokasi.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleDeleteRequest = async (requestId: string, reason: string) => {
     setActionLoading(true);
     try {
@@ -806,20 +826,29 @@ export default function GAHRDRequestsPage() {
           ) : (
             <div className="space-y-4">
               {filtered.map((req) => {
+                const isCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
+                const isGAOrAdmin = user?.role === 'gahrd' || user?.role === 'admin' || user?.roles?.includes('ga') || user?.roles?.includes('admin');
                 const isUrgentReq = (req.priority || "").toUpperCase() === "URGENT" || (req.priority || "").toUpperCase() === "CRITICAL";
+
+                const isPendingDeptHead = req.rawStatus === "submitted" && !isUrgentReq;
+                const isApprovedDept = req.rawStatus === "approved_department";
+                const isAllocatedByCoordinator = req.rawStatus === "assigned_by_ga";
+
                 const showAssign =
-                  req.rawStatus === "approved_department" ||
-                  req.rawStatus === "assigned_by_ga" ||
-                  req.rawStatus === "approved_hrd" ||
-                  req.rawStatus === "approved_hrd_ga" ||
+                  isApprovedDept ||
                   (isUrgentReq && req.rawStatus === "submitted") ||
                   (req.rawStatus === "driver_assigned" && req.driverName === "Not Assigned");
-                const isPendingDeptHead = req.rawStatus === "submitted" && !isUrgentReq;
-                const showCancel = req.rawStatus === "waiting_driver";
-                const canCancelRequest = ["submitted", "approved_department", "waiting_driver", "driver_assigned"].includes(req.rawStatus);
+
+                const showApproveAllocation = isGAOrAdmin && isAllocatedByCoordinator;
+
                 const showEdit =
+                  (isAllocatedByCoordinator && (isCoordinator || isGAOrAdmin)) ||
                   (req.rawStatus === "waiting_driver" && !req.all_drivers_approved) ||
-                  (req.is_external && ["assigned_by_ga", "on_going", "completed"].includes(req.rawStatus));
+                  (req.is_external && ["assigned_by_ga", "on_going", "completed"].includes(req.rawStatus)) ||
+                  (isGAOrAdmin && req.rawStatus === "driver_assigned");
+
+                const showCancel = req.rawStatus === "waiting_driver" || isAllocatedByCoordinator;
+                const canCancelRequest = ["submitted", "approved_department", "waiting_driver", "driver_assigned", "assigned_by_ga"].includes(req.rawStatus);
 
                 return (
                   <div
@@ -918,6 +947,34 @@ export default function GAHRDRequestsPage() {
                         </span>
                       )}
 
+                      {isApprovedDept && !isCoordinator && isGAOrAdmin && (
+                        <span className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-[11.5px] font-bold rounded-xl flex items-center gap-1.5">
+                          <Icon name="schedule" className="text-[15px]" />
+                          Menunggu Alokasi Koor Driver
+                        </span>
+                      )}
+
+                      {isAllocatedByCoordinator && isCoordinator && !isGAOrAdmin && (
+                        <span className="px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 text-[11.5px] font-bold rounded-xl flex items-center gap-1.5">
+                          <Icon name="hourglass_top" className="text-[15px]" />
+                          Menunggu Review GA
+                        </span>
+                      )}
+
+                      {showApproveAllocation && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleApproveAllocation(req.id);
+                          }}
+                          disabled={actionLoading}
+                          className="px-5 h-9 bg-emerald-600 text-white text-[12.5px] font-bold rounded-xl hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-sm"
+                        >
+                          <Icon name="check_circle" className="text-[16px]" />
+                          Setujui Alokasi & Jadwalkan
+                        </button>
+                      )}
+
                       {showAssign && (
                         <button
                           onClick={(e) => {
@@ -928,7 +985,7 @@ export default function GAHRDRequestsPage() {
                           className="px-5 h-9 bg-green-600 text-white text-[12.5px] font-bold rounded-xl hover:bg-green-700 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           <Icon name="person_add" className="text-[16px]" />
-                          Tugaskan Driver
+                          {isCoordinator ? "Alokasikan Armada & Driver" : (isApprovedDept ? "Alokasi Langsung (Bypass)" : "Tugaskan Driver")}
                         </button>
                       )}
 
@@ -942,7 +999,7 @@ export default function GAHRDRequestsPage() {
                           className="px-5 h-9 bg-[#1e3a8a] text-white text-[12.5px] font-bold rounded-xl hover:bg-[#1d4ed8] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           <Icon name="edit" className="text-[16px]" />
-                          Edit Penugasan
+                          {isAllocatedByCoordinator ? "Ubah Alokasi" : "Edit Penugasan"}
                         </button>
                       )}
 

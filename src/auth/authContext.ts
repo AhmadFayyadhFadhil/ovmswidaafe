@@ -13,6 +13,7 @@ export interface AuthUser {
   department_id?: string | number;
   department_name?: string;
   is_department_head?: boolean;
+  is_driver_coordinator?: boolean;
   availability_status?: 'available' | 'unavailable' | 'on_trip' | 'assigned';
   avatar_url?: string | null;
   sim_number?: string | null;
