@@ -16,7 +16,7 @@ interface StepState {
   icon?: string;
 }
 
-const STEP_LABELS = ["Submitted", "K.Dep Asal", "GA Koor", "Assignment driver", "Terjadwal", "Selesai"];
+const STEP_LABELS = ["Submitted", "Dep Head", "GA Koor", "Assignment driver", "Terjadwal", "Selesai"];
 const STEP_ICONS  = ["send", "how_to_reg", "commute", "person_pin", "schedule", "flag"];
 
 function getRequestSteps(rawStatus: string): StepState[] {
@@ -37,7 +37,7 @@ function getRequestSteps(rawStatus: string): StepState[] {
   const step0Done = true;
   const step0Active = rawStatus === "submitted";
 
-  // 2. K.Dep Asal
+  // 2. Dep Head
   const step1Done = [
     "approved_department",
     "waiting_driver",

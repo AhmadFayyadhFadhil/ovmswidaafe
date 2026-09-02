@@ -914,7 +914,7 @@ export default function GAHRDRequestsPage() {
                       {isPendingDeptHead && (
                         <span className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 text-[11.5px] font-bold rounded-xl flex items-center gap-1.5">
                           <Icon name="hourglass_empty" className="text-[15px]" />
-                          Menunggu Persetujuan K.Dep Asal
+                          Menunggu Persetujuan Dep Head
                         </span>
                       )}
 

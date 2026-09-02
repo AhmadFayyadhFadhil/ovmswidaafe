@@ -229,7 +229,7 @@ function RequestCard({
               </span>
               <span className="flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full ${isHrdApproved ? "bg-green-500 animate-pulse" : "bg-gray-300"}`} />
-                <span className={isHrdApproved ? "text-green-800 font-bold" : "text-gray-500 font-normal"}>K.Dep HRD & GA</span>
+                <span className={isHrdApproved ? "text-green-800 font-bold" : "text-gray-500 font-normal"}>GA & HRD Head</span>
               </span>
             </div>
           </div>

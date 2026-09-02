@@ -71,9 +71,9 @@ export function RequestDetailModal({
 
   const getApprovalRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
-      dept_head: "Kepala Departemen",
-      hrd_head: "Kepala HRD",
-      ga_head: "Kepala GA",
+      dept_head: "Dep Head",
+      hrd_head: "GA & HRD Head",
+      ga_head: "GA Head",
     };
     return labels[role] || role;
   };
@@ -371,7 +371,7 @@ export function RequestDetailModal({
                   } else if (rawActor) {
                     actorName = rawActor;
                   } else {
-                    actorName = "Kepala Departemen / GA";
+                    actorName = "Dep Head / GA";
                   }
                 }
 
