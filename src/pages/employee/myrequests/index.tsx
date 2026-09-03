@@ -1,5 +1,5 @@
 // src/pages/employee/my-requests/index.tsx
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/RoleLayout";
 import { Icon } from "@/components/ui/Icon";
@@ -236,6 +236,7 @@ export default function MyRequestsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatus] = useState("All Status");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const autoExpandedRef = useRef<boolean>(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [zoomedQrUrl, setZoomedQrUrl] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<any | null>(null);
@@ -324,12 +325,14 @@ export default function MyRequestsPage() {
 
   // Auto-expand request and trigger rating modal if requested in query params
   useEffect(() => {
+    if (autoExpandedRef.current) return;
     const params = new URLSearchParams(window.location.search);
     const idParam = params.get("id") || params.get("open_request") || params.get("req_id");
     const isReview = params.get("review") === "true";
     
     if (idParam) {
-      setExpanded(idParam);
+      setExpanded(String(idParam));
+      autoExpandedRef.current = true;
       if (isReview && requests.length > 0) {
         const found = requests.find((r: any) => String(r.id) === String(idParam));
         if (found) {
@@ -541,7 +544,7 @@ export default function MyRequestsPage() {
         ) : (
           <div className="space-y-3">
             {paginated.map(r => {
-              const isExpanded = expanded === r.id;
+              const isExpanded = String(expanded) === String(r.id);
               const steps = getRequestSteps(r.rawStatus);
 
               const sc = getStatusConfig(r.rawStatus);
@@ -608,7 +611,16 @@ export default function MyRequestsPage() {
                             </button>
                           )}
                           <button
-                            onClick={() => setExpanded(isExpanded ? null : r.id)}
+                            onClick={() => {
+                              if (isExpanded) {
+                                setExpanded(null);
+                                if (window.location.search) {
+                                  window.history.replaceState({}, "", window.location.pathname);
+                                }
+                              } else {
+                                setExpanded(String(r.id));
+                              }
+                            }}
                             className="text-[12px] font-bold text-[#00236f] border border-[#00236f]/20 px-3 py-1.5 rounded-lg hover:bg-[#e5eeff] transition-colors cursor-pointer whitespace-nowrap"
                           >
                             {isExpanded ? "Hide Detail" : "View Details"}
