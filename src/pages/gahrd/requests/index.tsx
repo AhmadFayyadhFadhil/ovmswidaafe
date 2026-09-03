@@ -1155,18 +1155,13 @@ export default function GAHRDRequestsPage() {
 
               {/* Penyesuaian Jadwal & Waktu Operasional */}
               <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-200/70 pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
-                      <Icon name="schedule" className="text-base" />
-                    </div>
-                    <div>
-                      <div className="text-[12.5px] font-extrabold text-[#00236f]">Penyesuaian Jadwal & Waktu Operasional</div>
-                      <div className="text-[10.5px] text-slate-500 font-medium">Koordinator & GA dapat menyesuaikan jam berangkat dan estimasi durasi kepulangan.</div>
-                    </div>
+                <div className="flex items-center justify-between border-b border-slate-200/70 pb-2">
+                  <div>
+                    <div className="text-[12.5px] font-bold text-[#00236f]">Penyesuaian Jadwal & Waktu Operasional</div>
+                    <div className="text-[10.5px] text-slate-500">Sesuaikan jam keberangkatan dan estimasi durasi kepulangan bila diperlukan.</div>
                   </div>
-                  <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
-                    Dapat Disesuaikan
+                  <span className="text-[10px] font-bold text-slate-600 bg-slate-200/70 px-2 py-0.5 rounded">
+                    Opsional
                   </span>
                 </div>
 
@@ -1351,7 +1346,7 @@ export default function GAHRDRequestsPage() {
                           {/* Sesi Jam Per Tanggal */}
                           <div className="grid grid-cols-2 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
                             <div>
-                              <label className="block text-[10.5px] font-bold text-slate-700 mb-1">🕒 Jam Sesi Pagi</label>
+                              <label className="block text-[10.5px] font-bold text-slate-700 mb-1">Jam Sesi Pagi</label>
                               <input
                                 type="time"
                                 value={asg.morning_time || "08:00"}
@@ -1363,7 +1358,7 @@ export default function GAHRDRequestsPage() {
                               />
                             </div>
                             <div>
-                              <label className="block text-[10.5px] font-bold text-slate-700 mb-1">🕒 Jam Sesi Sore/Siang</label>
+                              <label className="block text-[10.5px] font-bold text-slate-700 mb-1">Jam Sesi Sore/Siang</label>
                               <input
                                 type="time"
                                 value={asg.afternoon_time || "14:00"}
@@ -1618,7 +1613,7 @@ export default function GAHRDRequestsPage() {
                           {/* 1. Armada Berangkat */}
                           <div className="p-3 bg-white rounded-xl border border-blue-100 space-y-2">
                             <div className="text-[11.5px] font-bold text-blue-800 flex items-center gap-1">
-                              <span>🚙</span> Armada Keberangkatan
+                              Armada Keberangkatan
                             </div>
                             <div>
                               <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Biaya Berangkat (Rp)</label>
@@ -1691,7 +1686,7 @@ export default function GAHRDRequestsPage() {
                           {/* 2. Armada Penjemputan */}
                           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                             <div className="text-[11.5px] font-bold text-slate-700 flex items-center gap-1">
-                              <span>🔄</span> Armada Penjemputan / Pulang
+                              Armada Penjemputan / Pulang
                               <span className="text-[9.5px] font-normal text-slate-400 ml-1">(Opsional - Bisa diisi nanti saat Edit)</span>
                             </div>
                             <div>
@@ -1762,7 +1757,7 @@ export default function GAHRDRequestsPage() {
                       {selectedRequest?.passengerCount > 6 && (
                         <div className="pt-4 border-t border-blue-200 space-y-3">
                           <div className="text-[12px] font-bold text-blue-800 flex justify-between">
-                            <span>🚙 Detail Sewa Pihak Ketiga - Mobil Kedua (Opsional)</span>
+                            <span>Detail Sewa Pihak Ketiga - Mobil Kedua (Opsional)</span>
                             <span className="text-[10px] text-blue-700 font-semibold bg-blue-100 px-2 py-0.5 rounded">
                               Bisa 2 Kendaraan
                             </span>

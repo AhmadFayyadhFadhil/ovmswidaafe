@@ -47,15 +47,8 @@ export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePa
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1e3a8a] border border-blue-100 flex items-center justify-center font-bold">
-              <Icon name="history" className="text-[22px]" />
-            </div>
-            <div>
-              <h2 className="text-xl sm:text-2xl font-black text-[#0f172a] tracking-tight">Riwayat Penugasan Driver</h2>
-              <p className="text-xs sm:text-[13px] text-[#64748b] mt-0.5">Arsip seluruh perjalanan dinas Anda yang telah selesai, dibatalkan, atau ditolak.</p>
-            </div>
-          </div>
+          <h2 className="text-xl sm:text-2xl font-bold text-[#0f172a] tracking-tight">Riwayat Penugasan Driver</h2>
+          <p className="text-xs sm:text-[13px] text-[#64748b] mt-0.5">Arsip seluruh perjalanan dinas Anda yang telah selesai, dibatalkan, atau ditolak.</p>
         </div>
         <div className="text-xs font-bold text-[#1e3a8a] bg-[#eff4ff] border border-[#dbeafe] px-3.5 py-1.5 rounded-xl self-start sm:self-auto">
           Total: {filtered.length} Perjalanan
@@ -124,23 +117,20 @@ export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePa
                   >
                     {/* Trip ID */}
                     <td className="px-5 py-4 whitespace-nowrap">
-                      <span className="font-mono text-[12px] font-extrabold text-[#1e3a8a] bg-[#eff4ff] border border-[#dbeafe] px-2.5 py-1 rounded-lg">
+                      <span className="font-mono text-[12px] font-bold text-[#1e3a8a] bg-[#eff4ff] border border-[#dbeafe] px-2.5 py-1 rounded-lg">
                         {trip.tripId}
                       </span>
                     </td>
 
                     {/* Date & Time */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5 text-slate-700 font-medium">
-                        <Icon name="schedule" className="text-slate-400 text-sm shrink-0" />
-                        <span>{trip.datetime}</span>
-                      </div>
+                      <span className="text-slate-700 font-medium">{trip.datetime}</span>
                     </td>
 
                     {/* Passenger */}
                     <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#eff4ff] text-[#1e3a8a] border border-[#dbeafe] flex items-center justify-center font-extrabold text-[11px] shrink-0 shadow-2xs">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-[#eff4ff] text-[#1e3a8a] border border-[#dbeafe] flex items-center justify-center font-bold text-[11px] shrink-0">
                           {getInitials(trip.passenger)}
                         </div>
                         <div className="min-w-0">
@@ -153,11 +143,8 @@ export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePa
 
                     {/* Vehicle Type */}
                     <td className="px-4 py-4">
-                      <div className="flex items-center gap-2 text-slate-700 font-medium max-w-[320px]" title={trip.vehicleType}>
-                        <Icon name="directions_car" className="text-slate-400 text-[17px] shrink-0" />
-                        <span className="truncate">
-                          {trip.vehicleType || "Not Assigned"}
-                        </span>
+                      <div className="text-slate-700 font-medium max-w-[320px] truncate" title={trip.vehicleType}>
+                        {trip.vehicleType || "Not Assigned"}
                       </div>
                     </td>
 
@@ -172,10 +159,9 @@ export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePa
                     <td className="px-5 py-4 whitespace-nowrap text-right">
                       <button
                         onClick={() => onViewDetail(trip.id)}
-                        className="text-[12px] font-bold text-[#1e3a8a] hover:text-[#1d4ed8] bg-slate-100 hover:bg-[#eff4ff] hover:border-[#bfdbfe] border border-transparent px-3 py-1.5 rounded-xl transition-all cursor-pointer inline-flex items-center gap-1 group-hover:border-slate-200"
+                        className="text-[12px] font-bold text-[#1e3a8a] hover:text-[#1d4ed8] bg-slate-100 hover:bg-[#eff4ff] hover:border-[#bfdbfe] border border-transparent px-3 py-1.5 rounded-xl transition-all cursor-pointer inline-block"
                       >
-                        <span>View Detail</span>
-                        <Icon name="chevron_right" className="text-sm" />
+                        View Detail
                       </button>
                     </td>
                   </tr>
@@ -207,8 +193,8 @@ export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePa
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#eef2ff] text-[#1e3a8a] border border-[#dbeafe] flex items-center justify-center font-bold text-[11px] shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-full bg-[#eef2ff] text-[#1e3a8a] border border-[#dbeafe] flex items-center justify-center font-bold text-[11px] shrink-0">
                     {getInitials(trip.passenger)}
                   </div>
                   <div>
@@ -217,14 +203,13 @@ export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePa
                   </div>
                 </div>
 
-                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center gap-2 text-xs text-slate-700">
-                  <Icon name="directions_car" className="text-slate-400 text-sm shrink-0" />
-                  <span className="font-medium truncate">{trip.vehicleType || "Not Assigned"}</span>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs text-slate-700">
+                  <span className="font-medium truncate block">{trip.vehicleType || "Not Assigned"}</span>
                 </div>
 
                 <button
                   onClick={() => onViewDetail(trip.id)}
-                  className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#eef2ff] text-[#1e3a8a] text-[12px] font-bold hover:bg-[#dbeafe] transition active:scale-95 cursor-pointer"
+                  className="w-full py-2.5 rounded-xl bg-[#eef2ff] text-[#1e3a8a] text-[12px] font-bold hover:bg-[#dbeafe] transition active:scale-95 cursor-pointer text-center block"
                 >
                   View Detail
                 </button>
@@ -236,9 +221,6 @@ export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePa
         {/* Empty state */}
         {filtered.length === 0 && (
           <div className="py-16 flex flex-col items-center justify-center text-center p-4">
-            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
-              <Icon name="history" className="text-[28px]" />
-            </div>
             <p className="font-bold text-[#0f172a] text-sm">Tidak ada riwayat perjalanan ditemukan</p>
             <p className="text-[12px] text-[#64748b] mt-1 max-w-xs">Coba ubah kata kunci pencarian atau ganti filter status di atas.</p>
           </div>
