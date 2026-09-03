@@ -209,7 +209,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
       if (editFormData.role === "Approver") {
         data.append("rank", editFormData.rank);
       }
-      if (editFormData.role === "Driver") {
+      if (editFormData.role === "Driver" || editFormData.role === "Driver Coordinator") {
         data.append("sim_type", editFormData.sim_type || "SIM A");
         if (editFormData.sim_number) data.append("sim_number", editFormData.sim_number.trim());
         if (editFormData.sim_expiry_date) data.append("sim_expiry_date", editFormData.sim_expiry_date);
@@ -264,7 +264,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
       if (formData.role === "Approver") {
         data.append("rank", formData.rank);
       }
-      if (formData.role === "Driver") {
+      if (formData.role === "Driver" || formData.role === "Driver Coordinator") {
         data.append("sim_type", formData.sim_type || "SIM A");
         if (formData.sim_number) data.append("sim_number", formData.sim_number.trim());
         if (formData.sim_expiry_date) data.append("sim_expiry_date", formData.sim_expiry_date);
@@ -625,7 +625,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                     onChange={e => setFormData({ ...formData, role: e.target.value })}
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   >
-                    {["Employee", "Approver", "GA", "Driver", "Admin"].map(r => <option key={r} value={r}>{r}</option>)}
+                    {["Employee", "Approver", "Driver", "Driver Coordinator", "GA", "Security", "Admin"].map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
               </div>
@@ -671,7 +671,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                 </div>
               </div>
 
-              {formData.role === "Driver" && (
+              {(formData.role === "Driver" || formData.role === "Driver Coordinator") && (
                 <div className="space-y-4 p-4 bg-blue-50/50 border border-blue-100 rounded-2xl">
                   <div className="text-[12px] font-bold text-[#1e3a8a] flex items-center gap-1.5">
                     <Icon name="badge" className="text-[16px]" />
@@ -831,7 +831,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                     onChange={e => setEditFormData({ ...editFormData, role: e.target.value })}
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   >
-                    {["Employee", "Approver", "GA", "Driver", "Admin"].map(r => <option key={r} value={r}>{r}</option>)}
+                    {["Employee", "Approver", "Driver", "Driver Coordinator", "GA", "Security", "Admin"].map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
               </div>
@@ -877,7 +877,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                 </div>
               </div>
 
-              {editFormData.role === "Driver" && (
+              {(editFormData.role === "Driver" || editFormData.role === "Driver Coordinator") && (
                 <div className="space-y-4 p-4 bg-blue-50/50 border border-blue-100 rounded-2xl">
                   <div className="text-[12px] font-bold text-[#1e3a8a] flex items-center gap-1.5">
                     <Icon name="badge" className="text-[16px]" />
