@@ -1566,6 +1566,10 @@ export default function MyRequestsPage() {
         variant={alertModal.variant}
         isAlertOnly={true}
       />
+      {/* Build Stamp for Verification */}
+      <div className="text-[10px] text-slate-400 text-right mt-4 pr-4 font-mono pb-4">
+        Build Version: 2026-09-03-v23 (Status GA Review Updated)
+      </div>
     </Layout>
   );
 }

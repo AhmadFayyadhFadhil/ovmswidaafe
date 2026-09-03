@@ -33,7 +33,9 @@ function getStageLabel(rawStatus: string | undefined) {
     case "submitted":
       return "MENUNGGU DEPT HEAD";
     case "approved_department":
-      return "MENUNGGU GA & HRD HEAD";
+      return "MENUNGGU KOORDINATOR DRIVER";
+    case "assigned_by_ga":
+      return "MENUNGGU REVIEW GA KOORDINATOR";
     case "approved_hrd_ga":
     case "approved_hrd":
       return "MENUNGGU DRIVER";

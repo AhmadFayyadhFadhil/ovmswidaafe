@@ -563,7 +563,7 @@ export default function DriverDashboard() {
             case "pending":
               return { label: "Terjadwal (Siap Jalan)", color: "bg-[#7c3aed]" };
             case "assigned_by_ga":
-              return { label: "Menunggu Head HRD", color: "bg-blue-400 animate-pulse" };
+              return { label: "Menunggu Review GA", color: "bg-purple-400 animate-pulse" };
             case "waiting_driver":
               return { label: "Menunggu Konfirmasi Driver", color: "bg-amber-400 animate-pulse" };
             default:
