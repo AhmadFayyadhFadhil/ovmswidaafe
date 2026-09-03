@@ -95,7 +95,7 @@ function getStatusConfig(rawStatus: string) {
       };
     case "approved_department":
       return {
-        label: "Approved Dept",
+        label: "Menunggu Koor Driver",
         color: "bg-[#e5eeff] text-[#00236f]",
       };
     case "waiting_driver":
@@ -105,8 +105,8 @@ function getStatusConfig(rawStatus: string) {
       };
     case "assigned_by_ga":
       return {
-        label: "Menunggu HRD Head",
-        color: "bg-[#dbeafe] text-[#1d4ed8]",
+        label: "Menunggu Review GA",
+        color: "bg-[#f5f3ff] text-[#7c3aed]",
       };
     case "driver_assigned":
       return {

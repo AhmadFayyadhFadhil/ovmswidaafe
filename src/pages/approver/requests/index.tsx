@@ -35,11 +35,11 @@ function getStageLabel(rawStatus: string | undefined) {
     case "submitted":
       return "MENUNGGU DEPT HEAD";
     case "approved_department":
-      return "MENUNGGU GA KOORDINATOR";
+      return "MENUNGGU KOORDINATOR DRIVER";
     case "waiting_driver":
       return "MENUNGGU KONFIRMASI DRIVER";
     case "assigned_by_ga":
-      return "MENUNGGU APPROVAL HRD&GA HEAD";
+      return "MENUNGGU REVIEW GA KOORDINATOR";
     case "driver_assigned":
       return "TERJADWAL";
     case "on_going":
