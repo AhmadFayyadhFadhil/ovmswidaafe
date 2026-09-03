@@ -21,6 +21,19 @@ const cleanNumber = (val: string | number) => {
   return Number(String(val).replace(/\D/g, ""));
 };
 
+const formatToDatetimeLocal = (dateStr?: string | null): string => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const YYYY = d.getFullYear();
+  const MM = pad(d.getMonth() + 1);
+  const DD = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const mm = pad(d.getMinutes());
+  return `${YYYY}-${MM}-${DD}T${hh}:${mm}`;
+};
+
 export type Priority = "URGENT" | "NORMAL" | "CRITICAL";
 
 export interface Driver {
@@ -95,6 +108,9 @@ export default function GAHRDRequestsPage() {
   const [isExternal, setIsExternal] = useState(false);
   const [thirdPartyCost, setThirdPartyCost] = useState("0");
   const [estimatedDuration, setEstimatedDuration] = useState("3");
+  const [assignStartTime, setAssignStartTime] = useState("");
+  const [assignEndTime, setAssignEndTime] = useState("");
+  const [assignDuration, setAssignDuration] = useState("3");
   const [selectedPriority, setSelectedPriority] = useState("Normal");
   const [assignNotes, setAssignNotes] = useState("");
   const [externalFleetInfo, setExternalFleetInfo] = useState("");
@@ -260,6 +276,21 @@ export default function GAHRDRequestsPage() {
       return req.estimated_duration ? String(req.estimated_duration) : "3";
     })();
     setEstimatedDuration(durationHours);
+    setAssignDuration(durationHours);
+
+    const initStart = formatToDatetimeLocal(req.startTime || req.rawStartTime || req.start_time);
+    setAssignStartTime(initStart);
+    if (initStart) {
+      const sDate = new Date(initStart);
+      if (!isNaN(sDate.getTime())) {
+        sDate.setHours(sDate.getHours() + Number(durationHours || 3));
+        setAssignEndTime(formatToDatetimeLocal(sDate.toISOString()));
+      } else {
+        setAssignEndTime(formatToDatetimeLocal(req.rawEndTime || req.end_time));
+      }
+    } else {
+      setAssignEndTime(formatToDatetimeLocal(req.rawEndTime || req.end_time));
+    }
     
     setSelectedPriority(req.rawPriority || "Normal");
     setAssignNotes("");
@@ -279,6 +310,8 @@ export default function GAHRDRequestsPage() {
       setDailyAssignments(req.itineraries.map((it: any) => ({
         itinerary_id: it.id,
         date: it.date,
+        morning_time: it.morning_time ? String(it.morning_time).substring(0, 5) : "08:00",
+        afternoon_time: it.afternoon_time ? String(it.afternoon_time).substring(0, 5) : "14:00",
         driver_id: it.driver_id ? String(it.driver_id) : "",
         vehicle_id: it.vehicle_id ? String(it.vehicle_id) : "",
         is_external: !!it.is_external,
@@ -367,6 +400,8 @@ export default function GAHRDRequestsPage() {
           itinerary_id: asg.itinerary_id,
           driver_id: asg.is_external ? null : (asg.driver_id || null),
           vehicle_id: asg.is_external ? null : (asg.vehicle_id || null),
+          morning_time: asg.morning_time ? (asg.morning_time.length === 5 ? asg.morning_time + ":00" : asg.morning_time) : undefined,
+          afternoon_time: asg.afternoon_time ? (asg.afternoon_time.length === 5 ? asg.afternoon_time + ":00" : asg.afternoon_time) : undefined,
           is_external: asg.is_external,
           external_driver_name: asg.is_external ? (asg.external_driver_name || null) : null,
           external_license_plate: asg.is_external ? (asg.external_license_plate || null) : null,
@@ -404,6 +439,13 @@ export default function GAHRDRequestsPage() {
         formData.append("external_return_cost", String(retCost));
         formData.append("external_trip_type", externalTripType);
         formData.append("priority", selectedPriority);
+        if (assignStartTime) {
+          formData.append("start_time", assignStartTime.replace("T", " ") + (assignStartTime.length === 16 ? ":00" : ""));
+        }
+        if (assignEndTime) {
+          formData.append("end_time", assignEndTime.replace("T", " ") + (assignEndTime.length === 16 ? ":00" : ""));
+        }
+        formData.append("estimated_duration", String(assignDuration || estimatedDuration || "3"));
         if (assignNotes) formData.append("notes", assignNotes);
         if (externalFleetInfo) formData.append("external_fleet_info", externalFleetInfo);
         if (externalPhoto) formData.append("external_photo", externalPhoto);
@@ -460,7 +502,9 @@ export default function GAHRDRequestsPage() {
         const payload: any = {
           request_id: selectedRequest.id,
           is_external: false,
-          estimated_duration: Number(estimatedDuration),
+          start_time: assignStartTime ? assignStartTime.replace("T", " ") + (assignStartTime.length === 16 ? ":00" : "") : undefined,
+          end_time: assignEndTime ? assignEndTime.replace("T", " ") + (assignEndTime.length === 16 ? ":00" : "") : undefined,
+          estimated_duration: Number(assignDuration || estimatedDuration || "3"),
           priority: selectedPriority,
           notes: assignNotes || undefined,
           driver_id: selectedDriverId,
@@ -1109,6 +1153,101 @@ export default function GAHRDRequestsPage() {
                 </div>
               )}
 
+              {/* Penyesuaian Jadwal & Waktu Operasional */}
+              <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-200/70 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                      <Icon name="schedule" className="text-base" />
+                    </div>
+                    <div>
+                      <div className="text-[12.5px] font-extrabold text-[#00236f]">Penyesuaian Jadwal & Waktu Operasional</div>
+                      <div className="text-[10.5px] text-slate-500 font-medium">Koordinator & GA dapat menyesuaikan jam berangkat dan estimasi durasi kepulangan.</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
+                    Dapat Disesuaikan
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Waktu Berangkat
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={assignStartTime}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setAssignStartTime(val);
+                        if (val) {
+                          const sDate = new Date(val);
+                          if (!isNaN(sDate.getTime())) {
+                            sDate.setHours(sDate.getHours() + Number(assignDuration || 3));
+                            setAssignEndTime(formatToDatetimeLocal(sDate.toISOString()));
+                          }
+                        }
+                      }}
+                      className="w-full h-10 px-3 border border-slate-200 rounded-xl text-[12px] font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Estimasi Durasi (Jam)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        max="72"
+                        value={assignDuration}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setAssignDuration(val);
+                          if (assignStartTime && Number(val) > 0) {
+                            const sDate = new Date(assignStartTime);
+                            if (!isNaN(sDate.getTime())) {
+                              sDate.setHours(sDate.getHours() + Number(val));
+                              setAssignEndTime(formatToDatetimeLocal(sDate.toISOString()));
+                            }
+                          }
+                        }}
+                        className="w-full h-10 pl-3 pr-10 border border-slate-200 rounded-xl text-[12.5px] font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400 pointer-events-none">
+                        Jam
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Estimasi Jam Selesai
+                    </label>
+                    <input
+                      type="datetime-local"
+                      min={assignStartTime || undefined}
+                      value={assignEndTime}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setAssignEndTime(val);
+                        if (assignStartTime && val) {
+                          const sDate = new Date(assignStartTime);
+                          const eDate = new Date(val);
+                          if (!isNaN(sDate.getTime()) && !isNaN(eDate.getTime()) && eDate > sDate) {
+                            const diffHours = Math.max(1, Math.round((eDate.getTime() - sDate.getTime()) / (1000 * 60 * 60)));
+                            setAssignDuration(String(diffHours));
+                          }
+                        }
+                      }}
+                      className="w-full h-10 px-3 border border-slate-200 rounded-xl text-[12px] font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Konfirmasi Prioritas */}
               <div>
                 <label className="block text-[11px] font-bold text-[#475569] mb-1.5">Konfirmasi Prioritas</label>
@@ -1206,6 +1345,34 @@ export default function GAHRDRequestsPage() {
                                 />
                                 Sewa Pihak Ke-3
                               </label>
+                            </div>
+                          </div>
+
+                          {/* Sesi Jam Per Tanggal */}
+                          <div className="grid grid-cols-2 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                            <div>
+                              <label className="block text-[10.5px] font-bold text-slate-700 mb-1">🕒 Jam Sesi Pagi</label>
+                              <input
+                                type="time"
+                                value={asg.morning_time || "08:00"}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, morning_time: val } : item));
+                                }}
+                                className="w-full h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-slate-50 focus:bg-white font-semibold text-slate-800 focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10.5px] font-bold text-slate-700 mb-1">🕒 Jam Sesi Sore/Siang</label>
+                              <input
+                                type="time"
+                                value={asg.afternoon_time || "14:00"}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, afternoon_time: val } : item));
+                                }}
+                                className="w-full h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-slate-50 focus:bg-white font-semibold text-slate-800 focus:outline-none"
+                              />
                             </div>
                           </div>
 
