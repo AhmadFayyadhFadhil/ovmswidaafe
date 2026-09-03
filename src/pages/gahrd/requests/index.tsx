@@ -703,13 +703,14 @@ export default function GAHRDRequestsPage() {
   ).length, [requests]);
 
   const isApprover = user?.role === "approver";
+  const isCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
 
   return (
     <Layout
-      activeNav={isApprover ? "Driver Assignment" : "Requests"}
-      topbarTitle={isApprover ? "Driver Assignment" : "GAHRD Driver Assignment"}
-      userName={user?.name || "GAHRD User"}
-      userRole={isApprover ? "Manager Approver" : "GA/HRD"}
+      activeNav={isCoordinator ? "Alokasi Armada" : (isApprover ? "Driver Assignment" : "Requests")}
+      topbarTitle={isCoordinator ? "Alokasi Armada & Driver" : (isApprover ? "Driver Assignment" : "GAHRD Driver Assignment")}
+      userName={user?.name || (isCoordinator ? "Koordinator Driver" : "GAHRD User")}
+      userRole={isCoordinator ? "Koordinator Driver" : (isApprover ? "Manager Approver" : "GA/HRD")}
       searchPlaceholder="Cari request..."
       searchValue={search}
       onSearchChange={setSearch}
@@ -723,7 +724,7 @@ export default function GAHRDRequestsPage() {
               Tugaskan driver yang tersedia ke permintaan perjalanan operasional yang sudah disetujui, dan kelola koordinasi transportasi di seluruh organisasi.
             </div>
           </div>
-          {!isApprover && (
+          {!isApprover && !isCoordinator && (
             <button
               onClick={() => navigate("/gahrd/requests/urgent")}
               className="flex items-center gap-2 h-10 px-5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"

@@ -46,6 +46,9 @@ export default function ProtectedRoutes() {
     };
 
     const getCurrentRoleName = (roleStr: string) => {
+      if (user.is_driver_coordinator || user.roles?.includes('driver coordinator')) {
+        return 'Koordinator Driver';
+      }
       switch (roleStr) {
         case 'admin': return 'Administrator';
         case 'gahrd': return 'GA & HRD';
