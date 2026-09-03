@@ -231,16 +231,21 @@ export default function GAHRDRequestsPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const idParam = params.get("id");
-    if (idParam && requests.length > 0) {
+    const assignParam = params.get("assign");
+    if (assignParam && requests.length > 0) {
+      const found = requests.find(r => String(r.id) === String(assignParam));
+      if (found) {
+        handleOpenAssignModal(found);
+      }
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (idParam && requests.length > 0) {
       setSearch(idParam);
       const found = requests.find(r => String(r.id) === String(idParam));
       if (found) {
         setDetailRequest(found);
         setIsDetailModalOpen(true);
       }
-      // Clear query parameter from the URL address bar
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [requests]);
 
