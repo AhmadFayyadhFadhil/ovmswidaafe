@@ -16,8 +16,8 @@ interface StepState {
   icon?: string;
 }
 
-const STEP_LABELS = ["Submitted", "K.Dep Asal", "GA Koor", "Assignment driver", "Terjadwal", "Selesai"];
-const STEP_ICONS  = ["send", "how_to_reg", "commute", "person_pin", "schedule", "flag"];
+const STEP_LABELS = ["Submitted", "Dep Head", "Koor Driver", "GA Koor", "Terjadwal", "Selesai"];
+const STEP_ICONS  = ["send", "how_to_reg", "person_pin", "verified_user", "schedule", "flag"];
 
 function getRequestSteps(rawStatus: string): StepState[] {
   const isRejected = rawStatus === "rejected" || rawStatus === "cancelled";
@@ -35,11 +35,12 @@ function getRequestSteps(rawStatus: string): StepState[] {
 
   // 1. Submitted
   const step0Done = true;
-  const step0Active = rawStatus === "submitted";
+  const step0Active = false;
 
-  // 2. K.Dep Asal
+  // 2. Dep Head
   const step1Done = [
     "approved_department",
+    "assigned_by_ga",
     "waiting_driver",
     "driver_assigned",
     "on_going",
@@ -47,22 +48,22 @@ function getRequestSteps(rawStatus: string): StepState[] {
   ].includes(rawStatus);
   const step1Active = rawStatus === "submitted";
 
-  // 3. GA Koor
+  // 3. Koor Driver (Alokasi Armada)
   const step2Done = [
-    "waiting_driver",
+    "assigned_by_ga",
     "driver_assigned",
     "on_going",
     "completed"
   ].includes(rawStatus);
   const step2Active = rawStatus === "approved_department";
 
-  // 4. Assignment driver
+  // 4. GA Koor (Review & Persetujuan)
   const step3Done = [
     "driver_assigned",
     "on_going",
     "completed"
   ].includes(rawStatus);
-  const step3Active = rawStatus === "waiting_driver";
+  const step3Active = rawStatus === "assigned_by_ga" || rawStatus === "waiting_driver";
 
   // 5. Terjadwal / In Progress
   const step4Done = rawStatus === "completed";
@@ -94,7 +95,7 @@ function getStatusConfig(rawStatus: string) {
       };
     case "approved_department":
       return {
-        label: "Approved Dept",
+        label: "Menunggu Koor Driver",
         color: "bg-[#e5eeff] text-[#00236f]",
       };
     case "waiting_driver":
@@ -104,8 +105,8 @@ function getStatusConfig(rawStatus: string) {
       };
     case "assigned_by_ga":
       return {
-        label: "Menunggu HRD Head",
-        color: "bg-[#dbeafe] text-[#1d4ed8]",
+        label: "Menunggu Review GA",
+        color: "bg-[#f5f3ff] text-[#7c3aed]",
       };
     case "driver_assigned":
       return {
@@ -321,17 +322,27 @@ export default function MyRequestsPage() {
     setCurrentPage(1);
   }, [search, statusFilter]);
 
-  // Auto-expand request if ID is provided in query params
+  // Auto-expand request and trigger rating modal if requested in query params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const idParam = params.get("id");
+    const idParam = params.get("id") || params.get("open_request") || params.get("req_id");
+    const isReview = params.get("review") === "true";
+    
     if (idParam) {
       setExpanded(idParam);
-      // Clear query parameter from the URL address bar
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
+      if (isReview && requests.length > 0) {
+        const found = requests.find((r: any) => String(r.id) === String(idParam));
+        if (found) {
+          setRatingModal({
+            isOpen: true,
+            request: found,
+            rating: 5,
+            notes: "",
+          });
+        }
+      }
     }
-  }, []);
+  }, [requests]);
 
   const filtered = useMemo(() => requests.filter(r => {
     const matchSearch =
@@ -1565,6 +1576,10 @@ export default function MyRequestsPage() {
         variant={alertModal.variant}
         isAlertOnly={true}
       />
+      {/* Build Stamp for Verification */}
+      <div className="text-[10px] text-slate-400 text-right mt-4 pr-4 font-mono pb-4">
+        Build Version: 2026-09-03-v23 (Status GA Review Updated)
+      </div>
     </Layout>
   );
 }

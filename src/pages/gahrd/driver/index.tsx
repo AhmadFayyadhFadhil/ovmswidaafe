@@ -550,13 +550,14 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
   }, [allRequests, driversList]);
 
   const isApprover = user?.role?.toLowerCase() === "approver";
+  const isDriverCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
 
   return (
     <Layout
-      activeNav="Driver Availability"
+      activeNav={isDriverCoordinator ? "Ketersediaan Driver" : "Driver Availability"}
       onNavigate={onNavigate}
       topbarTitle="Driver Availability"
-      userRole={isApprover ? "Manager Approver" : "GA/HRD"}
+      userRole={isDriverCoordinator ? "Koordinator Driver" : (isApprover ? "Manager Approver" : "GA/HRD")}
       searchPlaceholder="Search drivers..."
       searchValue={search}
       onSearchChange={setSearch}

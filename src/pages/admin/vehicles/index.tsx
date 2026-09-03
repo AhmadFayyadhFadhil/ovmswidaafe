@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
+import { useAuthContext } from "@/auth/authContext";
 import { useApi } from "@/hooks/useApi";
 import { vehicleService } from "@/services/modules/vehicleService";
 import { VehicleStatusBadge } from "@/components/ui/VehicleStatusBadge";
@@ -21,6 +22,10 @@ const getStatusColor = (status: string) => {
 };
 
 export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => void }) {
+  const { user } = useAuthContext();
+  const isDriverCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
+  const canManageVehicles = user?.role === "admin" || user?.role === "gahrd";
+
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All Statuses");
   const [typeFilter, setTypeFilter] = useState("All Types");
@@ -243,9 +248,9 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
 
   return (
     <Layout
-      activeNav="Vehicle Management"
+      activeNav={isDriverCoordinator ? "Daftar Kendaraan" : "Vehicle Management"}
       onNavigate={onNavigate}
-      topbarTitle="Vehicle Management"
+      topbarTitle={isDriverCoordinator ? "Daftar Kendaraan" : "Vehicle Management"}
       searchPlaceholder="Search vehicles..."
     >
       <div className="p-4 sm:p-6 space-y-5 animate-fadein">
@@ -255,13 +260,15 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
             <h2 className="text-[26px] font-bold text-[#0f172a]">Vehicle Fleet</h2>
             <p className="text-[13px] text-[#64748b] mt-1">Real-time oversight and asset optimization for your enterprise fleet.</p>
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all shadow-sm hover:shadow-md active:scale-95 cursor-pointer"
-          >
-            <Icon name="add" className="text-[18px]" />
-            Add Vehicle
-          </button>
+          {canManageVehicles && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all shadow-sm hover:shadow-md active:scale-95 cursor-pointer"
+            >
+              <Icon name="add" className="text-[18px]" />
+              Add Vehicle
+            </button>
+          )}
         </div>
 
         {/* Stat Cards */}
@@ -337,7 +344,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                   <table className="w-full min-w-[900px]">
                   <thead>
                     <tr className="bg-[#f8fafc]">
-                      {["VEHICLE INFO", "TYPE", "STATUS", "CAPACITY", "FOTO STNK", "ACTIONS"].map(h => (
+                      {["VEHICLE INFO", "TYPE", "STATUS", "CAPACITY", "FOTO STNK", ...(canManageVehicles ? ["ACTIONS"] : [])].map(h => (
                         <th key={h} className="px-5 py-3 text-left text-[10.5px] font-bold text-[#94a3b8] uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
@@ -379,22 +386,24 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                             </span>
                           )}
                         </td>
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => handleEditClick(v)}
-                              className="w-8 h-8 rounded-lg hover:bg-[#eff6ff] flex items-center justify-center transition-colors"
-                            >
-                              <Icon name="edit" className="text-[#1e3a8a] text-[17px]" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(v.id)}
-                              className="w-8 h-8 rounded-lg hover:bg-[#fff1f2] flex items-center justify-center transition-colors"
-                            >
-                              <Icon name="delete" className="text-[#ef4444] text-[17px]" />
-                            </button>
-                          </div>
-                        </td>
+                        {canManageVehicles && (
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleEditClick(v)}
+                                className="w-8 h-8 rounded-lg hover:bg-[#eff6ff] flex items-center justify-center transition-colors"
+                              >
+                                <Icon name="edit" className="text-[#1e3a8a] text-[17px]" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(v.id)}
+                                className="w-8 h-8 rounded-lg hover:bg-[#fff1f2] flex items-center justify-center transition-colors"
+                              >
+                                <Icon name="delete" className="text-[#ef4444] text-[17px]" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -438,20 +447,22 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 pt-2">
-                        <button
-                          onClick={() => handleEditClick(v)}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#eef2ff] text-[#1e3a8a] text-[12px] font-bold hover:bg-[#dbeafe] transition active:scale-95 cursor-pointer"
-                        >
-                          <Icon name="edit" className="text-[14px]" />Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(v.id)}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#fee2e2] text-[#b91c1c] text-[12px] font-bold hover:bg-[#fecaca] transition active:scale-95 cursor-pointer"
-                        >
-                          <Icon name="delete" className="text-[14px]" />Delete
-                        </button>
-                      </div>
+                      {canManageVehicles && (
+                        <div className="flex items-center gap-2 pt-2">
+                          <button
+                            onClick={() => handleEditClick(v)}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#eef2ff] text-[#1e3a8a] text-[12px] font-bold hover:bg-[#dbeafe] transition active:scale-95 cursor-pointer"
+                          >
+                            <Icon name="edit" className="text-[14px]" />Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(v.id)}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#fee2e2] text-[#b91c1c] text-[12px] font-bold hover:bg-[#fecaca] transition active:scale-95 cursor-pointer"
+                          >
+                            <Icon name="delete" className="text-[14px]" />Delete
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}

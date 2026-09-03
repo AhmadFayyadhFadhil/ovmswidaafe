@@ -35,11 +35,11 @@ function getStageLabel(rawStatus: string | undefined) {
     case "submitted":
       return "MENUNGGU DEPT HEAD";
     case "approved_department":
-      return "MENUNGGU GA KOORDINATOR";
+      return "MENUNGGU KOORDINATOR DRIVER";
     case "waiting_driver":
       return "MENUNGGU KONFIRMASI DRIVER";
     case "assigned_by_ga":
-      return "MENUNGGU APPROVAL HRD&GA HEAD";
+      return "MENUNGGU REVIEW GA KOORDINATOR";
     case "driver_assigned":
       return "TERJADWAL";
     case "on_going":
@@ -229,7 +229,7 @@ function RequestCard({
               </span>
               <span className="flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full ${isHrdApproved ? "bg-green-500 animate-pulse" : "bg-gray-300"}`} />
-                <span className={isHrdApproved ? "text-green-800 font-bold" : "text-gray-500 font-normal"}>K.Dep HRD & GA</span>
+                <span className={isHrdApproved ? "text-green-800 font-bold" : "text-gray-500 font-normal"}>GA & HRD Head</span>
               </span>
             </div>
           </div>

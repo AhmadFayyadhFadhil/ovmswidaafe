@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useAuthContext } from "@/auth/authContext";
 import { assignmentService } from "@/services/modules/assignmentService";
 import { requestService } from "@/services/modules/requestService";
 import { vehicleService } from "@/services/modules/vehicleService";
+import { driverService } from "@/services/modules/driverService";
 import { apiClient } from "@/services/api/api";
 import { RequestDetailModal } from "@/components/ui/RequestDetailModal";
 
@@ -96,24 +97,17 @@ function RequestCard({
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t border-[#f1f5f9]">
+      <div className="flex items-center justify-between pt-2 border-t border-[#f1f5f9]">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 border border-green-200 text-[11.5px] font-bold rounded-lg">
+          <Icon name="check_circle" className="text-[14px]" />
+          Terjadwal
+        </span>
         <button
           onClick={() => onViewDetail(req.reqId.replace('#REQ-', ''))}
-          className="w-full sm:flex-1 h-9 bg-white border border-[#e2e8f0] text-[#475569] text-[12px] font-bold rounded-xl hover:bg-[#f8fafc] active:scale-95 transition-all cursor-pointer"
+          className="h-9 px-4 bg-[#2563eb] text-white text-[12px] font-bold rounded-xl hover:bg-[#1d4ed8] active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
         >
-          View Detail
-        </button>
-        <button
-          onClick={() => onApprove(req.id)}
-          className="w-full sm:flex-1 h-9 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all cursor-pointer"
-        >
-          Approve
-        </button>
-        <button
-          onClick={() => onReject(req.id)}
-          className="w-full sm:flex-1 h-9 bg-white border border-[#dc2626] text-[#dc2626] text-[12px] font-bold rounded-xl hover:bg-[#fef2f2] active:scale-95 transition-all cursor-pointer"
-        >
-          Reject
+          <Icon name="visibility" className="text-[15px]" />
+          Lihat Detail
         </button>
       </div>
     </div>
@@ -121,6 +115,7 @@ function RequestCard({
 }
 
 export default function DriverDashboard() {
+  const navigate = useNavigate();
   const { user, updateUser } = useAuthContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -150,6 +145,7 @@ export default function DriverDashboard() {
   const [rawAssignments, setRawAssignments] = useState<any[]>([]);
   const [rawRequests, setRawRequests] = useState<any[]>([]);
   const [rawVehicles, setRawVehicles] = useState<any[]>([]);
+  const [rawDrivers, setRawDrivers] = useState<any[]>([]);
   const [driverProfile, setDriverProfile] = useState<any | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -200,20 +196,23 @@ export default function DriverDashboard() {
     if (clearCacheFirst) {
       requestService.clearCache();
       assignmentService.clearCache();
+      driverService.clearCache();
     }
     setLoading(true);
     setError(null);
     try {
-      const [assignRes, requestRes, vehicleRes, profileRes] = await Promise.all([
+      const [assignRes, requestRes, vehicleRes, profileRes, driversRes] = await Promise.all([
         assignmentService.getAll(),
         requestService.getAll(),
         vehicleService.getAll(),
         import.meta.env.VITE_ENABLE_MOCK !== "true" ? apiClient.get("/profile").catch(() => null) : Promise.resolve(null),
+        driverService.getAll().catch(() => ({ data: [] })),
       ]);
 
       setRawAssignments(assignRes.data || []);
       setRawRequests(requestRes.data || []);
       setRawVehicles(vehicleRes.data || []);
+      setRawDrivers(driversRes.data || []);
 
       if (profileRes?.data?.status === "success" && profileRes.data.data) {
         const pData = profileRes.data.data;
@@ -533,6 +532,26 @@ export default function DriverDashboard() {
   const totalCompletedCount = rawRequests.filter(r => r.rawStatus === "completed").length;
   const upcomingCount = activeTrips.length;
 
+  const isDriverCoordinator = Boolean(
+    user?.is_driver_coordinator ||
+    user?.roles?.includes('driver coordinator') ||
+    user?.roles?.includes('driver_coordinator') ||
+    user?.roles?.includes('coordinator') ||
+    user?.role === 'gahrd'
+  );
+
+  const pendingAllocationRequests = rawRequests.filter((r) => {
+    const s = r.rawStatus || r.status;
+    return s === "approved_department" || (s === "pending" && (r.priority === "Urgent" || r.priority === "Critical" || r.rawPriority === "Urgent" || r.rawPriority === "Critical"));
+  });
+
+  const urgentPendingCount = pendingAllocationRequests.filter(
+    (r) => r.priority === "Urgent" || r.priority === "Critical" || r.rawPriority === "Urgent" || r.rawPriority === "Critical"
+  ).length;
+
+  const availableDriversCount = rawDrivers.filter((d: any) => d.status === "AVAILABLE" || d.availability_status === "available").length;
+  const availableVehiclesCount = rawVehicles.filter((v: any) => (v.status || "").toUpperCase() === "AVAILABLE").length;
+
   // Calculate Driver Average Rating & Rating Reviews List
   const ratedTrips = rawRequests.filter(r => r.rating && r.rating > 0);
   const totalRatingSum = ratedTrips.reduce((acc: number, r: any) => acc + Number(r.rating || 0), 0);
@@ -570,7 +589,7 @@ export default function DriverDashboard() {
             case "pending":
               return { label: "Terjadwal (Siap Jalan)", color: "bg-[#7c3aed]" };
             case "assigned_by_ga":
-              return { label: "Menunggu Head HRD", color: "bg-blue-400 animate-pulse" };
+              return { label: "Menunggu Review GA", color: "bg-purple-400 animate-pulse" };
             case "waiting_driver":
               return { label: "Menunggu Konfirmasi Driver", color: "bg-amber-400 animate-pulse" };
             default:
@@ -813,30 +832,217 @@ export default function DriverDashboard() {
             )}
 
             {/* Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[
-                { label: "Rating Rata-rata Saya", value: `${driverAvgRating} ⭐`, icon: "star", bg: "bg-amber-50", color: "text-amber-600" },
-                { label: "Trip Selesai (Total)", value: String(totalCompletedCount).padStart(2, "0"), icon: "task_alt", bg: "bg-[#f0fdf4]", color: "text-[#16a34a]" },
-                { label: "Jadwal Mendatang", value: String(upcomingCount).padStart(2, "0"), icon: "calendar_month", bg: "bg-[#eff6ff]", color: "text-[#2563eb]" },
-              ].map((s) => (
-                <div key={s.label} className="bg-white border border-[#e2e8f0] rounded-2xl p-5 flex items-center justify-between shadow-sm">
+            {isDriverCoordinator ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 flex items-center justify-between shadow-xs">
                   <div>
-                    <div className="text-[12px] text-[#64748b] font-medium mb-1">{s.label}</div>
-                    <div className="text-2xl font-bold text-[#0f172a]">{s.value}</div>
+                    <div className="text-[12px] text-[#64748b] font-medium mb-1">Menunggu Alokasi Armada</div>
+                    <div className="text-2xl font-bold text-[#0f172a] flex items-center gap-2">
+                      {String(pendingAllocationRequests.length).padStart(2, "0")}
+                      {urgentPendingCount > 0 && (
+                        <span className="text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full">
+                          {urgentPendingCount} Urgent
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className={`w-11 h-11 rounded-xl ${s.bg} flex items-center justify-center`}>
-                    <Icon name={s.icon} className={`text-[20px] ${s.color}`} />
+                  <div className="w-11 h-11 rounded-xl bg-blue-50 text-[#1e3a8a] flex items-center justify-center">
+                    <Icon name="assignment" className="text-[20px]" />
                   </div>
                 </div>
-              ))}
-            </div>
 
-            {/* 1. Daftar Tugas Baru (PRIORITAS UTAMA DRIVER) */}
+                <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 flex items-center justify-between shadow-xs">
+                  <div>
+                    <div className="text-[12px] text-[#64748b] font-medium mb-1">Driver Standby / Siap</div>
+                    <div className="text-2xl font-bold text-[#0f172a]">{String(availableDriversCount).padStart(2, "0")} Driver</div>
+                  </div>
+                  <div className="w-11 h-11 rounded-xl bg-[#f0fdf4] text-[#16a34a] flex items-center justify-center">
+                    <Icon name="person" className="text-[20px]" />
+                  </div>
+                </div>
+
+                <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 flex items-center justify-between shadow-xs">
+                  <div>
+                    <div className="text-[12px] text-[#64748b] font-medium mb-1">Kendaraan Tersedia</div>
+                    <div className="text-2xl font-bold text-[#0f172a]">{String(availableVehiclesCount).padStart(2, "0")} Unit</div>
+                  </div>
+                  <div className="w-11 h-11 rounded-xl bg-[#eff6ff] text-[#2563eb] flex items-center justify-center">
+                    <Icon name="directions_car" className="text-[20px]" />
+                  </div>
+                </div>
+
+                <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 flex items-center justify-between shadow-xs">
+                  <div>
+                    <div className="text-[12px] text-[#64748b] font-medium mb-1">Tugas Menyetir Saya</div>
+                    <div className="text-2xl font-bold text-[#0f172a]">{String(upcomingCount).padStart(2, "0")} Trip</div>
+                  </div>
+                  <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
+                    <Icon name="calendar_month" className="text-[20px]" />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 flex items-center justify-between shadow-xs">
+                  <div>
+                    <div className="text-[12px] text-[#64748b] font-medium mb-1">Rating Rata-rata Saya</div>
+                    <div className="text-2xl font-bold text-[#0f172a]">{driverAvgRating} / 5.0</div>
+                  </div>
+                  <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <Icon name="star" className="text-[20px]" />
+                  </div>
+                </div>
+
+                <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 flex items-center justify-between shadow-xs">
+                  <div>
+                    <div className="text-[12px] text-[#64748b] font-medium mb-1">Trip Selesai (Total)</div>
+                    <div className="text-2xl font-bold text-[#0f172a]">{String(totalCompletedCount).padStart(2, "0")}</div>
+                  </div>
+                  <div className="w-11 h-11 rounded-xl bg-[#f0fdf4] text-[#16a34a] flex items-center justify-center">
+                    <Icon name="task_alt" className="text-[20px]" />
+                  </div>
+                </div>
+
+                <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 flex items-center justify-between shadow-xs">
+                  <div>
+                    <div className="text-[12px] text-[#64748b] font-medium mb-1">Jadwal Mendatang</div>
+                    <div className="text-2xl font-bold text-[#0f172a]">{String(upcomingCount).padStart(2, "0")}</div>
+                  </div>
+                  <div className="w-11 h-11 rounded-xl bg-[#eff6ff] text-[#2563eb] flex items-center justify-center">
+                    <Icon name="calendar_month" className="text-[20px]" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Coordinator Section: Permintaan Masuk Menunggu Alokasi */}
+            {isDriverCoordinator && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-[17px] font-bold text-[#0f172a]">Permintaan Masuk Menunggu Alokasi Armada</h3>
+                      {pendingAllocationRequests.length > 0 && (
+                        <span className="text-xs font-bold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full">
+                          {pendingAllocationRequests.length} Pengajuan
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[13px] text-[#64748b] mt-0.5">
+                      Pengajuan kendaraan operasional dari karyawan yang telah disetujui departemen dan siap dialokasikan.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => navigate("/gahrd/requests")}
+                    className="text-[13px] font-bold text-[#1e3a8a] hover:underline flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+                  >
+                    <span>Buka Halaman Alokasi</span>
+                    <Icon name="arrow_forward" className="text-[16px]" />
+                  </button>
+                </div>
+
+                {pendingAllocationRequests.length === 0 ? (
+                  <div className="bg-white border border-[#e2e8f0] rounded-2xl py-10 flex flex-col items-center justify-center text-center p-4 shadow-2xs">
+                    <Icon name="check_circle" className="text-[36px] text-green-500 mb-2" />
+                    <p className="font-bold text-[#0f172a] text-[14px]">Semua Permintaan Telah Dialokasikan</p>
+                    <p className="text-[12px] text-[#64748b] mt-0.5">Tidak ada pengajuan kendaraan yang sedang menunggu alokasi armada.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {pendingAllocationRequests.slice(0, 4).map((req: any) => {
+                      const requesterName = req.requested_by?.name || req.employee || "Karyawan";
+                      const dept = req.department_name || req.department || "Internal";
+                      const priority = (req.priority || req.rawPriority || "NORMAL").toUpperCase();
+                      const dest = req.destination_city && req.destination_place ? `${req.destination_city} - ${req.destination_place}` : req.destination || "-";
+                      
+                      let dateStr = req.date || "-";
+                      let timeStr = req.time || "08:00";
+                      if (req.start_time) {
+                        const parts = req.start_time.includes('T') ? req.start_time.split('T') : req.start_time.split(" ");
+                        if (parts[0]) dateStr = parts[0];
+                        if (parts[1]) timeStr = parts[1].substring(0, 5);
+                      }
+
+                      return (
+                        <div key={req.id} className="bg-white border border-[#e2e8f0] rounded-2xl p-5 flex flex-col gap-3.5 hover:border-blue-300 hover:shadow-xs transition-all">
+                          {/* Header */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-900 border border-blue-100 flex items-center justify-center font-bold text-xs shrink-0">
+                                {requesterName.substring(0, 2).toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="text-[13.5px] font-bold text-[#0f172a]">{requesterName}</div>
+                                <div className="text-[11px] text-[#64748b]">{dept}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                                #REQ-{req.id}
+                              </span>
+                              <PriBadge p={priority} />
+                            </div>
+                          </div>
+
+                          {/* Destination */}
+                          <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Tujuan Perjalanan</span>
+                            <span className="font-bold text-slate-900 truncate block">{dest}</span>
+                          </div>
+
+                          {/* Details */}
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-[10.5px] text-slate-400 block font-medium">Jadwal Berangkat</span>
+                              <span className="font-semibold text-slate-800">{dateStr} ({timeStr})</span>
+                            </div>
+                            <div>
+                              <span className="text-[10.5px] text-slate-400 block font-medium">Penumpang</span>
+                              <span className="font-semibold text-slate-800">{req.passengerCount || req.passengers?.length || 1} Orang</span>
+                            </div>
+                          </div>
+
+                          {req.purpose && (
+                            <div className="text-xs text-slate-600 line-clamp-1 italic bg-slate-50/50 p-2 rounded-lg border border-slate-100">
+                              "{req.purpose}"
+                            </div>
+                          )}
+
+                          {/* Actions */}
+                          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                            <button
+                              type="button"
+                              onClick={() => handleViewDetail(String(req.id))}
+                              className="h-9 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[12px] font-bold rounded-xl transition-all cursor-pointer"
+                            >
+                              Lihat Detail
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/gahrd/requests?assign=${req.id}`)}
+                              className="h-9 px-4 bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-[12px] font-bold rounded-xl active:scale-95 transition-all cursor-pointer"
+                            >
+                              Tugaskan Driver & Mobil
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Personal Driver Tasks Section */}
             <div data-guide="driver-assignment" className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-[17px] font-bold text-[#0f172a]">Daftar Tugas Baru</div>
-                  <div className="text-[13px] text-[#64748b]">Terima atau tolak penugasan kendaraan operasional</div>
+                  <div className="text-[17px] font-bold text-[#0f172a]">
+                    {isDriverCoordinator ? "Tugas Menyetir Saya" : "Daftar Tugas Baru"}
+                  </div>
+                  <div className="text-[13px] text-[#64748b]">
+                    {isDriverCoordinator ? "Tugas mengemudi yang dialokasikan ke jadwal personal Anda" : "Terima atau tolak penugasan kendaraan operasional"}
+                  </div>
                 </div>
                 {pendingAssignments.length > 0 && (
                   <button
@@ -850,9 +1056,9 @@ export default function DriverDashboard() {
               </div>
 
               {pendingAssignments.length === 0 ? (
-                <div className="bg-white border border-[#e2e8f0] rounded-2xl py-10 flex flex-col items-center shadow-2xs">
-                  <Icon name="check_circle" className="text-[36px] text-green-500 mb-2" />
-                  <p className="font-bold text-[#0f172a] text-[14px]">Semua tugas baru telah diproses</p>
+                <div className="bg-white border border-[#e2e8f0] rounded-2xl py-8 flex flex-col items-center justify-center text-center shadow-2xs">
+                  <p className="font-bold text-[#0f172a] text-[13.5px]">Tidak ada tugas menyetir baru yang tertunda</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Semua penugasan personal Anda telah diproses.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -868,15 +1074,12 @@ export default function DriverDashboard() {
               )}
             </div>
 
-            {/* 2. Rating & Anonymous Reviews Section (Dibatasi 2 ulasan awal + Tombol Lihat Semua) */}
+            {/* Rating & Anonymous Reviews Section */}
             <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 space-y-4 shadow-2xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-2xl">⭐</span>
-                  <div>
-                    <h3 className="text-base font-bold text-[#0f172a]">Performa & Ulasan Pelayanan</h3>
-                    <p className="text-xs text-slate-500">Evaluasi dari perjalanan dinas (Identitas pemohon dirahasiakan)</p>
-                  </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#0f172a]">Performa & Ulasan Pelayanan</h3>
+                  <p className="text-xs text-slate-500">Evaluasi dari perjalanan dinas (Identitas pemohon dirahasiakan)</p>
                 </div>
                 <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl self-start sm:self-auto">
                   <span className="text-amber-500 font-black text-sm">{"★".repeat(Math.min(5, Math.max(1, Math.round(Number(driverAvgRating)))))}</span>

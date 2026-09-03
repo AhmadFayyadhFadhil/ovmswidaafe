@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
+import { useAuthContext } from "@/auth/authContext";
 import CalendarView from "@/pages/driver/dasboard/CalendarView";
 import type { CalendarEvent } from "@/pages/driver/dasboard/CalendarView";
 import { requestService } from "@/services/modules/requestService";
@@ -13,6 +14,9 @@ interface DriverOption {
 }
 
 export default function GAHRDCalendarPage({ onNavigate }: { onNavigate?: (p: string) => void }) {
+  const { user } = useAuthContext();
+  const isDriverCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
+
   const [drivers, setDrivers] = useState<DriverOption[]>([]);
   const [selectedDriverId, setSelectedDriverId] = useState<string>("all");
   const [requests, setRequests] = useState<any[]>([]);
@@ -153,10 +157,10 @@ export default function GAHRDCalendarPage({ onNavigate }: { onNavigate?: (p: str
 
   return (
     <Layout
-      activeNav="Calendar"
+      activeNav={isDriverCoordinator ? "Jadwal & Kalender" : "Calendar"}
       onNavigate={onNavigate}
       topbarTitle="Kalender Penugasan Driver"
-      userRole="GA/HRD"
+      userRole={isDriverCoordinator ? "Koordinator Driver" : "GA/HRD"}
       searchPlaceholder="Cari jadwal..."
     >
       <div className="flex-1 overflow-y-auto bg-[#f8f9ff]">

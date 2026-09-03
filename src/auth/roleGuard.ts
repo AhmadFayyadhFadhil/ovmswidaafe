@@ -37,6 +37,13 @@ export function canAccessRoute(user: AuthUser | null, route: string): GuardResul
     allRoles.push('approver');
   }
 
+  const isDriverCoordinator = !!(
+    user.is_driver_coordinator ||
+    allRoles.includes('driver coordinator') ||
+    allRoles.includes('driver_coordinator') ||
+    allRoles.includes('coordinator')
+  );
+
   // Normalize path: strip query params, hashes, and trailing slashes
   const pathWithoutQuery = (route || '').split('?')[0].split('#')[0];
   const cleanPath = (pathWithoutQuery.replace(/\/+$/, '') || '/').toLowerCase();
@@ -44,6 +51,18 @@ export function canAccessRoute(user: AuthUser | null, route: string): GuardResul
   // Admin can access all routes
   if (allRoles.includes('admin')) {
     return 'allowed';
+  }
+
+  // Driver Coordinator specific allowed fleet management & monitoring routes
+  if (isDriverCoordinator) {
+    if (
+      cleanPath.startsWith('/gahrd/requests') ||
+      cleanPath.startsWith('/gahrd/calendar') ||
+      cleanPath.startsWith('/gahrd/driver') ||
+      cleanPath.startsWith('/admin/vehicles')
+    ) {
+      return 'allowed';
+    }
   }
 
   // Common employee routes (accessible by ALL logged in users)
@@ -183,5 +202,10 @@ export function getAllowedRoutes(user: AuthUser | null): string[] {
     ],
   };
 
-  return roleRoutes[userRole] || [];
+  const routes = [...(roleRoutes[userRole] || [])];
+  if (user.is_driver_coordinator || user.roles?.includes('driver coordinator')) {
+    routes.push('/gahrd/requests', '/gahrd/calendar', '/gahrd/driver', '/admin/vehicles');
+  }
+
+  return routes;
 }

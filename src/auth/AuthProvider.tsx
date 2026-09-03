@@ -22,11 +22,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             let role: UserRole = "employee";
             const userRoles = apiUser.roles || [];
             const lowerRoles = userRoles.map((r: string) => r.toLowerCase());
+            const isDriverCoordinator = lowerRoles.includes("driver coordinator") || lowerRoles.includes("driver_coordinator") || lowerRoles.includes("coordinator");
+
             if (lowerRoles.includes("admin")) role = "admin";
             else if (lowerRoles.includes("ga")) role = "gahrd";
             else if (lowerRoles.includes("approver")) role = "approver";
             else if (lowerRoles.includes("driver")) role = "driver";
             else if (lowerRoles.includes("security")) role = "security";
+            else if (isDriverCoordinator) role = "driver";
             else role = "employee";
 
             const updatedUser: AuthUser = {
@@ -37,9 +40,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               roles: lowerRoles,
               token,
               department_id: apiUser.department_id,
+              department_name: apiUser.department_name || apiUser.department?.name || "",
               is_department_head: !!apiUser.is_department_head,
+              is_driver_coordinator: isDriverCoordinator,
               availability_status: apiUser.availability_status,
               avatar_url: apiUser.avatar_url,
+              sim_number: apiUser.sim_number,
+              sim_type: apiUser.sim_type,
+              sim_expiry_date: apiUser.sim_expiry_date,
+              sim_status: apiUser.sim_status,
+              sim_expiry_days_left: apiUser.sim_expiry_days_left,
+              sim_a_photo_url: apiUser.sim_a_photo_url,
             };
             setUser(updatedUser);
             localStorage.setItem("auth_user", JSON.stringify(updatedUser));
@@ -114,11 +125,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           let role: UserRole = "employee";
           const userRoles = apiUser.roles || [];
           const lowerRoles = userRoles.map((r: string) => r.toLowerCase());
+          const isDriverCoordinator = lowerRoles.includes("driver coordinator") || lowerRoles.includes("driver_coordinator") || lowerRoles.includes("coordinator");
+
           if (lowerRoles.includes("admin")) role = "admin";
           else if (lowerRoles.includes("ga")) role = "gahrd";
           else if (lowerRoles.includes("approver")) role = "approver";
           else if (lowerRoles.includes("driver")) role = "driver";
           else if (lowerRoles.includes("security")) role = "security";
+          else if (isDriverCoordinator) role = "driver";
           else role = "employee";
 
           const authUser: AuthUser = {
@@ -129,9 +143,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             roles: lowerRoles,
             token,
             department_id: apiUser.department_id,
+            department_name: apiUser.department_name || apiUser.department?.name || "",
             is_department_head: !!apiUser.is_department_head,
+            is_driver_coordinator: isDriverCoordinator,
             availability_status: apiUser.availability_status,
             avatar_url: apiUser.avatar_url,
+            sim_number: apiUser.sim_number,
+            sim_type: apiUser.sim_type,
+            sim_expiry_date: apiUser.sim_expiry_date,
+            sim_status: apiUser.sim_status,
+            sim_expiry_days_left: apiUser.sim_expiry_days_left,
+            sim_a_photo_url: apiUser.sim_a_photo_url,
           };
 
           setUser(authUser);

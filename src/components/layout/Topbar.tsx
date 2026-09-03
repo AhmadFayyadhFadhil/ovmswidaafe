@@ -121,8 +121,8 @@ export function Topbar({
           className="flex items-center gap-2.5 cursor-pointer text-left hover:opacity-80 transition-opacity focus:outline-none"
         >
           <div className="text-right hidden sm:block">
-            <div className="text-[13px] font-bold text-[#0f172a] leading-tight">{userName}</div>
-            <div className="text-[10px] text-[#94a3b8] font-semibold uppercase tracking-wider">{userRole}</div>
+            <div className="text-[13px] font-bold text-[#0f172a] leading-tight truncate max-w-[140px] sm:max-w-[200px]">{userName}</div>
+            <div className="text-[10px] text-[#94a3b8] font-semibold uppercase tracking-wider truncate max-w-[140px] sm:max-w-[200px]" title={userRole}>{userRole}</div>
           </div>
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#1e3a8a] border-2 border-[#e2e8f0] flex items-center justify-center overflow-hidden flex-shrink-0">
             {avatarUrl ? (

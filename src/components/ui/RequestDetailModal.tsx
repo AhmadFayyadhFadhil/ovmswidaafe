@@ -71,9 +71,9 @@ export function RequestDetailModal({
 
   const getApprovalRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
-      dept_head: "Kepala Departemen",
-      hrd_head: "Kepala HRD",
-      ga_head: "Kepala GA",
+      dept_head: "Dep Head",
+      hrd_head: "GA & HRD Head",
+      ga_head: "GA Head",
     };
     return labels[role] || role;
   };
@@ -81,12 +81,13 @@ export function RequestDetailModal({
   const getStageLabel = (rawStatus: string | undefined, mappedStatus: string) => {
     switch (rawStatus) {
       case "submitted":
+        return "MENUNGGU PERSETUJUAN DEP HEAD";
       case "approved_department":
-        return "MENUNGGU PENUGASAN GA";
+        return "MENUNGGU ALOKASI KOORDINATOR DRIVER";
       case "assigned_by_ga":
-        return "MENUNGGU KONFIRMASI";
+        return "MENUNGGU REVIEW GA KOORDINATOR";
       case "waiting_driver":
-        return "MENUNGGU KONFIRMASI DRIVER";
+        return "MENUNGGU KONFIRMASI";
       case "driver_assigned":
         return "TERJADWAL / SIAP JALAN";
       case "on_going":
@@ -371,7 +372,7 @@ export function RequestDetailModal({
                   } else if (rawActor) {
                     actorName = rawActor;
                   } else {
-                    actorName = "Kepala Departemen / GA";
+                    actorName = "Dep Head / GA";
                   }
                 }
 

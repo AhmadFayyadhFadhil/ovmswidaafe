@@ -33,7 +33,9 @@ function getStageLabel(rawStatus: string | undefined) {
     case "submitted":
       return "MENUNGGU DEPT HEAD";
     case "approved_department":
-      return "MENUNGGU K.DEP HRD&GA";
+      return "MENUNGGU KOORDINATOR DRIVER";
+    case "assigned_by_ga":
+      return "MENUNGGU REVIEW GA KOORDINATOR";
     case "approved_hrd_ga":
     case "approved_hrd":
       return "MENUNGGU DRIVER";
@@ -165,7 +167,7 @@ function PendingRow({ req }: { req: PendingRequest }) {
               className={isDeptHeadApproved ? "text-green-600 text-[15px]" : "text-gray-400 text-[15px]"} 
             />
             <span className={isDeptHeadApproved ? "text-green-800" : "text-gray-500"}>
-              Approve K.Dep Asal
+              Approve Dep Head
             </span>
           </div>
           <div className="flex items-center gap-1.5 font-semibold">
@@ -174,7 +176,7 @@ function PendingRow({ req }: { req: PendingRequest }) {
               className={isHrdApproved ? "text-green-600 text-[15px]" : "text-gray-400 text-[15px]"} 
             />
             <span className={isHrdApproved ? "text-green-800" : "text-gray-500"}>
-              Approve K.Dep HRD&GA
+              Approve GA & HRD Head
             </span>
           </div>
         </div>

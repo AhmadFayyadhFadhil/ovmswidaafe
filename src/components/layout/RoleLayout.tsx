@@ -18,13 +18,14 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
     admin: "Administrator",
     gahrd: "GA & HRD",
     approver: "Manager Approver",
-    driver: "Driver",
+    driver: (user?.is_driver_coordinator || user?.roles?.includes('driver coordinator')) ? "Koordinator Driver" : "Driver",
     employee: "Employee",
     security: "Security Officer"
   };
 
   const displayUserName = user?.name || userName || "User";
   const displayUserRole = user?.role ? (roleDisplayMap[user.role] || user.role) : (userRole || "User");
+  const displayUserSubtitle = user?.department_name || displayUserRole;
 
   const handleNavigate = (page: string) => {
     if (onNavigate) {
@@ -32,7 +33,7 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
       return;
     }
 
-    const role = user?.role?.toLowerCase() || userRole?.toLowerCase() || "employee";
+    const isDriverCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
 
     if (page === "Logout") {
       Promise.resolve(logout()).finally(() => {
@@ -42,9 +43,51 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
     }
 
     if (page === "My Profile") {
-      navigate(`/${role}/profile`);
+      navigate(`/driver/profile`);
       return;
     }
+
+    if (isDriverCoordinator) {
+      switch (page) {
+        case "Dashboard":
+          navigate("/driver/dashboard");
+          break;
+        case "Alokasi Armada":
+        case "Requests":
+        case "Fleet Requests":
+          navigate("/gahrd/requests");
+          break;
+        case "Tugas Menyetir Saya":
+        case "My Tasks":
+          navigate("/driver/dashboard?tab=assignments");
+          break;
+        case "Jadwal & Kalender":
+        case "Calendar":
+          navigate("/gahrd/calendar");
+          break;
+        case "Daftar Kendaraan":
+        case "Vehicle Management":
+          navigate("/admin/vehicles");
+          break;
+        case "Ketersediaan Driver":
+        case "Driver Availability":
+          navigate("/gahrd/driver");
+          break;
+        case "Riwayat Perjalanan":
+        case "Schedule":
+        case "History":
+          navigate("/driver/dashboard?tab=schedule");
+          break;
+        case "Notifications":
+          navigate("/driver/notifications");
+          break;
+        default:
+          break;
+      }
+      return;
+    }
+
+    const role = user?.role?.toLowerCase() || userRole?.toLowerCase() || "employee";
 
     if (role === "employee") {
       switch (page) {
@@ -181,7 +224,7 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         <Topbar 
           title={topbarTitle} 
           userName={displayUserName} 
-          userRole={displayUserRole} 
+          userRole={displayUserSubtitle} 
           avatarUrl={user?.avatar_url}
           searchPlaceholder={searchPlaceholder} 
           searchValue={searchValue} 

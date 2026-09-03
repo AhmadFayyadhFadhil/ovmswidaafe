@@ -245,7 +245,7 @@ export default function GAHRDUsersPage() {
       formData.append("email", addForm.email.trim());
       formData.append("password", addForm.password);
       formData.append("role", addForm.role);
-      if (addForm.role === "Driver") {
+      if (addForm.role === "Driver" || addForm.role === "Driver Coordinator") {
         formData.append("sim_type", addForm.sim_type || "SIM A");
         if (addForm.sim_number.trim()) formData.append("sim_number", addForm.sim_number.trim());
         if (addForm.sim_expiry_date) formData.append("sim_expiry_date", addForm.sim_expiry_date);
@@ -322,7 +322,7 @@ export default function GAHRDUsersPage() {
       if (editForm.rank.trim()) formData.append("rank", editForm.rank.trim());
       if (editForm.department_id) formData.append("department_id", editForm.department_id);
       formData.append("is_department_head", editForm.is_department_head ? "1" : "0");
-      if (editForm.role === "Driver") {
+      if (editForm.role === "Driver" || editForm.role === "Driver Coordinator") {
         formData.append("sim_type", editForm.sim_type || "SIM A");
         if (editForm.sim_number.trim()) formData.append("sim_number", editForm.sim_number.trim());
         if (editForm.sim_expiry_date) formData.append("sim_expiry_date", editForm.sim_expiry_date);
@@ -899,6 +899,7 @@ export default function GAHRDUsersPage() {
                       <option value="Employee">Employee</option>
                       <option value="Approver">Approver</option>
                       <option value="Driver">Driver</option>
+                      <option value="Driver Coordinator">Driver Coordinator</option>
                       <option value="GA">GA Koordinator</option>
                       <option value="Security">Security</option>
                       {currentUser?.role?.toLowerCase() === "admin" && (
@@ -935,7 +936,7 @@ export default function GAHRDUsersPage() {
                   </div>
                 </div>
 
-                {addForm.role === "Driver" && (
+                {(addForm.role === "Driver" || addForm.role === "Driver Coordinator") && (
                   <div className="space-y-3 p-3 bg-blue-50/50 border border-blue-100 rounded-2xl">
                     <div className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
                       <Icon name="badge" className="text-sm" />
@@ -1109,6 +1110,7 @@ export default function GAHRDUsersPage() {
                       <option value="Employee">Employee</option>
                       <option value="Approver">Approver</option>
                       <option value="Driver">Driver</option>
+                      <option value="Driver Coordinator">Driver Coordinator</option>
                       <option value="GA">GA Koordinator</option>
                       <option value="Security">Security</option>
                       {currentUser?.role?.toLowerCase() === "admin" && (
@@ -1144,7 +1146,7 @@ export default function GAHRDUsersPage() {
                   </div>
                 </div>
 
-                {editForm.role === "Driver" && (
+                {(editForm.role === "Driver" || editForm.role === "Driver Coordinator") && (
                   <div className="space-y-3 p-3 bg-blue-50/50 border border-blue-100 rounded-2xl">
                     <div className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
                       <Icon name="badge" className="text-sm" />

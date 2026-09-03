@@ -85,9 +85,10 @@ export function Sidebar({
     };
   }, []);
   
+  const isDriverCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
   const isEmployee = user?.role === "employee";
   const isApprover = user?.role === "approver";
-  const isDriver = user?.role === "driver";
+  const isDriver = user?.role === "driver" && !isDriverCoordinator;
   const isGAHRD = user?.role === "gahrd";
   const isSecurity = user?.role === "security";
   const isAdmin = user?.role === "admin";
@@ -179,6 +180,19 @@ export function Sidebar({
     { icon: "history", label: "History", path: "/driver/dashboard?tab=schedule", guideKey: "driver-history" },
     { icon: "event", label: "Calendar", path: "/driver/dashboard?tab=calendar", guideKey: "driver-schedule" },
     { icon: "directions_car", label: "My Vehicle", path: "/driver/dashboard?tab=vehicle", guideKey: "driver-vehicle" },
+    { icon: "notifications", label: "Notifications", path: "/driver/notifications", guideKey: "notifications" },
+    { icon: "person", label: "My Profile", path: "/driver/profile", guideKey: "profile" },
+  ];
+
+  // Driver Coordinator menu
+  const driverCoordinatorMenu = [
+    { icon: "dashboard", label: "Dashboard", path: "/driver/dashboard", guideKey: "driver-dashboard" },
+    { icon: "assignment_turned_in", label: "Alokasi Armada", path: "/gahrd/requests", guideKey: "fleet-allocation" },
+    { icon: "assignment", label: "Tugas Menyetir Saya", path: "/driver/dashboard?tab=assignments", guideKey: "driver-assignment" },
+    { icon: "event", label: "Jadwal & Kalender", path: "/gahrd/calendar", guideKey: "driver-schedule" },
+    { icon: "directions_car", label: "Daftar Kendaraan", path: "/admin/vehicles", guideKey: "driver-vehicle" },
+    { icon: "person", label: "Ketersediaan Driver", path: "/gahrd/driver", guideKey: "driver-assignment" },
+    { icon: "history", label: "Riwayat Perjalanan", path: "/driver/dashboard?tab=schedule", guideKey: "driver-history" },
     { icon: "notifications", label: "Notifications", path: "/driver/notifications", guideKey: "notifications" },
     { icon: "person", label: "My Profile", path: "/driver/profile", guideKey: "profile" },
   ];
@@ -284,6 +298,10 @@ export function Sidebar({
 
         {isApprover && (
           approverMenu.map(item => btn(item, item.path))
+        )}
+
+        {isDriverCoordinator && (
+          driverCoordinatorMenu.map(item => btn(item, item.path))
         )}
 
         {isDriver && (

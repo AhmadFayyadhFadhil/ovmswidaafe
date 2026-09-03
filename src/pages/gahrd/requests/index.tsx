@@ -21,6 +21,19 @@ const cleanNumber = (val: string | number) => {
   return Number(String(val).replace(/\D/g, ""));
 };
 
+const formatToDatetimeLocal = (dateStr?: string | null): string => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const YYYY = d.getFullYear();
+  const MM = pad(d.getMonth() + 1);
+  const DD = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const mm = pad(d.getMinutes());
+  return `${YYYY}-${MM}-${DD}T${hh}:${mm}`;
+};
+
 export type Priority = "URGENT" | "NORMAL" | "CRITICAL";
 
 export interface Driver {
@@ -95,6 +108,9 @@ export default function GAHRDRequestsPage() {
   const [isExternal, setIsExternal] = useState(false);
   const [thirdPartyCost, setThirdPartyCost] = useState("0");
   const [estimatedDuration, setEstimatedDuration] = useState("3");
+  const [assignStartTime, setAssignStartTime] = useState("");
+  const [assignEndTime, setAssignEndTime] = useState("");
+  const [assignDuration, setAssignDuration] = useState("3");
   const [selectedPriority, setSelectedPriority] = useState("Normal");
   const [assignNotes, setAssignNotes] = useState("");
   const [externalFleetInfo, setExternalFleetInfo] = useState("");
@@ -129,6 +145,11 @@ export default function GAHRDRequestsPage() {
   const [deleteReason, setDeleteReason] = useState("");
   const [dailyAssignments, setDailyAssignments] = useState<any[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Approve Review Modal States (Pengecekan Alokasi Sebelum Persetujuan GA)
+  const [isApproveReviewModalOpen, setIsApproveReviewModalOpen] = useState(false);
+  const [approveReviewRequest, setApproveReviewRequest] = useState<any | null>(null);
+  const [approvalNotes, setApprovalNotes] = useState("Disetujui oleh GA Koordinator");
 
   const isEdit = !!(selectedRequest && (
     selectedRequest.driverName !== "Not Assigned" ||
@@ -210,16 +231,21 @@ export default function GAHRDRequestsPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const idParam = params.get("id");
-    if (idParam && requests.length > 0) {
+    const assignParam = params.get("assign");
+    if (assignParam && requests.length > 0) {
+      const found = requests.find(r => String(r.id) === String(assignParam));
+      if (found) {
+        handleOpenAssignModal(found);
+      }
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (idParam && requests.length > 0) {
       setSearch(idParam);
       const found = requests.find(r => String(r.id) === String(idParam));
       if (found) {
         setDetailRequest(found);
         setIsDetailModalOpen(true);
       }
-      // Clear query parameter from the URL address bar
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [requests]);
 
@@ -255,6 +281,21 @@ export default function GAHRDRequestsPage() {
       return req.estimated_duration ? String(req.estimated_duration) : "3";
     })();
     setEstimatedDuration(durationHours);
+    setAssignDuration(durationHours);
+
+    const initStart = formatToDatetimeLocal(req.startTime || req.rawStartTime || req.start_time);
+    setAssignStartTime(initStart);
+    if (initStart) {
+      const sDate = new Date(initStart);
+      if (!isNaN(sDate.getTime())) {
+        sDate.setHours(sDate.getHours() + Number(durationHours || 3));
+        setAssignEndTime(formatToDatetimeLocal(sDate.toISOString()));
+      } else {
+        setAssignEndTime(formatToDatetimeLocal(req.rawEndTime || req.end_time));
+      }
+    } else {
+      setAssignEndTime(formatToDatetimeLocal(req.rawEndTime || req.end_time));
+    }
     
     setSelectedPriority(req.rawPriority || "Normal");
     setAssignNotes("");
@@ -274,6 +315,8 @@ export default function GAHRDRequestsPage() {
       setDailyAssignments(req.itineraries.map((it: any) => ({
         itinerary_id: it.id,
         date: it.date,
+        morning_time: it.morning_time ? String(it.morning_time).substring(0, 5) : "08:00",
+        afternoon_time: it.afternoon_time ? String(it.afternoon_time).substring(0, 5) : "14:00",
         driver_id: it.driver_id ? String(it.driver_id) : "",
         vehicle_id: it.vehicle_id ? String(it.vehicle_id) : "",
         is_external: !!it.is_external,
@@ -362,6 +405,8 @@ export default function GAHRDRequestsPage() {
           itinerary_id: asg.itinerary_id,
           driver_id: asg.is_external ? null : (asg.driver_id || null),
           vehicle_id: asg.is_external ? null : (asg.vehicle_id || null),
+          morning_time: asg.morning_time ? (asg.morning_time.length === 5 ? asg.morning_time + ":00" : asg.morning_time) : undefined,
+          afternoon_time: asg.afternoon_time ? (asg.afternoon_time.length === 5 ? asg.afternoon_time + ":00" : asg.afternoon_time) : undefined,
           is_external: asg.is_external,
           external_driver_name: asg.is_external ? (asg.external_driver_name || null) : null,
           external_license_plate: asg.is_external ? (asg.external_license_plate || null) : null,
@@ -399,6 +444,13 @@ export default function GAHRDRequestsPage() {
         formData.append("external_return_cost", String(retCost));
         formData.append("external_trip_type", externalTripType);
         formData.append("priority", selectedPriority);
+        if (assignStartTime) {
+          formData.append("start_time", assignStartTime.replace("T", " ") + (assignStartTime.length === 16 ? ":00" : ""));
+        }
+        if (assignEndTime) {
+          formData.append("end_time", assignEndTime.replace("T", " ") + (assignEndTime.length === 16 ? ":00" : ""));
+        }
+        formData.append("estimated_duration", String(assignDuration || estimatedDuration || "3"));
         if (assignNotes) formData.append("notes", assignNotes);
         if (externalFleetInfo) formData.append("external_fleet_info", externalFleetInfo);
         if (externalPhoto) formData.append("external_photo", externalPhoto);
@@ -455,7 +507,9 @@ export default function GAHRDRequestsPage() {
         const payload: any = {
           request_id: selectedRequest.id,
           is_external: false,
-          estimated_duration: Number(estimatedDuration),
+          start_time: assignStartTime ? assignStartTime.replace("T", " ") + (assignStartTime.length === 16 ? ":00" : "") : undefined,
+          end_time: assignEndTime ? assignEndTime.replace("T", " ") + (assignEndTime.length === 16 ? ":00" : "") : undefined,
+          estimated_duration: Number(assignDuration || estimatedDuration || "3"),
           priority: selectedPriority,
           notes: assignNotes || undefined,
           driver_id: selectedDriverId,
@@ -521,6 +575,36 @@ export default function GAHRDRequestsPage() {
     } catch (err: any) {
       console.error(err);
       alert(err.response?.data?.message || "Gagal membatalkan penugasan.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleOpenApproveModal = (req: any) => {
+    setApproveReviewRequest(req);
+    setApprovalNotes("Disetujui oleh GA Koordinator");
+    setIsApproveReviewModalOpen(true);
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!approveReviewRequest) return;
+    setActionLoading(true);
+    try {
+      const res = await apiClient.post(`/requests/${approveReviewRequest.id}/approve`, {
+        role: "hrd_head",
+        notes: approvalNotes || "Disetujui oleh GA Koordinator",
+      });
+      if (res.data?.status === "success") {
+        showToast("Alokasi armada disetujui & jadwal resmi berhasil diterbitkan!");
+        setIsApproveReviewModalOpen(false);
+        setApproveReviewRequest(null);
+        await fetchData();
+      } else {
+        alert(res.data?.message || "Gagal menyetujui alokasi.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || "Gagal menyetujui alokasi.");
     } finally {
       setActionLoading(false);
     }
@@ -683,13 +767,14 @@ export default function GAHRDRequestsPage() {
   ).length, [requests]);
 
   const isApprover = user?.role === "approver";
+  const isCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
 
   return (
     <Layout
-      activeNav={isApprover ? "Driver Assignment" : "Requests"}
-      topbarTitle={isApprover ? "Driver Assignment" : "GAHRD Driver Assignment"}
-      userName={user?.name || "GAHRD User"}
-      userRole={isApprover ? "Manager Approver" : "GA/HRD"}
+      activeNav={isCoordinator ? "Alokasi Armada" : (isApprover ? "Driver Assignment" : "Requests")}
+      topbarTitle={isCoordinator ? "Alokasi Armada & Driver" : (isApprover ? "Driver Assignment" : "GAHRD Driver Assignment")}
+      userName={user?.name || (isCoordinator ? "Koordinator Driver" : "GAHRD User")}
+      userRole={isCoordinator ? "Koordinator Driver" : (isApprover ? "Manager Approver" : "GA/HRD")}
       searchPlaceholder="Cari request..."
       searchValue={search}
       onSearchChange={setSearch}
@@ -703,7 +788,7 @@ export default function GAHRDRequestsPage() {
               Tugaskan driver yang tersedia ke permintaan perjalanan operasional yang sudah disetujui, dan kelola koordinasi transportasi di seluruh organisasi.
             </div>
           </div>
-          {!isApprover && (
+          {!isApprover && !isCoordinator && (
             <button
               onClick={() => navigate("/gahrd/requests/urgent")}
               className="flex items-center gap-2 h-10 px-5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
@@ -806,20 +891,29 @@ export default function GAHRDRequestsPage() {
           ) : (
             <div className="space-y-4">
               {filtered.map((req) => {
+                const isCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
+                const isGAOrAdmin = user?.role === 'gahrd' || user?.role === 'admin' || user?.roles?.includes('ga') || user?.roles?.includes('admin');
                 const isUrgentReq = (req.priority || "").toUpperCase() === "URGENT" || (req.priority || "").toUpperCase() === "CRITICAL";
+
+                const isPendingDeptHead = req.rawStatus === "submitted" && !isUrgentReq;
+                const isApprovedDept = req.rawStatus === "approved_department";
+                const isAllocatedByCoordinator = req.rawStatus === "assigned_by_ga";
+
                 const showAssign =
-                  req.rawStatus === "approved_department" ||
-                  req.rawStatus === "assigned_by_ga" ||
-                  req.rawStatus === "approved_hrd" ||
-                  req.rawStatus === "approved_hrd_ga" ||
+                  isApprovedDept ||
                   (isUrgentReq && req.rawStatus === "submitted") ||
                   (req.rawStatus === "driver_assigned" && req.driverName === "Not Assigned");
-                const isPendingDeptHead = req.rawStatus === "submitted" && !isUrgentReq;
-                const showCancel = req.rawStatus === "waiting_driver";
-                const canCancelRequest = ["submitted", "approved_department", "waiting_driver", "driver_assigned"].includes(req.rawStatus);
+
+                const showApproveAllocation = isGAOrAdmin && isAllocatedByCoordinator;
+
                 const showEdit =
+                  (isAllocatedByCoordinator && (isCoordinator || isGAOrAdmin)) ||
                   (req.rawStatus === "waiting_driver" && !req.all_drivers_approved) ||
-                  (req.is_external && ["assigned_by_ga", "on_going", "completed"].includes(req.rawStatus));
+                  (req.is_external && ["assigned_by_ga", "on_going", "completed"].includes(req.rawStatus)) ||
+                  (isGAOrAdmin && req.rawStatus === "driver_assigned");
+
+                const showCancel = req.rawStatus === "waiting_driver" || isAllocatedByCoordinator;
+                const canCancelRequest = ["submitted", "approved_department", "waiting_driver", "driver_assigned", "assigned_by_ga"].includes(req.rawStatus);
 
                 return (
                   <div
@@ -914,8 +1008,36 @@ export default function GAHRDRequestsPage() {
                       {isPendingDeptHead && (
                         <span className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 text-[11.5px] font-bold rounded-xl flex items-center gap-1.5">
                           <Icon name="hourglass_empty" className="text-[15px]" />
-                          Menunggu Persetujuan K.Dep Asal
+                          Menunggu Persetujuan Dep Head
                         </span>
+                      )}
+
+                      {isApprovedDept && !isCoordinator && isGAOrAdmin && (
+                        <span className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-[11.5px] font-bold rounded-xl flex items-center gap-1.5">
+                          <Icon name="schedule" className="text-[15px]" />
+                          Menunggu Alokasi Koor Driver
+                        </span>
+                      )}
+
+                      {isAllocatedByCoordinator && isCoordinator && !isGAOrAdmin && (
+                        <span className="px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 text-[11.5px] font-bold rounded-xl flex items-center gap-1.5">
+                          <Icon name="hourglass_top" className="text-[15px]" />
+                          Menunggu Review GA
+                        </span>
+                      )}
+
+                      {showApproveAllocation && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenApproveModal(req);
+                          }}
+                          disabled={actionLoading}
+                          className="px-5 h-9 bg-emerald-600 text-white text-[12.5px] font-bold rounded-xl hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-sm"
+                        >
+                          <Icon name="check_circle" className="text-[16px]" />
+                          Setujui Alokasi & Jadwalkan
+                        </button>
                       )}
 
                       {showAssign && (
@@ -928,7 +1050,7 @@ export default function GAHRDRequestsPage() {
                           className="px-5 h-9 bg-green-600 text-white text-[12.5px] font-bold rounded-xl hover:bg-green-700 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           <Icon name="person_add" className="text-[16px]" />
-                          Tugaskan Driver
+                          {isCoordinator ? "Alokasikan Armada & Driver" : (isApprovedDept ? "Alokasi Langsung (Bypass)" : "Tugaskan Driver")}
                         </button>
                       )}
 
@@ -942,7 +1064,7 @@ export default function GAHRDRequestsPage() {
                           className="px-5 h-9 bg-[#1e3a8a] text-white text-[12.5px] font-bold rounded-xl hover:bg-[#1d4ed8] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           <Icon name="edit" className="text-[16px]" />
-                          Edit Penugasan
+                          {isAllocatedByCoordinator ? "Ubah Alokasi" : "Edit Penugasan"}
                         </button>
                       )}
 
@@ -1035,6 +1157,96 @@ export default function GAHRDRequestsPage() {
                   </button>
                 </div>
               )}
+
+              {/* Penyesuaian Jadwal & Waktu Operasional */}
+              <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-200/70 pb-2">
+                  <div>
+                    <div className="text-[12.5px] font-bold text-[#00236f]">Penyesuaian Jadwal & Waktu Operasional</div>
+                    <div className="text-[10.5px] text-slate-500">Sesuaikan jam keberangkatan dan estimasi durasi kepulangan bila diperlukan.</div>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-600 bg-slate-200/70 px-2 py-0.5 rounded">
+                    Opsional
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Waktu Berangkat
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={assignStartTime}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setAssignStartTime(val);
+                        if (val) {
+                          const sDate = new Date(val);
+                          if (!isNaN(sDate.getTime())) {
+                            sDate.setHours(sDate.getHours() + Number(assignDuration || 3));
+                            setAssignEndTime(formatToDatetimeLocal(sDate.toISOString()));
+                          }
+                        }
+                      }}
+                      className="w-full h-10 px-3 border border-slate-200 rounded-xl text-[12px] font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Estimasi Durasi (Jam)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        max="72"
+                        value={assignDuration}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setAssignDuration(val);
+                          if (assignStartTime && Number(val) > 0) {
+                            const sDate = new Date(assignStartTime);
+                            if (!isNaN(sDate.getTime())) {
+                              sDate.setHours(sDate.getHours() + Number(val));
+                              setAssignEndTime(formatToDatetimeLocal(sDate.toISOString()));
+                            }
+                          }
+                        }}
+                        className="w-full h-10 pl-3 pr-10 border border-slate-200 rounded-xl text-[12.5px] font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400 pointer-events-none">
+                        Jam
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Estimasi Jam Selesai
+                    </label>
+                    <input
+                      type="datetime-local"
+                      min={assignStartTime || undefined}
+                      value={assignEndTime}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setAssignEndTime(val);
+                        if (assignStartTime && val) {
+                          const sDate = new Date(assignStartTime);
+                          const eDate = new Date(val);
+                          if (!isNaN(sDate.getTime()) && !isNaN(eDate.getTime()) && eDate > sDate) {
+                            const diffHours = Math.max(1, Math.round((eDate.getTime() - sDate.getTime()) / (1000 * 60 * 60)));
+                            setAssignDuration(String(diffHours));
+                          }
+                        }
+                      }}
+                      className="w-full h-10 px-3 border border-slate-200 rounded-xl text-[12px] font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                </div>
+              </div>
 
               {/* Konfirmasi Prioritas */}
               <div>
@@ -1133,6 +1345,34 @@ export default function GAHRDRequestsPage() {
                                 />
                                 Sewa Pihak Ke-3
                               </label>
+                            </div>
+                          </div>
+
+                          {/* Sesi Jam Per Tanggal */}
+                          <div className="grid grid-cols-2 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                            <div>
+                              <label className="block text-[10.5px] font-bold text-slate-700 mb-1">Jam Sesi Pagi</label>
+                              <input
+                                type="time"
+                                value={asg.morning_time || "08:00"}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, morning_time: val } : item));
+                                }}
+                                className="w-full h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-slate-50 focus:bg-white font-semibold text-slate-800 focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10.5px] font-bold text-slate-700 mb-1">Jam Sesi Sore/Siang</label>
+                              <input
+                                type="time"
+                                value={asg.afternoon_time || "14:00"}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, afternoon_time: val } : item));
+                                }}
+                                className="w-full h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-slate-50 focus:bg-white font-semibold text-slate-800 focus:outline-none"
+                              />
                             </div>
                           </div>
 
@@ -1378,7 +1618,7 @@ export default function GAHRDRequestsPage() {
                           {/* 1. Armada Berangkat */}
                           <div className="p-3 bg-white rounded-xl border border-blue-100 space-y-2">
                             <div className="text-[11.5px] font-bold text-blue-800 flex items-center gap-1">
-                              <span>🚙</span> Armada Keberangkatan
+                              Armada Keberangkatan
                             </div>
                             <div>
                               <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Biaya Berangkat (Rp)</label>
@@ -1451,7 +1691,7 @@ export default function GAHRDRequestsPage() {
                           {/* 2. Armada Penjemputan */}
                           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                             <div className="text-[11.5px] font-bold text-slate-700 flex items-center gap-1">
-                              <span>🔄</span> Armada Penjemputan / Pulang
+                              Armada Penjemputan / Pulang
                               <span className="text-[9.5px] font-normal text-slate-400 ml-1">(Opsional - Bisa diisi nanti saat Edit)</span>
                             </div>
                             <div>
@@ -1522,7 +1762,7 @@ export default function GAHRDRequestsPage() {
                       {selectedRequest?.passengerCount > 6 && (
                         <div className="pt-4 border-t border-blue-200 space-y-3">
                           <div className="text-[12px] font-bold text-blue-800 flex justify-between">
-                            <span>🚙 Detail Sewa Pihak Ketiga - Mobil Kedua (Opsional)</span>
+                            <span>Detail Sewa Pihak Ketiga - Mobil Kedua (Opsional)</span>
                             <span className="text-[10px] text-blue-700 font-semibold bg-blue-100 px-2 py-0.5 rounded">
                               Bisa 2 Kendaraan
                             </span>
@@ -2034,6 +2274,210 @@ export default function GAHRDRequestsPage() {
               >
                 <Icon name="check" className="text-base" /> Ya, Batalkan
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review & Confirmation Modal for GA Final Approval */}
+      {isApproveReviewModalOpen && approveReviewRequest && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto animate-fadein">
+          <div className="bg-white rounded-2xl w-full max-w-xl overflow-hidden border border-[#e2e8f0] shadow-2xl flex flex-col animate-scaleup">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-[#f1f5f9] flex justify-between items-center bg-gradient-to-r from-emerald-50 to-blue-50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                  <Icon name="verified" className="text-[20px]" />
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-bold text-[#0f172a]">
+                    Pengecekan & Persetujuan Alokasi Armada
+                  </h3>
+                  <p className="text-[11px] text-[#64748b]">
+                    Permohonan #{approveReviewRequest.id} • {approveReviewRequest.department || approveReviewRequest.userDepartment || "Operasional"}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsApproveReviewModalOpen(false);
+                  setApproveReviewRequest(null);
+                }} 
+                className="text-[#94a3b8] hover:text-[#64748b] cursor-pointer p-1 rounded-lg hover:bg-white/60 transition-colors"
+              >
+                <Icon name="close" className="text-[20px]" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto text-left">
+              {/* Trip Information Summary */}
+              <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2.5">
+                <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                  Ringkasan Perjalanan
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12.5px]">
+                  <div>
+                    <span className="text-[#64748b] block text-[11px]">Pemohon:</span>
+                    <span className="font-bold text-[#0f172a]">{approveReviewRequest.employee || approveReviewRequest.userName || "Karyawan"}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#64748b] block text-[11px]">Tujuan:</span>
+                    <span className="font-bold text-[#0f172a]">{approveReviewRequest.destination || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#64748b] block text-[11px]">Waktu Keberangkatan:</span>
+                    <span className="font-semibold text-blue-700">
+                      {approveReviewRequest.date || approveReviewRequest.startDate || "-"} • {approveReviewRequest.time || approveReviewRequest.startTime?.substring(11, 16) || "-"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[#64748b] block text-[11px]">Keperluan / Penumpang:</span>
+                    <span className="font-semibold text-slate-800">
+                      "{approveReviewRequest.purpose || "-"}" ({approveReviewRequest.passengerCount || 1} Orang)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Allocation Details by Coordinator */}
+              <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-[12px] font-bold text-emerald-900 flex items-center gap-1.5">
+                    <Icon name="directions_car" className="text-emerald-700 text-[18px]" />
+                    <span>Armada & Driver yang Ditetapkan Koordinator</span>
+                  </div>
+                  <span className="text-[10.5px] font-bold text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full">
+                    Siap Dijadwalkan
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  {/* Driver Card */}
+                  <div className="bg-white p-3 rounded-lg border border-emerald-100 shadow-2xs">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">
+                      Driver Operasional
+                    </span>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                        <Icon name="person" className="text-base" />
+                      </div>
+                      <div>
+                        <div className="text-[13px] font-bold text-slate-800">
+                          {approveReviewRequest.driverName || "Driver Ditunjuk"}
+                        </div>
+                        <div className="text-[10.5px] text-emerald-700 font-semibold flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                          Driver Siap Bertugas
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Vehicle Card */}
+                  <div className="bg-white p-3 rounded-lg border border-emerald-100 shadow-2xs">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">
+                      Kendaraan / Mobil
+                    </span>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs">
+                        <Icon name="directions_car" className="text-base" />
+                      </div>
+                      <div>
+                        <div className="text-[13px] font-bold text-slate-800">
+                          {approveReviewRequest.vehicleModel || "Kendaraan Ditunjuk"}
+                        </div>
+                        <div className="text-[10.5px] text-slate-500 font-medium">
+                          {approveReviewRequest.licensePlate ? `Plat: ${approveReviewRequest.licensePlate}` : "Unit Armada Internal"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Fleet (2nd Vehicle) if available */}
+                {approveReviewRequest.driverName2 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="bg-white p-3 rounded-lg border border-emerald-100 shadow-2xs">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">
+                        Driver Kedua (Tambahan)
+                      </span>
+                      <div className="text-[13px] font-bold text-slate-800">
+                        {approveReviewRequest.driverName2}
+                      </div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-emerald-100 shadow-2xs">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">
+                        Mobil Kedua (Tambahan)
+                      </span>
+                      <div className="text-[13px] font-bold text-slate-800">
+                        {approveReviewRequest.vehicleModel2 || "-"}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Notes Input */}
+              <div>
+                <label className="block text-[11px] font-bold text-[#475569] mb-1.5">
+                  Catatan Persetujuan GA (Opsional)
+                </label>
+                <textarea
+                  value={approvalNotes}
+                  onChange={(e) => setApprovalNotes(e.target.value)}
+                  placeholder="Contoh: Disetujui, harap pengemudi standby 15 menit sebelum jam keberangkatan..."
+                  rows={2}
+                  className="w-full px-3 py-2 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-3 border-t border-[#f1f5f9]">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsApproveReviewModalOpen(false);
+                      setApproveReviewRequest(null);
+                    }}
+                    className="flex-1 sm:flex-none h-10 px-4 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[12px] font-bold text-[#475569] transition-colors cursor-pointer"
+                  >
+                    Batal / Cek Ulang
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const req = approveReviewRequest;
+                      setIsApproveReviewModalOpen(false);
+                      setApproveReviewRequest(null);
+                      handleOpenAssignModal(req);
+                    }}
+                    className="flex-1 sm:flex-none h-10 px-4 bg-slate-100 hover:bg-slate-200 rounded-xl text-[12px] font-bold text-slate-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Icon name="edit" className="text-[15px]" />
+                    Ubah Alokasi
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleConfirmApprove}
+                  disabled={actionLoading}
+                  className="w-full sm:w-auto h-10 px-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[12.5px] font-bold transition-all disabled:opacity-50 cursor-pointer shadow-sm flex items-center justify-center gap-2"
+                >
+                  {actionLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Memproses...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="check_circle" className="text-[17px]" />
+                      <span>Setujui & Terbitkan Jadwal</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
