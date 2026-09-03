@@ -322,17 +322,27 @@ export default function MyRequestsPage() {
     setCurrentPage(1);
   }, [search, statusFilter]);
 
-  // Auto-expand request if ID is provided in query params
+  // Auto-expand request and trigger rating modal if requested in query params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const idParam = params.get("id");
+    const idParam = params.get("id") || params.get("open_request") || params.get("req_id");
+    const isReview = params.get("review") === "true";
+    
     if (idParam) {
       setExpanded(idParam);
-      // Clear query parameter from the URL address bar
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
+      if (isReview && requests.length > 0) {
+        const found = requests.find((r: any) => String(r.id) === String(idParam));
+        if (found) {
+          setRatingModal({
+            isOpen: true,
+            request: found,
+            rating: 5,
+            notes: "",
+          });
+        }
+      }
     }
-  }, []);
+  }, [requests]);
 
   const filtered = useMemo(() => requests.filter(r => {
     const matchSearch =
