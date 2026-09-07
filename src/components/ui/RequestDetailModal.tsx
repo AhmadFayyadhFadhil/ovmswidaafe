@@ -216,7 +216,7 @@ export function RequestDetailModal({
   };
 
   const isExternalOneWay = !!(request.is_external && (request.external_trip_type === "one_way" || !request.is_return_to_factory));
-  const isTripEnRoute = request.rawStatus === "on_going" || request.status === "on_going" || !!request.security_checked_out_at;
+  const isTripEnRoute = (request.rawStatus === "on_going" || request.status === "on_going" || (!!request.security_checked_out_at && !request.security_checked_in_at)) && !["completed", "rejected", "cancelled"].includes(request.rawStatus || "");
   const isEligibleToComplete = isExternalOneWay && isTripEnRoute;
   const canUserComplete = !!(
     user?.id === request.userId ||
@@ -318,7 +318,7 @@ export function RequestDetailModal({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Review Banner for Approver */}
-          {request.canApprove && onApprove && (
+          {request.canApprove && !["completed", "rejected", "cancelled", "on_going", "driver_assigned", "waiting_driver", "assigned_by_ga", "approved_hrd_ga", "approved_department"].includes(request.rawStatus || request.status || "") && onApprove && (
             <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-2xl flex items-center gap-3.5 text-blue-900 shadow-2xs">
               <div className="w-10 h-10 rounded-xl bg-[#1e3a8a] text-white flex items-center justify-center flex-shrink-0 shadow-xs">
                 <Icon name="fact_check" className="text-[22px]" />
@@ -1321,7 +1321,7 @@ export function RequestDetailModal({
             </button>
           )}
 
-          {request.canApprove && onApprove && onReject ? (
+          {request.canApprove && !["completed", "rejected", "cancelled", "on_going", "driver_assigned", "waiting_driver", "assigned_by_ga", "approved_hrd_ga", "approved_department"].includes(request.rawStatus || request.status || "") && onApprove && onReject ? (
             <>
               <button
                 type="button"
