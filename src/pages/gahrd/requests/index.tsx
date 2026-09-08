@@ -1123,9 +1123,15 @@ export default function GAHRDRequestsPage() {
             {/* Header */}
             <div className="px-6 py-4 border-b border-[#f1f5f9] flex justify-between items-center bg-[#f8fafc] flex-shrink-0">
               <h3 className="text-[15px] font-bold text-[#0f172a]">
-                {(selectedRequest?.driverName !== "Not Assigned" || selectedRequest?.vehicleModel !== "Not Assigned")
-                  ? `Edit Penugasan Driver & Kendaraan ke Request #${selectedRequest?.id}`
-                  : `Tugaskan Driver & Kendaraan ke Request #${selectedRequest?.id}`
+                {isCoordinator && !isGAOrAdmin
+                  ? (selectedRequest?.driverName !== "Not Assigned" || selectedRequest?.vehicleModel !== "Not Assigned"
+                      ? `Ubah Alokasi Driver & Armada (Koordinator) #${selectedRequest?.id}`
+                      : `Alokasikan Driver & Armada (Koordinator) #${selectedRequest?.id}`
+                    )
+                  : (selectedRequest?.driverName !== "Not Assigned" || selectedRequest?.vehicleModel !== "Not Assigned"
+                      ? `Edit Penugasan Driver & Kendaraan ke Request #${selectedRequest?.id}`
+                      : `Tugaskan Driver & Kendaraan ke Request #${selectedRequest?.id}`
+                    )
                 }
               </h3>
               <button onClick={() => setIsAssignModalOpen(false)} className="text-[#94a3b8] hover:text-[#64748b] cursor-pointer">
@@ -2135,9 +2141,14 @@ export default function GAHRDRequestsPage() {
                 >
                   {actionLoading 
                     ? "Menyimpan..." 
-                    : (selectedRequest?.driverName !== "Not Assigned" || selectedRequest?.vehicleModel !== "Not Assigned")
-                      ? "Simpan Perubahan"
-                      : "Tugaskan Pengemudi"
+                    : isCoordinator && !isGAOrAdmin
+                      ? (selectedRequest?.driverName !== "Not Assigned" || selectedRequest?.vehicleModel !== "Not Assigned"
+                          ? "Simpan Perubahan Alokasi"
+                          : "Simpan Alokasi Driver"
+                        )
+                      : (selectedRequest?.driverName !== "Not Assigned" || selectedRequest?.vehicleModel !== "Not Assigned")
+                        ? "Simpan Perubahan & Tetapkan"
+                        : "Tugaskan & Jadwalkan Resmi"
                   }
                 </button>
               </div>
