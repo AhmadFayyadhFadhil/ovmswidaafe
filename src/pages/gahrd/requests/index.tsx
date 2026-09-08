@@ -1989,21 +1989,6 @@ export default function GAHRDRequestsPage() {
                   ) : (
                     /* Internal Fleet Fields */
                     <div className="space-y-4">
-                      {/* Estimasi Durasi (Hanya Internal) */}
-                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
-                        <label className="block text-[11px] font-bold text-[#475569] mb-1.5">Estimasi Lama Perjalanan (Jam)</label>
-                        <input
-                          type="number"
-                          required={!isExternal}
-                          min="1"
-                          value={estimatedDuration}
-                          onChange={(e) => setEstimatedDuration(e.target.value)}
-                          placeholder="Contoh: 3"
-                          disabled={isEdit}
-                          className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                        />
-                      </div>
-
                       {/* Set 1 & 2: Driver & Vehicle */}
                       <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-3">
                         <div className="text-[12px] font-bold text-slate-800 flex justify-between">
