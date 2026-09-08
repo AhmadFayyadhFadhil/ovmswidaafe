@@ -1123,9 +1123,15 @@ export default function GAHRDRequestsPage() {
             {/* Header */}
             <div className="px-6 py-4 border-b border-[#f1f5f9] flex justify-between items-center bg-[#f8fafc] flex-shrink-0">
               <h3 className="text-[15px] font-bold text-[#0f172a]">
-                {(selectedRequest?.driverName !== "Not Assigned" || selectedRequest?.vehicleModel !== "Not Assigned")
-                  ? `Edit Penugasan Driver & Kendaraan ke Request #${selectedRequest?.id}`
-                  : `Tugaskan Driver & Kendaraan ke Request #${selectedRequest?.id}`
+                {isCoordinator && !isGAOrAdmin
+                  ? (selectedRequest?.driverName !== "Not Assigned" || selectedRequest?.vehicleModel !== "Not Assigned"
+                      ? `Ubah Alokasi Driver & Armada (Koordinator) #${selectedRequest?.id}`
+                      : `Alokasikan Driver & Armada (Koordinator) #${selectedRequest?.id}`
+                    )
+                  : (selectedRequest?.driverName !== "Not Assigned" || selectedRequest?.vehicleModel !== "Not Assigned"
+                      ? `Edit Penugasan Driver & Kendaraan ke Request #${selectedRequest?.id}`
+                      : `Tugaskan Driver & Kendaraan ke Request #${selectedRequest?.id}`
+                    )
                 }
               </h3>
               <button onClick={() => setIsAssignModalOpen(false)} className="text-[#94a3b8] hover:text-[#64748b] cursor-pointer">
@@ -1989,21 +1995,6 @@ export default function GAHRDRequestsPage() {
                   ) : (
                     /* Internal Fleet Fields */
                     <div className="space-y-4">
-                      {/* Estimasi Durasi (Hanya Internal) */}
-                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
-                        <label className="block text-[11px] font-bold text-[#475569] mb-1.5">Estimasi Lama Perjalanan (Jam)</label>
-                        <input
-                          type="number"
-                          required={!isExternal}
-                          min="1"
-                          value={estimatedDuration}
-                          onChange={(e) => setEstimatedDuration(e.target.value)}
-                          placeholder="Contoh: 3"
-                          disabled={isEdit}
-                          className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                        />
-                      </div>
-
                       {/* Set 1 & 2: Driver & Vehicle */}
                       <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-3">
                         <div className="text-[12px] font-bold text-slate-800 flex justify-between">
@@ -2150,9 +2141,14 @@ export default function GAHRDRequestsPage() {
                 >
                   {actionLoading 
                     ? "Menyimpan..." 
-                    : (selectedRequest?.driverName !== "Not Assigned" || selectedRequest?.vehicleModel !== "Not Assigned")
-                      ? "Simpan Perubahan"
-                      : "Tugaskan Pengemudi"
+                    : isCoordinator && !isGAOrAdmin
+                      ? (selectedRequest?.driverName !== "Not Assigned" || selectedRequest?.vehicleModel !== "Not Assigned"
+                          ? "Simpan Perubahan Alokasi"
+                          : "Simpan Alokasi Driver"
+                        )
+                      : (selectedRequest?.driverName !== "Not Assigned" || selectedRequest?.vehicleModel !== "Not Assigned")
+                        ? "Simpan Perubahan & Tetapkan"
+                        : "Tugaskan & Jadwalkan Resmi"
                   }
                 </button>
               </div>
