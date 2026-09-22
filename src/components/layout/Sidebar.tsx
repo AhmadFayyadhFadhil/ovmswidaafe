@@ -30,6 +30,17 @@ export function Sidebar({
 
   const getValidLogoUrl = (url: string | undefined | null) => {
     if (!url) return "";
+    if (url.includes("127.0.0.1") || url.includes("localhost") || url.includes(":8383") || url.includes(":8080") || url.includes("api.ovmsdev.widatra.com")) {
+      try {
+        const parsed = new URL(url);
+        return `${window.location.origin}${parsed.pathname}`;
+      } catch (e) {
+        const slashIdx = url.indexOf("/storage/");
+        if (slashIdx !== -1) {
+          return `${window.location.origin}${url.substring(slashIdx)}`;
+        }
+      }
+    }
     if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
       return url;
     }
@@ -259,12 +270,23 @@ export function Sidebar({
         {/* Brand */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#e2e8f0]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-white shadow-xs border border-slate-100 flex items-center justify-center p-1 overflow-hidden shrink-0">
-              <img src="/logo.png" alt="PT Widarta Bhakti" className="w-full h-full object-contain" />
-            </div>
+            {branding.companyLogo && !logoError ? (
+              <div className="w-9 h-9 rounded-full bg-white shadow-xs border border-slate-100 flex items-center justify-center p-1 overflow-hidden shrink-0">
+                <img 
+                  src={getValidLogoUrl(branding.companyLogo)} 
+                  alt={branding.companyName || "PT Widarta Bhakti"} 
+                  className="w-full h-full object-contain"
+                  onError={() => setLogoError(true)}
+                />
+              </div>
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-[#1e3a8a] flex items-center justify-center text-white text-base font-bold shrink-0">
+                🚘
+              </div>
+            )}
             <div>
-              <span className="font-bold text-[15px] tracking-tight text-[#0f172a] block">OVMS</span>
-              <span className="text-[11px] text-[#64748b] block font-medium">PT Widarta Bhakti</span>
+              <span className="font-bold text-[15px] tracking-tight text-[#0f172a] block">{branding.systemName || "OVMS"}</span>
+              <span className="text-[11px] text-[#64748b] block font-medium">{branding.companyName || "PT Widarta Bhakti"}</span>
             </div>
           </div>
           <button 
