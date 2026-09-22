@@ -22,6 +22,18 @@ export default function LoginPage() {
 
   const getValidLogoUrl = (url: string | undefined | null) => {
     if (!url) return "";
+    if (url.includes("127.0.0.1") || url.includes("localhost") || url.includes(":8383") || url.includes(":8080") || url.includes("api.ovmsdev.widatra.com")) {
+      try {
+        const parsed = new URL(url);
+        return `${window.location.origin}${parsed.pathname}`;
+      } catch (e) {
+        // Fallback jika bukan valid URL
+        const slashIdx = url.indexOf("/storage/");
+        if (slashIdx !== -1) {
+          return `${window.location.origin}${url.substring(slashIdx)}`;
+        }
+      }
+    }
     if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
       return url;
     }
