@@ -2555,7 +2555,7 @@ export default function GAHRDRequestsPage() {
 
       {/* Build Stamp for Verification */}
       <div className="text-[10px] text-slate-400 text-right mt-4 pr-4 font-mono pb-4">
-        Build Version: 2026-08-07-v21 (Auto Cache Clean & Smooth Workflow)
+        Build Version: 2026-09-22-v23 (Instant GA Approval Reactivity)
       </div>
     </Layout>
   );
