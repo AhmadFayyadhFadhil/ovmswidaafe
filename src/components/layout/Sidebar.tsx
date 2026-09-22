@@ -308,10 +308,12 @@ export function Sidebar({
             approverMenu.map(item => btn(item, item.path))
           )}
 
+          {isDriverCoordinator && (
+            driverCoordinatorMenu.map(item => btn(item, item.path))
+          )}
+
           {isDriver && (
-            isDriverCoordinator 
-              ? driverCoordinatorMenu.map(item => btn(item, item.path))
-              : driverMenu.map(item => btn(item, item.path))
+            driverMenu.map(item => btn(item, item.path))
           )}
 
           {isGAHRD && (
