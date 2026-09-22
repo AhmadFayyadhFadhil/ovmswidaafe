@@ -768,6 +768,7 @@ export default function GAHRDRequestsPage() {
 
   const isApprover = user?.role === "approver";
   const isCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
+  const isGAOrAdmin = user?.role === 'gahrd' || user?.role === 'admin' || user?.roles?.includes('ga') || user?.roles?.includes('admin');
 
   const tabList: { key: TabFilter; label: string }[] = [
     { key: "All", label: "Semua" },
@@ -898,8 +899,6 @@ export default function GAHRDRequestsPage() {
           ) : (
             <div className="space-y-4">
               {filtered.map((req) => {
-                const isCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
-                const isGAOrAdmin = user?.role === 'gahrd' || user?.role === 'admin' || user?.roles?.includes('ga') || user?.roles?.includes('admin');
                 const isUrgentReq = (req.priority || "").toUpperCase() === "URGENT" || (req.priority || "").toUpperCase() === "CRITICAL";
 
                 const isPendingDeptHead = req.rawStatus === "submitted" && !isUrgentReq;
