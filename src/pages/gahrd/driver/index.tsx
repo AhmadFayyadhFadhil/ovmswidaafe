@@ -31,23 +31,23 @@ export const DRIVERS: Driver[] = [
   { id: "2", name: "Jane Smith", status: "ON TRIP", driverId: "DRV-002", trips: 22, rating: 4.9 },
 ];
 
-type TabFilter = "All" | "Available" | "On Trip" | "Off Duty";
+type TabFilter = "All" | "Available" | "On Trip" | "Off Duty" | "Semua" | "Tersedia" | "Bertugas" | "Lepas Dinas";
 
 const STATUS_CONFIG: Record<DriverStatus, { label: string; badge: string; dot: string; border: string }> = {
   AVAILABLE: {
-    label: "AVAILABLE",
+    label: "TERSEDIA",
     badge: "bg-[#dcfce7] text-[#15803d] border border-[#bbf7d0]",
     dot: "bg-green-500",
     border: "border-l-[3px] border-l-green-500",
   },
   "ON TRIP": {
-    label: "ON TRIP",
+    label: "BERTUGAS",
     badge: "bg-[#dbeafe] text-[#1d4ed8] border border-[#bfdbfe]",
     dot: "bg-blue-500",
     border: "border-l-[3px] border-l-blue-500",
   },
   "OFF DUTY": {
-    label: "OFF DUTY",
+    label: "LEPAS DINAS",
     badge: "bg-[#f1f5f9] text-[#64748b] border border-[#e2e8f0]",
     dot: "bg-slate-300",
     border: "border-l-[3px] border-l-slate-300",
@@ -244,7 +244,7 @@ function DriverCard({
                   : "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95"
               }`}
             >
-              {isAvailable ? "Set Off Duty" : "Set Available"}
+              {isAvailable ? "Set Lepas Dinas" : "Set Tersedia"}
             </button>
           )}
           {driver.phone && (
@@ -496,11 +496,11 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
   const filtered = useMemo(() => {
     return driversList.filter((d) => {
       const matchesTab =
-        tab === "All"
+        tab === "All" || tab === "Semua"
           ? true
-          : tab === "Available"
+          : tab === "Available" || tab === "Tersedia"
           ? d.status === "AVAILABLE"
-          : tab === "On Trip"
+          : tab === "On Trip" || tab === "Bertugas"
           ? d.status === "ON TRIP"
           : d.status === "OFF DUTY";
 
@@ -552,21 +552,28 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
   const isApprover = user?.role?.toLowerCase() === "approver";
   const isDriverCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
 
+  const tabOptions: { key: TabFilter; label: string }[] = [
+    { key: "All", label: "Semua" },
+    { key: "Available", label: "Tersedia" },
+    { key: "On Trip", label: "Bertugas" },
+    { key: "Off Duty", label: "Lepas Dinas" },
+  ];
+
   return (
     <Layout
-      activeNav={isDriverCoordinator ? "Ketersediaan Driver" : "Driver Availability"}
+      activeNav={isDriverCoordinator ? "Ketersediaan Driver" : "Driver"}
       onNavigate={onNavigate}
-      topbarTitle="Driver Availability"
+      topbarTitle="Ketersediaan Driver"
       userRole={isDriverCoordinator ? "Koordinator Driver" : (isApprover ? "Manager Approver" : "GA/HRD")}
-      searchPlaceholder="Search drivers..."
+      searchPlaceholder="Cari driver..."
       searchValue={search}
       onSearchChange={setSearch}
     >
       <div className="flex-1 overflow-y-auto bg-[#f8f9ff] p-4 sm:p-8">
 
-        <div data-guide="driver-assignment" className="text-[18px] font-bold text-[#0f172a] mb-1">Driver Availability Center</div>
+        <div data-guide="driver-assignment" className="text-[18px] font-bold text-[#0f172a] mb-1">Pusat Ketersediaan Driver</div>
         <div className="text-[13px] text-[#64748b] mb-6 max-w-2xl">
-          Monitor driver readiness, operational schedules, ratings, and transportation workload across activities.
+          Pantau kesiapan driver, jadwal operasional, rating, dan beban kerja transportasi di seluruh aktivitas.
         </div>
 
         {/* Section Navigation Switcher */}
@@ -609,45 +616,45 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
               <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest">Total Drivers</div>
+                  <div className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest">Total Driver</div>
                   <Icon name="group" className="text-[20px] text-[#64748b]" />
                 </div>
                 <div className="text-[36px] font-extrabold text-[#0f172a] leading-none">{total}</div>
               </div>
               <div className="bg-white border-l-[3px] border-l-green-500 border border-[#e2e8f0] rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest">Available</div>
+                  <div className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest">Tersedia</div>
                   <Icon name="check_circle" className="text-[20px] text-green-500" />
                 </div>
                 <div className="text-[36px] font-extrabold text-[#0f172a] leading-none">{available}</div>
               </div>
               <div className="bg-white border-l-[3px] border-l-blue-500 border border-[#e2e8f0] rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest">On Trip</div>
+                  <div className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest">Bertugas</div>
                   <Icon name="route" className="text-[20px] text-blue-500" />
                 </div>
                 <div className="text-[36px] font-extrabold text-[#0f172a] leading-none">{onTrip}</div>
               </div>
               <div className="bg-white border-l-[3px] border-l-red-400 border border-[#e2e8f0] rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest">Off Duty</div>
+                  <div className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest">Lepas Dinas</div>
                   <Icon name="do_not_disturb_on" className="text-[20px] text-red-400" />
                 </div>
                 <div className="text-[36px] font-extrabold text-[#0f172a] leading-none">{offDuty}</div>
-                <div className="text-[11px] text-[#94a3b8] mt-1">Medical leave / Maintenance</div>
+                <div className="text-[11px] text-[#94a3b8] mt-1">Izin / Cuti / Lepas Dinas</div>
               </div>
             </div>
 
             {/* Tab filter */}
             <div className="overflow-x-auto max-w-full mb-6">
               <div className="flex gap-1 bg-white border border-[#e2e8f0] rounded-xl p-1 w-fit">
-                {(["All", "Available", "On Trip", "Off Duty"] as TabFilter[]).map((t) => (
+                {tabOptions.map((t) => (
                   <button
-                    key={t}
-                    onClick={() => setTab(t)}
-                    className={`px-5 h-9 rounded-lg text-[13px] font-semibold transition-all ${tab === t ? "bg-[#1e3a8a] text-white shadow-sm" : "text-[#64748b] hover:text-[#334155]"}`}
+                    key={t.key}
+                    onClick={() => setTab(t.key)}
+                    className={`px-5 h-9 rounded-lg text-[13px] font-semibold transition-all ${tab === t.key || (tab === "All" && t.key === "All") ? "bg-[#1e3a8a] text-white shadow-sm" : "text-[#64748b] hover:text-[#334155]"}`}
                   >
-                    {t}
+                    {t.label}
                   </button>
                 ))}
               </div>
@@ -658,8 +665,8 @@ export default function DriverPage({ onNavigate }: { onNavigate: (p: string) => 
               {filtered.length === 0 ? (
                 <div className="bg-white border border-[#e2e8f0] rounded-2xl py-16 flex flex-col items-center">
                   <Icon name="person_off" className="text-[40px] text-[#cbd5e1] mb-2" />
-                  <p className="font-bold text-[#0f172a]">No drivers found</p>
-                  <p className="text-[13px] text-[#64748b] mt-1">Try changing the filter or search term.</p>
+                  <p className="font-bold text-[#0f172a]">Driver tidak ditemukan</p>
+                  <p className="text-[13px] text-[#64748b] mt-1">Coba sesuaikan filter atau kata kunci pencarian.</p>
                 </div>
               ) : (
                 filtered.map((d) => (

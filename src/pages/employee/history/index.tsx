@@ -55,9 +55,15 @@ function IconChevron(props: { dir?: 'left' | 'right' }) {
 
 // ── Priority chip for history ─────────────────────────────────────────────────
 const PRI_MAP: Record<Priority, { label: string; cls: string }> = {
-  CRITICAL: { label: 'CRITICAL PRIORITY', cls: 'bg-[#fef2f2] text-[#dc2626] border border-[#fecaca]' },
-  URGENT:   { label: 'URGENT PRIORITY',   cls: 'bg-[#fff7ed] text-[#c2410c] border border-[#fed7aa]' },
-  NORMAL:   { label: 'NORMAL PRIORITY',   cls: 'bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]' },
+  CRITICAL: { label: 'PRIORITAS KRITIS', cls: 'bg-[#fef2f2] text-[#dc2626] border border-[#fecaca]' },
+  URGENT:   { label: 'PRIORITAS MENDESAK',   cls: 'bg-[#fff7ed] text-[#c2410c] border border-[#fed7aa]' },
+  NORMAL:   { label: 'PRIORITAS NORMAL',   cls: 'bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]' },
+};
+
+const statusLabelMap: Record<HistoryStatus, string> = {
+  COMPLETED: 'Selesai',
+  REJECTED: 'Ditolak',
+  CANCELLED: 'Dibatalkan',
 };
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
@@ -103,7 +109,7 @@ function HistoryRow({ item, onViewDetail, onRateClick }: { item: HistoryItem; on
           <div className="flex items-center gap-1.5 mb-1 flex-wrap">
             <span className="text-[12px] sm:text-[14px] font-black text-[#1e3a8a] whitespace-nowrap">{item.reqId}</span>
             <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-md whitespace-nowrap ${pri.cls}`}>
-              {item.priority}
+              {pri.label}
             </span>
           </div>
           <div className="text-[13px] sm:text-[15px] font-bold text-[#0f172a] truncate">{item.title}</div>
@@ -116,7 +122,7 @@ function HistoryRow({ item, onViewDetail, onRateClick }: { item: HistoryItem; on
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto text-right">
           <div>
             <div className={`text-[11px] sm:text-[14px] font-extrabold whitespace-nowrap ${isCompleted ? 'text-[#15803d]' : 'text-[#dc2626]'}`}>
-              {item.status}
+              {statusLabelMap[item.status] || item.status}
             </div>
             <div className="text-[10px] sm:text-[11px] text-[#94a3b8] hidden sm:block">{item.statusLabel}</div>
           </div>
@@ -131,16 +137,16 @@ function HistoryRow({ item, onViewDetail, onRateClick }: { item: HistoryItem; on
         <div className="border-t border-[#f1f5f9] p-4 sm:px-6 sm:py-4 bg-[#f8faff] animate-fadein">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[12px] sm:text-[13px]">
             <div>
-              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Requester</div>
+              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Pemohon</div>
               <div className="font-semibold text-[#0f172a]">{item.requester}</div>
             </div>
             <div>
-              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">DateTime</div>
+              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Waktu</div>
               <div className="font-semibold text-[#0f172a]">{item.datetime}</div>
             </div>
             <div>
-              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Decision Process</div>
-              <div className="font-semibold text-[#0f172a] leading-snug">{item.notes || 'Processed via OVMS Platform.'}</div>
+              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Catatan / Alasan</div>
+              <div className="font-semibold text-[#0f172a] leading-snug">{item.notes || 'Diproses melalui sistem OVMS.'}</div>
             </div>
           </div>
 
@@ -150,7 +156,7 @@ function HistoryRow({ item, onViewDetail, onRateClick }: { item: HistoryItem; on
               onClick={() => onViewDetail(item.id)}
               className="w-full sm:w-auto h-9 px-4 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-xl hover:bg-[#1e40af] transition-colors cursor-pointer text-center"
             >
-              View Full Detail
+              Lihat Detail Lengkap
             </button>
 
             {isCompleted && (
@@ -253,12 +259,12 @@ export default function EmployeeHistoryPage() {
       return {
         id: r.id,
         reqId: `REQ-${r.id}`,
-        title: `Trip to ${r.destination}`,
+        title: `Perjalanan ke ${r.destination}`,
         requester: r.employee || user?.name || "Staff",
         datetime: `${r.date} ${r.time}`,
         priority: (r.priority === "URGENT" || r.priority === "HIGH" ? "URGENT" : "NORMAL") as Priority,
         status: (isCompleted ? "COMPLETED" : isCancelled ? "CANCELLED" : "REJECTED") as HistoryStatus,
-        statusLabel: isCompleted ? "Finished Successfully" : isCancelled ? "Request Cancelled" : "Request Rejected",
+        statusLabel: isCompleted ? "Selesai Sempurna" : isCancelled ? "Permohonan Dibatalkan" : "Permohonan Ditolak",
         notes: notes,
         rating: r.rating,
         ratingNotes: (r as any).rating_notes ?? r.ratingNotes,
@@ -306,12 +312,19 @@ export default function EmployeeHistoryPage() {
   const rejectedCount = historyItems.filter(h => h.status === 'REJECTED').length;
   const cancelledCount = historyItems.filter(h => h.status === 'CANCELLED').length;
 
+  const tabLabels: Record<TabFilter, string> = {
+    'All History': 'Semua Riwayat',
+    'Completed': 'Selesai',
+    'Rejected': 'Ditolak',
+    'Cancelled': 'Dibatalkan',
+  };
+
   return (
     <Layout
-      activeNav="History"
-      topbarTitle="My Requests History"
-      userRole={user?.role === "approver" ? "Manager Approver" : "Employee"}
-      searchPlaceholder="Search history..."
+      activeNav="Riwayat"
+      topbarTitle="Riwayat Permohonan"
+      userRole={user?.role === "approver" ? "Manager Approver" : "Karyawan"}
+      searchPlaceholder="Cari riwayat..."
       searchValue={search}
       onSearchChange={(v) => {
         setSearch(v);
@@ -321,30 +334,30 @@ export default function EmployeeHistoryPage() {
       <div className="flex-1 overflow-y-auto bg-[#f8f9ff] p-2.5 sm:p-8">
         {/* Page header */}
         <div className="mb-6">
-          <h2 className="text-[26px] font-bold text-[#0f172a]">My Requests History</h2>
-          <p className="text-[14px] text-[#64748b] mt-1">Archive log of your completed or rejected travel requests.</p>
+          <h2 className="text-[26px] font-bold text-[#0f172a]">Riwayat Permohonan</h2>
+          <p className="text-[14px] text-[#64748b] mt-1">Arsip riwayat permohonan kendaraan yang telah selesai atau ditolak/dibatalkan.</p>
         </div>
 
         {/* Stat cards */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-5 mb-7">
           <StatCard
             icon={<svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-            label="Total Requests"
+            label="Total Permohonan"
             value={String(totalCount)}
           />
           <StatCard
             icon={<svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="m9 12 2 2 4-4" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="9" stroke="#16a34a" strokeWidth="2"/></svg>}
-            label="Completed"
+            label="Selesai"
             value={String(completedCount)}
           />
           <StatCard
             icon={<svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="m15 9-6 6M9 9l6 6" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/><circle cx="12" cy="12" r="9" stroke="#dc2626" strokeWidth="2"/></svg>}
-            label="Rejected"
+            label="Ditolak"
             value={String(rejectedCount)}
           />
           <StatCard
             icon={<svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-            label="Cancelled"
+            label="Dibatalkan"
             value={String(cancelledCount)}
           />
         </div>
@@ -355,7 +368,7 @@ export default function EmployeeHistoryPage() {
           <div className="border-b border-[#e2e8f0] px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-2">
               <IconList />
-              <span className="font-bold text-[#0f172a] text-[16px]">History log ({filtered.length})</span>
+              <span className="font-bold text-[#0f172a] text-[16px]">Log Riwayat ({filtered.length})</span>
             </div>
 
             {/* Tabs */}
@@ -371,7 +384,7 @@ export default function EmployeeHistoryPage() {
                     tab === t ? 'bg-white text-[#1e3a8a] shadow-sm' : 'text-[#64748b] hover:text-[#0f172a]'
                   }`}
                 >
-                  {t}
+                  {tabLabels[t]}
                 </button>
               ))}
             </div>
@@ -380,11 +393,11 @@ export default function EmployeeHistoryPage() {
           {/* List content */}
           <div className="p-2.5 sm:p-6 space-y-3.5">
             {loading ? (
-              <div className="py-12 text-center text-slate-400 font-medium">Loading history...</div>
+              <div className="py-12 text-center text-slate-400 font-medium">Memuat riwayat...</div>
             ) : error ? (
-              <div className="py-12 text-center text-red-500 font-medium">Error loading history logs.</div>
+              <div className="py-12 text-center text-red-500 font-medium">Gagal memuat log riwayat.</div>
             ) : paginatedHistory.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 font-medium">No history items match the filters.</div>
+              <div className="py-12 text-center text-slate-400 font-medium">Tidak ada data riwayat yang sesuai filter.</div>
             ) : (
               paginatedHistory.map((item) => (
                 <HistoryRow key={item.id} item={item} onViewDetail={handleViewDetail} onRateClick={handleRateClick} />
@@ -396,7 +409,7 @@ export default function EmployeeHistoryPage() {
           {!loading && !error && filtered.length > 0 && (
             <div className="border-t border-[#e2e8f0] px-6 py-4 flex items-center justify-between">
               <div className="text-[12px] text-[#94a3b8] font-bold">
-                Showing {startIndex + 1} to {Math.min(filtered.length, startIndex + PER_PAGE)} of {filtered.length} entries
+                Menampilkan {startIndex + 1} sampai {Math.min(filtered.length, startIndex + PER_PAGE)} dari {filtered.length} data
               </div>
               <div className="flex items-center gap-2">
                 <button

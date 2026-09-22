@@ -23,12 +23,12 @@ export function WelcomeGuideModal({
 
         {/* Header Title */}
         <h2 className="text-[22px] font-extrabold text-slate-900 tracking-tight">
-          Welcome to OVMS
+          Selamat Datang di OVMS
         </h2>
 
         {/* Subtitle Body */}
         <p className="text-sm text-slate-500 mt-2 leading-relaxed max-w-xs">
-          Take a quick tour to learn how the system works.
+          Ikuti panduan singkat untuk mempelajari alur penggunaan sistem operasional kendaraan.
         </p>
 
         {/* Action Buttons */}
@@ -37,14 +37,14 @@ export function WelcomeGuideModal({
             onClick={onStartGuide}
             className="w-full sm:flex-1 h-12 bg-[#1e3a8a] hover:bg-[#1e40af] text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
-            <Icon name="play_arrow" className="text-lg" /> Start Guide
+            <Icon name="play_arrow" className="text-lg" /> Mulai Panduan
           </button>
 
           <button
             onClick={onMaybeLater}
             className="w-full sm:flex-1 h-12 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 transition-all flex items-center justify-center cursor-pointer"
           >
-            Maybe Later
+            Nanti Saja
           </button>
         </div>
       </div>

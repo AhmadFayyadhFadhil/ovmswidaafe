@@ -16,7 +16,7 @@ interface StepState {
   icon?: string;
 }
 
-const STEP_LABELS = ["Submitted", "Dep Head", "Koor Driver", "GA Koor", "Terjadwal", "Selesai"];
+const STEP_LABELS = ["Diajukan", "Kepala Dept", "Koor Driver", "Koor GA", "Terjadwal", "Selesai"];
 const STEP_ICONS  = ["send", "how_to_reg", "person_pin", "verified_user", "schedule", "flag"];
 
 function getRequestSteps(rawStatus: string): StepState[] {
@@ -69,7 +69,7 @@ function getRequestSteps(rawStatus: string): StepState[] {
   const step4Done = rawStatus === "completed";
   const step4Active = rawStatus === "driver_assigned" || rawStatus === "on_going";
   const step4Color = rawStatus === "driver_assigned" ? "blue" : "yellow";
-  const step4Label = rawStatus === "on_going" ? "In Progress" : "Terjadwal";
+  const step4Label = rawStatus === "on_going" ? "Sedang Berjalan" : "Terjadwal";
   const step4Icon = rawStatus === "on_going" ? "hourglass_empty" : "schedule";
 
   // 6. Selesai
@@ -90,7 +90,7 @@ function getStatusConfig(rawStatus: string) {
   switch (rawStatus) {
     case "submitted":
       return {
-        label: "Submitted",
+        label: "Diajukan",
         color: "bg-[#e0f2fe] text-[#0369a1]",
       };
     case "approved_department":
@@ -115,22 +115,22 @@ function getStatusConfig(rawStatus: string) {
       };
     case "on_going":
       return {
-        label: "In Progress",
+        label: "Sedang Berjalan",
         color: "bg-[#fef9c3] text-[#854d0e]",
       };
     case "completed":
       return {
-        label: "Completed",
+        label: "Selesai",
         color: "bg-[#dcfce7] text-[#15803d] border border-[#bbf7d0]",
       };
     case "rejected":
       return {
-        label: "Rejected",
+        label: "Ditolak",
         color: "bg-[#fef2f2] text-[#dc2626]",
       };
     default:
       return {
-        label: rawStatus || "Pending",
+        label: rawStatus || "Menunggu",
         color: "bg-[#fef9c3] text-[#854d0e]",
       };
   }
@@ -356,19 +356,19 @@ export default function MyRequestsPage() {
 
     if (!matchSearch) return false;
 
-    if (statusFilter === "All Status") {
+    if (statusFilter === "All Status" || statusFilter === "Semua Status") {
       return !["completed", "rejected", "cancelled"].includes(r.rawStatus);
     }
-    if (statusFilter === "In Progress") {
+    if (statusFilter === "In Progress" || statusFilter === "Sedang Berjalan") {
       return ["on_going", "driver_assigned", "approved_hrd_ga", "approved_hrd"].includes(r.rawStatus);
     }
-    if (statusFilter === "Pending") {
+    if (statusFilter === "Pending" || statusFilter === "Menunggu") {
       return ["submitted", "approved_department", "waiting_driver", "assigned_by_ga"].includes(r.rawStatus);
     }
-    if (statusFilter === "Completed") {
+    if (statusFilter === "Completed" || statusFilter === "Selesai") {
       return r.rawStatus === "completed";
     }
-    if (statusFilter === "Rejected") {
+    if (statusFilter === "Rejected" || statusFilter === "Ditolak") {
       return ["rejected", "cancelled"].includes(r.rawStatus);
     }
     return true;
@@ -455,11 +455,11 @@ export default function MyRequestsPage() {
 
   return (
     <Layout
-      activeNav="My Requests"
-      topbarTitle="My Requests"
-      userName={user?.name || "Andi Sullivan"}
-      userRole={user?.role === "approver" ? "Manager Approver" : "Employee"}
-      searchPlaceholder="Search requests, vehicles..."
+      activeNav="Permohonan Saya"
+      topbarTitle="Permohonan Saya"
+      userName={user?.name || "Karyawan"}
+      userRole={user?.role === "approver" ? "Manager Approver" : "Karyawan"}
+      searchPlaceholder="Pencarian cepat..."
       searchValue={search}
       onSearchChange={setSearch}
     >
@@ -467,24 +467,24 @@ export default function MyRequestsPage() {
         {/* Header */}
         <div data-guide="my-requests" className="flex items-start justify-between">
           <div>
-            <h2 className="text-[26px] font-bold text-[#0f172a]">My Requests</h2>
-            <p className="text-[13px] text-[#64748b] mt-1">Monitor operational vehicle requests, approvals, driver assignments, and progress.</p>
+            <h2 className="text-[26px] font-bold text-[#0f172a]">Permohonan Saya</h2>
+            <p className="text-[13px] text-[#64748b] mt-1">Pantau status permohonan kendaraan operasional, persetujuan atasan, penugasan driver, dan riwayat perjalanan Anda.</p>
           </div>
           <button
             onClick={() => navigate("/employee/createrequest")}
             className="flex items-center gap-2 h-10 px-5 bg-[#0f2a5e] hover:bg-[#1e3a8a] text-white rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
           >
-            <Icon name="add" className="text-[17px]" /> Create Request
+            <Icon name="add" className="text-[17px]" /> Buat Permohonan
           </button>
         </div>
 
         {/* Stat Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { icon: "receipt_long", iconBg: "bg-[#e5eeff]", iconColor: "text-[#00236f]", value: String(totalCount), label: "Total Requests", sub: "Across all time" },
-            { icon: "pending_actions", iconBg: "bg-[#ffd9d5]", iconColor: "text-[#ba1a1a]", value: String(pendingCount), label: "Pending Approval", sub: "Action required", live: pendingCount > 0 },
-            { icon: "commute", iconBg: "bg-[#e5eeff]", iconColor: "text-[#4059aa]", value: String(activeCount), label: "Active Requests", sub: "Currently en route", active: activeCount > 0 },
-            { icon: "check_circle", iconBg: "bg-emerald-50 border border-emerald-100", iconColor: "text-emerald-600", value: String(completedCount), label: "Completed Requests", sub: "Successfully closed" },
+            { icon: "receipt_long", iconBg: "bg-[#e5eeff]", iconColor: "text-[#00236f]", value: String(totalCount), label: "Total Permohonan", sub: "Semua pengajuan" },
+            { icon: "pending_actions", iconBg: "bg-[#ffd9d5]", iconColor: "text-[#ba1a1a]", value: String(pendingCount), label: "Menunggu Persetujuan", sub: "Memerlukan tindakan", live: pendingCount > 0 },
+            { icon: "commute", iconBg: "bg-[#e5eeff]", iconColor: "text-[#4059aa]", value: String(activeCount), label: "Permohonan Aktif", sub: "Sedang dalam tugas", active: activeCount > 0 },
+            { icon: "check_circle", iconBg: "bg-emerald-50 border border-emerald-100", iconColor: "text-emerald-600", value: String(completedCount), label: "Permohonan Selesai", sub: "Perjalanan selesai" },
           ].map((c, i) => (
             <div key={i} className="bg-white rounded-2xl p-5 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
               <div className="flex items-center justify-between mb-3">
@@ -506,18 +506,22 @@ export default function MyRequestsPage() {
           <div className="relative w-full sm:flex-1 sm:max-w-sm">
             <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[17px]" />
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Filter by title, ID, or driver..."
+              placeholder="Cari keperluan, ID, atau driver..."
               className="w-full h-10 pl-9 pr-4 border border-[#e2e8f0] bg-white rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all" />
           </div>
           <select value={statusFilter} onChange={e => setStatus(e.target.value)}
             className="h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[13px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 appearance-none pr-8">
-            {["All Status", "In Progress", "Pending"].map(s => <option key={s}>{s}</option>)}
+            <option value="All Status">Semua Status Aktif</option>
+            <option value="In Progress">Sedang Berjalan</option>
+            <option value="Pending">Menunggu Persetujuan</option>
+            <option value="Completed">Selesai</option>
+            <option value="Rejected">Ditolak / Batal</option>
           </select>
           <button className="h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
-            <Icon name="calendar_today" className="text-[15px]" />Select Date Range
+            <Icon name="calendar_today" className="text-[15px]" />Pilih Rentang Tanggal
           </button>
           <button className="h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
-            <Icon name="sort" className="text-[15px]" />Sort
+            <Icon name="sort" className="text-[15px]" />Urutkan
           </button>
         </div>
 
@@ -576,11 +580,11 @@ export default function MyRequestsPage() {
                           {r.rawStatus === "on_going" && (
                             <span className="text-[10px] font-bold text-[#4059aa] flex items-center gap-1">
                               <span className="w-1.5 h-1.5 rounded-full bg-[#4059aa] animate-pulse" />
-                              IN PROGRESS
+                              SEDANG BERJALAN
                             </span>
                           )}
                         </div>
-                        <h4 className="text-[16px] font-bold text-[#0f172a]">{r.purpose || "Vehicle Request"}</h4>
+                        <h4 className="text-[16px] font-bold text-[#0f172a]">{r.purpose || "Permohonan Kendaraan"}</h4>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1.5 mt-2 text-[12.5px] text-[#64748b] flex-wrap">
                           <span className="flex items-center gap-1.5 whitespace-nowrap"><Icon name="location_on" className="text-[14px]" />{r.destination}</span>
                           <span className="flex items-center gap-1.5 whitespace-nowrap"><Icon name="schedule" className="text-[14px]" />{formatDateTime(r.startTime || (r.date + " " + r.time))}</span>
@@ -607,7 +611,7 @@ export default function MyRequestsPage() {
                               title="Batalkan Pengajuan Ini"
                             >
                               <Icon name={r.rawStatus === "rejected" ? "delete" : "cancel"} className="text-[14px]" />
-                              {r.rawStatus === "rejected" ? "Hapus" : "Batalkan Request"}
+                              {r.rawStatus === "rejected" ? "Hapus" : "Batalkan Permohonan"}
                             </button>
                           )}
                           <button
@@ -623,7 +627,7 @@ export default function MyRequestsPage() {
                             }}
                             className="text-[12px] font-bold text-[#00236f] border border-[#00236f]/20 px-3 py-1.5 rounded-lg hover:bg-[#e5eeff] transition-colors cursor-pointer whitespace-nowrap"
                           >
-                            {isExpanded ? "Hide Detail" : "View Details"}
+                            {isExpanded ? "Tutup Detail" : "Lihat Detail"}
                           </button>
                         </div>
                       </div>
@@ -687,11 +691,11 @@ export default function MyRequestsPage() {
                       <div className="mt-4 pt-4 border-t border-[#f1f5f9] animate-fadeup space-y-4">
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[12px]">
                           <div>
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">Request ID</div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">ID Permohonan</div>
                             <div className="font-mono font-bold text-[#00236f]">#{r.id}</div>
                           </div>
                           <div>
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">Destination</div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">Tujuan</div>
                             <div className="font-semibold text-[#0f172a]">{r.destination}</div>
                           </div>
                           <div className="col-span-2">
@@ -889,7 +893,7 @@ export default function MyRequestsPage() {
                                           it.status === 'on_going' ? 'bg-amber-100 text-amber-800 animate-pulse' :
                                           'bg-slate-100 text-slate-600'
                                         }`}>
-                                          {it.status === 'completed' ? '✓ Completed' : it.status === 'on_going' ? '⚡ On Going' : 'Scheduled'}
+                                          {it.status === 'completed' ? '✓ Selesai' : it.status === 'on_going' ? '⚡ Sedang Berjalan' : 'Terjadwal'}
                                         </span>
                                       </div>
                                     );
@@ -938,7 +942,7 @@ export default function MyRequestsPage() {
                             </div>
                           )}
                           <div>
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">Passengers</div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">Penumpang</div>
                             <div className="font-semibold text-[#0f172a] space-y-2 mt-1">
                               {r.passengers && r.passengers.length > 0 ? (
                                 r.passengers.map((p: any, idx: number) => (
@@ -957,7 +961,7 @@ export default function MyRequestsPage() {
                             </div>
                           </div>
                           <div>
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">Purpose</div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">Keperluan</div>
                             <div className="font-semibold text-[#0f172a] truncate" title={r.purpose}>{r.purpose || "-"}</div>
                           </div>
                         </div>
@@ -980,7 +984,7 @@ export default function MyRequestsPage() {
 
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[12px] pt-2 border-t border-[#f1f5f9] mt-2">
                           <div>
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">Notes</div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] mb-1">Catatan</div>
                             <div className="font-semibold text-[#0f172a] truncate" title={r.notes}>{r.notes || "-"}</div>
                           </div>
                           <div className="col-span-3">
@@ -1047,7 +1051,7 @@ export default function MyRequestsPage() {
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-4 pt-4 border-t border-[#f1f5f9]">
                           <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto">
                             <button className="min-h-[38px] px-3.5 bg-[#0f2a5e] text-white rounded-xl text-[11.5px] sm:text-[12px] font-bold hover:bg-[#1e3a8a] transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs">
-                              <Icon name="track_changes" className="text-[15px]" /> Track Real-time
+                              <Icon name="track_changes" className="text-[15px]" /> Lacak Real-time
                             </button>
                             {r.is_external && (r.external_trip_type === "one_way" || !r.is_return_to_factory) && (r.rawStatus === "on_going" || (!!r.security_checked_out_at && !r.security_checked_in_at)) && r.rawStatus !== "completed" && (
                               <button
@@ -1064,7 +1068,7 @@ export default function MyRequestsPage() {
                                 onClick={() => setContactDriverModal({ isOpen: true, request: r })}
                                 className="min-h-[38px] px-3.5 border border-[#e2e8f0] text-[#475569] bg-white rounded-xl text-[11.5px] sm:text-[12px] font-bold hover:bg-[#f8fafc] transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs"
                               >
-                                <Icon name="chat" className="text-[15px]" /> Contact Driver
+                                <Icon name="chat" className="text-[15px]" /> Hubungi Driver
                               </button>
                             )}
                             {r.rawStatus === "completed" && (
@@ -1075,7 +1079,7 @@ export default function MyRequestsPage() {
                                 }`}
                               >
                                 <span>⭐</span>
-                                {r.rating ? `Rating: ${r.rating} ⭐ (Edit)` : "Beri Rating Driver"}
+                                {r.rating ? `Rating: ${r.rating} ⭐ (Ubah)` : "Beri Rating Driver"}
                               </button>
                             )}
                             {!["on_going", "completed", "cancelled"].includes(r.rawStatus) && (
@@ -1085,7 +1089,7 @@ export default function MyRequestsPage() {
                                 className="min-h-[38px] px-3.5 border border-[#fecdd3] text-[#ba1a1a] bg-[#fff1f2] rounded-xl text-[11.5px] sm:text-[12px] font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer whitespace-nowrap shadow-2xs"
                               >
                                 <Icon name={r.rawStatus === "rejected" ? "delete" : "cancel"} className="text-[15px]" />
-                                {r.rawStatus === "rejected" ? "Delete Request" : "Cancel Request"}
+                                {r.rawStatus === "rejected" ? "Hapus Permohonan" : "Batalkan Permohonan"}
                               </button>
                             )}
                           </div>
@@ -1173,8 +1177,8 @@ export default function MyRequestsPage() {
         {filtered.length > 0 && (
           <div className="flex items-center justify-between pb-4">
             <span className="text-[12px] text-[#94a3b8]">
-              Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filtered.length)}-
-              {Math.min(currentPage * itemsPerPage, filtered.length)} of {filtered.length} requests
+              Menampilkan {Math.min((currentPage - 1) * itemsPerPage + 1, filtered.length)}-
+              {Math.min(currentPage * itemsPerPage, filtered.length)} dari {filtered.length} permohonan
             </span>
             <div className="flex items-center gap-1.5">
               <button

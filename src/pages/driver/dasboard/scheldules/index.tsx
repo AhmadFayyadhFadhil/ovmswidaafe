@@ -76,9 +76,9 @@ export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePa
             className="w-full h-11 pl-3.5 pr-9 bg-white border border-[#e2e8f0] rounded-xl text-[13px] font-bold text-[#475569] outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-[#1e3a8a]/20 shadow-2xs transition-all"
           >
             <option value="All Statuses">Semua Status</option>
-            <option value="Completed">Completed (Selesai)</option>
-            <option value="Cancelled">Cancelled (Batal)</option>
-            <option value="Rejected">Rejected (Ditolak)</option>
+            <option value="Completed">Selesai</option>
+            <option value="Cancelled">Dibatalkan</option>
+            <option value="Rejected">Ditolak</option>
           </select>
           <Icon name="expand_more" className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[20px] pointer-events-none" />
         </div>
@@ -91,7 +91,7 @@ export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePa
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
-                <th className="px-5 py-4 w-[110px]">Trip ID</th>
+                <th className="px-5 py-4 w-[110px]">ID Perjalanan</th>
                 <th className="px-4 py-4 w-[160px]">Tanggal & Waktu</th>
                 <th className="px-4 py-4 min-w-[180px]">Penumpang</th>
                 <th className="px-4 py-4 min-w-[240px]">Armada Kendaraan</th>
@@ -110,27 +110,28 @@ export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePa
                   ? "bg-slate-100 text-slate-600 border-slate-200"
                   : "bg-red-50 text-red-700 border-red-200";
 
+                const indoStatus = isCompleted ? "Selesai" : isCancelled ? "Dibatalkan" : trip.status.toLowerCase().includes("reject") ? "Ditolak" : trip.status;
+
                 return (
-                  <tr
-                    key={trip.id}
-                    className="hover:bg-blue-50/40 transition-colors group"
-                  >
+                  <tr key={trip.id} className="hover:bg-slate-50/80 transition-colors">
                     {/* Trip ID */}
                     <td className="px-5 py-4 whitespace-nowrap">
-                      <span className="font-mono text-[12px] font-bold text-[#1e3a8a] bg-[#eff4ff] border border-[#dbeafe] px-2.5 py-1 rounded-lg">
+                      <span className="font-mono text-xs font-bold text-[#1e3a8a] bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-lg inline-block">
                         {trip.tripId}
                       </span>
                     </td>
 
-                    {/* Date & Time */}
+                    {/* Datetime */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <span className="text-slate-700 font-medium">{trip.datetime}</span>
+                      <span className="font-semibold text-slate-700 block">
+                        {trip.datetime}
+                      </span>
                     </td>
 
                     {/* Passenger */}
                     <td className="px-4 py-4">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-[#eff4ff] text-[#1e3a8a] border border-[#dbeafe] flex items-center justify-center font-bold text-[11px] shrink-0">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-[#eef2ff] text-[#1e3a8a] border border-[#dbeafe] flex items-center justify-center font-bold text-xs shrink-0">
                           {getInitials(trip.passenger)}
                         </div>
                         <div className="min-w-0">
@@ -144,14 +145,14 @@ export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePa
                     {/* Vehicle Type */}
                     <td className="px-4 py-4">
                       <div className="text-slate-700 font-medium max-w-[320px] truncate" title={trip.vehicleType}>
-                        {trip.vehicleType || "Not Assigned"}
+                        {trip.vehicleType || "Belum Ditugaskan"}
                       </div>
                     </td>
 
                     {/* Status */}
                     <td className="px-4 py-4 whitespace-nowrap text-center">
                       <span className={`text-[10.5px] font-extrabold border px-3 py-1 rounded-full uppercase tracking-wide inline-block ${badgeClass}`}>
-                        {trip.status}
+                        {indoStatus}
                       </span>
                     </td>
 
@@ -161,7 +162,7 @@ export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePa
                         onClick={() => onViewDetail(trip.id)}
                         className="text-[12px] font-bold text-[#1e3a8a] hover:text-[#1d4ed8] bg-slate-100 hover:bg-[#eff4ff] hover:border-[#bfdbfe] border border-transparent px-3 py-1.5 rounded-xl transition-all cursor-pointer inline-block"
                       >
-                        View Detail
+                        Lihat Detail
                       </button>
                     </td>
                   </tr>
@@ -182,6 +183,8 @@ export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePa
               ? "bg-slate-100 text-slate-600 border-slate-200"
               : "bg-red-50 text-red-700 border-red-200";
 
+            const indoStatus = isCompleted ? "Selesai" : isCancelled ? "Dibatalkan" : trip.status.toLowerCase().includes("reject") ? "Ditolak" : trip.status;
+
             return (
               <div key={trip.id} className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -189,7 +192,7 @@ export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePa
                     {trip.tripId}
                   </span>
                   <span className={`text-[10px] font-bold border px-2.5 py-0.5 rounded-full uppercase tracking-wide ${badgeClass}`}>
-                    {trip.status}
+                    {indoStatus}
                   </span>
                 </div>
 
@@ -204,14 +207,14 @@ export default function TripSchedulePage({ trips, onViewDetail }: TripSchedulePa
                 </div>
 
                 <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs text-slate-700">
-                  <span className="font-medium truncate block">{trip.vehicleType || "Not Assigned"}</span>
+                  <span className="font-medium truncate block">{trip.vehicleType || "Belum Ditugaskan"}</span>
                 </div>
 
                 <button
                   onClick={() => onViewDetail(trip.id)}
                   className="w-full py-2.5 rounded-xl bg-[#eef2ff] text-[#1e3a8a] text-[12px] font-bold hover:bg-[#dbeafe] transition active:scale-95 cursor-pointer text-center block"
                 >
-                  View Detail
+                  Lihat Detail
                 </button>
               </div>
             );

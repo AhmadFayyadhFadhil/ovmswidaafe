@@ -80,7 +80,7 @@ export default function SecurityHistoryPage() {
   };
 
   return (
-    <Layout activeNav="Scan History" topbarTitle="Security Portal">
+    <Layout activeNav="Riwayat" topbarTitle="Portal Keamanan">
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         
         {/* Header Section */}
@@ -287,7 +287,7 @@ export default function SecurityHistoryPage() {
                                   trip.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
                                   trip.status === 'on_going' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
                                 }`}>
-                                  {trip.status === 'completed' ? 'Selesai' : trip.status === 'on_going' ? 'Sedang Jalan' : 'Scheduled'}
+                                  {trip.status === 'completed' ? 'Selesai' : trip.status === 'on_going' ? 'Sedang Jalan' : 'Terjadwal'}
                                 </span>
                               </div>
 

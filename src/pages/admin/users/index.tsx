@@ -12,6 +12,12 @@ const statusStyle: Record<string, string> = {
   SUSPENDED: "bg-[#fee2e2] text-[#991b1b]"
 };
 
+const statusDisplayMap: Record<string, string> = {
+  ACTIVE: "AKTIF",
+  INACTIVE: "NONAKTIF",
+  SUSPENDED: "DITANGGUHKAN"
+};
+
 export default function User({ onNavigate }: { onNavigate?: (p: string) => void }) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -21,7 +27,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
   const [roleFilter, setRoleFilter] = useState("All Roles");
 
   const mapDeptToCategory = (dept: string) => {
-    if (dept === "All Departments") return undefined;
+    if (dept === "All Departments" || dept === "Semua Departemen") return undefined;
     return dept.toUpperCase();
   };
 
@@ -32,7 +38,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
       per_page: PAGE_SIZE,
       search: search || undefined,
       category: mapDeptToCategory(deptFilter),
-      role: roleFilter === "All Roles" ? undefined : roleFilter
+      role: (roleFilter === "All Roles" || roleFilter === "Semua Peran") ? undefined : roleFilter
     }),
     true,
     [currentPage, search, deptFilter, roleFilter]
@@ -319,26 +325,26 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
 
   return (
     <Layout
-      activeNav="User Management"
+      activeNav="Manajemen Pengguna"
       onNavigate={onNavigate}
-      topbarTitle="User Management"
-      searchPlaceholder="Search users..."
+      topbarTitle="Manajemen Pengguna"
+      searchPlaceholder="Cari pengguna..."
       userRole="Administrator"
     >
       <div className="p-4 sm:p-6 space-y-5 animate-fadein">
         {/* Header */}
         <div data-guide="admin-users-table" className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-[26px] font-bold text-[#0f172a]">User Management</h2>
-            <p className="text-[13px] text-[#64748b] mt-1">Manage employees, drivers, approvers, and administrator access.</p>
+            <h2 className="text-[26px] font-bold text-[#0f172a]">Manajemen Pengguna</h2>
+            <p className="text-[13px] text-[#64748b] mt-1">Kelola data karyawan, driver, approver, dan hak akses administrator.</p>
           </div>
           <div className="flex gap-2.5 flex-shrink-0">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 h-10 px-5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold shadow-sm active:scale-95 transition-all"
+              className="flex items-center gap-2 h-10 px-5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold shadow-sm active:scale-95 transition-all cursor-pointer"
             >
               <Icon name="add" className="text-[17px]" />
-              Add User
+              Tambah Pengguna
             </button>
           </div>
         </div>
@@ -346,16 +352,16 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { label: "Total Users", value: totalUsersCount, icon: "groups", bg: "bg-[#e8edf8]", color: "text-[#1e3a8a]" },
-            { label: "Drivers", value: driversCount,        icon: "directions_car", bg: "bg-[#e0f2fe]", color: "text-[#0369a1]" },
-            { label: "Approvers", value: approversCount,    icon: "approval", bg: "bg-[#fef3c7]", color: "text-[#d97706]" },
+            { label: "Total Pengguna", value: totalUsersCount, icon: "groups", bg: "bg-[#e8edf8]", color: "text-[#1e3a8a]" },
+            { label: "Driver", value: driversCount,        icon: "directions_car", bg: "bg-[#e0f2fe]", color: "text-[#0369a1]" },
+            { label: "Approver", value: approversCount,    icon: "approval", bg: "bg-[#fef3c7]", color: "text-[#d97706]" },
           ].map(c => (
             <div key={c.label} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between mb-2">
                 <div className={`w-9 h-9 ${c.bg} rounded-xl flex items-center justify-center`}>
                   <Icon name={c.icon} className={`${c.color} text-[18px]`} />
                 </div>
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full $`}></span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full`}></span>
               </div>
               <div className="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8] mt-1">{c.label}</div>
               <div className="text-[22px] font-bold text-[#0f172a] leading-tight">{loading ? "..." : c.value}</div>
@@ -366,23 +372,23 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
         {/* Employee Table */}
         <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-[#f1f5f9] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h3 className="text-[16px] font-bold text-[#0f172a]">All Employees</h3>
+            <h3 className="text-[16px] font-bold text-[#0f172a]">Daftar Semua Pengguna</h3>
             <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
               <div className="relative">
                 <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[15px]" />
                 <input
                   value={search}
                   onChange={e => handleSearchChange(e.target.value)}
-                  placeholder="Search..."
+                  placeholder="Cari pengguna..."
                   className="h-8 pl-9 pr-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 w-full sm:w-48"
                 />
               </div>
               <select
                 value={deptFilter}
                 onChange={e => handleDeptFilter(e.target.value)}
-                className="h-8 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
+                className="h-8 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
               >
-                <option value="All Departments">All Departments</option>
+                <option value="All Departments">Semua Departemen</option>
                 {departments.map(d => (
                   <option key={d.id} value={d.name}>{d.name}</option>
                 ))}
@@ -391,27 +397,27 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
               <select
                 value={roleFilter}
                 onChange={e => { setRoleFilter(e.target.value); setCurrentPage(1); }}
-                className="h-8 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
+                className="h-8 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
               >
-                <option>All Roles</option>
-                <option>Admin</option>
-                <option>GA</option>
-                <option>Approver</option>
-                <option>Employee</option>
-                <option>Driver</option>
+                <option value="All Roles">Semua Peran</option>
+                <option value="Admin">Administrator</option>
+                <option value="GA">GA / HRD</option>
+                <option value="Approver">Approver</option>
+                <option value="Employee">Karyawan</option>
+                <option value="Driver">Driver</option>
               </select>
             </div>
           </div>
           {loading ? (
-            <div className="p-8 text-center text-[14px] text-[#64748b]">Loading users...</div>
+            <div className="p-8 text-center text-[14px] text-[#64748b]">Memuat data pengguna...</div>
           ) : error ? (
-            <div className="p-8 text-center text-[14px] text-red-500">Failed to load users data.</div>
+            <div className="p-8 text-center text-[14px] text-red-500">Gagal memuat data pengguna.</div>
           ) : (
           <div data-guide="admin-users-table" className="overflow-x-auto">
           <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="bg-[#f8fafc]">
-                  {["ID", "NIK", "FULL NAME", "EMAIL", "DEPARTMENT", "ROLE", "STATUS", "LAST LOGIN", "ACTIONS"].map(h => (
+                  {["ID", "NIK", "NAMA LENGKAP", "EMAIL", "DEPARTEMEN", "PERAN", "STATUS", "LOGIN TERAKHIR", "AKSI"].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
@@ -435,20 +441,22 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                     <td className="px-4 py-3.5 text-[13px] text-[#475569]">{e.department}</td>
                     <td className="px-4 py-3.5 text-[13px] text-[#475569]">{e.roleName}</td>
                     <td className="px-4 py-3.5">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusStyle[e.status]}`}>{e.status}</span>
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusStyle[e.status]}`}>{statusDisplayMap[e.status] || e.status}</span>
                     </td>
                     <td className="px-4 py-3.5 text-[12px] text-[#475569]">{e.lastLogin}</td>
                     <td className="px-4 py-3.5 text-right">
                       <div className="flex gap-2 justify-end">
                         <button
                           onClick={() => handleEditClick(e)}
-                          className="flex items-center gap-2 h-8 px-3 bg-white border border-[#e2e8f0] rounded-lg text-[12px] text-[#475569] hover:bg-[#f8fafc]"
+                          className="flex items-center gap-2 h-8 px-3 bg-white border border-[#e2e8f0] rounded-lg text-[12px] text-[#475569] hover:bg-[#f8fafc] cursor-pointer"
+                          title="Edit Pengguna"
                         >
                           <Icon name="edit" className="text-[15px]" />
                         </button>
                         <button
                           onClick={() => handleOpenDeleteModal(e)}
-                          className="flex items-center gap-2 h-8 px-3 bg-white border border-[#e2e8f0] rounded-lg text-[12px] text-[#dc2626] hover:bg-[#fee2e2]"
+                          className="flex items-center gap-2 h-8 px-3 bg-white border border-[#e2e8f0] rounded-lg text-[12px] text-[#dc2626] hover:bg-[#fee2e2] cursor-pointer"
+                          title="Hapus Pengguna"
                         >
                           <Icon name="delete" className="text-[15px]" />
                         </button>
@@ -463,7 +471,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
           {pagination.lastPage > 1 && (
             <div className="px-5 py-3 border-t border-[#f1f5f9] flex items-center justify-between bg-[#fafbfc]">
               <span className="text-[12px] text-[#94a3b8]">
-                Showing <b>{pagination.from ?? 0}–{pagination.to ?? 0}</b> of <b>{pagination.total}</b> entries
+                Menampilkan <b>{pagination.from ?? 0}–{pagination.to ?? 0}</b> dari <b>{pagination.total}</b> data
               </span>
               <div className="flex items-center gap-1.5">
                 <button
@@ -507,7 +515,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                   { label: "Total Semua Pengguna", value: totalUsersCount, color: "bg-[#1e3a8a]", pct: 100 },
                   { label: "Driver", value: driversCount, color: "bg-[#0369a1]", pct: totalUsersCount ? Math.round((driversCount / totalUsersCount) * 100) : 0 },
                   { label: "Approver", value: approversCount, color: "bg-[#d97706]", pct: totalUsersCount ? Math.round((approversCount / totalUsersCount) * 100) : 0 },
-                  { label: "Employee", value: list.filter(u => u.roleName === "Employee").length, color: "bg-[#16a34a]", pct: totalUsersCount ? Math.round((list.filter(u => u.roleName === "Employee").length / totalUsersCount) * 100) : 0 },
+                  { label: "Karyawan", value: list.filter(u => u.roleName === "Employee").length, color: "bg-[#16a34a]", pct: totalUsersCount ? Math.round((list.filter(u => u.roleName === "Employee").length / totalUsersCount) * 100) : 0 },
                 ].map(item => (
                   <div key={item.label}>
                     <div className="flex justify-between text-[12px] mb-1">
@@ -528,13 +536,13 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
             <p className="text-[12px] text-[#93c5fd] mb-4">Kelola hak akses dan pemetaan departemen untuk setiap role pengguna.</p>
             <div className="space-y-2.5">
               {[
-                { label: "Kelola Permissions", icon: "admin_panel_settings", path: "/admin/roles" },
-                { label: "Audit Logs", icon: "history", path: "/admin/audit" },
+                { label: "Kelola Peran & Hak Akses", icon: "admin_panel_settings", path: "/admin/roles" },
+                { label: "Log Audit", icon: "history", path: "/admin/audit" },
               ].map(item => (
                 <button
                   key={item.label}
                   onClick={() => navigate(item.path)}
-                  className="w-full flex items-center justify-between bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-4 py-3 rounded-xl text-[13px] font-semibold transition-all active:scale-[0.98]"
+                  className="w-full flex items-center justify-between bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-4 py-3 rounded-xl text-[13px] font-semibold transition-all active:scale-[0.98] cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
                     <Icon name={item.icon} className="text-[18px]" />
@@ -554,8 +562,8 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
           <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden border border-[#e2e8f0] shadow-2xl flex flex-col">
             {/* Header */}
             <div className="px-6 py-4 border-b border-[#f1f5f9] flex justify-between items-center bg-[#f8fafc]">
-              <h3 className="text-[16px] font-bold text-[#0f172a]">Add New User</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-[#94a3b8] hover:text-[#64748b]">
+              <h3 className="text-[16px] font-bold text-[#0f172a]">Tambah Pengguna Baru</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-[#94a3b8] hover:text-[#64748b] cursor-pointer">
                 <Icon name="close" className="text-[20px]" />
               </button>
             </div>
@@ -570,23 +578,23 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">NIK (Employee ID)</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">NIK (Nomor Induk Karyawan)</label>
                   <input
                     type="text"
                     value={formData.nik}
                     onChange={e => setFormData({ ...formData, nik: e.target.value })}
-                    placeholder="e.g. 1393"
+                    placeholder="cth. 1393"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Full Name</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nama Lengkap</label>
                   <input
                     type="text"
                     required
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g. John Doe"
+                    placeholder="cth. Budi Santoso"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
@@ -594,13 +602,13 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Email Address</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Alamat Email</label>
                   <input
                     type="email"
                     required
                     value={formData.email}
                     onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="e.g. john@ovms.test"
+                    placeholder="cth. budi@ovms.test"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
@@ -608,37 +616,45 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Password</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Kata Sandi</label>
                   <input
                     type="password"
                     required
                     value={formData.password}
                     onChange={e => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="Min. 6 characters"
+                    placeholder="Min. 6 karakter"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">System Role</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Peran Sistem</label>
                   <select
                     value={formData.role}
                     onChange={e => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
+                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
                   >
-                    {["Employee", "Approver", "Driver", "Driver Coordinator", "GA", "Security", "Admin"].map(r => <option key={r} value={r}>{r}</option>)}
+                    {[
+                      { value: "Employee", label: "Karyawan (Employee)" },
+                      { value: "Approver", label: "Approver (Penyetuju)" },
+                      { value: "Driver", label: "Driver (Pengemudi)" },
+                      { value: "Driver Coordinator", label: "Koordinator Driver" },
+                      { value: "GA", label: "GA / HRD" },
+                      { value: "Security", label: "Petugas Keamanan (Security)" },
+                      { value: "Admin", label: "Administrator (Admin)" },
+                    ].map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                 </div>
               </div>
 
               {formData.role === "Approver" && (
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Rank (Approver Title)</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Jabatan Approver (Rank)</label>
                   <input
                     type="text"
                     required
                     value={formData.rank}
                     onChange={e => setFormData({ ...formData, rank: e.target.value })}
-                    placeholder="e.g. Department Head, Director"
+                    placeholder="cth. Kepala Bagian, Direktur"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
@@ -646,11 +662,11 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Department</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Departemen</label>
                   <select
                     value={formData.department}
                     onChange={e => setFormData({ ...formData, department: e.target.value })}
-                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
+                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
                   >
                     <option value="">Pilih Departemen</option>
                     {departments.map(d => (
@@ -666,7 +682,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                       onChange={e => setFormData({ ...formData, isDepartmentHead: e.target.checked })}
                       className="w-4 h-4 text-[#1e3a8a] border-[#e2e8f0] rounded focus:ring-[#1e3a8a]/20"
                     />
-                    <span className="text-[12px] font-semibold text-[#475569]">Is Department Head</span>
+                    <span className="text-[12px] font-semibold text-[#475569]">Kepala Departemen (Department Head)</span>
                   </label>
                 </div>
               </div>
@@ -725,7 +741,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                       />
                       <label htmlFor="user-sim-upload" className="cursor-pointer h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
                         <Icon name="upload" className="text-[16px]" />
-                        Upload Foto SIM
+                        Unggah Foto SIM
                       </label>
                       {simPreview && (
                         <img src={simPreview} alt="SIM Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0]" />
@@ -739,16 +755,16 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[13px] font-bold text-[#475569] transition-colors"
+                  className="h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[13px] font-bold text-[#475569] transition-colors cursor-pointer"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
                   disabled={addClicked}
-                  className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50"
+                  className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  {addClicked ? "Adding..." : "Add User"}
+                  {addClicked ? "Menambahkan..." : "Tambah Pengguna"}
                 </button>
               </div>
             </form>
@@ -761,8 +777,8 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
           <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden border border-[#e2e8f0] shadow-2xl flex flex-col">
             {/* Header */}
             <div className="px-6 py-4 border-b border-[#f1f5f9] flex justify-between items-center bg-[#f8fafc]">
-              <h3 className="text-[16px] font-bold text-[#0f172a]">Edit User</h3>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-[#94a3b8] hover:text-[#64748b]">
+              <h3 className="text-[16px] font-bold text-[#0f172a]">Edit Pengguna</h3>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-[#94a3b8] hover:text-[#64748b] cursor-pointer">
                 <Icon name="close" className="text-[20px]" />
               </button>
             </div>
@@ -777,23 +793,23 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">NIK (Employee ID)</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">NIK (Nomor Induk Karyawan)</label>
                   <input
                     type="text"
                     value={editFormData.nik}
                     onChange={e => setEditFormData({ ...editFormData, nik: e.target.value })}
-                    placeholder="e.g. 1393"
+                    placeholder="cth. 1393"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Full Name</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nama Lengkap</label>
                   <input
                     type="text"
                     required
                     value={editFormData.name}
                     onChange={e => setEditFormData({ ...editFormData, name: e.target.value })}
-                    placeholder="e.g. John Doe"
+                    placeholder="cth. Budi Santoso"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
@@ -801,13 +817,13 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Email Address</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Alamat Email</label>
                   <input
                     type="email"
                     required
                     value={editFormData.email}
                     onChange={e => setEditFormData({ ...editFormData, email: e.target.value })}
-                    placeholder="e.g. john@ovms.test"
+                    placeholder="cth. budi@ovms.test"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
@@ -815,36 +831,44 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">New Password (Optional)</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Kata Sandi Baru (Opsional)</label>
                   <input
                     type="password"
                     value={editFormData.password}
                     onChange={e => setEditFormData({ ...editFormData, password: e.target.value })}
-                    placeholder="Leave empty to keep current"
+                    placeholder="Kosongkan jika tidak ingin mengubah"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">System Role</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Peran Sistem</label>
                   <select
                     value={editFormData.role}
                     onChange={e => setEditFormData({ ...editFormData, role: e.target.value })}
-                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
+                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
                   >
-                    {["Employee", "Approver", "Driver", "Driver Coordinator", "GA", "Security", "Admin"].map(r => <option key={r} value={r}>{r}</option>)}
+                    {[
+                      { value: "Employee", label: "Karyawan (Employee)" },
+                      { value: "Approver", label: "Approver (Penyetuju)" },
+                      { value: "Driver", label: "Driver (Pengemudi)" },
+                      { value: "Driver Coordinator", label: "Koordinator Driver" },
+                      { value: "GA", label: "GA / HRD" },
+                      { value: "Security", label: "Petugas Keamanan (Security)" },
+                      { value: "Admin", label: "Administrator (Admin)" },
+                    ].map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                 </div>
               </div>
 
               {editFormData.role === "Approver" && (
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Rank (Approver Title)</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Jabatan Approver (Rank)</label>
                   <input
                     type="text"
                     required
                     value={editFormData.rank}
                     onChange={e => setEditFormData({ ...editFormData, rank: e.target.value })}
-                    placeholder="e.g. Department Head, Director"
+                    placeholder="cth. Kepala Bagian, Direktur"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
@@ -852,11 +876,11 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Department</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Departemen</label>
                   <select
                     value={editFormData.department}
                     onChange={e => setEditFormData({ ...editFormData, department: e.target.value })}
-                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
+                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
                   >
                     <option value="">Pilih Departemen</option>
                     {departments.map(d => (
@@ -872,7 +896,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                       onChange={e => setEditFormData({ ...editFormData, isDepartmentHead: e.target.checked })}
                       className="w-4 h-4 text-[#1e3a8a] border-[#e2e8f0] rounded focus:ring-[#1e3a8a]/20"
                     />
-                    <span className="text-[12px] font-semibold text-[#475569]">Is Department Head</span>
+                    <span className="text-[12px] font-semibold text-[#475569]">Kepala Departemen (Department Head)</span>
                   </label>
                 </div>
               </div>
@@ -931,7 +955,7 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                       />
                       <label htmlFor="edit-user-sim-upload" className="cursor-pointer h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
                         <Icon name="upload" className="text-[16px]" />
-                        Upload Foto SIM
+                        Unggah Foto SIM
                       </label>
                       {editSimPreview && (
                         <img src={editSimPreview} alt="SIM Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0]" />
@@ -945,16 +969,16 @@ export default function User({ onNavigate }: { onNavigate?: (p: string) => void 
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[13px] font-bold text-[#475569] transition-colors"
+                  className="h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[13px] font-bold text-[#475569] transition-colors cursor-pointer"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
                   disabled={editClicked}
-                  className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50"
+                  className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  {editClicked ? "Saving..." : "Save Changes"}
+                  {editClicked ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
               </div>
             </form>

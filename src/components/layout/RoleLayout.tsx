@@ -17,10 +17,10 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
   const roleDisplayMap: Record<string, string> = {
     admin: "Administrator",
     gahrd: "GA & HRD",
-    approver: "Manager Approver",
+    approver: "Approver (Atasan)",
     driver: (user?.is_driver_coordinator || user?.roles?.includes('driver coordinator')) ? "Koordinator Driver" : "Driver",
-    employee: "Employee",
-    security: "Security Officer"
+    employee: "Karyawan",
+    security: "Petugas Keamanan"
   };
 
   const displayUserName = user?.name || userName || "User";
@@ -35,14 +35,14 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
 
     const isDriverCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
 
-    if (page === "Logout") {
+    if (page === "Logout" || page === "Keluar") {
       Promise.resolve(logout()).finally(() => {
         window.location.href = "/login";
       });
       return;
     }
 
-    if (page === "My Profile") {
+    if (page === "My Profile" || page === "Profil Saya" || page === "Profil") {
       navigate(`/driver/profile`);
       return;
     }
@@ -58,15 +58,20 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
           navigate("/gahrd/requests");
           break;
         case "Tugas Menyetir Saya":
+        case "Tugas Menyetir":
+        case "Tugas Saya":
         case "My Tasks":
           navigate("/driver/dashboard?tab=assignments");
           break;
         case "Jadwal & Kalender":
+        case "Kalender Jadwal":
         case "Calendar":
           navigate("/gahrd/calendar");
           break;
         case "Daftar Kendaraan":
+        case "Kendaraan Saya":
         case "Vehicle Management":
+        case "Vehicles":
           navigate("/admin/vehicles");
           break;
         case "Ketersediaan Driver":
@@ -74,10 +79,12 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
           navigate("/gahrd/driver");
           break;
         case "Riwayat Perjalanan":
+        case "Riwayat":
         case "Schedule":
         case "History":
           navigate("/driver/dashboard?tab=schedule");
           break;
+        case "Notifikasi":
         case "Notifications":
           navigate("/driver/notifications");
           break;
@@ -94,14 +101,25 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Dashboard":
           navigate("/employee/dashboard");
           break;
+        case "Buat Permohonan":
         case "Create Request":
           navigate("/employee/createrequest");
           break;
+        case "Permohonan Saya":
         case "My Requests":
           navigate("/employee/myrequests");
           break;
+        case "Riwayat":
+        case "History":
+          navigate("/employee/history");
+          break;
+        case "Notifikasi":
         case "Notifications":
           navigate("/employee/notifications");
+          break;
+        case "Profil Saya":
+        case "My Profile":
+          navigate("/employee/profile");
           break;
       }
     } else if (role === "driver") {
@@ -109,14 +127,32 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Dashboard":
           navigate("/driver/dashboard");
           break;
+        case "Tugas Saya":
+        case "My Tasks":
+          navigate("/driver/dashboard?tab=assignments");
+          break;
+        case "Kalender Jadwal":
+        case "Kalender":
+        case "Calendar":
+          navigate("/driver/dashboard?tab=calendar");
+          break;
+        case "Kendaraan Saya":
         case "My Vehicle":
           navigate("/driver/dashboard?tab=vehicle");
           break;
+        case "Riwayat":
+        case "Jadwal":
         case "Schedule":
+        case "History":
           navigate("/driver/dashboard?tab=schedule");
           break;
+        case "Notifikasi":
         case "Notifications":
           navigate("/driver/notifications");
+          break;
+        case "Profil Saya":
+        case "My Profile":
+          navigate("/driver/profile");
           break;
       }
     } else if (role === "approver") {
@@ -124,14 +160,21 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Dashboard":
           navigate("/approver/dashboard");
           break;
+        case "Menunggu Persetujuan":
         case "Pending Requests":
           navigate("/approver/requests");
           break;
+        case "Riwayat":
         case "History":
           navigate("/approver/history");
           break;
+        case "Notifikasi":
         case "Notifications":
           navigate("/approver/notifications");
+          break;
+        case "Profil Saya":
+        case "My Profile":
+          navigate("/approver/profile");
           break;
       }
     } else if (role === "gahrd") {
@@ -139,26 +182,45 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Dashboard":
           navigate("/gahrd/dashboard");
           break;
+        case "Alokasi Armada":
         case "Requests":
+        case "Fleet Requests":
           navigate("/gahrd/requests");
           break;
+        case "Manajemen Kendaraan":
         case "Vehicle Management":
           navigate("/admin/vehicles");
           break;
+        case "Ketersediaan Driver":
         case "Driver Availability":
           navigate("/gahrd/driver");
           break;
+        case "Kalender Operasional":
+        case "Jadwal & Kalender":
+        case "Calendar":
+          navigate("/gahrd/calendar");
+          break;
+        case "Riwayat":
         case "History":
           navigate("/gahrd/history");
           break;
+        case "Notifikasi":
         case "Notifications":
           navigate("/gahrd/notifications");
           break;
+        case "Manajemen Pengguna":
+        case "Aktivasi Pengguna":
         case "User Activation":
+        case "User Management":
           navigate("/gahrd/users");
           break;
+        case "Pengaturan Sistem":
         case "System Settings":
           navigate("/admin/settings");
+          break;
+        case "Profil Saya":
+        case "My Profile":
+          navigate("/gahrd/profile");
           break;
       }
     } else if (role === "security") {
@@ -166,14 +228,21 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Dashboard":
           navigate("/security/dashboard");
           break;
+        case "Riwayat Scan":
         case "Scan History":
           navigate("/security/history");
           break;
+        case "Notifikasi":
         case "Notifications":
           navigate("/security/notifications");
           break;
+        case "Log Audit":
         case "Audit Logs":
           navigate("/security/audit");
+          break;
+        case "Profil Saya":
+        case "My Profile":
+          navigate("/security/profile");
           break;
       }
     } else if (role === "admin") {
@@ -181,32 +250,47 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Dashboard":
           navigate("/admin/dashboard");
           break;
+        case "Manajemen Kendaraan":
         case "Vehicle Management":
           navigate("/admin/vehicles");
           break;
+        case "Manajemen Driver":
         case "Driver Management":
           navigate("/admin/drivers");
           break;
+        case "Monitoring Permohonan":
         case "Request Monitoring":
           navigate("/admin/requests");
           break;
+        case "Jadwal Kendaraan":
         case "Vehicle Schedule":
           navigate("/admin/schedules");
           break;
+        case "Manajemen Pengguna":
         case "User Management":
           navigate("/admin/users");
           break;
+        case "Manajemen Peran & Akses":
         case "Role Management":
           navigate("/admin/roles");
           break;
+        case "Pusat Notifikasi":
+        case "Notifikasi":
         case "Notification Center":
+        case "Notifications":
           navigate("/admin/notifications");
           break;
+        case "Log Audit":
         case "Audit Logs":
           navigate("/admin/audit");
           break;
+        case "Pengaturan Sistem":
         case "System Settings":
           navigate("/admin/settings");
+          break;
+        case "Profil Saya":
+        case "My Profile":
+          navigate("/admin/profile");
           break;
       }
     }

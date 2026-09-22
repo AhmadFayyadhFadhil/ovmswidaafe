@@ -273,24 +273,26 @@ export function RequestDetailModal({
             {/* Direct PDF Download Button */}
             <button
               onClick={() => {
+                const rawSt = String(request.rawStatus || request.status || "APPROVED").toLowerCase();
+                const idnStatus = rawSt === "completed" ? "SELESAI" : rawSt === "on_going" ? "DALAM PERJALANAN" : rawSt === "rejected" ? "DITOLAK" : rawSt === "pending" ? "MENUNGGU" : "DISETUJUI";
                 downloadItemPDF(`Surat_Tugas_REQ_${request.id}`, {
-                  "Request ID": `REQ-${request.id}`,
+                  "ID Permohonan": `REQ-${request.id}`,
                   "Nama Pemohon": `${request.employee || ''} (${request.department || ''})`,
                   "Tujuan Perjalanan": request.destination || '',
                   "Jadwal Keberangkatan": `${request.date || ''} ${request.time || '09:00'}`,
-                  "Tipe Request": Array.isArray(request.itineraries) && request.itineraries.length > 0 ? `Multi-Day (${request.itineraries.length} Hari)` : (request.is_external ? "Sewa Pihak Ke-3" : "Armada Internal"),
+                  "Tipe Permohonan": Array.isArray(request.itineraries) && request.itineraries.length > 0 ? `Multi-Day (${request.itineraries.length} Hari)` : (request.is_external ? "Sewa Pihak Ke-3" : "Armada Internal"),
                   "Driver / Pengemudi": request.is_external ? (request.external_driver_name || "Sewa Eksternal") : (request.driverName || "Internal"),
                   "Kendaraan / Armada": request.is_external ? (request.external_provider || "Eksternal") : (request.vehicleModel || "Internal"),
                   "Jumlah Penumpang": `${request.passengerCount || 1} Orang`,
                   "Keperluan Perjalanan": request.purpose || "-",
-                  "Status Pengajuan": request.rawStatus || request.status || "APPROVED"
+                  "Status Pengajuan": idnStatus
                 });
               }}
-              title="Download PDF Langsung (1-Touch)"
+              title="Unduh PDF Langsung (1-Sentuh)"
               className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors text-[11px] font-bold cursor-pointer shadow-2xs"
             >
               <Icon name="picture_as_pdf" className="text-[15px] text-red-600" />
-              <span>Download PDF</span>
+              <span>Unduh PDF</span>
             </button>
 
             {/* Print Ticket Button */}
@@ -586,7 +588,7 @@ export function RequestDetailModal({
                                     mStatus === 'on_going' ? 'bg-amber-100 text-amber-800 animate-pulse' :
                                     'bg-slate-100 text-slate-500'
                                   }`}>
-                                    {mStatus === 'completed' ? 'Completed' : mStatus === 'on_going' ? 'On Going' : 'Scheduled'}
+                                    {mStatus === 'completed' ? 'Selesai' : mStatus === 'on_going' ? 'Sedang Berjalan' : 'Terjadwal'}
                                   </span>
                                 </div>
                                 <div className="font-semibold text-slate-700">{it.morning_time || "N.A"} - {it.morning_destination || "N.A"}</div>
@@ -601,7 +603,7 @@ export function RequestDetailModal({
                                       aStatus === 'on_going' ? 'bg-amber-100 text-amber-800 animate-pulse' :
                                       'bg-slate-100 text-slate-500'
                                     }`}>
-                                      {aStatus === 'completed' ? 'Completed' : aStatus === 'on_going' ? 'On Going' : 'Scheduled'}
+                                      {aStatus === 'completed' ? 'Selesai' : aStatus === 'on_going' ? 'Sedang Berjalan' : 'Terjadwal'}
                                     </span>
                                   ) : (
                                     <span className="text-[9px] text-slate-400 italic">N/A</span>
@@ -1052,7 +1054,7 @@ export function RequestDetailModal({
                                   isOngoing ? 'bg-amber-100 text-amber-800 animate-pulse' :
                                   'bg-slate-100 text-slate-600'
                                 }`}>
-                                  {isDone ? '✓ Completed' : isOngoing ? '⚡ On Going' : 'Scheduled'}
+                                  {isDone ? '✓ Selesai' : isOngoing ? '⚡ Sedang Berjalan' : 'Terjadwal'}
                                 </span>
                               </div>
                               
@@ -1187,7 +1189,7 @@ export function RequestDetailModal({
                               <span className={`text-[9px] font-bold uppercase px-1 py-0.2 rounded ${
                                 isApproved ? "text-green-700 bg-green-50" : "text-red-700 bg-red-50"
                               }`}>
-                                {app.status}
+                                {app.status === 'approved' ? 'Disetujui' : app.status === 'rejected' ? 'Ditolak' : app.status}
                               </span>
                             </div>
                             <div className="text-[10px] text-slate-400 mt-0.5">
@@ -1417,7 +1419,7 @@ export function RequestDetailModal({
                     }}
                     className="px-5 py-2 bg-[#00236f] text-white font-bold rounded-xl text-xs hover:bg-blue-900 transition-colors shadow-sm cursor-pointer"
                   >
-                    Download File
+                    Unduh Berkas
                   </button>
                 </div>
               )}

@@ -569,7 +569,7 @@ export default function SecurityDashboard() {
   };
 
   return (
-    <Layout activeNav="Dashboard" topbarTitle="Security Portal">
+    <Layout activeNav="Dashboard" topbarTitle="Portal Keamanan">
       <div className="max-w-4xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
         
         {/* Hidden Canvas for Frame Capture */}
@@ -950,7 +950,7 @@ export default function SecurityDashboard() {
                                         morningOngoing ? 'bg-amber-100 text-amber-800 animate-pulse' :
                                         'bg-slate-100 text-slate-600'
                                       }`}>
-                                        {morningCompleted ? 'Completed' : morningOngoing ? 'On Going' : 'Scheduled'}
+                                        {morningCompleted ? 'Selesai' : morningOngoing ? 'Sedang Berjalan' : 'Terjadwal'}
                                       </span>
                                     </div>
                                     <div className="font-bold text-slate-800 text-xs sm:text-sm">
@@ -1008,7 +1008,7 @@ export default function SecurityDashboard() {
                                           afternoonOngoing ? 'bg-amber-100 text-amber-800 animate-pulse' :
                                           'bg-slate-100 text-slate-600'
                                         }`}>
-                                          {afternoonCompleted ? 'Completed' : afternoonOngoing ? 'On Going' : 'Scheduled'}
+                                          {afternoonCompleted ? 'Selesai' : afternoonOngoing ? 'Sedang Berjalan' : 'Terjadwal'}
                                         </span>
                                       ) : (
                                         <span className="text-[9.5px] text-slate-400 italic">N/A</span>
@@ -1108,7 +1108,7 @@ export default function SecurityDashboard() {
                                         hasCheckout ? "bg-amber-100 text-amber-800 animate-pulse" :
                                         "bg-blue-100 text-blue-800"
                                       }`}>
-                                        {hasCheckin ? "Selesai" : hasCheckout ? "Sedang Jalan" : "Scheduled"}
+                                        {hasCheckin ? "Selesai" : hasCheckout ? "Sedang Jalan" : "Terjadwal"}
                                       </span>
                                     </div>
 

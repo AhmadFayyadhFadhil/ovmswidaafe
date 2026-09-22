@@ -173,9 +173,9 @@ export default function CalendarView({ events, onViewDetail }: CalendarViewProps
                     const hasOngoing = statuses.some(s => s.includes("ongoing") || s.includes("on going"));
                     const hasCompleted = statuses.some(s => s.includes("complete"));
 
-                    if (hasScheduled) uniqueDots.push({ key: 'scheduled', color: 'bg-blue-500', title: 'Terjadwal (Scheduled)' });
-                    if (hasOngoing) uniqueDots.push({ key: 'ongoing', color: 'bg-amber-500', title: 'Sedang Jalan (On Going)' });
-                    if (hasCompleted) uniqueDots.push({ key: 'completed', color: 'bg-emerald-500', title: 'Selesai (Completed)' });
+                    if (hasScheduled) uniqueDots.push({ key: 'scheduled', color: 'bg-blue-500', title: 'Terjadwal' });
+                    if (hasOngoing) uniqueDots.push({ key: 'ongoing', color: 'bg-amber-500', title: 'Sedang Berjalan' });
+                    if (hasCompleted) uniqueDots.push({ key: 'completed', color: 'bg-emerald-500', title: 'Selesai' });
 
                     return (
                       <div className="flex items-center justify-center gap-1 mt-0.5 pb-0.5">
@@ -199,15 +199,15 @@ export default function CalendarView({ events, onViewDetail }: CalendarViewProps
             <span className="font-extrabold uppercase tracking-wide text-[9px] text-slate-400 w-full mb-0.5">Keterangan Warna:</span>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-              <span className="font-semibold text-slate-700">Scheduled (Terjadwal)</span>
+              <span className="font-semibold text-slate-700">Terjadwal</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-              <span className="font-semibold text-slate-700">On Going (Sedang Jalan)</span>
+              <span className="font-semibold text-slate-700">Sedang Berjalan</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
-              <span className="font-semibold text-slate-700">Completed (Selesai)</span>
+              <span className="font-semibold text-slate-700">Selesai</span>
             </div>
           </div>
         </div>
@@ -243,12 +243,22 @@ export default function CalendarView({ events, onViewDetail }: CalendarViewProps
                   ? "bg-[#fee2e2] text-[#991b1b] border-[#fecaca]"
                   : "bg-[#eff6ff] text-[#1e3a8a] border-[#bfdbfe]";
 
+                const statusLabel = statusLower.includes("complete")
+                  ? "Selesai"
+                  : statusLower.includes("ongoing") || statusLower.includes("on going")
+                  ? "Sedang Berjalan"
+                  : statusLower.includes("reject")
+                  ? "Ditolak"
+                  : statusLower.includes("cancel")
+                  ? "Dibatalkan"
+                  : "Terjadwal";
+
                 return (
                   <div key={ev.id} className="p-3.5 bg-slate-50 border border-slate-200/60 rounded-xl flex flex-col gap-2 hover:border-slate-300 transition-colors">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[12.5px] font-extrabold text-[#1e3a8a]">{ev.tripId}</span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeClass}`}>
-                        {ev.status}
+                        {statusLabel}
                       </span>
                     </div>
 

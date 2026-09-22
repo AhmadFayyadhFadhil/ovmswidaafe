@@ -89,10 +89,10 @@ export default function RegisterPage() {
           {/* Hero Content */}
           <div className="max-w-[520px]">
             <h2 className="text-5xl leading-tight font-bold text-white mb-6">
-              Join the Fleet Network
+              Bergabung dengan Jaringan Armada
             </h2>
             <p className="text-lg text-blue-100 leading-relaxed">
-              Create an employee account to easily request operational vehicles, monitor approvals, and coordinate trips.
+              Buat akun karyawan untuk mengajukan kendaraan operasional dengan mudah, memantau persetujuan, dan mengoordinasikan perjalanan.
             </p>
           </div>
 

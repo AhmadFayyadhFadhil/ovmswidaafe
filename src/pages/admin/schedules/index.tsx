@@ -67,14 +67,14 @@ function getTripStatusStyle(status: TripStatus) {
       return {
         bg: "bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-700",
         badge: "bg-emerald-700 text-white font-bold",
-        label: "✓ Completed",
+        label: "✓ Selesai",
         icon: "check_circle",
       };
     case "on_going":
       return {
         bg: "bg-amber-400 text-amber-950 hover:bg-amber-500 font-extrabold border-amber-500 animate-pulse",
         badge: "bg-amber-950 text-amber-300 font-black",
-        label: "⚡ On Going",
+        label: "⚡ Sedang Berjalan",
         icon: "bolt",
       };
     case "scheduled":
@@ -82,7 +82,7 @@ function getTripStatusStyle(status: TripStatus) {
       return {
         bg: "bg-[#1e3a8a] text-white hover:bg-blue-900 border-blue-900",
         badge: "bg-blue-950 text-blue-100 font-bold",
-        label: "🗓️ Scheduled",
+        label: "🗓️ Terjadwal",
         icon: "event",
       };
   }
@@ -136,7 +136,7 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
       const rawSt = (r.rawStatus || r.status || "").toLowerCase();
       if (["rejected", "cancelled", "draft"].includes(rawSt)) return;
 
-      const vModel = (r.vehicleModel || r.vehicle_model || r.vehicle_name || "Unassigned").replace(/\s*\(\s*\)/g, "").trim();
+      const vModel = (r.vehicleModel || r.vehicle_model || r.vehicle_name || "Belum Ditugaskan").replace(/\s*\(\s*\)/g, "").trim();
       const vInfo = vehicleInfoMap.get(vModel.toLowerCase()) || { type: "Sedan", plate: "" };
 
       let itemStatus: TripStatus = "scheduled";
@@ -170,7 +170,7 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
             vehicleModel: it.vehicle_name || vModel,
             vehiclePlate: vInfo.plate,
             vehicleType: vInfo.type,
-            driverName: r.driver_name || r.driverName || "Assigning...",
+            driverName: r.driver_name || r.driverName || "Menunggu Penugasan",
             driverPhone: r.driver_phone || r.driverPhone || "",
             destination: itDest,
             purpose: r.purpose || itDest,
@@ -195,7 +195,7 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
           vehicleModel: vModel,
           vehiclePlate: vInfo.plate,
           vehicleType: vInfo.type,
-          driverName: r.driver_name || r.driverName || "Assigning...",
+          driverName: r.driver_name || r.driverName || "Menunggu Penugasan",
           driverPhone: r.driver_phone || r.driverPhone || "",
           destination: r.destination || r.purpose || "",
           purpose: r.purpose || r.destination || "",
@@ -219,7 +219,7 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
       if (statusFilter !== "ALL" && ev.status !== statusFilter) return false;
 
       // Filter Vehicle Type
-      if (vehicleType !== "All") {
+      if (vehicleType !== "All" && vehicleType !== "Semua Tipe") {
         const targetType = vehicleType.toLowerCase().trim();
         const evType = ev.vehicleType.toLowerCase().trim();
         const evModel = ev.vehicleModel.toLowerCase().trim();
@@ -326,18 +326,18 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
 
   return (
     <Layout
-      activeNav="Vehicle Schedule"
+      activeNav="Jadwal & Kalender"
       onNavigate={onNavigate}
-      topbarTitle="Vehicle Schedule"
-      searchPlaceholder="Search schedule, driver, or vehicle..."
+      topbarTitle="Jadwal Kendaraan"
+      searchPlaceholder="Pencarian cepat jadwal, driver, atau armada..."
     >
       <div className="p-4 sm:p-6 space-y-5 animate-fadein">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-[24px] sm:text-[26px] font-bold text-[#0f172a]">Vehicle Schedule Calendar</h2>
+            <h2 className="text-[24px] sm:text-[26px] font-bold text-[#0f172a]">Kalender Jadwal Kendaraan</h2>
             <p className="text-[13px] text-[#64748b] mt-0.5 max-w-lg leading-relaxed">
-              Pantau jadwal penggunaan armada berdasarkan status keberangkatan (*Scheduled*, *On Going*, *Completed*).
+              Pantau jadwal penggunaan armada berdasarkan status keberangkatan (*Terjadwal*, *Sedang Berjalan*, *Selesai*).
             </p>
           </div>
 
@@ -377,7 +377,7 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
 
           <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 shadow-xs">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-900">🗓️ Scheduled</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-900">🗓️ Terjadwal</span>
               <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
             </div>
             <div className="text-2xl sm:text-3xl font-black text-blue-950">{loading ? "..." : scheduledCount}</div>
@@ -386,7 +386,7 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
 
           <div className="bg-amber-50/80 border border-amber-300 rounded-2xl p-4 shadow-xs">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-900">⚡ On Going</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-900">⚡ Sedang Berjalan</span>
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
             </div>
             <div className="text-2xl sm:text-3xl font-black text-amber-950">{loading ? "..." : onGoingCount}</div>
@@ -395,7 +395,7 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
 
           <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 shadow-xs">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-900">✓ Completed</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-900">✓ Selesai</span>
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
             </div>
             <div className="text-2xl sm:text-3xl font-black text-emerald-950">{loading ? "..." : completedCount}</div>
@@ -460,7 +460,7 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-blue-400" />
-                Scheduled
+                Terjadwal
               </button>
               <button
                 type="button"
@@ -470,7 +470,7 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse" />
-                On Going
+                Sedang Berjalan
               </button>
               <button
                 type="button"
@@ -480,7 +480,7 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                Completed
+                Selesai
               </button>
             </div>
 
@@ -501,20 +501,20 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
                   className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   <Icon name="filter_list" className="text-base text-slate-500" />
-                  {vehicleType}
+                  {vehicleType === "All" ? "Semua Tipe" : vehicleType}
                 </button>
                 {filterOpen && (
                   <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 py-1 min-w-[150px] animate-fadein">
-                    {["All", "Sedan", "MPV", "SUV", "Van", "Truck", "Bus"].map((t) => (
+                    {["Semua Tipe", "Sedan", "MPV", "SUV", "Van", "Truck", "Bus"].map((t) => (
                       <button
                         key={t}
                         type="button"
                         onClick={() => {
-                          setVehicleType(t);
+                          setVehicleType(t === "Semua Tipe" ? "All" : t);
                           setFilterOpen(false);
                         }}
                         className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors ${
-                          vehicleType === t ? "bg-blue-50 text-[#1e3a8a]" : "text-slate-700 hover:bg-slate-50"
+                          (vehicleType === "All" && t === "Semua Tipe") || vehicleType === t ? "bg-blue-50 text-[#1e3a8a]" : "text-slate-700 hover:bg-slate-50"
                         }`}
                       >
                         {t}
@@ -678,15 +678,15 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
               <span className="text-[10px] font-extrabold uppercase text-slate-400">Legenda Status Perjalanan:</span>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#1e3a8a]" />
-                <span className="font-bold text-slate-700">Scheduled (Terjadwal)</span>
+                <span className="font-bold text-slate-700">Terjadwal</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
-                <span className="font-bold text-slate-700">On Going (Sedang Berjalan)</span>
+                <span className="font-bold text-slate-700">Sedang Berjalan</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
-                <span className="font-bold text-slate-700">Completed (Selesai)</span>
+                <span className="font-bold text-slate-700">Selesai</span>
               </div>
             </div>
           </div>

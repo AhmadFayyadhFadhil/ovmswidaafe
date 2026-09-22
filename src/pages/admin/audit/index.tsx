@@ -13,6 +13,13 @@ const SEV: Record<string, { badge: string; dot: string; row: string }> = {
   Low: { badge: "bg-[#f0fdf4] text-[#16a34a] border border-[#86efac]", dot: "bg-[#22c55e]", row: "" },
 };
 
+const SEV_LABEL: Record<string, string> = {
+  Critical: "Kritis",
+  High: "Tinggi",
+  Medium: "Sedang",
+  Low: "Rendah",
+};
+
 // ── Mini sparkbar with Flat Neutral State for 0 Counts ─────────────────────────────
 function MiniSparkbar({ vals, colors, isZero }: { vals: number[]; colors: string[]; isZero?: boolean }) {
   const max = Math.max(...vals, 1);
@@ -156,7 +163,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
   const cardMetas: CardMetaInfo[] = useMemo(() => [
     {
       key: "ALL",
-      label: "Total Logs",
+      label: "Total Log",
       value: String(cardCounts.total),
       rawVal: cardCounts.total,
       icon: "database",
@@ -171,7 +178,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
     },
     {
       key: "SECURITY_ALERTS",
-      label: "Security Alerts",
+      label: "Peringatan Keamanan",
       value: String(cardCounts.security_alerts).padStart(2, '0'),
       rawVal: cardCounts.security_alerts,
       icon: "shield",
@@ -186,7 +193,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
     },
     {
       key: "FAILED_LOGINS",
-      label: "Failed Logins",
+      label: "Gagal Masuk (Login)",
       value: String(cardCounts.failed_logins),
       rawVal: cardCounts.failed_logins,
       icon: "login",
@@ -201,7 +208,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
     },
     {
       key: "PERMISSIONS",
-      label: "Permissions",
+      label: "Hak Akses & Peran",
       value: String(cardCounts.permissions),
       rawVal: cardCounts.permissions,
       icon: "key",
@@ -216,7 +223,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
     },
     {
       key: "OPERATIONAL",
-      label: "Operational",
+      label: "Operasional",
       value: String(cardCounts.operational),
       rawVal: cardCounts.operational,
       icon: "settings",
@@ -231,7 +238,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
     },
     {
       key: "SUSPICIOUS",
-      label: "Suspicious",
+      label: "Mencurigakan",
       value: String(cardCounts.suspicious).padStart(2, '0'),
       rawVal: cardCounts.suspicious,
       icon: "verified_user",
@@ -299,18 +306,18 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
 
   return (
     <Layout
-      activeNav="Audit Logs"
+      activeNav="Log Audit"
       onNavigate={onNavigate}
-      topbarTitle="Audit Logs"
-      searchPlaceholder="Search audit logs..."
+      topbarTitle="Log Audit"
+      searchPlaceholder="Cari log audit..."
     >
       <div className="p-4 sm:p-6 space-y-5 animate-fadein">
         {/* Page header */}
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
-            <h2 className="text-[26px] font-bold text-[#0f172a]">Audit Logs</h2>
+            <h2 className="text-[26px] font-bold text-[#0f172a]">Log Audit</h2>
             <p className="text-[13.5px] text-[#64748b] mt-1 max-w-xl leading-relaxed">
-              Monitor system activities, operational events, and security logs for comprehensive oversight of the enterprise fleet environment.
+              Pantau aktivitas sistem, peristiwa operasional, dan log keamanan untuk pengawasan menyeluruh terhadap armada perusahaan.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -319,27 +326,27 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
                 onClick={() => setCardFilter("ALL")}
                 className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[12px] font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
               >
-                <Icon name="close" className="text-[16px]" /> Reset Filter Card
+                <Icon name="close" className="text-[16px]" /> Reset Filter Kartu
               </button>
             )}
             <button
               onClick={() => {
                 const csvData = filtered.map(l => ({
                   ID: l.id,
-                  User: l.name,
-                  Role: l.role,
-                  Activity: l.activity,
-                  Action: l.action,
-                  Department: l.department,
-                  Severity: l.severity,
-                  IP_Address: l.email,
-                  Time: l.time,
+                  Pengguna: l.name,
+                  Peran: l.role,
+                  Tipe_Aktivitas: l.activity,
+                  Aksi: l.action,
+                  Departemen: l.department,
+                  Tingkat_Keparahan: SEV_LABEL[l.severity] || l.severity,
+                  Alamat_IP: l.email,
+                  Waktu: l.time,
                 }));
                 exportToCSV(csvData, `audit_logs_${cardFilter.toLowerCase()}`);
               }}
               className="flex items-center gap-1.5 h-9 px-5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[12px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
             >
-              <Icon name="download" className="text-[16px]" />Download Report
+              <Icon name="download" className="text-[16px]" />Unduh Laporan
             </button>
           </div>
         </div>
@@ -388,26 +395,26 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <select value={userRoleF} onChange={e => handleUserRoleF(e.target.value)}
               className="h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all cursor-pointer">
-              <option value="All">User Role: All</option>
+              <option value="All">Peran Pengguna: Semua</option>
               <option value="Administrator">Administrator</option>
-              <option value="Approver">Approver</option>
-              <option value="GA">GA</option>
-              <option value="Driver">Driver</option>
-              <option value="Employee">Employee</option>
-              <option value="Security">Security</option>
+              <option value="Approver">Approver (Penyetuju)</option>
+              <option value="GA">GA / HRD</option>
+              <option value="Driver">Driver (Pengemudi)</option>
+              <option value="Employee">Karyawan (Employee)</option>
+              <option value="Security">Petugas Keamanan</option>
             </select>
             <select value={severityF} onChange={e => handleSeverityF(e.target.value)}
               className="h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 transition-all cursor-pointer">
-              <option value="All">Severity: All</option>
-              <option value="Critical">Critical</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
+              <option value="All">Tingkat Keparahan: Semua</option>
+              <option value="Critical">Kritis (Critical)</option>
+              <option value="High">Tinggi (High)</option>
+              <option value="Medium">Sedang (Medium)</option>
+              <option value="Low">Rendah (Low)</option>
             </select>
             <div className="flex gap-2">
               <select value={departmentF} onChange={e => handleDepartmentF(e.target.value)}
                 className="flex-1 h-10 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[12px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer">
-                <option value="All">Department: All</option>
+                <option value="All">Departemen: Semua</option>
                 <option value="Finance and Accounting">Finance and Accounting</option>
                 <option value="HRD & GA">HRD & GA</option>
                 <option value="Information and Technology">Information and Technology</option>
@@ -422,7 +429,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
                 <option value="Driver">Driver</option>
               </select>
               <button onClick={() => { setCardFilter("ALL"); setSeverityF("All"); setUserRoleF("All"); setDepartmentF("All"); setSearch(""); setCurrentPage(1); }}
-                className="w-10 h-10 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-center hover:bg-[#eff6ff] hover:border-[#1e3a8a]/30 transition-colors cursor-pointer" title="Reset Filters">
+                className="w-10 h-10 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-center hover:bg-[#eff6ff] hover:border-[#1e3a8a]/30 transition-colors cursor-pointer" title="Reset Filter">
                 <Icon name="refresh" className="text-[#64748b] text-[18px]" />
               </button>
             </div>
@@ -435,19 +442,19 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
           <table className="w-full min-w-[800px]">
             <thead>
               <tr className="bg-[#f8fafc] border-b border-[#f1f5f9]">
-                {["ID", "USER", "ACTIVITY TYPE", "DEPARTMENT", "SEVERITY", "EMAIL", "TIME"].map(h => (
+                {["ID", "PENGGUNA", "TIPE AKTIVITAS", "DEPARTEMEN", "TINGKAT KEPARAHAN", "ALAMAT IP / EMAIL", "WAKTU"].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {logsLoading && (
-                <tr><td colSpan={7} className="px-4 py-6 text-center text-[13px] text-[#475569]">Loading logs...</td></tr>
+                <tr><td colSpan={7} className="px-4 py-6 text-center text-[13px] text-[#475569]">Memuat log audit...</td></tr>
               )}
               {logsError && (
                 <tr>
                   <td colSpan={7} className="px-4 py-6 text-center text-[13px] text-[#b91c1c]">
-                    Failed to load logs. <button onClick={() => refetchLogs()} className="ml-3 px-3 py-1 bg-[#1e3a8a] text-white rounded-lg">Retry</button>
+                    Gagal memuat log audit. <button onClick={() => refetchLogs()} className="ml-3 px-3 py-1 bg-[#1e3a8a] text-white rounded-lg cursor-pointer">Coba Lagi</button>
                   </td>
                 </tr>
               )}
@@ -469,7 +476,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
                   </td>
                   <td className="px-4 py-4">
                     <div className="text-[12px] font-semibold text-[#0f172a]">{log.activity}</div>
-                    <div className="text-[10.5px] text-[#94a3b8]">Action: {log.action}</div>
+                    <div className="text-[10.5px] text-[#94a3b8]">Aksi: {log.action}</div>
                   </td>
                   <td className="px-4 py-4">
                     <span className="px-2.5 py-1 bg-[#f1f5f9] text-[#475569] rounded-lg text-[11px] font-semibold">
@@ -479,7 +486,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
                   <td className="px-4 py-4">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${SEV[log.severity] ? SEV[log.severity].badge : SEV["Low"].badge}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${SEV[log.severity] ? SEV[log.severity].dot : SEV["Low"].dot} ${log.severity === "Critical" ? "animate-pulse" : ""}`} />
-                      {log.severity}
+                      {SEV_LABEL[log.severity] || log.severity}
                     </span>
                   </td>
                   <td className="px-4 py-4 text-[12px] text-[#64748b]">{log.email}</td>
@@ -538,7 +545,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
           {pagination.lastPage > 1 && (
             <div className="px-5 py-3 border-t border-[#f1f5f9] flex items-center justify-between bg-[#fafbfc]">
               <span className="text-[12px] text-[#94a3b8]">
-                Showing <b>{pagination.from ?? 0}–{pagination.to ?? 0}</b> of <b>{pagination.total}</b> entries
+                Menampilkan <b>{pagination.from ?? 0}–{pagination.to ?? 0}</b> dari <b>{pagination.total}</b> data
               </span>
               <div className="flex items-center gap-1.5">
                 <button

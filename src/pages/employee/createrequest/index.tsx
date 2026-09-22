@@ -402,20 +402,20 @@ export default function CreateRequestPage({ onNavigate }: Props) {
 
   return (
     <RoleLayout
-      activeNav="Create Request"
+      activeNav="Buat Permohonan"
       onNavigate={p => onNavigate?.(p)}
-      topbarTitle="Create Fleet Request"
-      userName={user?.name || "Employee"}
-      userRole={user?.role === "approver" ? "Manager Approver" : "Employee"}
-      searchPlaceholder="Search requests, vehicles..."
+      topbarTitle="Buat Permohonan Armada"
+      userName={user?.name || "Karyawan"}
+      userRole={user?.role === "approver" ? "Manager Approver" : "Karyawan"}
+      searchPlaceholder="Pencarian cepat..."
     >
       <div className="p-4 sm:p-6 animate-fadeup">
 
 
         {/* Page Header */}
         <div data-guide="create-request" className="max-w-4xl mx-auto mb-6">
-          <h2 className="text-[26px] font-bold text-[#0f172a]">Create Vehicle Request</h2>
-          <p className="text-[13px] text-[#64748b] mt-1">Submit operational transportation requests efficiently for internal company activities.</p>
+          <h2 className="text-[26px] font-bold text-[#0f172a]">Buat Permohonan Kendaraan</h2>
+          <p className="text-[13px] text-[#64748b] mt-1">Ajukan permohonan transportasi operasional secara efisien untuk kegiatan internal perusahaan.</p>
         </div>
 
         <div className="max-w-4xl mx-auto space-y-4">
@@ -433,13 +433,13 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                   <Icon name="info" className="text-[#00236f] text-[20px]" />
                 </div>
                 <div>
-                  <h3 className="text-[15px] font-bold text-[#0f172a]">Request Information</h3>
-                  <p className="text-[12px] text-[#64748b]">Basic details about the purpose of your transportation request.</p>
+                  <h3 className="text-[15px] font-bold text-[#0f172a]">Informasi Permohonan</h3>
+                  <p className="text-[12px] text-[#64748b]">Rincian dasar tentang keperluan transportasi Anda.</p>
                 </div>
               </div>
               <div>
                 <SearchableSelect
-                  label="Purpose of Trip"
+                  label="Keperluan Perjalanan"
                   value={purpose}
                   onChange={(v) => setPurpose(v)}
                   options={purposeOptions}
@@ -457,32 +457,32 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                   <Icon name="location_on" className="text-[#ba1a1a] text-[20px]" />
                 </div>
                 <div>
-                  <h3 className="text-[15px] font-bold text-[#0f172a]">Destination &amp; Schedule</h3>
-                  <p className="text-[12px] text-[#64748b]">Specify where and when you need the vehicle.</p>
+                  <h3 className="text-[15px] font-bold text-[#0f172a]">Tujuan &amp; Jadwal</h3>
+                  <p className="text-[12px] text-[#64748b]">Tentukan lokasi dan waktu perjalanan yang Anda butuhkan.</p>
                 </div>
               </div>
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <SearchableSelect
-                      label="Destination City"
+                      label="Kota Tujuan"
                       value={destinationCity}
                       onChange={(v) => setDestinationCity(v)}
                       options={cityOptions}
-                      placeholder="Pilih atau cari kota tujuan (e.g. Surabaya, Pasuruan)..."
+                      placeholder="Pilih atau cari kota tujuan (cth. Surabaya, Pasuruan)..."
                       required
                       icon="location_city"
                       customOptionLabel="Lainnya (Tulis Sendiri...)"
                     />
                   </div>
                   <div>
-                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Destination Place <span className="text-red-500">*</span></label>
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Tempat Tujuan <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <Icon name="location_on" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[17px]" />
                       <input
                         required
                         value={destinationPlace} onChange={e => setDestinationPlace(e.target.value)}
-                        placeholder="e.g. Sudirman Office"
+                        placeholder="cth. Kantor Pusat / Pabrik"
                         className="w-full h-10 pl-9 pr-4 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all"
                       />
                     </div>
@@ -490,7 +490,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                 </div>
                 <div data-guide="request-datetime" className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Departure Date &amp; Time <span className="text-red-500">*</span></label>
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Waktu Keberangkatan <span className="text-red-500">*</span></label>
                     <input type="datetime-local" lang="id-ID" value={departure} onChange={e => setDeparture(e.target.value)}
                       className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all" />
                     {departure && (
@@ -501,7 +501,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                     )}
                   </div>
                   <div>
-                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Estimated Return <span className="text-red-500">*</span></label>
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Estimasi Waktu Kembali <span className="text-red-500">*</span></label>
                     <input type="datetime-local" lang="id-ID" value={estReturn} onChange={e => setEstReturn(e.target.value)}
                       className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all" />
                     {estReturn && (
@@ -513,10 +513,12 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                   </div>
                 </div>
                 <div data-guide="request-priority">
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Priority</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Tingkat Prioritas</label>
                   <select value={priority} onChange={e => setPriority(e.target.value)}
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all">
-                    {["Normal", "Urgent", "Critical"].map(p => <option key={p} value={p}>{p}</option>)}
+                    <option value="Normal">Normal</option>
+                    <option value="Urgent">Mendesak (Urgent)</option>
+                    <option value="Critical">Kritis (Critical)</option>
                   </select>
                 </div>
               </div>
@@ -617,18 +619,18 @@ export default function CreateRequestPage({ onNavigate }: Props) {
             {/* 3. Passengers */}
             <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[15px] font-bold text-[#0f172a]">Passengers</h3>
+                <h3 className="text-[15px] font-bold text-[#0f172a]">Daftar Penumpang</h3>
                 <button
                   onClick={() => setPassengers(p => [...p, { name: "", department_id: "" }])}
                   disabled={passengers.length >= 12}
                   className="flex items-center gap-1.5 text-[12px] font-bold text-[#00236f] hover:underline disabled:opacity-40"
                 >
-                  <Icon name="person_add" className="text-[15px]" /> Add Passenger
+                  <Icon name="person_add" className="text-[15px]" /> Tambah Penumpang
                 </button>
               </div>
               <div className="space-y-2 min-h-[60px]">
                 {passengers.length === 0 ? (
-                  <p className="text-[12px] text-[#94a3b8] text-center py-4">No passengers added yet.</p>
+                  <p className="text-[12px] text-[#94a3b8] text-center py-4">Belum ada penumpang yang ditambahkan.</p>
                 ) : (
                   passengers.map((p, i) => {
                     const filteredSuggestions = suggestions.filter(
@@ -652,7 +654,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                               setSuggestions([]);
                             }, 250);
                           }}
-                          placeholder="Passenger Full Name"
+                          placeholder="Nama Lengkap Penumpang"
                           className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20"
                         />
                         {activePassengerIndex === i && (filteredSuggestions.length > 0 || searchLoading) && (
@@ -660,7 +662,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                             {searchLoading ? (
                               <div className="p-3 text-xs text-slate-400 text-center flex items-center justify-center gap-2">
                                 <span className="animate-spin text-sm text-[#00236f] font-extrabold">&#x21bb;</span>
-                                Searching...
+                                Mencari...
                               </div>
                             ) : (
                               filteredSuggestions.map((item) => (
@@ -725,7 +727,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                 )}
               </div>
               {passengers.length < 12 && (
-                <p className="text-[11px] text-[#94a3b8] mt-2">+ {12 - passengers.length} more can be added</p>
+                <p className="text-[11px] text-[#94a3b8] mt-2">+ {12 - passengers.length} penumpang lagi dapat ditambahkan</p>
               )}
             </div>
 
@@ -736,8 +738,8 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                   <Icon name="attach_file" className="text-[#00236f] text-[20px]" />
                 </div>
                 <div>
-                  <h3 className="text-[15px] font-bold text-[#0f172a]">Supporting Documents</h3>
-                  <p className="text-[12px] text-[#64748b]">Upload meeting invites or travel authorization forms.</p>
+                  <h3 className="text-[15px] font-bold text-[#0f172a]">Dokumen Pendukung</h3>
+                  <p className="text-[12px] text-[#64748b]">Unggah undangan rapat, surat tugas, atau formulir persetujuan perjalanan.</p>
                 </div>
               </div>
               <div
@@ -749,12 +751,12 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                 }`}
               >
                 <Icon name="cloud_upload" className="text-[#94a3b8] text-[40px] mb-2" />
-                <p className="text-[13px] font-semibold text-[#475569]">Drag and drop files here</p>
-                <p className="text-[11px] text-[#94a3b8] mt-1">PDF, PNG, JPG (Max 10MB)</p>
+                <p className="text-[13px] font-semibold text-[#475569]">Tarik dan lepas berkas ke sini</p>
+                <p className="text-[11px] text-[#94a3b8] mt-1">PDF, PNG, JPG (Maks 10MB)</p>
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="mt-3 h-9 px-5 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors"
-                >Browse Files</button>
+                >Pilih Berkas</button>
                 <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileInput} />
               </div>
               {files.length > 0 && (
@@ -781,13 +783,13 @@ export default function CreateRequestPage({ onNavigate }: Props) {
             {/* 5. Additional Notes */}
             <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-5">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-[15px] font-bold text-[#0f172a]">Additional Notes (Optional)</h3>
-                <span className="text-[11px] text-[#94a3b8]">{notes.length} / 500 characters</span>
+                <h3 className="text-[15px] font-bold text-[#0f172a]">Catatan Tambahan (Opsional)</h3>
+                <span className="text-[11px] text-[#94a3b8]">{notes.length} / 500 karakter</span>
               </div>
               <textarea
                 value={notes} onChange={e => notes.length < 500 && setNotes(e.target.value)}
                 rows={4}
-                placeholder="Provide any additional instructions for the driver or fleet manager..."
+                placeholder="Berikan instruksi tambahan untuk driver atau koordinator armada (opsional)..."
                 className="w-full px-3 py-2.5 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 resize-none transition-all"
               />
             </div>
@@ -804,7 +806,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                   "bg-[#0f2a5e] hover:bg-[#1e3a8a] text-white disabled:opacity-40"
                 }`}
               >
-                {submitted ? "✓ Submitted!" : submitting ? "Submitting..." : "Submit Request"}
+                {submitted ? "✓ Terkirim!" : submitting ? "Mengirimkan..." : "Kirim Permohonan"}
               </button>
             </div>
 
