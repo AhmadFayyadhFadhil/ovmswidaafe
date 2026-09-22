@@ -30,19 +30,16 @@ export function Sidebar({
 
   const getValidLogoUrl = (url: string | undefined | null) => {
     if (!url) return "";
-    if (url.includes("127.0.0.1") || url.includes("localhost") || url.includes(":8383") || url.includes(":8080") || url.includes("api.ovmsdev.widatra.com")) {
-      try {
-        const parsed = new URL(url);
-        return `${window.location.origin}${parsed.pathname}`;
-      } catch (e) {
-        const slashIdx = url.indexOf("/storage/");
-        if (slashIdx !== -1) {
-          return `${window.location.origin}${url.substring(slashIdx)}`;
-        }
-      }
+    if (url.startsWith("data:")) return url;
+    const slashIdx = url.indexOf("/storage/");
+    if (slashIdx !== -1) {
+      return `${window.location.origin}${url.substring(slashIdx)}`;
     }
-    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+    if (url.startsWith("https://")) {
       return url;
+    }
+    if (url.startsWith("http://")) {
+      return url.replace(/^http:\/\//i, "https://");
     }
     if (url.startsWith("/")) {
       return `${window.location.origin}${url}`;
