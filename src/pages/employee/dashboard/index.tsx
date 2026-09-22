@@ -45,10 +45,10 @@ export default function EmployeeDashboard() {
   const completedRequests = requestsList.filter(r => r.status === "COMPLETED").length;
 
   const STATS: StatCard[] = [
-    { icon: "receipt_long", iconBg: "bg-[#e5eeff]", iconColor: "text-[#00236f]", value: String(totalRequests), label: "Total Requests", sub: "Across all time" },
-    { icon: "pending_actions", iconBg: "bg-[#ffd9d5]", iconColor: "text-[#ba1a1a]", value: String(pendingApproval), label: "Pending Approval", sub: "Action required" },
-    { icon: "commute", iconBg: "bg-[#e5eeff]", iconColor: "text-[#4059aa]", value: String(activeRequests), label: "Active Requests", sub: "Currently en route" },
-    { icon: "task_alt", iconBg: "bg-emerald-50 border border-emerald-100", iconColor: "text-emerald-600", value: String(completedRequests), label: "Completed Requests", sub: "Successfully closed" },
+    { icon: "receipt_long", iconBg: "bg-[#e5eeff]", iconColor: "text-[#00236f]", value: String(totalRequests), label: "Total Permohonan", sub: "Semua pengajuan" },
+    { icon: "pending_actions", iconBg: "bg-[#ffd9d5]", iconColor: "text-[#ba1a1a]", value: String(pendingApproval), label: "Menunggu Persetujuan", sub: "Memerlukan tindakan" },
+    { icon: "commute", iconBg: "bg-[#e5eeff]", iconColor: "text-[#4059aa]", value: String(activeRequests), label: "Permohonan Aktif", sub: "Sedang dalam tugas" },
+    { icon: "task_alt", iconBg: "bg-emerald-50 border border-emerald-100", iconColor: "text-emerald-600", value: String(completedRequests), label: "Permohonan Selesai", sub: "Perjalanan selesai" },
   ];
 
   // Map to upcoming trips (Approved or Pending trips)
@@ -59,17 +59,17 @@ export default function EmployeeDashboard() {
       return r.status === "APPROVED" || r.status === "PENDING" || r.status === "ONGOING";
     })
     .map(r => {
-      let statusLabel = "Pending";
-      if (r.status === "APPROVED") statusLabel = "Approved";
-      else if (r.status === "ONGOING") statusLabel = "In Progress";
+      let statusLabel = "Menunggu";
+      if (r.status === "APPROVED") statusLabel = "Disetujui";
+      else if (r.status === "ONGOING") statusLabel = "Sedang Berjalan";
 
       return {
         id: `#REQ-${r.id}`,
-        date: r.date || "Today",
+        date: r.date || "Hari Ini",
         time: r.time || "09:00",
-        destination: r.destination || "Not Specified",
-        vehicle: r.vehicleModel || "Unassigned",
-        driver: r.driverName || "Unassigned",
+        destination: r.destination || "Tidak Ditentukan",
+        vehicle: r.vehicleModel || "Belum Dipilih",
+        driver: r.driverName || "Belum Ditugaskan",
         status: statusLabel,
         priority: r.priority || "NORMAL"
       };
@@ -80,17 +80,17 @@ export default function EmployeeDashboard() {
     <Layout
       activeNav="Dashboard"
       topbarTitle="Dashboard"
-      userName={user?.name || "Employee"}
-      userRole="Employee"
-      searchPlaceholder="Search requests..."
+      userName={user?.name || "Karyawan"}
+      userRole="Karyawan"
+      searchPlaceholder="Pencarian cepat..."
       searchValue={search}
       onSearchChange={setSearch}
     >
       <div className="p-4 sm:p-6 space-y-6 animate-fadein">
         {/* Header */}
         <div data-guide="dashboard">
-          <h1 className="text-2xl sm:text-[32px] font-bold text-[#0f172a] leading-tight">Welcome back, {user?.name || "User"}!</h1>
-          <p className="text-[14px] text-[#64748b] mt-1">Here's what's happening with your vehicle requests today.</p>
+          <h1 className="text-2xl sm:text-[32px] font-bold text-[#0f172a] leading-tight">Selamat Datang, {user?.name || "Karyawan"}!</h1>
+          <p className="text-[14px] text-[#64748b] mt-1">Berikut adalah ringkasan permohonan kendaraan operasional Anda hari ini.</p>
         </div>
 
         {/* Stat Cards Row */}
@@ -113,16 +113,16 @@ export default function EmployeeDashboard() {
           <div className="lg:col-span-2">
             <div data-guide="employee-upcoming-trips" className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden">
               <div className="p-6 border-b border-[#e2e8f0]">
-                <h3 className="text-[16px] font-bold text-[#0f172a]">Upcoming Trips</h3>
-                <p className="text-[12px] text-[#64748b] mt-1">Your scheduled vehicle bookings and drivers</p>
+                <h3 className="text-[16px] font-bold text-[#0f172a]">Perjalanan Mendatang</h3>
+                <p className="text-[12px] text-[#64748b] mt-1">Jadwal permohonan kendaraan dan driver yang ditugaskan</p>
               </div>
               <div className="divide-y divide-[#e2e8f0]">
                 {loading ? (
-                  <div className="p-6 text-center text-[13px] text-[#64748b]">Loading trips...</div>
+                  <div className="p-6 text-center text-[13px] text-[#64748b]">Memuat perjalanan...</div>
                 ) : error ? (
-                  <div className="p-6 text-center text-[13px] text-red-500">Failed to load trips.</div>
+                  <div className="p-6 text-center text-[13px] text-red-500">Gagal memuat perjalanan.</div>
                 ) : UPCOMING_TRIPS.length === 0 ? (
-                  <div className="p-6 text-center text-[13px] text-[#94a3b8]">No upcoming trips scheduled.</div>
+                  <div className="p-6 text-center text-[13px] text-[#94a3b8]">Tidak ada jadwal perjalanan mendatang.</div>
                 ) : (
                   UPCOMING_TRIPS.map((trip) => (
                     <div 
@@ -139,12 +139,12 @@ export default function EmployeeDashboard() {
                           <div className="flex items-center gap-3 mt-2">
                             <div className="flex items-center gap-2 text-[13px] font-semibold text-[#0f172a]">
                               <Icon name="calendar_today" className="text-[16px] text-[#4059aa]" />
-                              {trip.date} at {trip.time}
+                              {trip.date} pukul {trip.time}
                             </div>
                           </div>
                         </div>
                         <span className={`px-3 py-1 rounded-lg text-[11px] font-bold ${
-                          trip.status === "In Progress" ? "bg-[#dce1ff] text-[#00236f]" : "bg-[#dcfce7] text-[#16a34a]"
+                          trip.status === "Sedang Berjalan" ? "bg-[#dce1ff] text-[#00236f]" : "bg-[#dcfce7] text-[#16a34a]"
                         }`}>
                           {trip.status}
                         </span>
@@ -160,7 +160,7 @@ export default function EmployeeDashboard() {
                         </div>
                         <div className="flex items-center gap-2 text-[#475569]">
                           <Icon name="person" className="text-[18px] text-[#6d28d9]" />
-                          Assigned to {trip.driver}
+                          Driver: {trip.driver}
                         </div>
                       </div>
                     </div>
@@ -173,50 +173,50 @@ export default function EmployeeDashboard() {
           {/* Quick Actions */}
           <div>
             <div data-guide="employee-quick-actions" className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-6">
-              <h3 className="text-[16px] font-bold text-[#0f172a] mb-4">Quick Actions</h3>
+              <h3 className="text-[16px] font-bold text-[#0f172a] mb-4">Aksi Cepat</h3>
               <div className="space-y-3">
                 <button
                   onClick={() => navigate("/employee/createrequest")}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white rounded-xl text-[13px] font-semibold transition-all cursor-pointer"
                 >
                   <Icon name="add" className="text-[20px]" />
-                  New Request
+                  Buat Permohonan
                 </button>
                 <button
                   onClick={() => navigate("/employee/myrequests")}
                   className="w-full flex items-center gap-3 px-4 py-3 border border-[#e2e8f0] hover:bg-[#f8fafc] text-[#0f172a] rounded-xl text-[13px] font-semibold transition-all cursor-pointer"
                 >
                   <Icon name="list_alt" className="text-[20px]" />
-                  View All Requests
+                  Lihat Semua Permohonan
                 </button>
                 <button
                   onClick={() => navigate("/employee/notifications")}
                   className="w-full flex items-center gap-3 px-4 py-3 border border-[#e2e8f0] hover:bg-[#f8fafc] text-[#0f172a] rounded-xl text-[13px] font-semibold transition-all cursor-pointer"
                 >
                   <Icon name="notifications" className="text-[20px]" />
-                  Notifications
+                  Notifikasi
                 </button>
               </div>
             </div>
 
             {/* Recent Activity */}
             <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-6 mt-4">
-              <h3 className="text-[16px] font-bold text-[#0f172a] mb-4">Recent Activity</h3>
+              <h3 className="text-[16px] font-bold text-[#0f172a] mb-4">Aktivitas Terkini</h3>
               <div className="space-y-4 text-[13px]">
                 {loading ? (
-                  <div className="text-center text-[#94a3b8]">Loading activity...</div>
+                  <div className="text-center text-[#94a3b8]">Memuat aktivitas...</div>
                 ) : requestsList.length === 0 ? (
-                  <div className="text-center text-[#94a3b8]">No recent activity.</div>
+                  <div className="text-center text-[#94a3b8]">Tidak ada aktivitas terkini.</div>
                 ) : (
                   requestsList.slice(0, 3).map((r, idx) => (
                     <div key={idx} className="flex gap-3">
                       <div className={`w-2 h-2 rounded-full ${r.status === 'APPROVED' ? 'bg-[#16a34a]' : r.status === 'PENDING' ? 'bg-[#1e3a8a]' : 'bg-[#dc2626]'} mt-2 flex-shrink-0`} />
                       <div>
                         <p className="font-semibold text-[#0f172a]">
-                          {r.status === 'APPROVED' ? 'Request Approved' : r.status === 'PENDING' ? 'Request Submitted' : 'Request Processed'}
+                          {r.status === 'APPROVED' ? 'Permohonan Disetujui' : r.status === 'PENDING' ? 'Permohonan Diajukan' : 'Permohonan Diproses'}
                         </p>
-                        <p className="text-[#64748b]">Trip to {r.destination}</p>
-                        <p className="text-[#94a3b8] text-[12px] mt-1">{r.date || 'Recently'}</p>
+                        <p className="text-[#64748b]">Perjalanan ke {r.destination}</p>
+                        <p className="text-[#94a3b8] text-[12px] mt-1">{r.date || 'Baru saja'}</p>
                       </div>
                     </div>
                   ))

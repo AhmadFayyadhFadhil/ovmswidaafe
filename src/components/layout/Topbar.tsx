@@ -10,7 +10,7 @@ export function Topbar({
   userName = "Admin User", 
   userRole = "Administrator", 
   avatarUrl,
-  searchPlaceholder = "Quick search...", 
+  searchPlaceholder = "Pencarian cepat...", 
   searchValue, 
   onSearchChange,
   showSearch = false,
@@ -104,7 +104,7 @@ export function Topbar({
           <button 
             onClick={handleNotificationClick}
             className="p-2 text-slate-500 hover:text-[#1e3a8a] hover:bg-slate-100 rounded-xl relative cursor-pointer transition-all flex items-center justify-center"
-            title="Notifications"
+            title="Notifikasi"
             data-guide="notifications"
           >
             <Icon name="notifications" className="text-[22px]" />

@@ -71,7 +71,7 @@ function RequestCard({
           <Icon name="location_on" className="text-[16px] text-[#1e3a8a]" />
         </div>
         <div>
-          <div className="text-[10px] text-[#94a3b8] font-semibold uppercase tracking-wider">Destination</div>
+          <div className="text-[10px] text-[#94a3b8] font-semibold uppercase tracking-wider">Lokasi Tujuan</div>
           <div className="text-[13px] font-bold text-[#0f172a]">{req.destination}</div>
         </div>
       </div>
@@ -79,19 +79,19 @@ function RequestCard({
       {/* Details */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4 text-[12px]">
         <div>
-          <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Date</div>
+          <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Tanggal</div>
           <div className="font-semibold text-[#334155]">{req.date}</div>
         </div>
         <div>
-          <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Time</div>
+          <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Waktu</div>
           <div className="font-semibold text-[#334155]">{req.time}</div>
         </div>
         <div>
-          <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Vehicle Type</div>
+          <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Tipe Kendaraan</div>
           <div className="font-semibold text-[#334155]">{req.vehicleType}</div>
         </div>
         <div>
-          <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Purpose</div>
+          <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Keperluan</div>
           <div className="font-semibold text-[#334155]">{req.purpose}</div>
         </div>
       </div>
@@ -1175,11 +1175,16 @@ export default function DriverDashboard() {
         );
 
       case "History":
+      case "Riwayat":
+      case "Riwayat Perjalanan":
       case "My Schedule":
       case "Schedule":
         return <TripSchedulePage trips={historyTrips} onViewDetail={handleViewDetail} />;
 
       case "Calendar":
+      case "Kalender":
+      case "Kalender Jadwal":
+      case "Jadwal & Kalender":
         return <CalendarView events={calendarEvents} onViewDetail={handleViewDetail} />;
 
       default:
@@ -1190,19 +1195,28 @@ export default function DriverDashboard() {
   const getTitle = () => {
     switch (activeNav) {
       case "My Vehicle":
-        return "Select Vehicle";
+      case "Kendaraan Saya":
+        return "Kendaraan Saya";
       case "History":
+      case "Riwayat":
+      case "Riwayat Perjalanan":
       case "My Schedule":
       case "Schedule":
-        return "History";
+        return "Riwayat Perjalanan";
       case "My Tasks":
+      case "Tugas Saya":
+      case "Tugas Menyetir":
+      case "Tugas Menyetir Saya":
       case "My Assignments":
       case "Pending Requests":
-        return "My Tasks";
+        return "Tugas Saya";
       case "Calendar":
-        return "Calendar";
+      case "Kalender":
+      case "Kalender Jadwal":
+      case "Jadwal & Kalender":
+        return "Kalender Jadwal";
       default:
-        return "Driver Portal";
+        return "Portal Driver";
     }
   };
 
@@ -1211,15 +1225,15 @@ export default function DriverDashboard() {
       activeNav={activeNav}
       onNavigate={(nav) => {
         if (nav === "Dashboard") setSearchParams({});
-        else if (nav === "My Vehicle") setSearchParams({ tab: "vehicle" });
-        else if (nav === "History" || nav === "My Schedule") setSearchParams({ tab: "schedule" });
-        else if (nav === "Calendar") setSearchParams({ tab: "calendar" });
-        else if (nav === "My Tasks" || nav === "My Assignments" || nav === "Pending Requests") setSearchParams({ tab: "assignments" });
+        else if (nav === "My Vehicle" || nav === "Kendaraan Saya") setSearchParams({ tab: "vehicle" });
+        else if (nav === "History" || nav === "Riwayat" || nav === "Riwayat Perjalanan" || nav === "My Schedule") setSearchParams({ tab: "schedule" });
+        else if (nav === "Calendar" || nav === "Kalender" || nav === "Kalender Jadwal" || nav === "Jadwal & Kalender") setSearchParams({ tab: "calendar" });
+        else if (nav === "My Tasks" || nav === "Tugas Saya" || nav === "Tugas Menyetir Saya" || nav === "Tugas Menyetir" || nav === "My Assignments" || nav === "Pending Requests") setSearchParams({ tab: "assignments" });
         else setActiveNav(nav);
       }}
       topbarTitle={getTitle()}
       userName={user?.name || "Driver"}
-      userRole="Driver"
+      userRole={user?.is_driver_coordinator ? "Koordinator Driver" : "Driver"}
     >
       <div className="min-h-full bg-[#f8f9ff]">
         {renderActiveTabContent()}

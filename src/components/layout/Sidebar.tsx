@@ -154,34 +154,34 @@ export function Sidebar({
   // Employee menu
   const employeeMenu = [
     { icon: "dashboard", label: "Dashboard", path: "/employee/dashboard", guideKey: "dashboard" },
-    { icon: "add_box", label: "Create Request", path: "/employee/createrequest", guideKey: "create-request" },
-    { icon: "list_alt", label: "My Requests", path: "/employee/myrequests", guideKey: "my-requests" },
-    { icon: "history", label: "History", path: "/employee/history", guideKey: "vehicle-schedule" },
-    { icon: "notifications", label: "Notifications", path: "/employee/notifications", guideKey: "notifications" },
-    { icon: "person", label: "My Profile", path: "/employee/profile", guideKey: "profile" },
+    { icon: "add_box", label: "Buat Permohonan", path: "/employee/createrequest", guideKey: "create-request" },
+    { icon: "list_alt", label: "Permohonan Saya", path: "/employee/myrequests", guideKey: "my-requests" },
+    { icon: "history", label: "Riwayat", path: "/employee/history", guideKey: "vehicle-schedule" },
+    { icon: "notifications", label: "Notifikasi", path: "/employee/notifications", guideKey: "notifications" },
+    { icon: "person", label: "Profil Saya", path: "/employee/profile", guideKey: "profile" },
   ];
 
 
   // Approver menu
   const approverMenu = [
     { icon: "dashboard", label: "Dashboard", path: "/approver/dashboard", guideKey: "approver-dashboard" },
-    { icon: "add_box", label: "Create Request", path: "/employee/createrequest", guideKey: "create-request" },
-    { icon: "list_alt", label: "My Requests", path: "/employee/myrequests", guideKey: "my-requests" },
-    { icon: "list_alt", label: "Pending Requests", path: "/approver/requests", guideKey: "pending-requests" },
-    { icon: "history", label: "History", path: "/approver/history", guideKey: "approval-history" },
-    { icon: "notifications", label: "Notifications", path: "/approver/notifications", guideKey: "notifications" },
-    { icon: "person", label: "My Profile", path: "/approver/profile", guideKey: "profile" },
+    { icon: "add_box", label: "Buat Permohonan", path: "/employee/createrequest", guideKey: "create-request" },
+    { icon: "list_alt", label: "Permohonan Saya", path: "/employee/myrequests", guideKey: "my-requests" },
+    { icon: "list_alt", label: "Menunggu Persetujuan", path: "/approver/requests", guideKey: "pending-requests" },
+    { icon: "history", label: "Riwayat", path: "/approver/history", guideKey: "approval-history" },
+    { icon: "notifications", label: "Notifikasi", path: "/approver/notifications", guideKey: "notifications" },
+    { icon: "person", label: "Profil Saya", path: "/approver/profile", guideKey: "profile" },
   ];
 
   // Driver menu
   const driverMenu = [
     { icon: "dashboard", label: "Dashboard", path: "/driver/dashboard", guideKey: "driver-dashboard" },
-    { icon: "assignment", label: "My Tasks", path: "/driver/dashboard?tab=assignments", guideKey: "driver-assignment" },
-    { icon: "history", label: "History", path: "/driver/dashboard?tab=schedule", guideKey: "driver-history" },
-    { icon: "event", label: "Calendar", path: "/driver/dashboard?tab=calendar", guideKey: "driver-schedule" },
-    { icon: "directions_car", label: "My Vehicle", path: "/driver/dashboard?tab=vehicle", guideKey: "driver-vehicle" },
-    { icon: "notifications", label: "Notifications", path: "/driver/notifications", guideKey: "notifications" },
-    { icon: "person", label: "My Profile", path: "/driver/profile", guideKey: "profile" },
+    { icon: "assignment", label: "Tugas Saya", path: "/driver/dashboard?tab=assignments", guideKey: "driver-assignment" },
+    { icon: "history", label: "Riwayat", path: "/driver/dashboard?tab=schedule", guideKey: "driver-history" },
+    { icon: "event", label: "Kalender Jadwal", path: "/driver/dashboard?tab=calendar", guideKey: "driver-schedule" },
+    { icon: "directions_car", label: "Kendaraan Saya", path: "/driver/dashboard?tab=vehicle", guideKey: "driver-vehicle" },
+    { icon: "notifications", label: "Notifikasi", path: "/driver/notifications", guideKey: "notifications" },
+    { icon: "person", label: "Profil Saya", path: "/driver/profile", guideKey: "profile" },
   ];
 
   // Driver Coordinator menu
@@ -193,51 +193,51 @@ export function Sidebar({
     { icon: "directions_car", label: "Daftar Kendaraan", path: "/admin/vehicles", guideKey: "driver-vehicle" },
     { icon: "person", label: "Ketersediaan Driver", path: "/gahrd/driver", guideKey: "driver-assignment" },
     { icon: "history", label: "Riwayat Perjalanan", path: "/driver/dashboard?tab=schedule", guideKey: "driver-history" },
-    { icon: "notifications", label: "Notifications", path: "/driver/notifications", guideKey: "notifications" },
-    { icon: "person", label: "My Profile", path: "/driver/profile", guideKey: "profile" },
+    { icon: "notifications", label: "Notifikasi", path: "/driver/notifications", guideKey: "notifications" },
+    { icon: "person", label: "Profil Saya", path: "/driver/profile", guideKey: "profile" },
   ];
 
   // GAHRD menu
   const gahrdMenu = [
     { icon: "dashboard",        label: "Dashboard",           path: "/gahrd/dashboard", guideKey: "gahrd-dashboard" },
-    { icon: "add_box",          label: "Create Request",      path: "/gahrd/createrequest", guideKey: "create-request" },
-    { icon: "list_alt",         label: "My Requests",         path: "/gahrd/myrequests", guideKey: "my-requests" },
-    { icon: "monitor_heart",    label: "Fleet Requests",      path: "/gahrd/requests", guideKey: "gahrd-requests" },
-    { icon: "directions_car",   label: "Vehicle Management",  path: "/admin/vehicles", guideKey: "vehicle-assignment" },
-    { icon: "person",           label: "Driver Availability", path: "/gahrd/driver", guideKey: "driver-assignment" },
-    { icon: "event",            label: "Calendar",            path: "/gahrd/calendar", guideKey: "gahrd-schedule" },
-    { icon: "history",          label: "History",             path: "/gahrd/history", guideKey: "gahrd-history" },
-    { icon: "notifications",    label: "Notifications",       path: "/gahrd/notifications", guideKey: "notifications" },
-    { icon: "group",            label: "User Management",     path: "/gahrd/users", guideKey: "user-management" },
-    { icon: "settings",         label: "System Settings",     path: "/admin/settings", guideKey: "system-settings" },
-    { icon: "person",           label: "My Profile",          path: "/gahrd/profile", guideKey: "profile" },
+    { icon: "add_box",          label: "Buat Permohonan",      path: "/gahrd/createrequest", guideKey: "create-request" },
+    { icon: "list_alt",         label: "Permohonan Saya",     path: "/gahrd/myrequests", guideKey: "my-requests" },
+    { icon: "monitor_heart",    label: "Alokasi Armada",      path: "/gahrd/requests", guideKey: "gahrd-requests" },
+    { icon: "directions_car",   label: "Manajemen Kendaraan",  path: "/admin/vehicles", guideKey: "vehicle-assignment" },
+    { icon: "person",           label: "Ketersediaan Driver", path: "/gahrd/driver", guideKey: "driver-assignment" },
+    { icon: "event",            label: "Kalender Operasional", path: "/gahrd/calendar", guideKey: "gahrd-schedule" },
+    { icon: "history",          label: "Riwayat",             path: "/gahrd/history", guideKey: "gahrd-history" },
+    { icon: "notifications",    label: "Notifikasi",          path: "/gahrd/notifications", guideKey: "notifications" },
+    { icon: "group",            label: "Manajemen Pengguna",  path: "/gahrd/users", guideKey: "user-management" },
+    { icon: "settings",         label: "Pengaturan Sistem",   path: "/admin/settings", guideKey: "system-settings" },
+    { icon: "person",           label: "Profil Saya",         path: "/gahrd/profile", guideKey: "profile" },
   ];
 
   // Security menu
   const securityMenu = [
     { icon: "dashboard", label: "Dashboard", path: "/security/dashboard", guideKey: "dashboard" },
-    { icon: "work_history", label: "Scan History", path: "/security/history", guideKey: "history" },
-    { icon: "notifications", label: "Notifications", path: "/security/notifications", guideKey: "notifications" },
-    { icon: "person", label: "My Profile", path: "/security/profile", guideKey: "profile" },
+    { icon: "work_history", label: "Riwayat Scan", path: "/security/history", guideKey: "history" },
+    { icon: "notifications", label: "Notifikasi", path: "/security/notifications", guideKey: "notifications" },
+    { icon: "person", label: "Profil Saya", path: "/security/profile", guideKey: "profile" },
   ];
 
 
   // Admin menu navigation
   const adminNavMain = [
     { icon: "dashboard", label: "Dashboard", path: "/admin/dashboard", guideKey: "admin-dashboard" },
-    { icon: "directions_car", label: "Vehicle Management", path: "/admin/vehicles", guideKey: "vehicle-assignment" },
-    { icon: "person", label: "Driver Management", path: "/admin/drivers", guideKey: "driver-assignment" },
-    { icon: "monitor_heart", label: "Request Monitoring", path: "/admin/requests", guideKey: "reports" },
-    { icon: "calendar_month", label: "Vehicle Schedule", path: "/admin/schedules", guideKey: "reports" },
+    { icon: "directions_car", label: "Manajemen Kendaraan", path: "/admin/vehicles", guideKey: "vehicle-assignment" },
+    { icon: "person", label: "Manajemen Driver", path: "/admin/drivers", guideKey: "driver-assignment" },
+    { icon: "monitor_heart", label: "Monitoring Permohonan", path: "/admin/requests", guideKey: "reports" },
+    { icon: "calendar_month", label: "Jadwal Kendaraan", path: "/admin/schedules", guideKey: "reports" },
   ];
 
   const adminNavAdmin = [
-    { icon: "group", label: "User Management", path: "/admin/users", guideKey: "user-management" },
-    { icon: "admin_panel_settings", label: "Role Management", path: "/admin/roles", guideKey: "role-management" },
-    { icon: "notifications", label: "Notification Center", path: "/admin/notifications", guideKey: "notification-center" },
-    { icon: "history", label: "Audit Logs", path: "/admin/audit", guideKey: "audit-logs" },
-    { icon: "settings", label: "System Settings", path: "/admin/settings", guideKey: "system-settings" },
-    { icon: "person", label: "My Profile", path: "/admin/profile", guideKey: "profile" },
+    { icon: "group", label: "Manajemen Pengguna", path: "/admin/users", guideKey: "user-management" },
+    { icon: "admin_panel_settings", label: "Manajemen Peran & Akses", path: "/admin/roles", guideKey: "role-management" },
+    { icon: "notifications", label: "Pusat Notifikasi", path: "/admin/notifications", guideKey: "notification-center" },
+    { icon: "history", label: "Log Audit", path: "/admin/audit", guideKey: "audit-logs" },
+    { icon: "settings", label: "Pengaturan Sistem", path: "/admin/settings", guideKey: "system-settings" },
+    { icon: "person", label: "Profil Saya", path: "/admin/profile", guideKey: "profile" },
   ];
 
   return (
@@ -250,105 +250,89 @@ export function Sidebar({
         />
       )}
 
-      {/* Sidebar container */}
+      {/* Sidebar */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-[240px] bg-white border-r border-[#e2e8f0] flex flex-col overflow-y-auto transition-transform duration-300 ease-in-out lg:static lg:w-[220px] lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-[#e2e8f0] flex flex-col shrink-0 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Logo Section */}
-        <div className="flex items-center justify-between px-5 pt-6 pb-6">
+        {/* Brand */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#e2e8f0]">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0 overflow-hidden ${branding.companyLogo && !logoError ? "bg-white border border-[#e2e8f0]" : "bg-[#1e3a8a]"}`}>
-              {branding.companyLogo && !logoError ? (
-                <img 
-                  src={getValidLogoUrl(branding.companyLogo)} 
-                  alt="Logo" 
-                  className="w-full h-full object-contain p-0.5" 
-                  onError={() => setLogoError(true)}
-                />
-              ) : (
-                <Icon name="directions_car" className="text-white text-[22px]" />
-              )}
+            <div className="w-9 h-9 rounded-full bg-white shadow-xs border border-slate-100 flex items-center justify-center p-1 overflow-hidden shrink-0">
+              <img src="/logo.png" alt="PT Widarta Bhakti" className="w-full h-full object-contain" />
             </div>
             <div>
-              <div className="text-[17px] font-bold text-[#0f172a] leading-tight truncate max-w-[130px] notranslate" translate="no">
-                {branding.systemName}
-              </div>
-              <div className="text-[11px] text-[#94a3b8] font-medium truncate max-w-[130px] notranslate" translate="no">
-                {branding.companyName}
-              </div>
+              <span className="font-bold text-[15px] tracking-tight text-[#0f172a] block">OVMS</span>
+              <span className="text-[11px] text-[#64748b] block font-medium">PT Widarta Bhakti</span>
             </div>
           </div>
-          {onClose && (
-            <button 
-              onClick={onClose}
-              className="p-1 rounded-lg text-[#64748b] hover:bg-[#f1f5f9] lg:hidden cursor-pointer"
-            >
-              <Icon name="close" className="text-[20px]" />
-            </button>
-          )}
+          <button 
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors lg:hidden"
+            aria-label="Close menu"
+          >
+            <Icon name="close" className="text-xl" />
+          </button>
         </div>
 
-      {/* Navigation Menu */}
-      <nav className="flex-1 px-3 space-y-0.5">
-        {isEmployee && (
-          employeeMenu.map(item => btn(item, item.path))
-        )}
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {isEmployee && (
+            employeeMenu.map(item => btn(item, item.path))
+          )}
 
-        {isApprover && (
-          approverMenu.map(item => btn(item, item.path))
-        )}
+          {isApprover && (
+            approverMenu.map(item => btn(item, item.path))
+          )}
 
-        {isDriverCoordinator && (
-          driverCoordinatorMenu.map(item => btn(item, item.path))
-        )}
+          {isDriver && (
+            isDriverCoordinator 
+              ? driverCoordinatorMenu.map(item => btn(item, item.path))
+              : driverMenu.map(item => btn(item, item.path))
+          )}
 
-        {isDriver && (
-          driverMenu.map(item => btn(item, item.path))
-        )}
+          {isGAHRD && (
+            gahrdMenu.map(item => btn(item, item.path))
+          )}
 
-        {isGAHRD && (
-          gahrdMenu.map(item => btn(item, item.path))
-        )}
+          {isSecurity && (
+            securityMenu.map(item => btn(item, item.path))
+          )}
 
-        {isSecurity && (
-          securityMenu.map(item => btn(item, item.path))
-        )}
+          {isAdmin && (
+            <>
+              {adminNavMain.map(item => btn(item, item.path))}
+              <div className="pt-4 pb-2 px-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#94a3b8]">Administrasi</span>
+              </div>
+              {adminNavAdmin.map(item => btn(item, item.path))}
+            </>
+          )}
+        </nav>
 
-        {isAdmin && (
-          <>
-            {adminNavMain.map(item => btn(item, item.path))}
-            <div className="pt-4 pb-2 px-3">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#94a3b8]">Administration</span>
-            </div>
-            {adminNavAdmin.map(item => btn(item, item.path))}
-          </>
-        )}
-      </nav>
-
-      {/* Bottom section for Guide & Logout */}
-      <div className="px-3 py-3 border-t border-[#e2e8f0] mt-auto space-y-1">
-        <button
-          onClick={() => {
-            onClose?.();
-            const role = user?.role?.toLowerCase() || 'employee';
-            const quickTour = getQuickTourForRole(role);
-            if (quickTour) startTour(quickTour.id);
-          }}
-          className="w-full flex items-center gap-3 py-2 px-3 rounded-md hover:bg-blue-50 text-[#1e3a8a] transition-colors cursor-pointer"
-        >
-          <Icon name="help_outline" className="text-[20px]" />
-          <span className="text-[13px] font-bold">Panduan Sistem</span>
-        </button>
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 py-2 px-3 rounded-md hover:bg-[#f1f5f9] text-[#475569] transition-colors cursor-pointer"
-        >
-          <Icon name="logout" className="text-[20px]" />
-          <span className="text-[13px] font-medium">Logout</span>
-        </button>
-      </div>
+        {/* Bottom section for Guide & Logout */}
+        <div className="px-3 py-3 border-t border-[#e2e8f0] mt-auto space-y-1">
+          <button
+            onClick={() => {
+              onClose?.();
+              const role = user?.role?.toLowerCase() || 'employee';
+              const quickTour = getQuickTourForRole(role);
+              if (quickTour) startTour(quickTour.id);
+            }}
+            className="w-full flex items-center gap-3 py-2 px-3 rounded-md hover:bg-blue-50 text-[#1e3a8a] transition-colors cursor-pointer"
+          >
+            <Icon name="help_outline" className="text-[20px]" />
+            <span className="text-[13px] font-bold">Panduan Sistem</span>
+          </button>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 py-2 px-3 rounded-md hover:bg-[#f1f5f9] text-[#475569] transition-colors cursor-pointer"
+          >
+            <Icon name="logout" className="text-[20px]" />
+            <span className="text-[13px] font-medium">Keluar</span>
+          </button>
+        </div>
     </aside>
     </>
   );

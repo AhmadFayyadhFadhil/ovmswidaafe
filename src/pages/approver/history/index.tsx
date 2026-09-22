@@ -94,9 +94,9 @@ function IconChevron(props: { dir?: 'left' | 'right' }) {
 
 // ── Priority chip for history ─────────────────────────────────────────────────
 const PRI_MAP: Record<Priority, { label: string; cls: string }> = {
-  CRITICAL: { label: 'CRITICAL PRIORITY', cls: 'bg-[#fef2f2] text-[#dc2626] border border-[#fecaca]' },
-  URGENT:   { label: 'URGENT PRIORITY',   cls: 'bg-[#fff7ed] text-[#c2410c] border border-[#fed7aa]' },
-  NORMAL:   { label: 'NORMAL PRIORITY',   cls: 'bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]' },
+  CRITICAL: { label: 'PRIORITAS KRITIS', cls: 'bg-[#fef2f2] text-[#dc2626] border border-[#fecaca]' },
+  URGENT:   { label: 'PRIORITAS MENDESAK',   cls: 'bg-[#fff7ed] text-[#c2410c] border border-[#fed7aa]' },
+  NORMAL:   { label: 'PRIORITAS NORMAL',   cls: 'bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]' },
 };
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
@@ -118,6 +118,8 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
   const isApproved = item.status === 'APPROVED';
   const isCancelled = item.status === 'CANCELLED';
   const pri = PRI_MAP[item.priority] || PRI_MAP.NORMAL;
+
+  const displayStatus = isApproved ? 'DISETUJUI' : isCancelled ? 'DIBATALKAN' : 'DITOLAK';
 
   return (
     <div className="bg-white border border-[#e2e8f0] rounded-xl overflow-hidden transition-all">
@@ -160,7 +162,7 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-1">
           <div className="text-right">
             <div className={`text-[12px] sm:text-[14px] font-black tracking-wide ${isApproved ? 'text-[#15803d]' : isCancelled ? 'text-[#64748b]' : 'text-[#dc2626]'}`}>
-              {item.status}
+              {displayStatus}
             </div>
             <div className="text-[10.5px] text-[#94a3b8] hidden sm:block font-medium">{item.statusLabel}</div>
           </div>
@@ -175,16 +177,16 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
         <div className="border-t border-[#f1f5f9] px-4 py-3.5 sm:px-6 sm:py-4 bg-[#f8faff]">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[13px]">
             <div>
-              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Requester</div>
+              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Pemohon</div>
               <div className="font-semibold text-[#0f172a]">{item.requester}</div>
             </div>
             <div>
-              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Decision Date</div>
+              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Tanggal Keputusan</div>
               <div className="font-semibold text-[#0f172a]">{item.datetime}</div>
             </div>
             <div>
-              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Decision By</div>
-              <div className="font-semibold text-[#0f172a]">{item.decidedBy || 'Alex Rivera'}</div>
+              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-0.5">Diputuskan Oleh</div>
+              <div className="font-semibold text-[#0f172a]">{item.decidedBy || 'Manager Approver'}</div>
             </div>
           </div>
           <div className="mt-4 flex flex-col sm:flex-row gap-2.5">
@@ -193,7 +195,7 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
               className="w-full sm:w-auto h-9 px-4 bg-[#1e3a8a] text-white text-[12px] font-bold rounded-xl hover:bg-[#1e40af] transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap active:scale-98"
             >
               <Icon name="visibility" className="text-sm" />
-              <span>View Full Detail</span>
+              <span>Lihat Detail Lengkap</span>
             </button>
             <button 
               onClick={() => downloadItemPDF("Surat_Keputusan_Persetujuan_" + item.reqId, {
@@ -208,7 +210,7 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
               className="w-full sm:w-auto h-9 px-4 bg-white border border-slate-200 text-slate-700 text-[12px] font-bold rounded-xl hover:bg-slate-50 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap active:scale-98"
             >
               <Icon name="picture_as_pdf" className="text-sm text-red-500" />
-              <span>Download PDF</span>
+              <span>Unduh PDF</span>
             </button>
           </div>
         </div>
@@ -218,7 +220,7 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
 }
 
 // ── Tab filter ─────────────────────────────────────────────────────────────────
-type TabFilter = 'All History' | 'Approved' | 'Rejected' | 'Cancelled';
+type TabFilter = 'Semua Riwayat' | 'Disetujui' | 'Ditolak' | 'Dibatalkan' | 'All History' | 'Approved' | 'Rejected' | 'Cancelled';
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function HistoryPage() {
@@ -249,14 +251,14 @@ export default function HistoryPage() {
       const isRejected = r.rawStatus === "rejected" || (userApproval && userApproval.status === "rejected");
       
       let status: HistoryStatus = "APPROVED";
-      let statusLabel = "Workflow Approved";
+      let statusLabel = "Disetujui";
       
       if (isCancelled) {
         status = "CANCELLED";
-        statusLabel = "Request Cancelled";
+        statusLabel = "Permohonan Dibatalkan";
       } else if (isRejected) {
         status = "REJECTED";
-        statusLabel = "Action Rejected";
+        statusLabel = "Tindakan Ditolak";
       }
 
       let decisionDate = `${r.date} ${r.time}`;
@@ -278,14 +280,14 @@ export default function HistoryPage() {
       return {
         id: r.id,
         reqId: `REQ-${r.id}`,
-        title: `Trip to ${r.destination}`,
+        title: `Perjalanan ke ${r.destination}`,
         requester: r.employee || "Staff",
         datetime: decisionDate,
         priority: (r.priority === "URGENT" || r.priority === "HIGH" ? "URGENT" : "NORMAL") as Priority,
         status,
         statusLabel,
         decidedBy: userApproval?.approver?.name || "Manager Approver",
-        notes: userApproval?.notes || "Processed via OVMS platform."
+        notes: userApproval?.notes || "Diproses melalui sistem OVMS."
       };
     });
 
@@ -299,10 +301,10 @@ export default function HistoryPage() {
 
   const filtered = historyItems.filter((item) => {
     const matchTab =
-      tab === 'All History' ||
-      (tab === 'Approved' && item.status === 'APPROVED') ||
-      (tab === 'Rejected' && item.status === 'REJECTED') ||
-      (tab === 'Cancelled' && item.status === 'CANCELLED');
+      tab === 'All History' || tab === 'Semua Riwayat' ||
+      ((tab === 'Approved' || tab === 'Disetujui') && item.status === 'APPROVED') ||
+      ((tab === 'Rejected' || tab === 'Ditolak') && item.status === 'REJECTED') ||
+      ((tab === 'Cancelled' || tab === 'Dibatalkan') && item.status === 'CANCELLED');
     const matchSearch =
       item.reqId.toLowerCase().includes(search.toLowerCase()) ||
       item.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -318,11 +320,18 @@ export default function HistoryPage() {
   const approvedCount = historyItems.filter(h => h.status === 'APPROVED').length;
   const rejectedCount = historyItems.filter(h => h.status === 'REJECTED').length;
 
+  const tabOptions: { key: TabFilter; label: string }[] = [
+    { key: 'Semua Riwayat', label: 'Semua Riwayat' },
+    { key: 'Disetujui', label: 'Disetujui' },
+    { key: 'Ditolak', label: 'Ditolak' },
+    { key: 'Dibatalkan', label: 'Dibatalkan' },
+  ];
+
   return (
     <Layout
-      activeNav="History"
-      topbarTitle="Approval Decision History"
-      searchPlaceholder="Search history..."
+      activeNav="Riwayat"
+      topbarTitle="Riwayat Keputusan"
+      searchPlaceholder="Cari riwayat..."
       searchValue={search}
       onSearchChange={(val) => { setSearch(val); setCurrentPage(1); }}
     >
@@ -330,58 +339,58 @@ export default function HistoryPage() {
         {/* Header */}
         <div data-guide="approver-history-table" className="flex flex-col sm:flex-row sm:items-start justify-between mb-8 gap-4">
           <div>
-            <h2 className="text-[22px] font-bold text-[#0f172a]">Approval Decision History</h2>
+            <h2 className="text-[22px] font-bold text-[#0f172a]">Riwayat Keputusan Persetujuan</h2>
             <p className="text-[13px] text-[#64748b] mt-1 max-w-md leading-relaxed">
-              Track approval decisions, operational workflow progress, request outcomes, and department accountability.
+              Pantau keputusan persetujuan, progres alur operasional, status permohonan, dan akuntabilitas departemen.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <button 
               onClick={() => {
-                const headers = ["Request ID", "Title / Destination", "Requester", "Decision Date", "Priority", "Status", "Decided By"];
+                const headers = ["Request ID", "Judul / Tujuan", "Pemohon", "Tanggal Keputusan", "Prioritas", "Status", "Diputuskan Oleh"];
                 const rows = historyItems.map((h: any) => [h.reqId, h.title, h.requester, h.datetime, h.priority, h.status, h.decidedBy || 'Manager Approver']);
                 exportToCSV("Approver_Decision_History.csv", headers, rows);
               }}
               className="h-11 px-5 flex items-center gap-2 bg-white border border-[#e2e8f0] rounded-xl text-[13px] font-bold text-[#1e3a8a] hover:bg-[#f8faff] hover:border-[#93c5fd] transition-all shadow-sm cursor-pointer active:scale-95"
             >
               <IconExport />
-              Export History
+              Ekspor Riwayat
             </button>
             <button 
               onClick={() => {
-                const headers = ["Request ID", "Title / Destination", "Requester", "Decision Date", "Priority", "Status", "Decided By"];
+                const headers = ["Request ID", "Judul / Tujuan", "Pemohon", "Tanggal Keputusan", "Prioritas", "Status", "Diputuskan Oleh"];
                 const rows = historyItems.map((h: any) => [h.reqId, h.title, h.requester, h.datetime, h.priority, h.status, h.decidedBy || 'Manager Approver']);
                 exportToCSV("Approver_Operational_Report.csv", headers, rows);
               }}
               className="h-11 px-5 flex items-center gap-2 bg-[#1e3a8a] rounded-xl text-[13px] font-bold text-white hover:bg-[#1e40af] transition-all shadow-sm cursor-pointer active:scale-95"
             >
               <IconReport />
-              Generate Report
+              Buat Laporan
             </button>
           </div>
         </div>
 
         {/* Stat cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
-          <StatCard icon={<IconList />} label="Total Processed" value={loading ? "..." : String(totalCount)} />
-          <StatCard icon={<IconApproved />} label="Total Approved" value={loading ? "..." : String(approvedCount)} />
-          <StatCard icon={<IconRejected />} label="Total Rejected" value={loading ? "..." : String(rejectedCount)} />
+          <StatCard icon={<IconList />} label="Total Diproses" value={loading ? "..." : String(totalCount)} />
+          <StatCard icon={<IconApproved />} label="Total Disetujui" value={loading ? "..." : String(approvedCount)} />
+          <StatCard icon={<IconRejected />} label="Total Ditolak" value={loading ? "..." : String(rejectedCount)} />
         </div>
 
         {/* Tab bar */}
         <div className="overflow-x-auto max-w-full mb-6">
           <div className="bg-white border border-[#e2e8f0] rounded-2xl p-2 flex gap-1 w-fit">
-            {(['All History', 'Approved', 'Rejected', 'Cancelled'] as TabFilter[]).map((t) => (
+            {tabOptions.map((t) => (
               <button
-                key={t}
-                onClick={() => { setTab(t); setCurrentPage(1); }}
+                key={t.key}
+                onClick={() => { setTab(t.key); setCurrentPage(1); }}
                 className={`px-5 h-10 rounded-xl text-[13px] font-semibold transition-all cursor-pointer ${
-                  tab === t
+                  tab === t.key || (tab === 'All History' && t.key === 'Semua Riwayat') || (tab === 'Approved' && t.key === 'Disetujui') || (tab === 'Rejected' && t.key === 'Ditolak') || (tab === 'Cancelled' && t.key === 'Dibatalkan')
                     ? 'bg-[#1e3a8a] text-white shadow-sm'
                     : 'text-[#64748b] hover:text-[#334155] hover:bg-[#f8fafc]'
                 }`}
               >
-                {t}
+                {t.label}
               </button>
             ))}
           </div>
@@ -391,16 +400,16 @@ export default function HistoryPage() {
         <div data-guide="approver-history-table" className="flex flex-col gap-3">
           {loading ? (
             <div className="text-center text-[#64748b] py-20 bg-white border border-[#e2e8f0] rounded-2xl">
-              Loading decision history...
+              Memuat riwayat keputusan...
             </div>
           ) : error ? (
             <div className="text-center text-red-500 py-20 bg-white border border-[#e2e8f0] rounded-2xl">
-              Failed to load decision history from backend.
+              Gagal memuat riwayat keputusan dari server.
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 bg-white border border-[#e2e8f0] rounded-2xl">
-              <p className="text-[15px] font-bold text-[#0f172a]">No history found</p>
-              <p className="text-[13px] text-[#64748b] mt-1">Try adjusting your filter or search.</p>
+              <p className="text-[15px] font-bold text-[#0f172a]">Riwayat tidak ditemukan</p>
+              <p className="text-[13px] text-[#64748b] mt-1">Coba sesuaikan filter atau pencarian Anda.</p>
             </div>
           ) : (
             <>
@@ -409,8 +418,8 @@ export default function HistoryPage() {
               {totalPages > 1 && (
                 <div className="border-t border-[#e2e8f0] mt-8 pt-5 flex items-center justify-between">
                   <span className="text-[13px] text-[#64748b]">
-                    Showing <strong>{filtered.length === 0 ? 0 : startIndex + 1}–{Math.min(startIndex + PER_PAGE, filtered.length)}</strong> of{' '}
-                    <strong>{filtered.length}</strong> items
+                    Menampilkan <strong>{filtered.length === 0 ? 0 : startIndex + 1}–{Math.min(startIndex + PER_PAGE, filtered.length)}</strong> dari{' '}
+                    <strong>{filtered.length}</strong> data
                   </span>
                   <div className="flex items-center gap-1.5">
                     <button

@@ -79,9 +79,14 @@ function PriBadge({ p }: { p: string }) {
     URGENT:   "bg-[#fff7ed] text-[#c2410c] border border-[#fed7aa]",
     NORMAL:   "bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]",
   };
+  const labelMap: Record<string, string> = {
+    CRITICAL: "KRITIS",
+    URGENT: "MENDESAK",
+    NORMAL: "NORMAL",
+  };
   return (
     <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${cfg[p] ?? cfg.NORMAL}`}>
-      {p} PRIORITY
+      PRIORITAS {labelMap[p] || p}
     </span>
   );
 }
@@ -140,19 +145,19 @@ function PendingRow({ req }: { req: PendingRequest }) {
       <div className="mx-4 mb-4 bg-[#f8faff] border border-[#e5eeff] rounded-xl px-4 py-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-1 flex items-center gap-1">
-            <Icon name="location_on" className="text-[14px] text-[#94a3b8]" /> Destination
+            <Icon name="location_on" className="text-[14px] text-[#94a3b8]" /> Tujuan
           </div>
           <div className="text-[13px] font-semibold text-[#0f172a]">{req.destination}</div>
         </div>
         <div>
           <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-1 flex items-center gap-1">
-            <Icon name="calendar_month" className="text-[14px] text-[#94a3b8]" /> Schedule
+            <Icon name="calendar_month" className="text-[14px] text-[#94a3b8]" /> Jadwal
           </div>
           <div className="text-[13px] font-semibold text-[#0f172a]">{req.schedule}</div>
         </div>
         <div>
           <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-1 flex items-center gap-1">
-            <Icon name="group" className="text-[14px] text-[#94a3b8]" /> Passengers
+            <Icon name="group" className="text-[14px] text-[#94a3b8]" /> Penumpang
           </div>
           <div className="text-[13px] font-semibold text-[#0f172a]">{req.passengers}</div>
         </div>
@@ -167,7 +172,7 @@ function PendingRow({ req }: { req: PendingRequest }) {
               className={isDeptHeadApproved ? "text-green-600 text-[15px]" : "text-gray-400 text-[15px]"} 
             />
             <span className={isDeptHeadApproved ? "text-green-800" : "text-gray-500"}>
-              Approve Dep Head
+              Persetujuan Kepala Dept
             </span>
           </div>
           <div className="flex items-center gap-1.5 font-semibold">
@@ -176,7 +181,7 @@ function PendingRow({ req }: { req: PendingRequest }) {
               className={isHrdApproved ? "text-green-600 text-[15px]" : "text-gray-400 text-[15px]"} 
             />
             <span className={isHrdApproved ? "text-green-800" : "text-gray-500"}>
-              Approve GA & HRD Head
+              Persetujuan Kepala GA & HRD
             </span>
           </div>
         </div>
@@ -291,17 +296,17 @@ export default function DashboardPage() {
   return (
     <Layout
       activeNav="Dashboard"
-      topbarTitle="Department Operations Dashboard"
-      searchPlaceholder="Search operations..."
+      topbarTitle="Dashboard Operasional Departemen"
+      searchPlaceholder="Pencarian cepat..."
     >
       <div className="p-4 sm:p-8 bg-[#f8f9ff] min-h-screen">
         {/* Page title + Quick Approval button */}
         <div data-guide="approver-dashboard-header" className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
           <div>
             <h2 className="text-2xl sm:text-[26px] font-bold text-[#0f172a] leading-tight">
-              Department Operations Dashboard
+              Dashboard Operasional Departemen
             </h2>
-            <p className="text-[14px] text-[#64748b] mt-1">Monitor department approvals.</p>
+            <p className="text-[14px] text-[#64748b] mt-1">Pantau dan kelola persetujuan armada departemen Anda.</p>
           </div>
           <button
             data-guide="approver-quick-approval"
@@ -309,7 +314,7 @@ export default function DashboardPage() {
             className="h-11 px-5 bg-[#1e3a8a] text-white text-[13px] font-bold rounded-xl hover:bg-[#1e40af] active:scale-95 transition-all flex items-center gap-2 shadow-sm cursor-pointer self-start sm:self-auto"
           >
             <Icon name="bolt" className="text-[18px]" />
-            Quick Approval
+            Persetujuan Cepat
           </button>
         </div>
 
@@ -321,21 +326,21 @@ export default function DashboardPage() {
             </svg>
           </div>
           <div className="relative z-10">
-            <div className="text-[22px] font-bold text-white mb-2">Welcome back, {user?.name || "Approver"} 👋</div>
+            <div className="text-[22px] font-bold text-white mb-2">Selamat Datang Kembali, {user?.name || "Approver"} 👋</div>
             <div className="text-[14px] text-white/65 max-w-lg leading-relaxed">
-              Today's fleet operational density is active. You have{" "}
-              <span className="text-white font-semibold">{pendingCount} pending requests</span> that require
-              your attention.
+              Aktivitas operasional armada hari ini sedang berjalan. Anda memiliki{" "}
+              <span className="text-white font-semibold">{pendingCount} permohonan menunggu</span> yang memerlukan
+              tindakan persetujuan Anda.
             </div>
           </div>
         </div>
 
         {/* Stat cards */}
         <div data-guide="approver-stat-cards" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-7">
-          <StatCard icon="pending_actions" label="Pending Approvals"  value={loading ? "..." : String(pendingCount)}    iconBg="bg-[#f0f4ff]" iconColor="text-[#1e3a8a]" />
-          <StatCard icon="list_alt"        label="Total Requests"     value={loading ? "..." : String(totalRequestsCount)} iconBg="bg-[#f0f4ff]" iconColor="text-[#1e3a8a]" />
-          <StatCard icon="cancel"          label="Rejected Requests"  value={loading ? "..." : String(rejectedCount)}    iconBg="bg-[#fef2f2]" iconColor="text-[#dc2626]" />
-          <StatCard icon="check_circle"    label="Approved Trips"     value={loading ? "..." : String(approvedCount)}    iconBg="bg-[#f0fdf4]" iconColor="text-[#16a34a]" />
+          <StatCard icon="pending_actions" label="Menunggu Persetujuan"  value={loading ? "..." : String(pendingCount)}    iconBg="bg-[#f0f4ff]" iconColor="text-[#1e3a8a]" />
+          <StatCard icon="list_alt"        label="Total Permohonan"     value={loading ? "..." : String(totalRequestsCount)} iconBg="bg-[#f0f4ff]" iconColor="text-[#1e3a8a]" />
+          <StatCard icon="cancel"          label="Permohonan Ditolak"  value={loading ? "..." : String(rejectedCount)}    iconBg="bg-[#fef2f2]" iconColor="text-[#dc2626]" />
+          <StatCard icon="check_circle"    label="Perjalanan Disetujui"     value={loading ? "..." : String(approvedCount)}    iconBg="bg-[#f0fdf4]" iconColor="text-[#16a34a]" />
         </div>
 
         {/* Two-column lower */}
@@ -344,24 +349,24 @@ export default function DashboardPage() {
           <div className="bg-white border border-[#e2e8f0] rounded-2xl p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 mb-5">
               <div>
-                <div className="text-[15px] sm:text-[16px] font-bold text-[#0f172a]">Latest Pending Requests</div>
+                <div className="text-[15px] sm:text-[16px] font-bold text-[#0f172a]">Permohonan Menunggu Tindakan</div>
                 <div className="text-[11.5px] sm:text-[12px] text-[#64748b] mt-0.5 leading-snug">
-                  Immediate action required for next 24h operational cycle
+                  Tindakan segera diperlukan untuk siklus operasional 24 jam ke depan
                 </div>
               </div>
               <button
                 onClick={() => navigate("/approver/requests")}
                 className="text-[12px] sm:text-[13px] font-bold text-[#1e3a8a] hover:underline flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0 self-start sm:self-auto"
               >
-                View All Requests
+                Lihat Semua Permohonan
                 <Icon name="arrow_forward" className="text-[15px]" />
               </button>
             </div>
             <div className="flex flex-col gap-4">
               {loading ? (
-                <div className="p-8 text-center text-[#64748b]">Loading pending requests...</div>
+                <div className="p-8 text-center text-[#64748b]">Memuat permohonan...</div>
               ) : pendingRequests.length === 0 ? (
-                <div className="p-8 text-center text-[#94a3b8] font-semibold border border-dashed rounded-xl border-[#e2e8f0]">No pending requests.</div>
+                <div className="p-8 text-center text-[#94a3b8] font-semibold border border-dashed rounded-xl border-[#e2e8f0]">Tidak ada permohonan menunggu persetujuan.</div>
               ) : (
                 pendingRequests.map((req) => (
                   <PendingRow key={req.id} req={req} />
@@ -374,13 +379,13 @@ export default function DashboardPage() {
           <div className="bg-white border border-[#e2e8f0] rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-4">
               <Icon name="history" className="text-[20px] text-[#64748b]" />
-              <span className="text-[15px] font-bold text-[#0f172a]">Activity Feed</span>
+              <span className="text-[15px] font-bold text-[#0f172a]">Log Aktivitas Terkini</span>
             </div>
             <div>
               {loading ? (
-                <div className="text-center text-[#64748b]">Loading activity...</div>
+                <div className="text-center text-[#64748b]">Memuat aktivitas...</div>
               ) : activityFeed.length === 0 ? (
-                <div className="text-center text-[#94a3b8] py-8">No recent activity.</div>
+                <div className="text-center text-[#94a3b8] py-8">Tidak ada aktivitas terkini.</div>
               ) : (
                 activityFeed.map((item) => (
                   <ActivityRow key={item.id} item={item} />

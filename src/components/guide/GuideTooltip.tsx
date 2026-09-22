@@ -114,7 +114,7 @@ export function GuideTooltip({
         <button
           onClick={onSkip}
           className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-          title="Tutup / Skip Guide (ESC)"
+          title="Tutup / Lewati Panduan (ESC)"
         >
           <Icon name="close" className="text-[18px]" />
         </button>
@@ -152,7 +152,7 @@ export function GuideTooltip({
               onClick={onPrev}
               className="h-8 px-3 rounded-xl border border-slate-200 text-[11.5px] font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors cursor-pointer"
             >
-              Back
+              Kembali
             </button>
           )}
 
@@ -161,14 +161,14 @@ export function GuideTooltip({
               onClick={onFinish}
               className="h-8 px-4 rounded-xl bg-[#059669] hover:bg-[#047857] active:bg-[#065f46] text-white text-[11.5px] font-bold shadow-sm transition-colors flex items-center gap-1 cursor-pointer"
             >
-              Finish <Icon name="check" className="text-[14px]" />
+              Selesai <Icon name="check" className="text-[14px]" />
             </button>
           ) : (
             <button
               onClick={onNext}
               className="h-8 px-4 rounded-xl bg-[#1e3a8a] hover:bg-[#1e40af] active:bg-[#1e3a8a] text-white text-[11.5px] font-bold shadow-sm transition-colors flex items-center gap-1 cursor-pointer"
             >
-              Next <Icon name="arrow_forward" className="text-[14px]" />
+              Lanjut <Icon name="arrow_forward" className="text-[14px]" />
             </button>
           )}
         </div>

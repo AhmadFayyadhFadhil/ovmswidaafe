@@ -221,7 +221,7 @@ export default function Notification({
 
   return (
     <Layout
-      activeNav="Notifications"
+      activeNav="Notifikasi"
       onNavigate={onNavigate}
       topbarTitle="Notifikasi"
       searchPlaceholder="Cari notifikasi..."

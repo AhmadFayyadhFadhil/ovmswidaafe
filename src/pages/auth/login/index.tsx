@@ -175,17 +175,13 @@ export default function LoginPage() {
           <div className="max-w-[520px]">
 
             <h2 className="text-5xl leading-tight font-bold text-white mb-6">
-
-              Streamline Enterprise Fleet Operations
-
+              Optimalkan Operasional Armada Perusahaan
             </h2>
 
             <p className="text-lg text-blue-100 leading-relaxed">
-
-              Manage vehicle requests, approvals,
-              driver assignments, and operational schedules
-              in one unified platform.
-
+              Kelola permohonan kendaraan, persetujuan,
+              penugasan driver, dan jadwal operasional
+              dalam satu platform terpadu.
             </p>
 
              {/* Stats */}
@@ -199,7 +195,7 @@ export default function LoginPage() {
                 </h3>
 
                 <p className="text-sm text-blue-100 mt-1">
-                  Active Vehicles
+                  Armada Aktif
                 </p>
 
               </div>
@@ -211,7 +207,7 @@ export default function LoginPage() {
                 </h3>
 
                 <p className="text-sm text-blue-100 mt-1">
-                  Daily Requests
+                  Permohonan Harian
                 </p>
 
               </div>
@@ -223,7 +219,7 @@ export default function LoginPage() {
                 </h3>
 
                 <p className="text-sm text-blue-100 mt-1">
-                  Active Drivers
+                  Driver Aktif
                 </p>
 
               </div>
@@ -292,11 +288,11 @@ export default function LoginPage() {
             <div className="mb-8">
 
               <h2 className="text-3xl font-bold text-slate-900">
-                Welcome Back
+                Selamat Datang Kembali
               </h2>
 
               <p className="text-slate-500 mt-2">
-                Login to continue managing operational requests.
+                Masuk untuk melanjutkan pengelolaan permohonan armada operasional.
               </p>
 
             </div>
@@ -334,13 +330,13 @@ export default function LoginPage() {
 
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
 
-                  Password
+                  Kata Sandi
 
                 </label>
 
                 <input
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder="Masukkan kata sandi Anda"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
@@ -365,7 +361,7 @@ export default function LoginPage() {
 
                   <input type="checkbox" disabled={isLoading} />
 
-                  Remember me
+                  Ingat saya
 
                 </label>
 
@@ -375,7 +371,7 @@ export default function LoginPage() {
                   className="text-sm font-semibold text-blue-700 hover:text-blue-800"
                 >
 
-                  Forgot Password?
+                  Lupa Kata Sandi?
 
                 </button>
 
@@ -386,10 +382,10 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-14 rounded-2xl bg-[#1e3a8a] hover:bg-[#1d4ed8] disabled:bg-slate-400 text-white font-semibold shadow-lg transition-all duration-300 hover:-translate-y-0.5 disabled:hover:translate-y-0"
+                className="w-full h-14 rounded-2xl bg-[#1e3a8a] hover:bg-[#1d4ed8] disabled:bg-slate-400 text-white font-semibold shadow-lg transition-all duration-300 hover:-translate-y-0.5 disabled:hover:translate-y-0 cursor-pointer"
               >
 
-                {isLoading ? "Logging in..." : "Login"}
+                {isLoading ? "Memproses Masuk..." : "Masuk"}
 
               </button>
 
@@ -399,15 +395,15 @@ export default function LoginPage() {
 
             <div className="mt-8 text-center text-sm text-slate-500">
 
-              Don&apos;t have an account?{" "}
+              Belum punya akun?{" "}
 
               <button
                 type="button"
                 onClick={() => navigate("/register")}
-                className="font-semibold text-blue-700 hover:text-blue-800"
+                className="font-semibold text-blue-700 hover:text-blue-800 cursor-pointer"
               >
 
-                Register
+                Daftar
 
               </button>
 

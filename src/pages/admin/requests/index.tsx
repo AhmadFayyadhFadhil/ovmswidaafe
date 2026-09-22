@@ -339,7 +339,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
     if (!editingRequest) return;
 
     if (!editFormData.purpose || !editFormData.destinationCity || !editFormData.destinationPlace || !editFormData.startTime) {
-      setEditFormError("Purpose, destination city, destination place, and departure time are required.");
+      setEditFormError("Keperluan perjalanan, kota tujuan, lokasi tujuan, dan waktu keberangkatan wajib diisi.");
       return;
     }
 
@@ -363,7 +363,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
       refetch();
     } catch (err: any) {
       console.error(err);
-      setEditFormError(err.response?.data?.message || "Failed to update request.");
+      setEditFormError(err.response?.data?.message || "Gagal memperbarui pengajuan.");
     } finally {
       setUpdating(false);
     }
@@ -372,7 +372,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
   const handleAddRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.purpose || !formData.destinationCity || !formData.destinationPlace || !formData.startTime) {
-      setFormError("Purpose, destination city, destination place, and departure time are required.");
+      setFormError("Keperluan perjalanan, kota tujuan, lokasi tujuan, dan waktu keberangkatan wajib diisi.");
       return;
     }
 
@@ -407,7 +407,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
       refetch();
     } catch (err: any) {
       console.error(err);
-      setFormError(err.response?.data?.message || "Failed to create request.");
+      setFormError(err.response?.data?.message || "Gagal membuat pengajuan.");
     } finally {
       setAdding(false);
     }
@@ -469,17 +469,17 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
 
   return (
     <Layout
-      activeNav="Request Monitoring"
+      activeNav="Daftar Pengajuan"
       onNavigate={onNavigate}
-      topbarTitle="Request Monitoring"
-      searchPlaceholder="Search requests..."
+      topbarTitle="Pemantauan Pengajuan"
+      searchPlaceholder="Pencarian cepat pengajuan..."
       userRole="Administrator"
     >
       <div className="p-4 sm:p-6 space-y-5 animate-fadein">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-[26px] font-bold text-[#0f172a]">Request Monitoring</h2>
-            <p className="text-[13px] text-[#64748b] mt-1">Real-time oversight of vehicle dispatch and mission status across the enterprise.</p>
+            <h2 className="text-[26px] font-bold text-[#0f172a]">Pemantauan Pengajuan</h2>
+            <p className="text-[13px] text-[#64748b] mt-1">Pemantauan langsung penugasan armada dan status operasional kendaraan di seluruh organisasi.</p>
           </div>
           <div className="flex gap-2.5 flex-shrink-0">
             <button 
@@ -489,8 +489,8 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                   `REQ-${r.id}`, 
                   r.employee || "-", 
                   r.department || "-", 
-                  r.vehicleModel || "Not Assigned", 
-                  r.driverName || "Not Assigned", 
+                  r.vehicleModel || "Belum Ditugaskan", 
+                  r.driverName || "Belum Ditugaskan", 
                   r.destination || "-", 
                   `${r.date || "-"} ${r.time || ""}`, 
                   r.priority || "NORMAL", 
@@ -500,14 +500,14 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
               }}
               className="flex items-center gap-2 px-4 py-2.5 border border-[#e2e8f0] bg-white rounded-xl text-[13px] font-bold text-[#475569] hover:bg-[#f8fafc] shadow-sm cursor-pointer active:scale-95 transition-all"
             >
-              <Icon name="download" className="text-[17px]" />Export Excel
+              <Icon name="download" className="text-[17px]" />Ekspor Excel
             </button>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-5 py-2.5 rounded-xl text-[13px] font-bold shadow-sm active:scale-95 transition-all"
+              className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-5 py-2.5 rounded-xl text-[13px] font-bold shadow-sm active:scale-95 transition-all cursor-pointer"
             >
               <Icon name="add" className="text-[17px]" />
-              New Request
+              Pengajuan Baru
             </button>
           </div>
         </div>
@@ -515,10 +515,10 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Total Requests",    value: totalRequestsCount, icon: "assignment",      bg: "bg-blue-50",     color: "text-blue-800" },
-            { label: "Pending Approval",  value: pendingCount,       icon: "pending_actions", bg: "bg-orange-50",   color: "text-orange-700" },
-            { label: "Active Missions",   value: ongoingCount,       icon: "commute",         bg: "bg-sky-50",      color: "text-sky-700" },
-            { label: "Completed Today",   value: completedCount,     icon: "task_alt",        bg: "bg-emerald-50",  color: "text-emerald-700" },
+            { label: "Total Pengajuan",      value: totalRequestsCount, icon: "assignment",      bg: "bg-blue-50",     color: "text-blue-800" },
+            { label: "Menunggu Persetujuan", value: pendingCount,       icon: "pending_actions", bg: "bg-orange-50",   color: "text-orange-700" },
+            { label: "Sedang Berjalan",      value: ongoingCount,       icon: "commute",         bg: "bg-sky-50",      color: "text-sky-700" },
+            { label: "Selesai Hari Ini",     value: completedCount,     icon: "task_alt",        bg: "bg-emerald-50",  color: "text-emerald-700" },
           ].map(c => (
             <div key={c.label} className="bg-white rounded-2xl p-5 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
               <div className="flex items-center justify-between mb-3">
@@ -540,7 +540,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
               <input
                 value={search}
                 onChange={e => handleSearchChange(e.target.value)}
-                placeholder="Search Requests, Employee, Destination..."
+                placeholder="Cari ID pengajuan, pemohon, tujuan..."
                 className="w-full h-9 pl-9 pr-4 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
               />
             </div>
@@ -549,7 +549,13 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
               onChange={e => handleStatusChange(e.target.value)}
               className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer"
             >
-              {["All", "APPROVED", "PENDING", "ONGOING", "COMPLETED", "REJECTED", "CANCELLED"].map(s => <option key={s} value={s}>Status: {s}</option>)}
+              <option value="All">Semua Status</option>
+              <option value="APPROVED">Disetujui</option>
+              <option value="PENDING">Menunggu</option>
+              <option value="ONGOING">Sedang Berjalan</option>
+              <option value="COMPLETED">Selesai</option>
+              <option value="REJECTED">Ditolak</option>
+              <option value="CANCELLED">Dibatalkan</option>
             </select>
             <select 
               value={priorityFilter}
@@ -557,10 +563,10 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
               className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer"
             >
               <option value="All">Prioritas: Semua</option>
-              <option value="URGENT">URGENT</option>
-              <option value="HIGH">HIGH</option>
+              <option value="URGENT">MENDESAK</option>
+              <option value="HIGH">TINGGI</option>
               <option value="NORMAL">NORMAL</option>
-              <option value="LOW">LOW</option>
+              <option value="LOW">RENDAH</option>
             </select>
             <div className="flex items-center gap-2 h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] text-[#475569] whitespace-nowrap">
               <Icon name="calendar_today" className="text-[15px]" />
@@ -569,22 +575,22 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                 start.setDate(start.getDate() - 3);
                 const end = new Date();
                 end.setDate(end.getDate() + 7);
-                const format = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                const format = (d: Date) => d.toLocaleDateString("id-ID", { month: "short", day: "numeric", year: "numeric" });
                 return `${format(start)} – ${format(end)}`;
               })()}
             </div>
           </div>
 
           {loading ? (
-            <div className="p-8 text-center text-[14px] text-[#64748b]">Loading requests...</div>
+            <div className="p-8 text-center text-[14px] text-[#64748b]">Memuat data pengajuan...</div>
           ) : error ? (
-            <div className="p-8 text-center text-[14px] text-red-500">Failed to load requests.</div>
+            <div className="p-8 text-center text-[14px] text-red-500">Gagal memuat data pengajuan.</div>
           ) : (
             <div className="overflow-x-auto">
             <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="bg-[#f8fafc]">
-                  {["REQUEST ID", "REQUESTER", "VEHICLE & DRIVER", "DESTINATION", "SCHEDULE", "PRIORITY", "STATUS", "ACTIONS"].map(h => (
+                  {["ID PENGAJUAN", "PEMOHON", "KENDARAAN & DRIVER", "TUJUAN", "JADWAL", "PRIORITAS", "STATUS", "AKSI"].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -598,21 +604,25 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                       <div className="text-[10px] font-bold uppercase text-[#94a3b8] tracking-wider">{r.department}</div>
                     </td>
                     <td className="px-4 py-4">
-                      <div className="text-[12px] font-bold text-[#0f172a]">{r.vehicleModel}</div>
-                      <div className="text-[11px] text-[#94a3b8]">Driver: {r.driverName}</div>
+                      <div className="text-[12px] font-bold text-[#0f172a]">{r.vehicleModel || "Belum Ditugaskan"}</div>
+                      <div className="text-[11px] text-[#94a3b8]">Driver: {r.driverName || "Belum Ditugaskan"}</div>
                     </td>
                     <td className="px-4 py-4">
                       <div className="text-[13px] text-[#0f172a]">{r.destination}</div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-[12px] text-[#0f172a] whitespace-nowrap">{r.date}</div>
-                      <div className="text-[11px] text-[#94a3b8] whitespace-nowrap">{r.time || "All day"}</div>
+                      <div className="text-[11px] text-[#94a3b8] whitespace-nowrap">{r.time || "Sepanjang hari"}</div>
                     </td>
                     <td className="px-4 py-4 text-[12px]">
-                      <span className={getPriorityColor(r.priority)}>{r.priority}</span>
+                      <span className={getPriorityColor(r.priority)}>
+                        {r.priority === "URGENT" ? "MENDESAK" : r.priority === "HIGH" ? "TINGGI" : r.priority === "NORMAL" ? "NORMAL" : r.priority === "LOW" ? "RENDAH" : r.priority}
+                      </span>
                     </td>
                     <td className="px-4 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(r.status)}`}>{r.status}</span>
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(r.status)}`}>
+                        {r.status === "APPROVED" ? "DISETUJUI" : r.status === "PENDING" ? "MENUNGGU" : r.status === "ONGOING" ? "SEDANG BERJALAN" : r.status === "COMPLETED" ? "SELESAI" : r.status === "REJECTED" ? "DITOLAK" : r.status === "CANCELLED" ? "DIBATALKAN" : r.status}
+                      </span>
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
@@ -638,7 +648,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                             onClick={() => handleOpenAssignModal(r)}
                             className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#f0fdf4] text-[#16a34a] text-[12px] font-semibold hover:bg-[#dcfce7] transition cursor-pointer"
                           >
-                            <Icon name="person_add" className="text-[14px]" />Assign
+                            <Icon name="person_add" className="text-[14px]" />Tugaskan
                           </button>
                         )}
 
@@ -647,7 +657,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                             onClick={() => setCancelConfirmRequestId(r.id)}
                             className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#fef2f2] text-[#dc2626] text-[12px] font-semibold hover:bg-[#fee2e2] transition cursor-pointer"
                           >
-                            <Icon name="cancel" className="text-[14px]" />Cancel
+                            <Icon name="cancel" className="text-[14px]" />Batal
                           </button>
                         )}
                       </div>
@@ -661,7 +671,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
           {pagination.lastPage > 1 && (
             <div className="px-5 py-3 border-t border-[#f1f5f9] flex items-center justify-between bg-[#fafbfc]">
               <span className="text-[12px] text-[#94a3b8]">
-                Showing {pagination.from ?? 0} to {pagination.to ?? 0} of {pagination.total} requests
+                Menampilkan {pagination.from ?? 0} sampai {pagination.to ?? 0} dari {pagination.total} pengajuan
               </span>
               <div className="flex gap-1.5">
                 <button
@@ -699,7 +709,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
           <div className="bg-white rounded-2xl w-full max-w-xl overflow-hidden border border-[#e2e8f0] shadow-2xl flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className="px-6 py-4 border-b border-[#f1f5f9] flex justify-between items-center bg-[#f8fafc] flex-shrink-0">
-              <h3 className="text-[16px] font-bold text-[#0f172a]">Create New Request</h3>
+              <h3 className="text-[16px] font-bold text-[#0f172a]">Buat Pengajuan Baru</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-[#94a3b8] hover:text-[#64748b]">
                 <Icon name="close" className="text-[20px]" />
               </button>
@@ -714,37 +724,37 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
               )}
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Purpose of Trip</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Keperluan Perjalanan</label>
                 <input
                   type="text"
                   required
                   value={formData.purpose}
                   onChange={e => setFormData({ ...formData, purpose: e.target.value })}
-                  placeholder="e.g. Regional HQ Transfer"
+                  placeholder="misal: Rapat Koordinasi Wilayah"
                   className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Destination City</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Kota Tujuan</label>
                   <input
                     type="text"
                     required
                     value={formData.destinationCity}
                     onChange={e => setFormData({ ...formData, destinationCity: e.target.value })}
-                    placeholder="e.g. Jakarta"
+                    placeholder="misal: Jakarta"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Destination Place</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Tempat / Lokasi Tujuan</label>
                   <input
                     type="text"
                     required
                     value={formData.destinationPlace}
                     onChange={e => setFormData({ ...formData, destinationPlace: e.target.value })}
-                    placeholder="e.g. Sudirman Office"
+                    placeholder="misal: Kantor Pusat Sudirman"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
@@ -752,7 +762,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Departure Time</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Waktu Keberangkatan</label>
                   <input
                     type="datetime-local"
                     required
@@ -762,7 +772,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Estimated Return (Optional)</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Estimasi Waktu Kembali (Opsional)</label>
                   <input
                     type="datetime-local"
                     value={formData.endTime}
@@ -774,7 +784,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Passenger Count</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Jumlah Penumpang</label>
                   <input
                     type="number"
                     required
@@ -785,23 +795,25 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Priority</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Prioritas</label>
                   <select
                     value={formData.priority}
                     onChange={e => setFormData({ ...formData, priority: e.target.value })}
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   >
-                    {["Normal", "Urgent", "Critical"].map(p => <option key={p} value={p}>{p}</option>)}
+                    <option value="Normal">Normal</option>
+                    <option value="Urgent">Mendesak</option>
+                    <option value="Critical">Kritis</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Notes (Optional)</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Catatan Tambahan (Opsional)</label>
                 <textarea
                   value={formData.notes}
                   onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="e.g. Needs luggage space"
+                  placeholder="misal: Perlu ruang bagasi barang"
                   rows={2}
                   className="w-full px-3 py-2 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 resize-none"
                 />
@@ -810,16 +822,17 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
               {/* Dynamic Passengers */}
               <div className="border-t border-[#f1f5f9] pt-4">
                 <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-[13px] font-bold text-[#0f172a]">Passenger Details</h4>
+                  <h4 className="text-[13px] font-bold text-[#0f172a]">Daftar Penumpang Tambahan</h4>
                   <button
                     type="button"
                     onClick={handleAddPassenger}
-                    className="flex items-center gap-1.5 text-[12px] font-bold text-[#1e3a8a] hover:underline"
+                    className="flex items-center gap-1.5 text-[12px] font-bold text-[#1e3a8a] hover:underline cursor-pointer"
                   >
-                    <Icon name="person_add" className="text-[15px]" /> Add Passenger
+                    <Icon name="person_add" className="text-[15px]" /> Tambah Penumpang
                   </button>
                 </div>
-                <div className="space-y-2">                   {passengers.map((passenger, index) => (
+                <div className="space-y-2">
+                  {passengers.map((passenger, index) => (
                     <div key={index} className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center bg-[#f8fafc] p-3 rounded-xl border border-[#e2e8f0]">
                       <div className="flex-1 relative min-w-0">
                         <input
@@ -838,13 +851,13 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                               setSuggestions([]);
                             }, 250);
                           }}
-                          placeholder="Passenger Full Name"
+                          placeholder="Nama Lengkap Penumpang"
                           className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                         />
                         {activePassengerIndex === index && (suggestions.length > 0 || searchLoading) && (
                           <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#e2e8f0] rounded-xl shadow-lg max-h-48 overflow-y-auto z-50">
                             {searchLoading ? (
-                              <div className="p-3 text-xs text-slate-400 text-center">Searching...</div>
+                              <div className="p-3 text-xs text-slate-400 text-center">Mencari...</div>
                             ) : (
                               suggestions.map((item) => (
                                 <div
@@ -885,7 +898,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                     </div>
                   ))}
                   {passengers.length === 0 && (
-                    <p className="text-[12px] text-[#94a3b8] text-center py-2">No extra passengers added.</p>
+                    <p className="text-[12px] text-[#94a3b8] text-center py-2">Belum ada penumpang tambahan ditambahkan.</p>
                   )}
                 </div>
               </div>
@@ -894,16 +907,16 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[13px] font-bold text-[#475569] transition-colors"
+                  className="h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[13px] font-bold text-[#475569] transition-colors cursor-pointer"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
                   disabled={adding}
-                  className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50"
+                  className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  {adding ? "Creating..." : "Create Request"}
+                  {adding ? "Menyimpan..." : "Buat Pengajuan"}
                 </button>
               </div>
             </form>
@@ -916,7 +929,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
           <div className="bg-white rounded-2xl w-full max-w-xl overflow-hidden border border-[#e2e8f0] shadow-2xl flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className="px-6 py-4 border-b border-[#f1f5f9] flex justify-between items-center bg-[#f8fafc] flex-shrink-0">
-              <h3 className="text-[16px] font-bold text-[#0f172a]">Edit Request</h3>
+              <h3 className="text-[16px] font-bold text-[#0f172a]">Edit Pengajuan</h3>
               <button onClick={() => setIsEditModalOpen(false)} className="text-[#94a3b8] hover:text-[#64748b]">
                 <Icon name="close" className="text-[20px]" />
               </button>
@@ -931,37 +944,37 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
               )}
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Purpose of Trip</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Tujuan Perjalanan</label>
                 <input
                   type="text"
                   required
                   value={editFormData.purpose}
                   onChange={e => setEditFormData({ ...editFormData, purpose: e.target.value })}
-                  placeholder="e.g. Regional HQ Transfer"
+                  placeholder="cth. Kunjungan Kantor Cabang"
                   className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Destination City</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Kota Tujuan</label>
                   <input
                     type="text"
                     required
                     value={editFormData.destinationCity}
                     onChange={e => setEditFormData({ ...editFormData, destinationCity: e.target.value })}
-                    placeholder="e.g. Jakarta"
+                    placeholder="cth. Jakarta"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Destination Place</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Lokasi / Tempat Tujuan</label>
                   <input
                     type="text"
                     required
                     value={editFormData.destinationPlace}
                     onChange={e => setEditFormData({ ...editFormData, destinationPlace: e.target.value })}
-                    placeholder="e.g. Sudirman Office"
+                    placeholder="cth. Kantor Sudirman"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
@@ -969,7 +982,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Departure Time</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Waktu Keberangkatan</label>
                   <input
                     type="datetime-local"
                     required
@@ -979,7 +992,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Estimated Return (Optional)</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Perkiraan Kembali (Opsional)</label>
                   <input
                     type="datetime-local"
                     value={editFormData.endTime}
@@ -991,7 +1004,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Passenger Count</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Jumlah Penumpang</label>
                   <input
                     type="number"
                     required
@@ -1002,23 +1015,27 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Priority</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Prioritas</label>
                   <select
                     value={editFormData.priority}
                     onChange={e => setEditFormData({ ...editFormData, priority: e.target.value })}
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   >
-                    {["Normal", "Urgent", "Critical"].map(p => <option key={p} value={p}>{p}</option>)}
+                    {[
+                      { value: "Normal", label: "Normal" },
+                      { value: "Urgent", label: "Mendesak (Urgent)" },
+                      { value: "Critical", label: "Kritis (Critical)" }
+                    ].map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Notes (Optional)</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Catatan (Opsional)</label>
                 <textarea
                   value={editFormData.notes}
                   onChange={e => setEditFormData({ ...editFormData, notes: e.target.value })}
-                  placeholder="e.g. Needs luggage space"
+                  placeholder="cth. Membutuhkan bagasi luas"
                   rows={2}
                   className="w-full px-3 py-2 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 resize-none"
                 />
@@ -1027,16 +1044,17 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
               {/* Dynamic Passengers */}
               <div className="border-t border-[#f1f5f9] pt-4">
                 <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-[13px] font-bold text-[#0f172a]">Passenger Details</h4>
+                  <h4 className="text-[13px] font-bold text-[#0f172a]">Detail Penumpang</h4>
                   <button
                     type="button"
                     onClick={handleAddEditPassenger}
                     className="flex items-center gap-1.5 text-[12px] font-bold text-[#1e3a8a] hover:underline"
                   >
-                    <Icon name="person_add" className="text-[15px]" /> Add Passenger
+                    <Icon name="person_add" className="text-[15px]" /> Tambah Penumpang
                   </button>
                 </div>
-                <div className="space-y-2">                   {editPassengers.map((passenger, index) => (
+                <div className="space-y-2">
+                  {editPassengers.map((passenger, index) => (
                     <div key={index} className="flex gap-3 items-center bg-[#f8fafc] p-3 rounded-xl border border-[#e2e8f0]">
                       <div className="flex-1 relative">
                         <input
@@ -1055,13 +1073,13 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                               setEditSuggestions([]);
                             }, 250);
                           }}
-                          placeholder="Passenger Full Name"
+                          placeholder="Nama Lengkap Penumpang"
                           className="w-full h-9 px-3 border border-[#e2e8f0] rounded-lg text-[12px] text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                         />
                         {activeEditPassengerIndex === index && (editSuggestions.length > 0 || editSearchLoading) && (
                           <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#e2e8f0] rounded-xl shadow-lg max-h-48 overflow-y-auto z-50">
                             {editSearchLoading ? (
-                              <div className="p-3 text-xs text-slate-400 text-center">Searching...</div>
+                              <div className="p-3 text-xs text-slate-400 text-center">Mencari...</div>
                             ) : (
                               editSuggestions.map((item) => (
                                 <div
@@ -1101,7 +1119,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                     </div>
                   ))}
                   {editPassengers.length === 0 && (
-                    <p className="text-[12px] text-[#94a3b8] text-center py-2">No extra passengers added.</p>
+                    <p className="text-[12px] text-[#94a3b8] text-center py-2">Belum ada penumpang tambahan.</p>
                   )}
                 </div>
               </div>
@@ -1112,14 +1130,14 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                   onClick={() => setIsEditModalOpen(false)}
                   className="h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[13px] font-bold text-[#475569] transition-colors"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
                   disabled={updating}
                   className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50"
                 >
-                  {updating ? "Saving..." : "Save Changes"}
+                  {updating ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
               </div>
             </form>
@@ -1132,7 +1150,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
           <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden border border-[#e2e8f0] shadow-2xl flex flex-col">
             {/* Header */}
             <div className="px-6 py-4 border-b border-[#f1f5f9] flex justify-between items-center bg-[#f8fafc] flex-shrink-0">
-              <h3 className="text-[16px] font-bold text-[#0f172a]">Assign Driver to Request #{assignRequest?.id}</h3>
+              <h3 className="text-[16px] font-bold text-[#0f172a]">Tugaskan Driver ke Pengajuan #{assignRequest?.id}</h3>
               <button onClick={() => setIsAssignModalOpen(false)} className="text-[#94a3b8] hover:text-[#64748b] cursor-pointer">
                 <Icon name="close" className="text-[20px]" />
               </button>
@@ -1147,14 +1165,14 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
               )}
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Select Available Driver</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Pilih Driver yang Tersedia</label>
                 <select
                   required
                   value={selectedDriverId}
                   onChange={e => setSelectedDriverId(e.target.value)}
                   className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                 >
-                  <option value="">-- Choose Driver --</option>
+                  <option value="">-- Pilih Driver --</option>
                   {drivers.map(d => (
                     <option key={d.id} value={d.id}>
                       {d.name} ({d.email})
@@ -1162,16 +1180,16 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                   ))}
                 </select>
                 {drivers.length === 0 && (
-                  <p className="text-[11px] text-red-500 mt-1">No drivers are currently available.</p>
+                  <p className="text-[11px] text-red-500 mt-1">Tidak ada driver yang tersedia saat ini.</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Assignment Notes (Optional)</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Catatan Penugasan (Opsional)</label>
                 <textarea
                   value={assignNotes}
                   onChange={e => setAssignNotes(e.target.value)}
-                  placeholder="e.g. Tolong jemput di depan lobi"
+                  placeholder="cth. Tolong jemput di depan lobi"
                   rows={3}
                   className="w-full px-3 py-2 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 resize-none"
                 />
@@ -1183,14 +1201,14 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                   onClick={() => setIsAssignModalOpen(false)}
                   className="h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[13px] font-bold text-[#475569] transition-colors cursor-pointer"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
                   disabled={assigning || !selectedDriverId}
                   className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  {assigning ? "Assigning..." : "Assign Driver"}
+                  {assigning ? "Menugaskan..." : "Tugaskan Driver"}
                 </button>
               </div>
             </form>

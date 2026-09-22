@@ -61,7 +61,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
 
   const rawList = (paginatedData || []).filter((v: any) => !deletedIds.includes(String(v.id)));
   const list = useMemo(() => {
-    if (typeFilter === "All Types") return rawList;
+    if (typeFilter === "All Types" || typeFilter === "Semua Tipe") return rawList;
     return rawList.filter((v: any) => (v.type || "").toLowerCase() === typeFilter.toLowerCase());
   }, [rawList, typeFilter]);
 
@@ -162,7 +162,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
   const handleEditVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editFormData.model || !editFormData.plate) {
-      setEditFormError("Model and plate number are required.");
+      setEditFormError("Model dan nomor plat kendaraan wajib diisi.");
       return;
     }
     setUpdating(true);
@@ -196,7 +196,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
   const handleAddVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.model || !formData.plate) {
-      setFormError("Model and plate number are required.");
+      setFormError("Model dan nomor plat kendaraan wajib diisi.");
       return;
     }
     setAdding(true);
@@ -248,17 +248,17 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
 
   return (
     <Layout
-      activeNav={isDriverCoordinator ? "Daftar Kendaraan" : "Vehicle Management"}
+      activeNav={isDriverCoordinator ? "Daftar Kendaraan" : "Kendaraan"}
       onNavigate={onNavigate}
-      topbarTitle={isDriverCoordinator ? "Daftar Kendaraan" : "Vehicle Management"}
-      searchPlaceholder="Search vehicles..."
+      topbarTitle={isDriverCoordinator ? "Daftar Kendaraan" : "Manajemen Kendaraan"}
+      searchPlaceholder="Pencarian cepat kendaraan..."
     >
       <div className="p-4 sm:p-6 space-y-5 animate-fadein">
         {/* Page Header */}
         <div data-guide="vehicle-assignment" className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-[26px] font-bold text-[#0f172a]">Vehicle Fleet</h2>
-            <p className="text-[13px] text-[#64748b] mt-1">Real-time oversight and asset optimization for your enterprise fleet.</p>
+            <h2 className="text-[26px] font-bold text-[#0f172a]">Armada Kendaraan</h2>
+            <p className="text-[13px] text-[#64748b] mt-1">Pemantauan langsung dan pengelolaan unit kendaraan operasional.</p>
           </div>
           {canManageVehicles && (
             <button
@@ -266,7 +266,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
               className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all shadow-sm hover:shadow-md active:scale-95 cursor-pointer"
             >
               <Icon name="add" className="text-[18px]" />
-              Add Vehicle
+              Tambah Kendaraan
             </button>
           )}
         </div>
@@ -299,7 +299,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
               <input
                 value={search}
                 onChange={e => handleSearchChange(e.target.value)}
-                placeholder="Search fleet by ID, driver or model..."
+                placeholder="Cari armada berdasarkan ID, driver, atau model..."
                 className="w-full h-9 pl-9 pr-4 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
               />
             </div>
@@ -321,21 +321,22 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
               onChange={e => { setTypeFilter(e.target.value); setCurrentPage(1); }}
               className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer shadow-2xs"
             >
-              {["All Types", "Sedan", "MPV", "SUV", "Van", "Blind Van", "Truck", "Pick-up", "Bus", "Electric"].map(t => <option key={t} value={t}>{t}</option>)}
+              <option value="All Types">Semua Tipe</option>
+              {["Sedan", "MPV", "SUV", "Van", "Blind Van", "Truck", "Pick-up", "Bus", "Electric"].map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <button
               onClick={() => { setSearch(""); setStatus("All Statuses"); setTypeFilter("All Types"); setCurrentPage(1); }}
               className="h-9 px-4 border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#475569] hover:bg-[#f1f5f9] transition-colors cursor-pointer"
             >
-              Reset
+              Atur Ulang
             </button>
           </div>
 
           {/* Table */}
           {loading ? (
-            <div className="p-8 text-center text-[14px] text-[#64748b]">Loading vehicles...</div>
+            <div className="p-8 text-center text-[14px] text-[#64748b]">Memuat data kendaraan...</div>
           ) : error ? (
-            <div className="p-8 text-center text-[14px] text-red-500">Failed to load vehicles data.</div>
+            <div className="p-8 text-center text-[14px] text-red-500">Gagal memuat data kendaraan.</div>
           ) : (
             <>
               {/* Desktop Table View (Hidden on mobile, visible on medium screens and up) */}
@@ -344,7 +345,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                   <table className="w-full min-w-[900px]">
                   <thead>
                     <tr className="bg-[#f8fafc]">
-                      {["VEHICLE INFO", "TYPE", "STATUS", "CAPACITY", "FOTO STNK", ...(canManageVehicles ? ["ACTIONS"] : [])].map(h => (
+                      {["INFO KENDARAAN", "TIPE", "STATUS", "KAPASITAS", "FOTO STNK", ...(canManageVehicles ? ["AKSI"] : [])].map(h => (
                         <th key={h} className="px-5 py-3 text-left text-[10.5px] font-bold text-[#94a3b8] uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
@@ -378,7 +379,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#eef2ff] hover:bg-[#dbeafe] text-[#1e3a8a] text-[11.5px] font-bold transition active:scale-95 cursor-pointer shadow-2xs"
                             >
                               <Icon name="visibility" className="text-[14px]" />
-                              View STNK
+                              Lihat STNK
                             </button>
                           ) : (
                             <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-400">
@@ -415,7 +416,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
               <div className="block md:hidden divide-y divide-[#f1f5f9]">
                 {list.length === 0 ? (
                   <div className="p-8 text-center text-[13px] text-[#64748b]">
-                    No vehicles found.
+                    Tidak ada kendaraan ditemukan.
                   </div>
                 ) : (
                   list.map(v => (
@@ -438,11 +439,11 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
 
                       <div className="grid grid-cols-2 gap-4 pt-1">
                         <div>
-                          <span className="text-[#94a3b8] block text-[10px] uppercase font-bold tracking-wider">Type</span>
+                          <span className="text-[#94a3b8] block text-[10px] uppercase font-bold tracking-wider">Tipe</span>
                           <span className="text-[12.5px] font-semibold text-[#0f172a]">{v.type}</span>
                         </div>
                         <div>
-                          <span className="text-[#94a3b8] block text-[10px] uppercase font-bold tracking-wider">Capacity</span>
+                          <span className="text-[#94a3b8] block text-[10px] uppercase font-bold tracking-wider">Kapasitas</span>
                           <span className="text-[12.5px] font-semibold text-[#0f172a]">{v.capacity || 0} orang</span>
                         </div>
                       </div>
@@ -459,7 +460,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                             onClick={() => handleDelete(v.id)}
                             className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#fee2e2] text-[#b91c1c] text-[12px] font-bold hover:bg-[#fecaca] transition active:scale-95 cursor-pointer"
                           >
-                            <Icon name="delete" className="text-[14px]" />Delete
+                            <Icon name="delete" className="text-[14px]" />Hapus
                           </button>
                         </div>
                       )}
@@ -473,7 +474,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
           {/* Pagination */}
           {pagination.lastPage > 1 && (
             <div className="px-5 py-3 border-t border-[#f1f5f9] flex items-center justify-between bg-[#fafbfc]">
-              <span className="text-[12px] text-[#94a3b8]">Showing <b>{pagination.from ?? 0}–{pagination.to ?? 0}</b> of <b>{pagination.total}</b> vehicles</span>
+              <span className="text-[12px] text-[#94a3b8]">Menampilkan <b>{pagination.from ?? 0}–{pagination.to ?? 0}</b> dari <b>{pagination.total}</b> kendaraan</span>
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
@@ -509,7 +510,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
           <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden border border-[#e2e8f0] shadow-2xl flex flex-col">
             {/* Header */}
             <div className="px-6 py-4 border-b border-[#f1f5f9] flex justify-between items-center bg-[#f8fafc]">
-              <h3 className="text-[16px] font-bold text-[#0f172a]">Add New Vehicle</h3>
+              <h3 className="text-[16px] font-bold text-[#0f172a]">Tambah Kendaraan Baru</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-[#94a3b8] hover:text-[#64748b]">
                 <Icon name="close" className="text-[20px]" />
               </button>
@@ -525,24 +526,24 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Model / Name</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Model / Nama Kendaraan</label>
                   <input
                     type="text"
                     required
                     value={formData.model}
                     onChange={e => setFormData({ ...formData, model: e.target.value })}
-                    placeholder="e.g. Toyota Camry"
+                    placeholder="misal: Toyota Avanza"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Plate Number</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nomor Plat</label>
                   <input
                     type="text"
                     required
                     value={formData.plate}
                     onChange={e => setFormData({ ...formData, plate: e.target.value })}
-                    placeholder="e.g. B 1234 CD"
+                    placeholder="misal: B 1234 CD"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
@@ -550,7 +551,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Vehicle Type</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Tipe Kendaraan</label>
                   <select
                     value={formData.type}
                     onChange={e => setFormData({ ...formData, type: e.target.value })}
@@ -560,7 +561,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Capacity</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Kapasitas</label>
                   <input
                     type="number"
                     required
@@ -574,13 +575,16 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Initial Status</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Status Awal</label>
                   <select
                     value={formData.status}
                     onChange={e => setFormData({ ...formData, status: e.target.value })}
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   >
-                    {["Available", "In Use", "Maintenance", "Retired"].map(st => <option key={st} value={st}>{st}</option>)}
+                    <option value="Available">Tersedia</option>
+                    <option value="In Use">Sedang Digunakan</option>
+                    <option value="Maintenance">Dalam Perbaikan</option>
+                    <option value="Retired">Tidak Aktif</option>
                   </select>
                 </div>
               </div>
@@ -598,7 +602,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                     />
                     <label htmlFor="photo-upload" className="cursor-pointer h-10 px-3.5 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2 flex-1 justify-center">
                       <Icon name="upload" className="text-[16px]" />
-                      Upload Image
+                      Unggah Foto
                     </label>
                     {photoPreview && (
                       <img src={photoPreview} alt="Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0] shrink-0" />
@@ -618,7 +622,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                     />
                     <label htmlFor="stnk-upload" className="cursor-pointer h-10 px-3.5 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2 flex-1 justify-center">
                       <Icon name="badge" className="text-[16px] text-[#1e3a8a]" />
-                      Upload STNK
+                      Unggah STNK
                     </label>
                     {stnkPreview && (
                       <img src={stnkPreview} alt="Preview STNK" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0] shrink-0" />
@@ -633,14 +637,14 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                   onClick={() => setIsModalOpen(false)}
                   className="h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[13px] font-bold text-[#475569] transition-colors"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
                   disabled={adding}
                   className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50"
                 >
-                  {adding ? "Adding..." : "Add Vehicle"}
+                  {adding ? "Menambahkan..." : "Tambah Kendaraan"}
                 </button>
               </div>
             </form>
@@ -653,7 +657,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
           <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden border border-[#e2e8f0] shadow-2xl flex flex-col">
             {/* Header */}
             <div className="px-6 py-4 border-b border-[#f1f5f9] flex justify-between items-center bg-[#f8fafc]">
-              <h3 className="text-[16px] font-bold text-[#0f172a]">Edit Vehicle</h3>
+              <h3 className="text-[16px] font-bold text-[#0f172a]">Edit Kendaraan</h3>
               <button onClick={() => setIsEditModalOpen(false)} className="text-[#94a3b8] hover:text-[#64748b]">
                 <Icon name="close" className="text-[20px]" />
               </button>
@@ -669,24 +673,24 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Model / Name</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Model / Nama Kendaraan</label>
                   <input
                     type="text"
                     required
                     value={editFormData.model}
                     onChange={e => setEditFormData({ ...editFormData, model: e.target.value })}
-                    placeholder="e.g. Toyota Camry"
+                    placeholder="misal: Toyota Avanza"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Plate Number</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nomor Plat</label>
                   <input
                     type="text"
                     required
                     value={editFormData.plate}
                     onChange={e => setEditFormData({ ...editFormData, plate: e.target.value })}
-                    placeholder="e.g. B 1234 CD"
+                    placeholder="misal: B 1234 CD"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
@@ -694,7 +698,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Vehicle Type</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Tipe Kendaraan</label>
                   <select
                     value={editFormData.type}
                     onChange={e => setEditFormData({ ...editFormData, type: e.target.value })}
@@ -704,7 +708,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Capacity</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Kapasitas</label>
                   <input
                     type="number"
                     required
@@ -718,13 +722,16 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Vehicle Status</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Status Kendaraan</label>
                   <select
                     value={editFormData.status}
                     onChange={e => setEditFormData({ ...editFormData, status: e.target.value })}
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   >
-                    {["Available", "In Use", "Maintenance", "Retired"].map(st => <option key={st} value={st}>{st}</option>)}
+                    <option value="Available">Tersedia</option>
+                    <option value="In Use">Sedang Digunakan</option>
+                    <option value="Maintenance">Dalam Perbaikan</option>
+                    <option value="Retired">Tidak Aktif</option>
                   </select>
                 </div>
               </div>
@@ -742,7 +749,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                     />
                     <label htmlFor="edit-photo-upload" className="cursor-pointer h-10 px-3.5 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2 flex-1 justify-center">
                       <Icon name="upload" className="text-[16px]" />
-                      Upload Image
+                      Unggah Foto
                     </label>
                     {editPhotoPreview && (
                       <img src={editPhotoPreview} alt="Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0] shrink-0" />
@@ -762,7 +769,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                     />
                     <label htmlFor="edit-stnk-upload" className="cursor-pointer h-10 px-3.5 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2 flex-1 justify-center">
                       <Icon name="badge" className="text-[16px] text-[#1e3a8a]" />
-                      Upload STNK
+                      Unggah STNK
                     </label>
                     {editStnkPreview && (
                       <img src={editStnkPreview} alt="Preview STNK" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0] shrink-0" />
@@ -777,14 +784,14 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                   onClick={() => setIsEditModalOpen(false)}
                   className="h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[13px] font-bold text-[#475569] transition-colors"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
                   disabled={updating}
                   className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50"
                 >
-                  {updating ? "Saving..." : "Save Changes"}
+                  {updating ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
               </div>
             </form>

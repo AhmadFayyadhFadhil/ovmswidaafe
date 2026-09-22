@@ -6,12 +6,12 @@ import { userService } from "@/services/modules/userService";
 import { auditLogService } from "@/services/modules/auditLogService";
 
 const ROLES = [
-  { icon: "gavel", label: "Approver", sub: "Financial & asset approvals" },
-  { icon: "admin_panel_settings", label: "Administrator", sub: "Full system access & control" },
-  { icon: "assignment_ind", label: "GA", sub: "General Affairs & Operations" },
-  { icon: "directions_car", label: "Driver", sub: "Vehicle data access only" },
-  { icon: "work", label: "Employee", sub: "Standard view permissions" },
-  { icon: "security", label: "Security", sub: "Security & QR Verification" },
+  { icon: "gavel", label: "Approver", sub: "Persetujuan pengajuan & aset" },
+  { icon: "admin_panel_settings", label: "Administrator", sub: "Akses penuh dan kontrol sistem" },
+  { icon: "assignment_ind", label: "GA", sub: "General Affairs & Operasional" },
+  { icon: "directions_car", label: "Driver", sub: "Akses khusus data penugasan kendaraan" },
+  { icon: "work", label: "Employee", sub: "Izin standar pengajuan permohonan" },
+  { icon: "security", label: "Security", sub: "Keamanan pos & verifikasi QR" },
 ];
 
 const MODULES = ["Dashboard", "Vehicles", "Requests", "Reports"];
@@ -124,7 +124,7 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
 
   // Filtered Users based on User Assignment Filter
   const filteredUsers = useMemo(() => {
-    if (userRoleFilter === "All Roles") return rawUsers;
+    if (userRoleFilter === "All Roles" || userRoleFilter === "Semua Peran") return rawUsers;
     const q = userRoleFilter.toLowerCase();
     return rawUsers.filter((u: any) => {
       const r = (u.roleName || u.role || "").toLowerCase();
@@ -197,17 +197,17 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
   };
 
   return (
-    <Layout activeNav="Role Management" onNavigate={onNavigate} topbarTitle="Role Management" searchPlaceholder="Search roles..." userName="Admin User" userRole="Administrator">
+    <Layout activeNav="Peran & Hak Akses" onNavigate={onNavigate} topbarTitle="Peran & Hak Akses" searchPlaceholder="Pencarian cepat peran & hak akses..." userName="Admin User" userRole="Administrator">
       <div className="p-4 sm:p-6 space-y-5 animate-fadein pb-12">
         {/* Header */}
         <div data-guide="role-management" className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div>
-            <h2 className="text-[24px] font-bold text-[#0f172a]">Role Management</h2>
-            <p className="text-[13px] text-[#64748b] mt-1">Manage system roles, permissions, and access control across the enterprise.</p>
+            <h2 className="text-[24px] font-bold text-[#0f172a]">Peran & Hak Akses</h2>
+            <p className="text-[13px] text-[#64748b] mt-1">Kelola peran sistem, izin hak akses, dan kontrol keamanan di seluruh organisasi.</p>
           </div>
           <div className="flex gap-2.5">
             <button onClick={() => setSaved(true)} className="flex items-center gap-2 h-10 px-5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold shadow-sm active:scale-95 transition-all cursor-pointer">
-              <Icon name="save" className="text-[17px]" />{saved ? "Changes Saved!" : "Save Changes"}
+              <Icon name="save" className="text-[17px]" />{saved ? "Perubahan Disimpan!" : "Simpan Perubahan"}
             </button>
           </div>
         </div>
@@ -215,8 +215,8 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
           {[
-            { label: "Total Roles", value: "5", icon: "shield", bg: "bg-[#e8edf8]", color: "text-[#1e3a8a]" },
-            { label: "Active Permissions", value: "124", icon: "key", bg: "bg-[#dcfce7]", color: "text-[#16a34a]" },
+            { label: "Total Peran", value: "5", icon: "shield", bg: "bg-[#e8edf8]", color: "text-[#1e3a8a]" },
+            { label: "Izin Aktif", value: "124", icon: "key", bg: "bg-[#dcfce7]", color: "text-[#16a34a]" },
           ].map(c => (
             <div key={c.label} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-shadow">
               <div className={`w-9 h-9 ${c.bg} rounded-xl flex items-center justify-center mb-2`}>
@@ -232,7 +232,7 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Left: System Roles */}
           <div className="col-span-1 lg:col-span-4 space-y-3">
-            <h3 className="text-[15px] font-bold text-[#0f172a]">System Roles</h3>
+            <h3 className="text-[15px] font-bold text-[#0f172a]">Peran Sistem</h3>
             {ROLES.map(r => (
               <button key={r.label} onClick={() => { setSelectedRole(r.label); setSaved(false); }}
                 className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all text-left cursor-pointer ${
@@ -256,11 +256,11 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
             <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden">
               <div className="px-5 py-4 border-b border-[#f1f5f9] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-[15px] font-bold text-[#0f172a]">Permission Matrix</h3>
-                  <p className="text-[12px] text-[#64748b]">Configure action-level access for <b>{selectedRole}</b> role.</p>
+                  <h3 className="text-[15px] font-bold text-[#0f172a]">Matriks Hak Akses</h3>
+                  <p className="text-[12px] text-[#64748b]">Konfigurasi hak akses per tindakan untuk peran <b>{selectedRole}</b>.</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[12px] font-semibold text-[#475569]">Select All Actions</span>
+                  <span className="text-[12px] font-semibold text-[#475569]">Pilih Semua Tindakan</span>
                   <button onClick={toggleSelectAll} className={`w-11 h-6 rounded-full transition-all cursor-pointer ${isSelectAllActive ? "bg-[#1e3a8a]" : "bg-[#e2e8f0]"}`}>
                     <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${isSelectAllActive ? "translate-x-5" : "translate-x-0"}`} />
                   </button>
@@ -270,29 +270,35 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
                 <table className="w-full">
                   <thead>
                     <tr className="bg-[#f8fafc]">
-                      <th className="px-4 py-3 text-left text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide">Module</th>
-                      {ACTIONS.map(a => <th key={a} className="px-2 py-3 text-center text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide">{a}</th>)}
+                      <th className="px-4 py-3 text-left text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide">Modul</th>
+                      {ACTIONS.map(a => {
+                        const actionMap: Record<string, string> = { VIEW: "LIHAT", CREATE: "BUAT", EDIT: "EDIT", DELETE: "HAPUS", APPROVE: "SETUJUI", MANAGE: "KELOLA" };
+                        return <th key={a} className="px-2 py-3 text-center text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide">{actionMap[a] || a}</th>;
+                      })}
                     </tr>
                   </thead>
                   <tbody>
-                    {MODULES.map(mod => (
-                      <tr key={mod} className="border-t border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors">
-                        <td className="px-4 py-3.5 flex items-center gap-2.5">
-                          <Icon name={mod === "Dashboard" ? "dashboard" : mod === "Vehicles" ? "directions_car" : mod === "Requests" ? "assignment" : "analytics"} className="text-[#64748b] text-[18px]" />
-                          <span className="text-[13px] font-semibold text-[#0f172a]">{mod}</span>
-                        </td>
-                        {ACTIONS.map(action => (
-                          <td key={action} className="px-2 py-3.5 text-center">
-                            <button onClick={() => togglePerm(mod, action)}
-                              className={`w-5 h-5 rounded flex items-center justify-center mx-auto transition-all cursor-pointer ${
-                                perms[mod][action] ? "bg-[#1e3a8a]" : "border-2 border-[#e2e8f0] hover:border-[#1e3a8a]/40"
-                              }`}>
-                              {perms[mod][action] && <Icon name="check" className="text-white text-[12px]" />}
-                            </button>
+                    {MODULES.map(mod => {
+                      const modMap: Record<string, string> = { Dashboard: "Dashboard", Vehicles: "Kendaraan", Requests: "Pengajuan", Reports: "Laporan" };
+                      return (
+                        <tr key={mod} className="border-t border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors">
+                          <td className="px-4 py-3.5 flex items-center gap-2.5">
+                            <Icon name={mod === "Dashboard" ? "dashboard" : mod === "Vehicles" ? "directions_car" : mod === "Requests" ? "assignment" : "analytics"} className="text-[#64748b] text-[18px]" />
+                            <span className="text-[13px] font-semibold text-[#0f172a]">{modMap[mod] || mod}</span>
                           </td>
-                        ))}
-                      </tr>
-                    ))}
+                          {ACTIONS.map(action => (
+                            <td key={action} className="px-2 py-3.5 text-center">
+                              <button onClick={() => togglePerm(mod, action)}
+                                className={`w-5 h-5 rounded flex items-center justify-center mx-auto transition-all cursor-pointer ${
+                                  perms[mod][action] ? "bg-[#1e3a8a]" : "border-2 border-[#e2e8f0] hover:border-[#1e3a8a]/40"
+                                }`}>
+                                {perms[mod][action] && <Icon name="check" className="text-white text-[12px]" />}
+                              </button>
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -303,13 +309,13 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
               {/* User Assignment Card */}
               <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-[14px] font-bold text-[#0f172a]">User Assignment</h3>
+                  <h3 className="text-[14px] font-bold text-[#0f172a]">Penetapan Pengguna</h3>
                   <select
                     value={userRoleFilter}
                     onChange={e => setUserRoleFilter(e.target.value)}
                     className="h-7 px-2 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[11px] font-semibold text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
                   >
-                    <option value="All Roles">All Roles</option>
+                    <option value="All Roles">Semua Peran</option>
                     <option value="Administrator">Administrator</option>
                     <option value="Approver">Approver</option>
                     <option value="Driver">Driver</option>
@@ -359,7 +365,7 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
               {/* Audit Timeline */}
               <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-[14px] font-bold text-[#0f172a]">Audit Timeline</h3>
+                  <h3 className="text-[14px] font-bold text-[#0f172a]">Kronologi Audit</h3>
                   <button
                     onClick={() => {
                       if (onNavigate) {
@@ -370,7 +376,7 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
                     }}
                     className="text-[11px] font-bold text-[#1e3a8a] hover:underline cursor-pointer"
                   >
-                    View History
+                    Lihat Riwayat
                   </button>
                 </div>
                 <div className="space-y-3.5 max-h-[280px] overflow-y-auto pr-1">
@@ -404,7 +410,7 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
                 <Icon name="manage_accounts" className="text-[22px]" />
               </div>
               <div>
-                <h3 className="text-[17px] font-bold text-[#0f172a]">Edit User Role Assignment</h3>
+                <h3 className="text-[17px] font-bold text-[#0f172a]">Ubah Penetapan Peran Pengguna</h3>
                 <p className="text-[12px] text-[#64748b]">Ubah penetapan role akses untuk user ini.</p>
               </div>
             </div>
@@ -455,7 +461,7 @@ export default function Role({ onNavigate }: { onNavigate?: (p: string) => void 
                   disabled={updatingRole}
                   className="h-10 px-5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[12px] font-bold shadow-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  {updatingRole ? "Saving..." : "Simpan Role Assignment"}
+                  {updatingRole ? "Menyimpan..." : "Simpan Penetapan Peran"}
                 </button>
               </div>
             </form>

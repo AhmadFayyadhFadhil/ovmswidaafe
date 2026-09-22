@@ -48,7 +48,7 @@ export function GuideButton() {
         data-guide="guide-button"
       >
         <Icon name="help_outline" className="text-[16px] sm:text-[18px]" />
-        <span>Guide</span>
+        <span>Panduan</span>
       </button>
 
       {/* Guide Dropdown Menu */}
@@ -73,7 +73,7 @@ export function GuideButton() {
                   </div>
                   <div>
                     <div className="text-[12.5px] font-bold text-slate-900 leading-tight">
-                      Quick Tour
+                      Panduan Cepat
                     </div>
                     <div className="text-[10.5px] text-slate-500 mt-0.5">
                       Tur singkat fitur utama {role.toUpperCase()}
@@ -87,7 +87,7 @@ export function GuideButton() {
             {featureGuides.length > 0 && (
               <div className="px-1.5 mt-1 pt-1 border-t border-slate-100">
                 <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Feature Guides
+                  Panduan Fitur
                 </div>
                 {featureGuides.map(tour => (
                   <button

@@ -145,7 +145,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     if (!editingDriver) return;
 
     if (!editFormData.name || !editFormData.email) {
-      setEditFormError("Name and email are required.");
+      setEditFormError("Nama dan email wajib diisi.");
       return;
     }
 
@@ -192,7 +192,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       } else if (status === 500) {
         setEditFormError(serverMsg ? `Server Error: ${serverMsg}` : "Gagal memperbarui driver di server.");
       } else {
-        setEditFormError(serverMsg || "Failed to update driver.");
+        setEditFormError(serverMsg || "Gagal memperbarui driver.");
       }
     } finally {
       setUpdating(false);
@@ -202,7 +202,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
   const handleAddDriverSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.password) {
-      setFormError("Name, email, and password are required.");
+      setFormError("Nama, email, dan kata sandi wajib diisi.");
       return;
     }
     setAdding(true);
@@ -298,18 +298,18 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
 
   return (
     <Layout
-      activeNav="Driver Management"
+      activeNav="Driver"
       onNavigate={onNavigate}
-      topbarTitle="Driver Management"
-      searchPlaceholder="Search drivers..."
+      topbarTitle="Manajemen Driver"
+      searchPlaceholder="Pencarian cepat driver..."
       userRole="Administrator"
     >
       <div className="p-4 sm:p-6 space-y-5 animate-fadein">
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-[26px] font-bold text-[#0f172a]">Driver Management</h2>
-            <p className="text-[13px] text-[#64748b] mt-1">Manage and monitor driver assignments, certifications, and availability.</p>
+            <h2 className="text-[26px] font-bold text-[#0f172a]">Manajemen Driver</h2>
+            <p className="text-[13px] text-[#64748b] mt-1">Kelola dan pantau penugasan driver, sertifikasi SIM, serta ketersediaan tugas.</p>
           </div>
           <div className="flex gap-2.5 flex-shrink-0">
             <button
@@ -317,7 +317,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
               className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <Icon name="person_add" className="text-[17px]" />
-              Add Driver
+              Tambah Driver
             </button>
           </div>
         </div>
@@ -325,9 +325,9 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: "Total Drivers", value: totalDriversCount, sub: "+4% vs last month", icon: "groups", color: "text-[#1e3a8a]", bg: "bg-[#e8edf8]" },
-            { label: "Active / On Duty", value: onDutyCount, sub: `${totalDriversCount ? Math.round((onDutyCount / totalDriversCount) * 100) : 0}%`, icon: "commute", color: "text-[#0369a1]", bg: "bg-[#e0f2fe]", bar: true, barVal: totalDriversCount ? Math.round((onDutyCount / totalDriversCount) * 100) : 0 },
-            { label: "Expiring Soon (H-30)", value: expiringSoonCount, sub: expiringSoonCount > 0 ? `${expiringSoonCount} Driver perlu perpanjangan SIM` : "Semua SIM driver aman", icon: "notification_important", color: "text-[#dc2626]", bg: "bg-[#fee2e2]", border: "border-[#fecdd3]", urgent: expiringSoonCount > 0 },
+            { label: "Total Driver", value: totalDriversCount, sub: "+4% vs bulan lalu", icon: "groups", color: "text-[#1e3a8a]", bg: "bg-[#e8edf8]" },
+            { label: "Sedang Bertugas", value: onDutyCount, sub: `${totalDriversCount ? Math.round((onDutyCount / totalDriversCount) * 100) : 0}%`, icon: "commute", color: "text-[#0369a1]", bg: "bg-[#e0f2fe]", bar: true, barVal: totalDriversCount ? Math.round((onDutyCount / totalDriversCount) * 100) : 0 },
+            { label: "Segera Habis (H-30)", value: expiringSoonCount, sub: expiringSoonCount > 0 ? `${expiringSoonCount} Driver perlu perpanjangan SIM` : "Semua SIM driver aman", icon: "notification_important", color: "text-[#dc2626]", bg: "bg-[#fee2e2]", border: "border-[#fecdd3]", urgent: expiringSoonCount > 0 },
           ].map(c => (
             <div key={c.label} className={`bg-white rounded-2xl p-5 border ${c.border || "border-[#e2e8f0]"} shadow-sm hover:shadow-md transition-shadow ${c.urgent ? "border-l-4 border-l-[#dc2626]" : ""}`}>
               <div className="flex items-start justify-between mb-3">
@@ -359,7 +359,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
               <input
                 value={search}
                 onChange={e => handleSearchChange(e.target.value)}
-                placeholder="Search Driver or ID..."
+                placeholder="Cari driver atau NIK..."
                 className="w-full h-9 pl-9 pr-4 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
               />
             </div>
@@ -368,7 +368,10 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
               onChange={e => handleStatusChange(e.target.value)}
               className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-semibold text-[#475569] focus:outline-none flex-shrink-0 cursor-pointer"
             >
-              {["All", "AVAILABLE", "ON DUTY", "OFF DUTY"].map(s => <option key={s} value={s}>Status: {s}</option>)}
+              <option value="All">Semua Status</option>
+              <option value="AVAILABLE">Status: Tersedia</option>
+              <option value="ON DUTY">Status: Bertugas</option>
+              <option value="OFF DUTY">Status: Lepas Dinas</option>
             </select>
             <select 
               value={simTypeFilter}
@@ -396,14 +399,14 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
               onClick={() => { setSearch(""); setStatusFilter("All"); setSimTypeFilter("All"); setSimStatusFilter("All"); setCurrentPage(1); }}
               className="h-9 px-4 border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#475569] hover:bg-[#f1f5f9] flex-shrink-0 cursor-pointer"
             >
-              Reset
+              Atur Ulang
             </button>
           </div>
 
           {loading ? (
-            <div className="p-8 text-center text-[14px] text-[#64748b]">Loading drivers...</div>
+            <div className="p-8 text-center text-[14px] text-[#64748b]">Memuat data driver...</div>
           ) : error ? (
-            <div className="p-8 text-center text-[14px] text-red-500">Failed to load drivers data.</div>
+            <div className="p-8 text-center text-[14px] text-red-500">Gagal memuat data driver.</div>
           ) : (
             <>
               {/* Desktop Table View */}
@@ -412,7 +415,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                   <table className="w-full min-w-[950px]">
                   <thead>
                     <tr className="bg-[#f8fafc]">
-                      {["DRIVER", "STATUS", "ASSIGNED VEHICLE", "SIM & MASA BERLAKU", "ACTIONS"].map(h => (
+                      {["DRIVER", "STATUS", "KENDARAAN DITUGASKAN", "SIM & MASA BERLAKU", "AKSI"].map(h => (
                         <th key={h} className="px-5 py-3 text-left text-[10.5px] font-bold text-[#94a3b8] uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
@@ -434,10 +437,12 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                           </div>
                         </td>
                         <td className="px-5 py-3.5">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${getStatusColor(d.status)}`}>{d.status}</span>
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${getStatusColor(d.status)}`}>
+                            {d.status === "AVAILABLE" ? "TERSEDIA" : d.status === "ON DUTY" ? "BERTUGAS" : d.status === "OFF DUTY" ? "LEPAS DINAS" : d.status}
+                          </span>
                         </td>
                         <td className="px-5 py-3.5 text-[13px] font-semibold text-[#0f172a]">
-                          {d.assignedVehicleId || "Unassigned"}
+                          {d.assignedVehicleId || "Belum Ditugaskan"}
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="space-y-1">
@@ -450,13 +455,13 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                                   {d.simNumber}
                                 </span>
                               ) : (
-                                <span className="text-[10px] text-slate-400 italic">No SIM: -</span>
+                                <span className="text-[10px] text-slate-400 italic">Tanpa SIM: -</span>
                               )}
                             </div>
                             <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
                               {d.simStatus === "expired" ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-red-100 text-red-700 border border-red-200">
-                                  <Icon name="error" className="text-[12px]" /> Expired ({d.simExpiryDate || d.licenseExpiry})
+                                  <Icon name="error" className="text-[12px]" /> Kadaluarsa ({d.simExpiryDate || d.licenseExpiry})
                                 </span>
                               ) : d.simStatus === "expiring_soon" ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
@@ -495,7 +500,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                               onClick={() => handleDelete(d.id)}
                               className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#fee2e2] text-[#b91c1c] text-[12px] font-semibold hover:bg-[#fecaca] transition cursor-pointer"
                             >
-                              <Icon name="delete" className="text-[14px]" />Delete
+                              <Icon name="delete" className="text-[14px]" />Hapus
                             </button>
                           </div>
                         </td>
@@ -510,7 +515,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
               <div className="block md:hidden divide-y divide-[#f1f5f9]">
                 {list.length === 0 ? (
                   <div className="p-8 text-center text-[13px] text-[#64748b]">
-                    No drivers found.
+                    Tidak ada driver ditemukan.
                   </div>
                 ) : (
                   list.map(d => (
@@ -527,26 +532,28 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                             <div className="text-[11px] text-[#94a3b8]">{d.nik ? `NIK: ${d.nik}` : (d.email || `#${d.id}`)}</div>
                           </div>
                         </div>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase ${getStatusColor(d.status)}`}>{d.status}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase ${getStatusColor(d.status)}`}>
+                          {d.status === "AVAILABLE" ? "TERSEDIA" : d.status === "ON DUTY" ? "BERTUGAS" : d.status === "OFF DUTY" ? "LEPAS DINAS" : d.status}
+                        </span>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 pt-1">
                         <div>
-                          <span className="text-[#94a3b8] block text-[10px] uppercase font-bold tracking-wider">Assigned Vehicle</span>
-                          <span className="text-[12.5px] font-semibold text-[#0f172a]">{d.assignedVehicleId || "Unassigned"}</span>
+                          <span className="text-[#94a3b8] block text-[10px] uppercase font-bold tracking-wider">Kendaraan Ditugaskan</span>
+                          <span className="text-[12.5px] font-semibold text-[#0f172a]">{d.assignedVehicleId || "Belum Ditugaskan"}</span>
                         </div>
                         <div>
-                          <span className="text-[#94a3b8] block text-[10px] uppercase font-bold tracking-wider">SIM A Status</span>
+                          <span className="text-[#94a3b8] block text-[10px] uppercase font-bold tracking-wider">Status SIM</span>
                           {d.simPhotoUrl ? (
                             <button
                               onClick={() => setViewingSimDriver(d)}
                               className="text-[11.5px] font-bold text-[#15803d] flex items-center gap-1 hover:underline cursor-pointer"
                             >
                               <Icon name="visibility" className="text-[14px]" />
-                              View SIM Card
+                              Lihat SIM
                             </button>
                           ) : (
-                            <span className="text-[11.5px] font-bold text-[#b91c1c]">Not Uploaded</span>
+                            <span className="text-[11.5px] font-bold text-[#b91c1c]">Belum Diunggah</span>
                           )}
                         </div>
                       </div>
@@ -562,7 +569,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                           onClick={() => handleDelete(d.id)}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#fee2e2] text-[#b91c1c] text-[12px] font-bold hover:bg-[#fecaca] transition active:scale-95 cursor-pointer"
                         >
-                          <Icon name="delete" className="text-[14px]" />Delete
+                          <Icon name="delete" className="text-[14px]" />Hapus
                         </button>
                       </div>
                     </div>
@@ -573,7 +580,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
           )}
           {pagination.lastPage > 1 && (
             <div className="px-5 py-3 border-t border-[#f1f5f9] flex items-center justify-between bg-[#fafbfc]">
-              <span className="text-[12px] text-[#94a3b8]">Showing <b>{pagination.from ?? 0}–{pagination.to ?? 0}</b> of <b>{pagination.total}</b> entries</span>
+              <span className="text-[12px] text-[#94a3b8]">Menampilkan <b>{pagination.from ?? 0}–{pagination.to ?? 0}</b> dari <b>{pagination.total}</b> driver</span>
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
@@ -610,7 +617,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
           <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden border border-[#e2e8f0] shadow-2xl flex flex-col">
             {/* Header */}
             <div className="px-6 py-4 border-b border-[#f1f5f9] flex justify-between items-center bg-[#f8fafc]">
-              <h3 className="text-[16px] font-bold text-[#0f172a]">Add New Driver</h3>
+              <h3 className="text-[16px] font-bold text-[#0f172a]">Tambah Driver Baru</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-[#94a3b8] hover:text-[#64748b]">
                 <Icon name="close" className="text-[20px]" />
               </button>
@@ -630,49 +637,49 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                   type="text"
                   value={formData.nik}
                   onChange={e => setFormData({ ...formData, nik: e.target.value })}
-                  placeholder="e.g. 1002394"
+                  placeholder="misal: 1002394"
                   className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                 />
               </div>
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Full Name</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nama Lengkap</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g. Marco Verratti"
+                  placeholder="misal: Budi Santoso"
                   className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                 />
               </div>
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Email Address</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Alamat Email</label>
                 <input
                   type="email"
                   required
                   value={formData.email}
                   onChange={e => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="e.g. marco@ovms.test"
+                  placeholder="misal: budi@ptwida.co.id"
                   className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Password</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Kata Sandi</label>
                   <input
                     type="password"
                     required
                     value={formData.password}
                     onChange={e => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="Min. 6 characters"
+                    placeholder="Min. 6 karakter"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Department</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Departemen</label>
                   <select
                     value={formData.department}
                     onChange={e => setFormData({ ...formData, department: e.target.value })}
@@ -712,7 +719,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
               </div>
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nomor SIM (Driver License No.)</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nomor SIM</label>
                 <input
                   type="text"
                   value={formData.sim_number}
@@ -734,7 +741,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                   />
                   <label htmlFor="sim-upload" className="cursor-pointer h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
                     <Icon name="upload" className="text-[16px]" />
-                    Upload Foto SIM
+                    Unggah Foto SIM
                   </label>
                   {simPreview && (
                     <img src={simPreview} alt="SIM Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0]" />
@@ -748,14 +755,14 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                   onClick={() => setIsModalOpen(false)}
                   className="h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[13px] font-bold text-[#475569] transition-colors"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
                   disabled={adding}
                   className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  {adding ? "Adding..." : "Add Driver"}
+                  {adding ? "Menambahkan..." : "Tambah Driver"}
                 </button>
               </div>
             </form>
@@ -788,48 +795,48 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                   type="text"
                   value={editFormData.nik}
                   onChange={e => setEditFormData({ ...editFormData, nik: e.target.value })}
-                  placeholder="e.g. 1002394"
+                  placeholder="misal: 1002394"
                   className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                 />
               </div>
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Full Name</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nama Lengkap</label>
                 <input
                   type="text"
                   required
                   value={editFormData.name}
                   onChange={e => setEditFormData({ ...editFormData, name: e.target.value })}
-                  placeholder="e.g. Marco Verratti"
+                  placeholder="misal: Budi Santoso"
                   className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                 />
               </div>
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Email Address</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Alamat Email</label>
                 <input
                   type="email"
                   required
                   value={editFormData.email}
                   onChange={e => setEditFormData({ ...editFormData, email: e.target.value })}
-                  placeholder="e.g. marco@ovms.test"
+                  placeholder="misal: budi@ptwida.co.id"
                   className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">New Password (Optional)</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Kata Sandi Baru (Opsional)</label>
                   <input
                     type="password"
                     value={editFormData.password}
                     onChange={e => setEditFormData({ ...editFormData, password: e.target.value })}
-                    placeholder="Leave empty to keep current"
+                    placeholder="Kosongkan jika tidak diubah"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Department</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Departemen</label>
                   <select
                     value={editFormData.department}
                     onChange={e => setEditFormData({ ...editFormData, department: e.target.value })}
@@ -869,7 +876,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
               </div>
 
               <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nomor SIM (Driver License No.)</label>
+                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nomor SIM</label>
                 <input
                   type="text"
                   value={editFormData.sim_number}
@@ -891,7 +898,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                   />
                   <label htmlFor="edit-sim-upload" className="cursor-pointer h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
                     <Icon name="upload" className="text-[16px]" />
-                    Upload Foto SIM
+                    Unggah Foto SIM
                   </label>
                   {editSimPreview && (
                     <img src={editSimPreview} alt="SIM Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0]" />
@@ -905,14 +912,14 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                   onClick={() => setIsEditModalOpen(false)}
                   className="h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[13px] font-bold text-[#475569] transition-colors cursor-pointer"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
                   disabled={updating}
                   className="h-10 px-6 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[13px] font-bold transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  {updating ? "Saving..." : "Save Changes"}
+                  {updating ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
               </div>
             </form>

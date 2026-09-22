@@ -207,27 +207,27 @@ export default function CreateUrgentRequestPage() {
 
   return (
     <RoleLayout
-      activeNav="Requests"
+      activeNav="Permohonan"
       onNavigate={p => {
-        if (p === "Requests") navigate("/gahrd/requests");
+        if (p === "Requests" || p === "Permohonan") navigate("/gahrd/requests");
         else if (p === "Dashboard") navigate("/gahrd/dashboard");
       }}
-      topbarTitle="Buat Pengajuan Urgent"
-      userName={user?.name || "GAHRD User"}
+      topbarTitle="Buat Pengajuan Mendesak"
+      userName={user?.name || "Pengguna GAHRD"}
       userRole="GA/HRD"
       searchPlaceholder="Cari..."
     >
       <div className="p-4 sm:p-6 animate-fadeup">
         <div className="max-w-4xl mx-auto mb-6 flex items-center justify-between">
           <div>
-            <h2 className="text-[26px] font-bold text-slate-800">New Urgent Request (GA)</h2>
-            <p className="text-[13px] text-slate-500 mt-1">Formulir darurat untuk pengajuan operasional hari ini. Bypas persetujuan Kadep.</p>
+            <h2 className="text-[26px] font-bold text-slate-800">Pengajuan Mendesak Baru (GA)</h2>
+            <p className="text-[13px] text-slate-500 mt-1">Formulir darurat untuk pengajuan operasional hari ini. Bypass persetujuan Kepala Departemen.</p>
           </div>
           <button
             onClick={() => navigate("/gahrd/requests")}
             className="flex items-center gap-1.5 text-[13px] font-bold text-[#1e3a8a] hover:underline"
           >
-            <Icon name="arrow_back" className="text-base" /> Kembali ke Request
+            <Icon name="arrow_back" className="text-base" /> Kembali ke Permohonan
           </button>
         </div>
 
@@ -637,7 +637,7 @@ export default function CreateUrgentRequestPage() {
               disabled={submitting || submitted}
               className={`h-10 px-6 rounded-xl text-[13px] font-bold transition-all active:scale-95 shadow-sm bg-[#1e3a8a] hover:bg-[#1e40af] text-white disabled:opacity-40`}
             >
-              {submitted ? "✓ Berhasil Diajukan!" : submitting ? "Mengirim..." : "Kirim Pengajuan Urgent"}
+              {submitted ? "✓ Berhasil Diajukan!" : submitting ? "Mengirim..." : "Kirim Pengajuan Mendesak"}
             </button>
           </div>
         </div>
@@ -657,7 +657,7 @@ export default function CreateUrgentRequestPage() {
               <div className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Icon name="assignment_late" className="text-3xl" />
               </div>
-              <h3 className="text-[18px] font-extrabold text-slate-800">Cek Kembali Pengajuan Urgent</h3>
+              <h3 className="text-[18px] font-extrabold text-slate-800">Cek Kembali Pengajuan Mendesak</h3>
               <p className="text-xs text-slate-400 mt-2">
                 Permintaan ini berstatus otomatis **Urgent** dan akan langsung diteruskan ke Kepala HRD &amp; GA.
               </p>

@@ -22,24 +22,29 @@ const StatusBadge = React.memo(function StatusBadge({ status }: { status: Reques
     Pending:  "bg-[#fef9c3] text-[#854d0e]",
     Rejected: "bg-[#fee2e2] text-[#991b1b]",
   };
+  const labelMap: Record<string, string> = {
+    Approved: "Disetujui",
+    Pending:  "Menunggu",
+    Rejected: "Ditolak",
+  };
   return (
     <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${map[status]}`}>
-      {status}
+      {labelMap[status] || status}
     </span>
   );
 });
 
 const PriorityBadge = React.memo(function PriorityBadge({ priority }: { priority: Request["priority"] }) {
   const map = {
-    HIGH:   { dot: "bg-[#ef4444]", text: "text-[#ef4444]" },
-    MEDIUM: { dot: "bg-[#f59e0b]", text: "text-[#d97706]" },
-    LOW:    { dot: "bg-[#94a3b8]", text: "text-[#64748b]" },
+    HIGH:   { dot: "bg-[#ef4444]", text: "text-[#ef4444]", label: "MENDESAK" },
+    MEDIUM: { dot: "bg-[#f59e0b]", text: "text-[#d97706]", label: "NORMAL" },
+    LOW:    { dot: "bg-[#94a3b8]", text: "text-[#64748b]", label: "RENDAH" },
   };
   const c = map[priority];
   return (
     <div className={`flex items-center gap-1.5 ${c.text} font-bold text-[11px]`}>
       <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-      {priority}
+      {c.label}
     </div>
   );
 });
@@ -78,11 +83,11 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
     const activeDrivers = usersList.filter(u => u.roleName === "Driver" && u.status === "ACTIVE").length;
 
     return [
-      { icon: "directions_car", iconBg: "bg-[#e8edf8]",  iconColor: "text-[#1e3a8a]", value: String(totalVehicles), label: "Total Vehicles",   barColor: "bg-[#1e3a8a]",  barWidth: "100%"},
-      { icon: "check_circle",   iconBg: "bg-[#dcfce7]",  iconColor: "text-[#16a34a]", value: String(availableVehicles),  label: "Available",        barColor: "bg-[#22c55e]",  barWidth: totalVehicles ? `${Math.round((availableVehicles/totalVehicles)*100)}%` : "0%" },
-      { icon: "commute",        iconBg: "bg-[#e0f2fe]",  iconColor: "text-[#0369a1]", value: String(inUseVehicles),  label: "In Use",           barColor: "bg-[#0ea5e9]",  barWidth: totalVehicles ? `${Math.round((inUseVehicles/totalVehicles)*100)}%` : "0%" },
-      { icon: "pending_actions",iconBg: "bg-[#fff7ed]",  iconColor: "text-[#c2410c]", value: String(pendingRequests),  label: "Pending Requests", barColor: "bg-[#f97316]",  barWidth: requestsList.length ? `${Math.round((pendingRequests/requestsList.length)*100)}%` : "0%" },
-      { icon: "badge",          iconBg: "bg-[#ede9fe]",  iconColor: "text-[#6d28d9]", value: String(activeDrivers),  label: "Active Drivers",   barColor: "bg-[#8b5cf6]",  barWidth: "100%" },
+      { icon: "directions_car", iconBg: "bg-[#e8edf8]",  iconColor: "text-[#1e3a8a]", value: String(totalVehicles), label: "Total Kendaraan",   barColor: "bg-[#1e3a8a]",  barWidth: "100%"},
+      { icon: "check_circle",   iconBg: "bg-[#dcfce7]",  iconColor: "text-[#16a34a]", value: String(availableVehicles),  label: "Tersedia",        barColor: "bg-[#22c55e]",  barWidth: totalVehicles ? `${Math.round((availableVehicles/totalVehicles)*100)}%` : "0%" },
+      { icon: "commute",        iconBg: "bg-[#e0f2fe]",  iconColor: "text-[#0369a1]", value: String(inUseVehicles),  label: "Digunakan",           barColor: "bg-[#0ea5e9]",  barWidth: totalVehicles ? `${Math.round((inUseVehicles/totalVehicles)*100)}%` : "0%" },
+      { icon: "pending_actions",iconBg: "bg-[#fff7ed]",  iconColor: "text-[#c2410c]", value: String(pendingRequests),  label: "Permohonan Menunggu", barColor: "bg-[#f97316]",  barWidth: requestsList.length ? `${Math.round((pendingRequests/requestsList.length)*100)}%` : "0%" },
+      { icon: "badge",          iconBg: "bg-[#ede9fe]",  iconColor: "text-[#6d28d9]", value: String(activeDrivers),  label: "Driver Aktif",   barColor: "bg-[#8b5cf6]",  barWidth: "100%" },
     ];
   }, [requestsList, vehiclesList, usersList]);
 
@@ -124,8 +129,8 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
     return activeList.map((r: any) => {
       const name = r.employee || "Unknown";
       const initials = name.trim().split(/\s+/).map((p:string)=>p ? p[0] : "").filter(Boolean).slice(0,2).join("").toUpperCase() || "UN";
-      const vehicle = r.vehicleModel || "Unassigned";
-      const driver = r.driverName || (vehicle === "Unassigned" ? "Awaiting Dispatch" : "Unassigned");
+      const vehicle = r.vehicleModel || "Belum Ditugaskan";
+      const driver = r.driverName || (vehicle === "Belum Ditugaskan" ? "Menunggu Penugasan" : "Belum Ditugaskan");
       const statusMap: Record<string,string> = { APPROVED: "Approved", PENDING: "Pending", REJECTED: "Rejected", ONGOING: "Approved", COMPLETED: "Approved" };
       const status = statusMap[(r.status || "").toUpperCase()] || (r.status || "Pending");
       const priorityRaw = (r.priority || "").toUpperCase();
@@ -146,7 +151,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
   }, [requestsList]);
 
   const filtered = useMemo(() => {
-    return statusFilter === "All Status"
+    return statusFilter === "All Status" || statusFilter === "Semua Status"
       ? requests
       : requests.filter(r => r.status === statusFilter);
   }, [requests, statusFilter]);
@@ -163,7 +168,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
     <Layout
       activeNav="Dashboard"
       topbarTitle="Dashboard"
-      searchPlaceholder="Search dashboard..."
+      searchPlaceholder="Pencarian cepat..."
     >
       <div className="p-4 sm:p-6 space-y-5 animate-fadein">
         {/* ── STAT CARDS ── */}
@@ -197,7 +202,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
                 <Icon name="calendar_month" className="text-[#1e3a8a] text-[20px]" />
               </div>
               <div>
-                <span className="text-[16px] font-bold text-[#0f172a]">Upcoming Vehicle Schedules</span>
+                <span className="text-[16px] font-bold text-[#0f172a]">Jadwal Kendaraan Mendatang</span>
                 <div className="text-[12px] text-[#64748b]">Jadwal keberangkatan kendaraan operasional terdekat</div>
               </div>
             </div>
@@ -205,7 +210,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
               onClick={() => onNavigate ? onNavigate("Vehicle Schedule") : window.location.href = "/admin/schedules"}
               className="px-4 py-2 rounded-xl border border-[#e2e8f0] text-[12.5px] font-bold text-[#1e3a8a] hover:bg-[#eff6ff] hover:border-[#1e3a8a]/20 transition-all cursor-pointer shadow-2xs flex items-center gap-2 self-start sm:self-auto"
             >
-              <span>View Full Calendar</span>
+              <span>Lihat Kalender Lengkap</span>
               <Icon name="arrow_forward" className="text-[15px]" />
             </button>
           </div>
@@ -241,8 +246,8 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
         <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-[#f1f5f9] flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div className="text-[16px] font-bold text-[#0f172a]">Active Fleet Requests</div>
-              <div className="text-[12.5px] text-[#64748b] mt-0.5">Real-time monitoring of all vehicle assignments</div>
+              <div className="text-[16px] font-bold text-[#0f172a]">Permohonan Kendaraan Aktif</div>
+              <div className="text-[12.5px] text-[#64748b] mt-0.5">Pemantauan langsung seluruh penugasan unit kendaraan operasional</div>
             </div>
             <div className="flex items-center gap-2.5">
               <div className="relative">
@@ -250,10 +255,13 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
                 <select
                   value={statusFilter}
                   onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                  aria-label="Filter requests by status"
+                  aria-label="Filter permohonan berdasarkan status"
                   className="pl-8 pr-8 py-2 text-[12px] font-semibold text-[#475569] bg-[#f8fafc] border border-[#e2e8f0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer appearance-none"
                 >
-                  {["All Status","Approved","Pending","Rejected"].map(o => <option key={o}>{o}</option>)}
+                  <option value="All Status">Semua Status</option>
+                  <option value="Approved">Disetujui</option>
+                  <option value="Pending">Menunggu</option>
+                  <option value="Rejected">Ditolak</option>
                 </select>
               </div>
             </div>
@@ -262,20 +270,20 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
           <div className="overflow-x-auto hidden md:block">
             {reqLoading && (
               <div className="px-6 py-4 text-[13px] text-[#475569] flex items-center gap-2">
-                <Icon name="hourglass_top" className="text-[18px] text-[#1e3a8a]" />
-                Loading requests...
+                <Icon name="hourglass_top" className="text-[18px] text-[#1e3a8a] animate-spin" />
+                Memuat permohonan...
               </div>
             )}
             {reqError && (
               <div className="px-6 py-4 text-[13px] text-[#b91c1c] flex items-center justify-between">
-                <div className="flex items-center gap-2"><Icon name="error" className="text-red-600 text-[18px]" />Failed loading requests.</div>
-                <button onClick={() => refetch()} className="ml-4 px-3 py-1.5 bg-[#1e3a8a] text-white rounded-lg">Retry</button>
+                <div className="flex items-center gap-2"><Icon name="error" className="text-red-600 text-[18px]" />Gagal memuat permohonan.</div>
+                <button onClick={() => refetch()} className="ml-4 px-3 py-1.5 bg-[#1e3a8a] text-white rounded-lg">Coba Lagi</button>
               </div>
             )}
             <table className="w-full min-w-[800px]">
               <thead>
                 <tr className="bg-[#f8fafc]">
-                  {["ID","EMPLOYEE","DESTINATION","VEHICLE/DRIVER","DATE","STATUS","PRIORITY"].map(h => (
+                  {["ID","KARYAWAN","TUJUAN","KENDARAAN / DRIVER","TANGGAL","STATUS","PRIORITAS"].map(h => (
                     <th key={h} className="px-5 py-3 text-left text-[10.5px] font-bold text-[#94a3b8] uppercase tracking-wider whitespace-nowrap">
                       {h}
                     </th>
@@ -286,7 +294,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
                 {paginatedRequests.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-5 py-8 text-center text-[13px] text-[#64748b]">
-                      No active requests found.
+                      Tidak ada permohonan aktif ditemukan.
                     </td>
                   </tr>
                 ) : (
@@ -310,7 +318,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
                       <td className="px-5 py-3.5">
                         <div className="text-[13px] font-semibold text-[#1e293b]">{req.vehicle}</div>
                         <div className="text-[11px] text-[#94a3b8] mt-0.5">
-                          {req.vehicle === "Unassigned" ? req.driver : `Driver: ${req.driver}`}
+                          {req.vehicle === "Unassigned" || req.vehicle === "Belum Ditugaskan" ? req.driver : `Driver: ${req.driver}`}
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-[13px] text-[#475569] whitespace-nowrap">{req.date}</td>
@@ -328,18 +336,18 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
             {reqLoading && (
               <div className="p-6 text-center text-[13px] text-[#475569] flex items-center justify-center gap-2">
                 <Icon name="hourglass_top" className="text-[18px] text-[#1e3a8a] animate-spin" />
-                Loading requests...
+                Memuat permohonan...
               </div>
             )}
             {reqError && (
               <div className="p-6 text-center text-[13px] text-[#b91c1c] space-y-2">
-                <div className="flex items-center justify-center gap-2"><Icon name="error" className="text-red-600 text-[18px]" />Failed loading requests.</div>
-                <button onClick={() => refetch()} className="px-4 py-1.5 bg-[#1e3a8a] text-white rounded-xl text-[12px] font-semibold">Retry</button>
+                <div className="flex items-center justify-center gap-2"><Icon name="error" className="text-red-600 text-[18px]" />Gagal memuat permohonan.</div>
+                <button onClick={() => refetch()} className="px-4 py-1.5 bg-[#1e3a8a] text-white rounded-xl text-[12px] font-semibold">Coba Lagi</button>
               </div>
             )}
             {!reqLoading && !reqError && paginatedRequests.length === 0 ? (
               <div className="p-8 text-center text-[13px] text-[#64748b]">
-                No active requests found.
+                Tidak ada permohonan aktif ditemukan.
               </div>
             ) : (
               !reqLoading && !reqError && paginatedRequests.map((req, index) => (
@@ -362,20 +370,20 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
 
                   <div className="grid grid-cols-2 gap-4 pt-1">
                     <div>
-                      <span className="text-[#94a3b8] block text-[9.5px] uppercase font-bold tracking-wider">Destination</span>
+                      <span className="text-[#94a3b8] block text-[9.5px] uppercase font-bold tracking-wider">Tujuan</span>
                       <span className="text-[12.5px] text-[#475569] font-semibold">{req.destination}</span>
                     </div>
                     <div>
-                      <span className="text-[#94a3b8] block text-[9.5px] uppercase font-bold tracking-wider">Vehicle / Driver</span>
+                      <span className="text-[#94a3b8] block text-[9.5px] uppercase font-bold tracking-wider">Kendaraan / Driver</span>
                       <div className="text-[12.5px] font-semibold text-[#1e293b]">{req.vehicle}</div>
                       <div className="text-[10px] text-[#94a3b8] mt-0.5">
-                        {req.vehicle === "Unassigned" ? req.driver : `Driver: ${req.driver}`}
+                        {req.vehicle === "Unassigned" || req.vehicle === "Belum Ditugaskan" ? req.driver : `Driver: ${req.driver}`}
                       </div>
                     </div>
                   </div>
 
                   <div className="pt-2 flex items-center justify-between text-[11px] text-[#64748b]">
-                    <span className="font-semibold uppercase tracking-wider text-[#94a3b8] text-[9.5px]">Request Date</span>
+                    <span className="font-semibold uppercase tracking-wider text-[#94a3b8] text-[9.5px]">Tanggal Permohonan</span>
                     <span className="font-bold text-[#0f172a] bg-[#f8fafc] px-2.5 py-1 rounded-lg border border-[#f1f5f9]">{req.date}</span>
                   </div>
                 </div>
@@ -386,7 +394,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: string) => 
           {totalPages > 1 && (
             <div className="px-6 py-3 border-t border-[#f1f5f9] flex items-center justify-between bg-[#fafbfc]">
               <span className="text-[12px] text-[#94a3b8]">
-                Showing <b>{startIndex + 1}–{Math.min(startIndex + perPage, filtered.length)}</b> of <b>{filtered.length}</b> results
+                Menampilkan <b>{startIndex + 1}–{Math.min(startIndex + perPage, filtered.length)}</b> dari <b>{filtered.length}</b> data
               </span>
               <div className="flex items-center gap-1.5">
                 <button

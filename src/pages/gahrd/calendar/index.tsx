@@ -107,7 +107,7 @@ export default function GAHRDCalendarPage({ onNavigate }: { onNavigate?: (p: str
         allEvents.push({
           id: String(r.id),
           tripId: `#REQ-${r.id} (Hari ${idx + 1})`,
-          title: `Trip to ${it.morning_destination || it.afternoon_destination || r.destination}`,
+          title: `Perjalanan ke ${it.morning_destination || it.afternoon_destination || r.destination}`,
           datetime: `${it.date} (${it.morning_time || it.afternoon_time || '08:00'})`,
           dateStr: it.date,
           route: `${r.destination} - Hari ${idx + 1}`,
@@ -138,7 +138,7 @@ export default function GAHRDCalendarPage({ onNavigate }: { onNavigate?: (p: str
       allEvents.push({
         id: String(r.id),
         tripId: `#REQ-${r.id}`,
-        title: `Trip to ${r.destination}`,
+        title: `Perjalanan ke ${r.destination}`,
         datetime: r.startTime ? r.startTime.substring(0, 16).replace("T", " ") : `${r.date} ${r.time}`,
         dateStr: dateStr,
         route: r.destination,
@@ -157,7 +157,7 @@ export default function GAHRDCalendarPage({ onNavigate }: { onNavigate?: (p: str
 
   return (
     <Layout
-      activeNav={isDriverCoordinator ? "Jadwal & Kalender" : "Calendar"}
+      activeNav={isDriverCoordinator ? "Jadwal & Kalender" : "Kalender"}
       onNavigate={onNavigate}
       topbarTitle="Kalender Penugasan Driver"
       userRole={isDriverCoordinator ? "Koordinator Driver" : "GA/HRD"}

@@ -201,17 +201,17 @@ function RequestCard({
           <IconMapPin />
         </div>
         <div>
-          <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider">Destination</div>
+          <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider">Tujuan</div>
           <div className="text-[13px] font-bold text-[#0f172a]">{req.destination}</div>
         </div>
       </div>
 
       {/* Detail grid */}
       <div className="px-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 pb-4">
-        <DetailField icon={<IconCalendar />} label="Date" value={req.date} />
-        <DetailField icon={<IconClock />} label="Time" value={req.time} />
-        <DetailField icon={<IconCar />} label="Vehicle" value={req.vehicleType} />
-        <DetailField icon={<IconCheck />} label="Purpose" value={req.purpose} />
+        <DetailField icon={<IconCalendar />} label="Tanggal" value={req.date} />
+        <DetailField icon={<IconClock />} label="Waktu" value={req.time} />
+        <DetailField icon={<IconCar />} label="Kendaraan" value={req.vehicleType} />
+        <DetailField icon={<IconCheck />} label="Keperluan" value={req.purpose} />
       </div>
 
       {/* Approvals Checklist */}
@@ -362,8 +362,8 @@ export default function ApprovalManagement() {
       r.requesterName.toLowerCase().includes(search.toLowerCase()) ||
       r.reqId.toLowerCase().includes(search.toLowerCase()) ||
       r.destination.toLowerCase().includes(search.toLowerCase());
-    const matchDept = department === 'All Departments' || r.department === department;
-    const matchPri = priority === 'All Priority' || r.priority === priority.toUpperCase();
+    const matchDept = department === 'All Departments' || department === 'Semua Departemen' || r.department === department;
+    const matchPri = priority === 'All Priority' || priority === 'Semua Prioritas' || r.priority === priority.toUpperCase();
     return matchSearch && matchDept && matchPri;
   });
 
@@ -418,8 +418,8 @@ export default function ApprovalManagement() {
   };
 
   const handleReset = () => {
-    setDepartment('All Departments');
-    setPriority('All Priority');
+    setDepartment('Semua Departemen');
+    setPriority('Semua Prioritas');
     setSearch('');
     setCurrentPage(1);
   };
@@ -429,9 +429,9 @@ export default function ApprovalManagement() {
 
   return (
     <Layout
-      activeNav="Pending Requests"
-      topbarTitle="Approval Management"
-      searchPlaceholder="Search requests..."
+      activeNav="Persetujuan Tiket"
+      topbarTitle="Manajemen Persetujuan"
+      searchPlaceholder="Cari permohonan..."
       searchValue={search}
       onSearchChange={setSearch}
     >
@@ -439,8 +439,8 @@ export default function ApprovalManagement() {
         {/* Page header */}
         <div data-guide="approver-requests-list" className="flex flex-col sm:flex-row sm:items-start justify-between mb-6 gap-4">
           <div>
-            <h2 className="text-[26px] font-bold text-[#0f172a] leading-tight">Approval Management</h2>
-            <p className="text-[14px] text-[#64748b] mt-1">Review and manage vehicle requests across departments.</p>
+            <h2 className="text-[26px] font-bold text-[#0f172a] leading-tight">Manajemen Persetujuan</h2>
+            <p className="text-[14px] text-[#64748b] mt-1">Tinjau dan kelola permohonan kendaraan dinas antar departemen.</p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             {/* Department filter */}
@@ -450,7 +450,7 @@ export default function ApprovalManagement() {
                 onChange={(e) => { setDepartment(e.target.value); setCurrentPage(1); }}
                 className="h-10 pl-3 pr-8 bg-white border border-[#e2e8f0] rounded-xl text-[13px] font-semibold text-[#334155] outline-none cursor-pointer appearance-none focus:ring-2 focus:ring-[#1e3a8a]/20"
               >
-                <option>All Departments</option>
+                <option value="Semua Departemen">Semua Departemen</option>
                 {uniqueDepts.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
               <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" width="14" height="14" fill="none" viewBox="0 0 24 24">
@@ -464,9 +464,9 @@ export default function ApprovalManagement() {
                 onChange={(e) => { setPriority(e.target.value); setCurrentPage(1); }}
                 className="h-10 pl-3 pr-8 bg-white border border-[#e2e8f0] rounded-xl text-[13px] font-semibold text-[#334155] outline-none cursor-pointer appearance-none focus:ring-2 focus:ring-[#1e3a8a]/20"
               >
-                <option>All Priority</option>
-                <option>URGENT</option>
-                <option>NORMAL</option>
+                <option value="Semua Prioritas">Semua Prioritas</option>
+                <option value="URGENT">Mendesak</option>
+                <option value="NORMAL">Normal</option>
               </select>
               <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" width="14" height="14" fill="none" viewBox="0 0 24 24">
                 <path d="m6 9 6 6 6-6" stroke="#64748b" strokeWidth="2" strokeLinecap="round"/>
@@ -478,7 +478,7 @@ export default function ApprovalManagement() {
               className="h-10 px-4 flex items-center gap-1.5 text-[13px] font-semibold text-[#1e3a8a] hover:bg-[#eff4ff] rounded-xl transition-colors cursor-pointer"
             >
               <IconRefresh />
-              Reset
+              Atur Ulang
             </button>
           </div>
         </div>
@@ -486,11 +486,11 @@ export default function ApprovalManagement() {
         {/* Cards grid */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <p className="text-[16px] font-bold text-[#0f172a]">Loading requests...</p>
+            <p className="text-[16px] font-bold text-[#0f172a]">Memuat permohonan...</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <p className="text-[16px] font-bold text-red-500">Failed to load requests from backend.</p>
+            <p className="text-[16px] font-bold text-red-500">Gagal memuat permohonan dari server.</p>
           </div>
         ) : displayed.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -500,8 +500,8 @@ export default function ApprovalManagement() {
                 <path d="m9 12 2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <p className="text-[16px] font-bold text-[#0f172a]">No pending requests</p>
-            <p className="text-[13px] text-[#64748b] mt-1">All requests have been processed.</p>
+            <p className="text-[16px] font-bold text-[#0f172a]">Tidak ada permohonan tertunda</p>
+            <p className="text-[13px] text-[#64748b] mt-1">Semua permohonan telah diproses.</p>
           </div>
         ) : (
           <div data-guide="approver-requests-list" className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -522,8 +522,8 @@ export default function ApprovalManagement() {
         {TOTAL_PAGES > 1 && (
           <div className="border-t border-[#e2e8f0] mt-8 pt-5 flex items-center justify-between">
             <span className="text-[13px] text-[#64748b]">
-              Showing <strong>{TOTAL === 0 ? 0 : startIdx + 1}–{Math.min(startIdx + PER_PAGE, TOTAL)}</strong> of{' '}
-              <strong>{TOTAL}</strong> pending requests
+              Menampilkan <strong>{TOTAL === 0 ? 0 : startIdx + 1}–{Math.min(startIdx + PER_PAGE, TOTAL)}</strong> dari{' '}
+              <strong>{TOTAL}</strong> permohonan tertunda
             </span>
             <div className="flex items-center gap-1.5">
               <button
@@ -622,7 +622,7 @@ export default function ApprovalManagement() {
                   disabled={!rejectModal.reason.trim()}
                   className="flex-1 py-3 bg-[#ba1a1a] text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 text-sm"
                 >
-                  Tolak Request
+                  Tolak Permohonan
                 </button>
               </div>
             </form>

@@ -27,9 +27,14 @@ function StatusBadge({ s }: { s: Vehicle["status"] }) {
     "On Trip":   "bg-blue-500 text-white",
     "In Use":    "bg-orange-500 text-white",
   };
+  const labelMap: Record<Vehicle["status"], string> = {
+    "Available": "Tersedia",
+    "On Trip":   "Sedang Berjalan",
+    "In Use":    "Sedang Digunakan",
+  };
   return (
     <span className={`absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full ${map[s] || "bg-gray-500 text-white"}`}>
-      {s}
+      {labelMap[s] || s}
     </span>
   );
 }
@@ -47,7 +52,7 @@ function VehicleDetailModal({ vehicle, assignmentRef, onCancel }: {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#f1f5f9]">
           <div>
-            <h3 className="text-[18px] font-bold text-[#0f172a]">Vehicle Detail</h3>
+            <h3 className="text-[18px] font-bold text-[#0f172a]">Detail Kendaraan</h3>
             <p className="text-[12px] text-[#94a3b8]">Informasi & spesifikasi kendaraan operasional</p>
           </div>
           <button
@@ -62,7 +67,7 @@ function VehicleDetailModal({ vehicle, assignmentRef, onCancel }: {
           {assignmentRef && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-100 text-[#1e3a8a] text-[13px] font-semibold rounded-xl flex items-center gap-2">
               <Icon name="info" className="text-[18px]" />
-              <span>Accepting assignment {assignmentRef} with this vehicle.</span>
+              <span>Menerima penugasan {assignmentRef} dengan kendaraan ini.</span>
             </div>
           )}
 
@@ -75,13 +80,13 @@ function VehicleDetailModal({ vehicle, assignmentRef, onCancel }: {
             />
             <div className="flex-1 min-w-0">
               <div className="text-[15px] font-bold text-[#0f172a]">{vehicle.name}</div>
-              <div className="text-[12px] text-[#64748b] mb-2">Plate: {vehicle.plate}</div>
+              <div className="text-[12px] text-[#64748b] mb-2">Plat: {vehicle.plate}</div>
               <div className="flex gap-2 flex-wrap">
                 <span className="text-[10px] font-bold bg-[#dbeafe] text-[#1d4ed8] px-2.5 py-0.5 rounded-full">
                   {vehicle.transmission}
                 </span>
                 <span className="text-[10px] font-bold bg-[#e2e8f0] text-[#334155] px-2.5 py-0.5 rounded-full">
-                  {vehicle.seats} Seats
+                  {vehicle.seats} Kursi
                 </span>
               </div>
             </div>
@@ -90,15 +95,15 @@ function VehicleDetailModal({ vehicle, assignmentRef, onCancel }: {
           {/* Details */}
           <div className="space-y-3 mb-6">
             <div className="flex items-center justify-between py-2.5 border-b border-[#f1f5f9]">
-              <span className="text-[13px] text-[#64748b]">Transmission</span>
+              <span className="text-[13px] text-[#64748b]">Transmisi</span>
               <span className="text-[13px] font-semibold text-[#0f172a]">{vehicle.transmission}</span>
             </div>
             <div className="flex items-center justify-between py-2.5 border-b border-[#f1f5f9]">
-              <span className="text-[13px] text-[#64748b]">Seats Capacity</span>
-              <span className="text-[13px] font-semibold text-[#0f172a]">{vehicle.seats} seats</span>
+              <span className="text-[13px] text-[#64748b]">Kapasitas Kursi</span>
+              <span className="text-[13px] font-semibold text-[#0f172a]">{vehicle.seats} kursi</span>
             </div>
             <div className="flex items-center justify-between py-2.5 border-b border-[#f1f5f9]">
-              <span className="text-[13px] text-[#64748b]">Pickup Location</span>
+              <span className="text-[13px] text-[#64748b]">Lokasi Penjemputan</span>
               <span className="text-[13px] font-semibold text-[#0f172a]">{vehicle.location}</span>
             </div>
             <div className="flex items-center justify-between py-2.5 border-b border-[#f1f5f9]">
@@ -107,7 +112,7 @@ function VehicleDetailModal({ vehicle, assignmentRef, onCancel }: {
                 vehicle.status === "Available" ? "bg-emerald-100 text-emerald-800" :
                 vehicle.status === "On Trip" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"
               }`}>
-                {vehicle.status}
+                {vehicle.status === "Available" ? "Tersedia" : vehicle.status === "On Trip" ? "Sedang Berjalan" : "Sedang Digunakan"}
               </span>
             </div>
             <div className="flex items-center justify-between py-2.5 border-b border-[#f1f5f9]">
@@ -132,7 +137,7 @@ function VehicleDetailModal({ vehicle, assignmentRef, onCancel }: {
               onClick={onCancel}
               className="w-full h-11 bg-[#1e3a8a] hover:bg-[#1e40af] text-white text-[13.5px] font-bold rounded-xl active:scale-95 transition-all shadow-xs cursor-pointer"
             >
-              Close
+              Tutup
             </button>
           </div>
         </div>
@@ -196,12 +201,12 @@ function VehicleCard({ vehicle, onSelect }: { vehicle: Vehicle; onSelect: () => 
 
         <div className="space-y-2 mb-4">
           <div className="flex items-center justify-between text-[12px]">
-            <span className="text-[#64748b]">Transmission</span>
+            <span className="text-[#64748b]">Transmisi</span>
             <span className="font-semibold text-[#334155]">{vehicle.transmission}</span>
           </div>
           <div className="flex items-center justify-between text-[12px]">
-            <span className="text-[#64748b]">Seats</span>
-            <span className="font-semibold text-[#334155]">{vehicle.seats} seats</span>
+            <span className="text-[#64748b]">Kapasitas</span>
+            <span className="font-semibold text-[#334155]">{vehicle.seats} kursi</span>
           </div>
         </div>
 
@@ -210,7 +215,7 @@ function VehicleCard({ vehicle, onSelect }: { vehicle: Vehicle; onSelect: () => 
           className="w-full h-10 text-[13px] font-bold rounded-xl transition-all bg-[#1e3a8a] text-white hover:bg-[#1e40af] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
         >
           <Icon name="visibility" className="text-[16px]" />
-          View Detail
+          Lihat Detail
         </button>
       </div>
     </div>
@@ -221,6 +226,12 @@ export default function VehiclePage({ vehicles, selectedAssignmentId, selectedAs
   const [tab, setTab]               = useState<"All Vehicles" | "Available" | "On Trip">("All Vehicles");
   const [search, setSearch]         = useState("");
   const [confirmVehicle, setConfirm] = useState<Vehicle | null>(null);
+
+  const tabLabels: Record<string, string> = {
+    "All Vehicles": "Semua Kendaraan",
+    "Available": "Tersedia",
+    "On Trip": "Sedang Berjalan",
+  };
 
   const filtered = vehicles.filter((v) => {
     const matchTab =
@@ -241,7 +252,7 @@ export default function VehiclePage({ vehicles, selectedAssignmentId, selectedAs
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search vehicle, plate..."
+          placeholder="Cari kendaraan, plat nomor..."
           className="w-full h-10 pl-9 pr-4 bg-white border border-[#e2e8f0] rounded-xl text-[13px] text-[#475569] placeholder:text-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
         />
       </div>
@@ -250,14 +261,14 @@ export default function VehiclePage({ vehicles, selectedAssignmentId, selectedAs
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-[#1e3a8a] rounded-2xl flex items-center gap-3">
           <Icon name="info" className="text-[24px] flex-shrink-0" />
           <div>
-            <div className="font-bold text-[14px]">Accepting Assignment {selectedAssignmentRef}</div>
-            <div className="text-[12.5px] opacity-85">Please select an available vehicle from the list below to complete this approval.</div>
+            <div className="font-bold text-[14px]">Menerima Penugasan {selectedAssignmentRef}</div>
+            <div className="text-[12.5px] opacity-85">Silakan pilih kendaraan yang tersedia dari daftar di bawah untuk menyelesaikan persetujuan ini.</div>
           </div>
         </div>
       )}
 
       <div>
-        <div className="text-[18px] font-bold text-[#0f172a]">Operational Vehicles</div>
+        <div className="text-[18px] font-bold text-[#0f172a]">Kendaraan Operasional</div>
         <div className="text-[13px] text-[#64748b]">Daftar armada kendaraan operasional PT Widatra Bhakti.</div>
       </div>
 
@@ -273,7 +284,7 @@ export default function VehiclePage({ vehicles, selectedAssignmentId, selectedAs
                 : "bg-white border border-[#e2e8f0] text-[#64748b] hover:border-[#93c5fd] hover:text-[#334155]"
             }`}
           >
-            {t}
+            {tabLabels[t] || t}
           </button>
         ))}
       </div>
@@ -282,7 +293,7 @@ export default function VehiclePage({ vehicles, selectedAssignmentId, selectedAs
       {filtered.length === 0 ? (
         <div className="bg-white border border-[#e2e8f0] rounded-2xl py-16 flex flex-col items-center">
           <Icon name="commute" className="text-[40px] text-[#cbd5e1] mb-2" />
-          <p className="font-bold text-[#0f172a]">No vehicles found</p>
+          <p className="font-bold text-[#0f172a]">Tidak ada kendaraan yang ditemukan</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">

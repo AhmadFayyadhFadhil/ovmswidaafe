@@ -9,7 +9,7 @@ export const adminQuickTour: TourConfig = {
   steps: [
     {
       id: 'step_admin_dashboard',
-      title: '1. Administrator Dashboard',
+      title: '1. Dashboard Administrator',
       description: 'Selamat datang Administrator! Halaman ini memuat pusat kontrol dan metrik statistik operasional sistem OVMS.',
       targetSelector: '[data-guide="admin-dashboard-stats"]',
       route: '/admin/dashboard',
@@ -17,7 +17,7 @@ export const adminQuickTour: TourConfig = {
     },
     {
       id: 'step_user_management',
-      title: '2. User Management Table',
+      title: '2. Tabel Manajemen Pengguna',
       description: 'Kelola data seluruh akun karyawan, registrasi staf baru, NIK, jabatan, dan aktivasi akun secara terpusat.',
       targetSelector: '[data-guide="admin-users-table"]',
       route: '/admin/users',
@@ -25,7 +25,7 @@ export const adminQuickTour: TourConfig = {
     },
     {
       id: 'step_role_management',
-      title: '3. Role & Permission Management',
+      title: '3. Manajemen Peran & Hak Akses',
       description: 'Atur hak akses dan wewenang modul (Employee, Approver, Driver, GA/HRD, Security, Admin).',
       targetSelector: '[data-guide="role-management"]',
       route: '/admin/roles',
@@ -33,7 +33,7 @@ export const adminQuickTour: TourConfig = {
     },
     {
       id: 'step_notification_center',
-      title: '4. Notification Center',
+      title: '4. Pusat Notifikasi',
       description: 'Kelola pusat notifikasi sistem, kirim pengumuman operasional, dan atur notifikasi otomatis.',
       targetSelector: '[data-guide="notification-center"]',
       route: '/admin/notifications',
@@ -41,7 +41,7 @@ export const adminQuickTour: TourConfig = {
     },
     {
       id: 'step_audit_logs',
-      title: '5. Audit Trail Logs',
+      title: '5. Log Audit Sistem',
       description: 'Pantau jejak aktivitas dan log perubahan data (SIEM / Audit Trail) secara sistematis.',
       targetSelector: '[data-guide="audit-logs"]',
       route: '/admin/audit',
@@ -49,7 +49,7 @@ export const adminQuickTour: TourConfig = {
     },
     {
       id: 'step_system_settings',
-      title: '6. System Settings',
+      title: '6. Pengaturan Sistem',
       description: 'Konfigurasi identitas perusahaan, nama sistem, logo, serta parameter operasi global.\n\nAnda siap mengelola kontrol sistem!',
       targetSelector: '[data-guide="system-settings"]',
       route: '/admin/settings',

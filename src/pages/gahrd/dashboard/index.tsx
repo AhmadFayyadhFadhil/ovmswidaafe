@@ -6,10 +6,10 @@ import { driverService } from "@/services/modules/driverService";
 import type { FleetRequest, Driver } from "@/types";
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  PENDING:   { label: "Pending",   className: "bg-[#fef9c3] text-[#854d0e] border border-[#fef08a]" },
-  "ON TRIP": { label: "On Trip",   className: "bg-[#dbeafe] text-[#1d4ed8] border border-[#bfdbfe]" },
-  COMPLETED: { label: "Completed", className: "bg-[#dcfce7] text-[#15803d] border border-[#bbf7d0]" },
-  REJECTED:  { label: "Rejected",  className: "bg-[#fef2f2] text-[#dc2626] border border-[#fecaca]" },
+  PENDING:   { label: "Menunggu",   className: "bg-[#fef9c3] text-[#854d0e] border border-[#fef08a]" },
+  "ON TRIP": { label: "Dalam Perjalanan",   className: "bg-[#dbeafe] text-[#1d4ed8] border border-[#bfdbfe]" },
+  COMPLETED: { label: "Selesai", className: "bg-[#dcfce7] text-[#15803d] border border-[#bbf7d0]" },
+  REJECTED:  { label: "Ditolak",  className: "bg-[#fef2f2] text-[#dc2626] border border-[#fecaca]" },
 };
 
 function getInitials(name: string) {
@@ -72,10 +72,10 @@ export default function GAHRDDashboard({ onNavigate }: { onNavigate: (p: string)
   const availableDrivers = driversList.filter(d => d.status === "AVAILABLE").length;
 
   const statCards = [
-    { label: "Total Requests Today", value: String(totalRequestsToday), icon: "assignment", color: "text-[#2563eb]", bg: "bg-[#eff6ff]", border: "border-l-[#2563eb]" },
-    { label: "Pending Assignment", value: String(pendingAssignment), icon: "pending_actions", color: "text-[#d97706]", bg: "bg-[#fffbeb]", border: "border-l-[#d97706]" },
-    { label: "Active Trips", value: String(activeTrips), icon: "route", color: "text-[#059669]", bg: "bg-[#ecfdf5]", border: "border-l-[#059669]" },
-    { label: "Available Drivers", value: String(availableDrivers), icon: "directions_car", color: "text-[#7c3aed]", bg: "bg-[#f5f3ff]", border: "border-l-[#7c3aed]" },
+    { label: "Total Permohonan Hari Ini", value: String(totalRequestsToday), icon: "assignment", color: "text-[#2563eb]", bg: "bg-[#eff6ff]", border: "border-l-[#2563eb]" },
+    { label: "Menunggu Penugasan", value: String(pendingAssignment), icon: "pending_actions", color: "text-[#d97706]", bg: "bg-[#fffbeb]", border: "border-l-[#d97706]" },
+    { label: "Perjalanan Aktif", value: String(activeTrips), icon: "route", color: "text-[#059669]", bg: "bg-[#ecfdf5]", border: "border-l-[#059669]" },
+    { label: "Driver Tersedia", value: String(availableDrivers), icon: "directions_car", color: "text-[#7c3aed]", bg: "bg-[#f5f3ff]", border: "border-l-[#7c3aed]" },
   ];
 
   // Get 5 most recent active (non-history) requests
@@ -106,7 +106,7 @@ export default function GAHRDDashboard({ onNavigate }: { onNavigate: (p: string)
     <Layout
       activeNav="Dashboard"
       onNavigate={handleNavigate}
-      topbarTitle="GAHRD Dashboard"
+      topbarTitle="Dashboard GA / HRD"
       userRole="GA/HRD"
     >
       <div className="flex-1 overflow-y-auto bg-[#f8f9ff] p-4 sm:p-8">
@@ -277,7 +277,7 @@ export default function GAHRDDashboard({ onNavigate }: { onNavigate: (p: string)
                           <div className="text-[10px] text-[#94a3b8]">DRV-{d.id}{d.dest ? ` · ${d.dest}` : ""}</div>
                         </div>
                         <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex-shrink-0 ${badgeClass}`}>
-                          {d.status}
+                          {d.status === "AVAILABLE" ? "Tersedia" : d.status === "ON DUTY" ? "Bertugas" : d.status === "OFF" ? "Lepas Dinas" : d.status}
                         </span>
                       </div>
                     );

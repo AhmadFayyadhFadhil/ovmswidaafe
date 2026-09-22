@@ -12,13 +12,13 @@ const priorityStyles: Record<PriorityType, { bg: string; text: string; border: s
     bg: 'bg-[#fef2f2]',
     text: 'text-[#dc2626]',
     border: 'border-[#fecaca]',
-    label: 'CRITICAL',
+    label: 'KRITIS',
   },
   URGENT: {
     bg: 'bg-[#fff7ed]',
     text: 'text-[#c2410c]',
     border: 'border-[#fed7aa]',
-    label: 'URGENT',
+    label: 'MENDESAK',
   },
   NORMAL: {
     bg: 'bg-[#f1f5f9]',
@@ -30,7 +30,7 @@ const priorityStyles: Record<PriorityType, { bg: string; text: string; border: s
     bg: 'bg-[#f0fdf4]',
     text: 'text-[#166534]',
     border: 'border-[#bbf7d0]',
-    label: 'LOW',
+    label: 'RENDAH',
   },
 };
 
@@ -47,7 +47,7 @@ export function PriorityBadge({ priority, className = '', size = 'md' }: Priorit
     <span
       className={`inline-block ${sizeClasses[size]} font-semibold rounded-lg border ${style.bg} ${style.text} ${style.border} ${className}`}
     >
-      {style.label} PRIORITY
+      PRIORITAS {style.label}
     </span>
   );
 }

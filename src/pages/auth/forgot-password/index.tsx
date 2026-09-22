@@ -104,10 +104,10 @@ export default function ForgotPasswordPage() {
           {/* Hero Content */}
           <div className="max-w-[520px]">
             <h2 className="text-5xl leading-tight font-bold text-white mb-6">
-              Recover Your Account Access
+              Pemulihan Akses Akun
             </h2>
             <p className="text-lg text-blue-100 leading-relaxed">
-              Reset your password securely to return to managing vehicle requests and scheduling.
+              Atur ulang kata sandi Anda dengan aman untuk kembali mengelola permohonan kendaraan dan jadwal operasional.
             </p>
           </div>
 

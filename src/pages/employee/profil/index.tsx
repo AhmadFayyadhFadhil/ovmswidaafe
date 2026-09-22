@@ -44,21 +44,21 @@ export default function MyProfilePage({ onNavigate }: Props) {
   const roleDisplayMap: Record<string, string> = {
     admin: "Administrator",
     gahrd: "GA & HRD",
-    approver: "Manager Approver",
-    driver: "Driver",
-    employee: "Employee"
+    approver: "Approver (Atasan)",
+    driver: (user?.is_driver_coordinator || user?.roles?.includes('driver coordinator')) ? "Koordinator Driver" : "Driver",
+    employee: "Karyawan"
   };
 
   const dashboardTitleMap: Record<string, string> = {
-    admin: "Admin Dashboard",
-    gahrd: "GAHRD Dashboard",
-    approver: "Approver Dashboard",
-    driver: "Driver Dashboard",
-    employee: "Employee Dashboard"
+    admin: "Dashboard Administrator",
+    gahrd: "Dashboard GA & HRD",
+    approver: "Dashboard Approver",
+    driver: (user?.is_driver_coordinator || user?.roles?.includes('driver coordinator')) ? "Dashboard Koordinator Driver" : "Dashboard Driver",
+    employee: "Dashboard Karyawan"
   };
 
-  const displayRole = roleDisplayMap[user?.role || "employee"] || "Employee";
-  const displayTitle = dashboardTitleMap[user?.role || "employee"] || "Employee Dashboard";
+  const displayRole = roleDisplayMap[user?.role || "employee"] || "Karyawan";
+  const displayTitle = dashboardTitleMap[user?.role || "employee"] || "Dashboard Karyawan";
 
   const loadData = async () => {
     setLoading(true);
@@ -208,19 +208,19 @@ export default function MyProfilePage({ onNavigate }: Props) {
 
   return (
     <Layout
-      activeNav="My Profile"
+      activeNav="Profil Saya"
       onNavigate={p => onNavigate?.(p)}
       topbarTitle={displayTitle}
       userName={name || user?.name || "User"}
       userRole={displayRole}
-      searchPlaceholder="Search requests, vehicles..."
+      searchPlaceholder="Cari permohonan, kendaraan..."
     >
       <div className="p-4 sm:p-6 animate-fadeup space-y-5">
         {/* Page Header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-[26px] font-bold text-[#0f172a]">My Profile</h2>
-            <p className="text-[13px] text-[#64748b] mt-0.5">Manage your personal information and account settings</p>
+            <h2 className="text-[26px] font-bold text-[#0f172a]">Profil Saya</h2>
+            <p className="text-[13px] text-[#64748b] mt-0.5">Kelola informasi pribadi dan pengaturan akun Anda</p>
           </div>
           <div className="flex gap-2.5">
             <button
@@ -235,7 +235,7 @@ export default function MyProfilePage({ onNavigate }: Props) {
               }}
               className="h-10 px-5 border border-[#e2e8f0] bg-white rounded-xl text-[13px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors shadow-sm cursor-pointer"
             >
-              {editing ? "Cancel" : "Edit Profile"}
+              {editing ? "Batal" : "Ubah Profil"}
             </button>
             <button
               onClick={handleSave}
@@ -246,7 +246,7 @@ export default function MyProfilePage({ onNavigate }: Props) {
                           "bg-[#0f2a5e] hover:bg-[#1e3a8a] text-white"
               }`}
             >
-              {saved ? "✓ Saved!" : saving ? "Saving..." : "Save Changes"}
+              {saved ? "✓ Tersimpan!" : saving ? "Menyimpan..." : "Simpan Perubahan"}
             </button>
           </div>
         </div>
@@ -297,7 +297,7 @@ export default function MyProfilePage({ onNavigate }: Props) {
                     <h3 className="text-[20px] sm:text-[22px] font-bold text-[#0f172a]">{name}</h3>
                     <span className="flex items-center gap-1.5 bg-[#d4f4e2] text-[#1a6e3c] text-[11px] font-bold px-2.5 py-1 rounded-full">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#1a6e3c] animate-pulse" />
-                      Active
+                      Aktif
                     </span>
                   </div>
                   <div className="text-[14px] sm:text-[15px] font-semibold text-[#00236f]">{position}</div>
@@ -311,9 +311,9 @@ export default function MyProfilePage({ onNavigate }: Props) {
                 {/* Quick Stats */}
                 <div className="flex flex-col gap-2 w-full sm:w-auto flex-shrink-0">
                   {[
-                    { icon: "history",       label: "Total Requests",  value: String(totalRequests), color: "text-[#0f172a]"   },
-                    { icon: "check_circle",  label: "Approved Requests", value: String(approvedRequests), color: "text-[#1a6e3c]"   },
-                    { icon: "commute",       label: "Active Requests", value: String(activeRequests), color: "text-[#4059aa]"   },
+                    { icon: "history",       label: "Total Permohonan",    value: String(totalRequests), color: "text-[#0f172a]"   },
+                    { icon: "check_circle",  label: "Permohonan Disetujui", value: String(approvedRequests), color: "text-[#1a6e3c]"   },
+                    { icon: "commute",       label: "Permohonan Aktif",     value: String(activeRequests), color: "text-[#4059aa]"   },
                   ].map((s, i) => (
                     <div key={i} className="bg-white rounded-xl px-4 py-2 border border-[#e2e8f0] flex items-center gap-3 min-w-[160px] shadow-sm text-left">
                       <Icon name={s.icon} className="text-[#94a3b8] text-[16px]" />
@@ -334,43 +334,43 @@ export default function MyProfilePage({ onNavigate }: Props) {
                   <Icon name="badge" className="text-[#00236f] text-[18px]" />
                 </div>
                 <div>
-                  <h3 className="text-[15px] font-bold text-[#0f172a]">Personal Information</h3>
-                  <p className="text-[11px] text-[#94a3b8]">Manage your account data and contact details</p>
+                  <h3 className="text-[15px] font-bold text-[#0f172a]">Informasi Pribadi</h3>
+                  <p className="text-[11px] text-[#94a3b8]">Kelola data akun dan detail kontak Anda</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Full Name</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nama Lengkap</label>
                   <input
                     value={name} onChange={e => setName(e.target.value)} readOnly={!editing}
                     className={inputClass(editing)}
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Email Address</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Alamat Email</label>
                   <input
                     value={email} onChange={e => setEmail(e.target.value)} readOnly={!editing} type="email"
                     className={inputClass(editing)}
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Phone Number</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Nomor Telepon</label>
                   <input
                     value={phone} onChange={e => setPhone(e.target.value)} readOnly={!editing}
                     className={inputClass(editing)}
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Department</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Departemen</label>
                   <input value={department} readOnly className={inputClass(false)} />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Role / Position</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Peran / Jabatan</label>
                   <input value={position} readOnly className={inputClass(false)} />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Location</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Lokasi Kerja</label>
                   <input
                     value={location} onChange={e => setLocation(e.target.value)} readOnly={!editing}
                     className={inputClass(editing)}

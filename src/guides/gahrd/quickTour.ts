@@ -33,7 +33,7 @@ export const gahrdQuickTour: TourConfig = {
     },
     {
       id: 'step_driver_assignment',
-      title: '4. Driver Availability & Assignment',
+      title: '4. Ketersediaan & Penugasan Driver',
       description: 'Pantau status ketersediaan driver (Available / On Trip) dan lakukan alokasi penugasan driver ke permohonan.',
       targetSelector: '[data-guide="driver-assignment"]',
       route: '/gahrd/driver',
@@ -41,7 +41,7 @@ export const gahrdQuickTour: TourConfig = {
     },
     {
       id: 'step_vehicle_assignment',
-      title: '5. Vehicle Management',
+      title: '5. Manajemen Kendaraan',
       description: 'Kelola inventaris armada mobil dinas, kondisi odometer, foto STNK, serta ketersediaan unit.',
       targetSelector: '[data-guide="vehicle-assignment"]',
       route: '/admin/vehicles',
@@ -49,7 +49,7 @@ export const gahrdQuickTour: TourConfig = {
     },
     {
       id: 'step_gahrd_schedule',
-      title: '6. Operational Calendar',
+      title: '6. Kalender Operasional',
       description: 'Lihat matriks kalender penugasan kendaraan untuk menghindari bentrok jadwal perjalanan dinas.',
       targetSelector: '[data-guide="gahrd-schedule"]',
       route: '/gahrd/calendar',
@@ -57,7 +57,7 @@ export const gahrdQuickTour: TourConfig = {
     },
     {
       id: 'step_gahrd_history',
-      title: '7. Reports & History',
+      title: '7. Laporan & Riwayat',
       description: 'Akses laporan lengkap penggunaan armada, pengeluaran sewa eksternal, dan arsip riwayat perjalanan.\n\nAnda siap mengelola armada perusahaan!',
       targetSelector: '[data-guide="gahrd-history"]',
       route: '/gahrd/history',

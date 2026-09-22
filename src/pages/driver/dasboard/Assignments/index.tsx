@@ -87,26 +87,26 @@ function AssignmentCard({
             <Icon name="location_on" className="text-[15px] text-[#1e3a8a]" />
           </div>
           <div>
-            <div className="text-[10px] text-[#94a3b8] font-semibold uppercase tracking-wider">Destination</div>
+            <div className="text-[10px] text-[#94a3b8] font-semibold uppercase tracking-wider">Lokasi Tujuan</div>
             <div className="text-[13px] font-bold text-[#0f172a]">{req.destination}</div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4 text-[12px]">
           <div>
-            <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Date</div>
+            <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Tanggal</div>
             <div className="font-bold text-[#0f172a]">{req.date}</div>
           </div>
           <div>
-            <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Time</div>
+            <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Waktu</div>
             <div className="font-bold text-[#0f172a]">{req.time}</div>
           </div>
           <div>
-            <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Vehicle Type</div>
+            <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Tipe Kendaraan</div>
             <div className="font-bold text-[#0f172a]">{req.vehicleType}</div>
           </div>
           <div>
-            <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Purpose</div>
+            <div className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-0.5">Keperluan</div>
             <div className="font-bold text-[#0f172a]">{req.purpose}</div>
           </div>
         </div>

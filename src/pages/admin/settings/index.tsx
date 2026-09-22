@@ -7,11 +7,11 @@ import { tripPurposeService, type TripPurposeItem } from "@/services/modules/tri
 import { destinationCityService, type DestinationCityItem } from "@/services/modules/destinationCityService";
 
 const SETTING_SECTIONS = [
-  { icon: "settings",        label: "General Settings" },
-  { icon: "business",        label: "Company Info"     },
-  { icon: "flag",            label: "Master Data Keperluan" },
-  { icon: "location_city",   label: "Master Data Kota" },
-  { icon: "notifications",   label: "Notifications"    },
+  { id: "General Settings",      icon: "settings",        label: "Pengaturan Umum" },
+  { id: "Company Info",          icon: "business",        label: "Info Perusahaan" },
+  { id: "Master Data Keperluan", icon: "flag",            label: "Master Data Keperluan" },
+  { id: "Master Data Kota",      icon: "location_city",   label: "Master Data Kota" },
+  { id: "Notifications",         icon: "notifications",   label: "Notifikasi"      },
 ];
 
 function Icon({ name, className = "" }: { name: string; className?: string }) {
@@ -411,7 +411,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
   if (loading || !formData) {
     return (
       <Layout
-        activeNav="System Settings"
+        activeNav="Pengaturan Sistem"
         onNavigate={onNavigate}
         topbarTitle="Pengaturan Sistem"
         userName={user?.name || "Admin"}
@@ -420,7 +420,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
         <div className="flex-1 flex items-center justify-center p-6 bg-slate-50">
           <div className="flex flex-col items-center gap-3">
             <div className="w-10 h-10 border-4 border-[#1e3a8a] border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-[13px] font-semibold text-[#475569]">Loading settings...</span>
+            <span className="text-[13px] font-semibold text-[#475569]">Memuat pengaturan...</span>
           </div>
         </div>
       </Layout>
@@ -429,10 +429,10 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
 
   return (
     <Layout
-      activeNav="System Settings"
+      activeNav="Pengaturan Sistem"
       onNavigate={onNavigate}
       topbarTitle="Pengaturan Sistem"
-      searchPlaceholder="Search settings..."
+      searchPlaceholder="Cari pengaturan..."
       userName={user?.name || "Admin"}
       userRole={user?.role || "Administrator"}
     >
@@ -449,13 +449,13 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                 className={`flex-1 sm:flex-initial h-10 px-4 sm:px-5 border rounded-xl text-[12.5px] sm:text-[13px] font-bold transition-all active:scale-95 cursor-pointer ${
                   resetDone ? "bg-[#f1f5f9] border-[#e2e8f0] text-[#64748b]" : "border-[#e2e8f0] bg-white text-[#475569] hover:bg-[#f8fafc] shadow-xs"
                 }`}>
-                {resetDone ? "✓ Resetted" : "Reset Changes"}
+                {resetDone ? "✓ Direset" : "Reset Perubahan"}
               </button>
               <button onClick={handleSave} disabled={saving}
                 className={`flex-1 sm:flex-initial h-10 px-5 sm:px-6 rounded-xl text-[12.5px] sm:text-[13px] font-bold transition-all active:scale-95 shadow-xs cursor-pointer ${
                   saved ? "bg-[#16a34a] text-white" : "bg-[#1e3a8a] hover:bg-[#1e40af] text-white"
                 } ${saving ? "opacity-75 cursor-not-allowed" : ""}`}>
-                {saving ? "Saving..." : (saved ? "✓ Saved!" : "Save Settings")}
+                {saving ? "Menyimpan..." : (saved ? "✓ Tersimpan!" : "Simpan Pengaturan")}
               </button>
             </div>
           </div>
@@ -464,8 +464,8 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3 mb-5">
             {[
               { 
-                label: "USERS", 
-                value: statsData?.total_users !== undefined ? `${statsData.total_users} Users` : "-", 
+                label: "PENGGUNA", 
+                value: statsData?.total_users !== undefined ? `${statsData.total_users} Pengguna` : "-", 
                 sub: "Akun Pengguna", 
                 valueColor: "text-[#0f172a]", 
                 subColor: "text-[#64748b]", 
@@ -474,7 +474,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                 iconCol: "text-[#7c3aed]" 
               },
               { 
-                label: "VEHICLES", 
+                label: "KENDARAAN", 
                 value: statsData?.total_vehicles !== undefined ? `${statsData.total_vehicles} Unit` : "-", 
                 sub: "Armada Aktif", 
                 valueColor: "text-[#0f172a]", 
@@ -484,7 +484,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                 iconCol: "text-[#1e3a8a]" 
               },
               { 
-                label: "SESSIONS", 
+                label: "SESI AKTIF", 
                 value: statsData?.active_sessions !== undefined ? `${statsData.active_sessions} Sesi` : "-", 
                 sub: "Pengguna Bersama", 
                 valueColor: "text-[#0f172a]", 
@@ -494,8 +494,8 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                 iconCol: "text-[#0369a1]" 
               },
               { 
-                label: "DATABASE", 
-                value: statsData?.db_status || "-", 
+                label: "BASIS DATA", 
+                value: statsData?.db_status === "Connected" ? "Terhubung" : statsData?.db_status || "-", 
                 sub: "Status Koneksi", 
                 valueColor: statsData?.db_status === "Connected" ? "text-[#16a34a]" : "text-[#dc2626]", 
                 subColor: "text-[#64748b]", 
@@ -504,7 +504,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                 iconCol: statsData?.db_status === "Connected" ? "text-[#16a34a]" : "text-[#dc2626]" 
               },
               { 
-                label: "AUDIT LOGS", 
+                label: "LOG AUDIT", 
                 value: statsData?.total_audit_logs !== undefined ? `${statsData.total_audit_logs} Log` : "-", 
                 sub: "Aktivitas Tercatat", 
                 valueColor: "text-[#0f172a]", 
@@ -514,7 +514,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                 iconCol: "text-[#d97706]" 
               },
               { 
-                label: "TIMEZONE", 
+                label: "ZONA WAKTU", 
                 value: statsData?.timezone ? (statsData.timezone.includes("Asia/Jakarta") || statsData.timezone.includes("GMT") ? "WIB (GMT+7)" : statsData.timezone) : "WIB (GMT+7)", 
                 sub: "Zona Waktu", 
                 valueColor: "text-[#0f172a]", 
@@ -546,13 +546,13 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                 </div>
                 <nav className="p-2 space-y-0.5">
                   {SETTING_SECTIONS.map(s => (
-                    <button key={s.label} onClick={() => setActiveSection(s.label)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 ${
-                        activeSection === s.label
+                    <button key={s.id} onClick={() => setActiveSection(s.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 cursor-pointer ${
+                        activeSection === s.id
                           ? "bg-[#eff6ff] text-[#1e3a8a] border border-[#bfdbfe]"
                           : "text-[#475569] hover:bg-[#f8fafc] hover:translate-x-0.5"
                       }`}>
-                      <Icon name={s.icon} className={`text-[19px] flex-shrink-0 ${activeSection === s.label ? "text-[#1e3a8a]" : "text-[#94a3b8]"}`} />
+                      <Icon name={s.icon} className={`text-[19px] flex-shrink-0 ${activeSection === s.id ? "text-[#1e3a8a]" : "text-[#94a3b8]"}`} />
                       <span className="text-[13px] font-semibold">{s.label}</span>
                     </button>
                   ))}
@@ -648,7 +648,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                       ) : (
                         <>
                           <Icon name="upload_file" className="text-[#94a3b8] group-hover:text-[#1e3a8a] text-[26px] transition-colors" />
-                          <span className="text-[10px] font-semibold text-[#94a3b8] group-hover:text-[#1e3a8a] transition-colors">Upload Logo</span>
+                          <span className="text-[10px] font-semibold text-[#94a3b8] group-hover:text-[#1e3a8a] transition-colors">Unggah Logo</span>
                         </>
                       )}
                     </div>
@@ -967,25 +967,25 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                     {[
                       { 
                         key: "emailAlerts",
-                        label: "Email Alerts", 
+                        label: "Peringatan Email", 
                         sub: "Kirim peringatan kritis ke alamat email admin.", 
                         val: formData.emailAlerts
                       },
                       { 
                         key: "smsAlerts",
-                        label: "SMS Alerts", 
+                        label: "Peringatan SMS", 
                         sub: "Kirim notifikasi mendesak via SMS gateway.", 
                         val: formData.smsAlerts
                       },
                       { 
                         key: "pushNotifs",
-                        label: "Push Notifications", 
+                        label: "Notifikasi Push", 
                         sub: "Aktifkan notifikasi push browser dalam aplikasi.", 
                         val: formData.pushNotifs
                       },
                       { 
                         key: "digestMode",
-                        label: "Daily Digest Mode", 
+                        label: "Mode Ringkasan Harian", 
                         sub: "Bundel peringatan non-kritis ke dalam ringkasan email harian.", 
                         val: formData.digestMode
                       },
@@ -1012,23 +1012,23 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                     <Icon name="dangerous" className="text-[#dc2626] text-[20px]" />
                   </div>
                   <div>
-                    <h3 className="text-[15px] font-bold text-[#dc2626]">Danger Zone</h3>
+                    <h3 className="text-[15px] font-bold text-[#dc2626]">Zona Bahaya (Danger Zone)</h3>
                     <p className="text-[12px] text-[#64748b] mt-0.5">Tindakan ini tidak dapat dibatalkan. Harap lanjutkan dengan sangat hati-hati.</p>
                   </div>
                 </div>
                 <div className="space-y-3">
                   {[
                     { 
-                      label: "Flush All Caches", 
+                      label: "Bersihkan Semua Cache", 
                       sub: "Bersihkan cache aplikasi dan CDN. Layanan akan memuat ulang data segar pada request berikutnya.", 
-                      btn: "Flush Cache", 
+                      btn: "Bersihkan Cache", 
                       btnColor: "border-[#fca5a5] text-[#dc2626] hover:bg-[#fff1f2]",
                       action: handleFlushCache
                     },
                     { 
-                      label: "Purge Audit Logs", 
+                      label: "Hapus Log Audit", 
                       sub: "Hapus semua log aktivitas secara permanen dari database sistem.", 
-                      btn: "Purge Logs", 
+                      btn: "Hapus Log", 
                       btnColor: "border-[#fca5a5] text-[#dc2626] hover:bg-[#fff1f2]",
                       action: handlePurgeLogs
                     },
@@ -1040,7 +1040,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                       </div>
                       <button 
                         onClick={item.action}
-                        className={`flex-shrink-0 ml-4 h-9 px-4 border-2 rounded-xl text-[12px] font-bold transition-all active:scale-95 ${item.btnColor}`}
+                        className={`flex-shrink-0 ml-4 h-9 px-4 border-2 rounded-xl text-[12px] font-bold transition-all active:scale-95 cursor-pointer ${item.btnColor}`}
                       >
                         {item.btn}
                       </button>

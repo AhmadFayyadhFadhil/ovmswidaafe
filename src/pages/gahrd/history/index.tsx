@@ -13,10 +13,18 @@ function StatusBadge({ status }: { status: 'PENDING' | 'APPROVED' | 'REJECTED' |
     ONGOING:   'bg-indigo-50 text-indigo-700 border-indigo-200',
     CANCELLED: 'bg-slate-50 text-slate-700 border-slate-200',
   };
+  const labelMap: Record<string, string> = {
+    APPROVED: 'DISETUJUI',
+    PENDING: 'MENUNGGU',
+    REJECTED: 'DITOLAK',
+    COMPLETED: 'SELESAI',
+    ONGOING: 'BERJALAN',
+    CANCELLED: 'DIBATALKAN',
+  };
   return (
     <span className={`text-[10.5px] font-bold px-2.5 py-1 rounded-full border inline-flex items-center gap-1.5 w-fit ${cfg[status] || cfg.PENDING}`}>
       <span className="w-1.5 h-1.5 rounded-full bg-current" />
-      {status}
+      {labelMap[status] || status}
     </span>
   );
 }
@@ -81,7 +89,7 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
 
   return (
     <Layout
-      activeNav="History"
+      activeNav="Riwayat"
       onNavigate={onNavigate}
       topbarTitle="Riwayat Operasional"
       userRole="GA/HRD"
@@ -105,7 +113,7 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
               }}
               className="flex items-center gap-2 h-9 px-4 bg-[#1e3a8a] text-white rounded-xl text-[12px] font-bold hover:bg-[#1e40af] shadow-2xs transition-all active:scale-95 cursor-pointer"
             >
-              <Icon name="download" className="text-[16px]" /> Export Laporan
+              <Icon name="download" className="text-[16px]" /> Ekspor Laporan
             </button>
             <button 
               onClick={fetchHistory}
@@ -119,10 +127,10 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
         {/* Stat cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           {[
-            { label: "Completed Trips", value: completedCount, color: "text-sky-600", bg: "bg-sky-50", border: "border-sky-100", icon: "task_alt" },
+            { label: "Perjalanan Selesai", value: completedCount, color: "text-sky-600", bg: "bg-sky-50", border: "border-sky-100", icon: "task_alt" },
             { label: "Total Riwayat", value: totalFinishedCount, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100", icon: "history" },
-            { label: "Rejected Trips", value: rejectedCount, color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-100", icon: "cancel" },
-            { label: "Cancelled Trips", value: cancelledCount, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-100", icon: "block" },
+            { label: "Perjalanan Ditolak", value: rejectedCount, color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-100", icon: "cancel" },
+            { label: "Perjalanan Dibatalkan", value: cancelledCount, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-100", icon: "block" },
           ].map((card, i) => (
             <div key={i} className="bg-white border border-slate-100 rounded-2xl p-5 flex items-center justify-between shadow-xs hover:shadow-md transition-all duration-300">
               <div className="flex items-center gap-4">
@@ -156,12 +164,12 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
             className="px-4 py-2 text-[13px] bg-[#f8fafc] border border-slate-200 rounded-xl text-[#475569] focus:outline-none cursor-pointer font-semibold"
           >
             <option value="ALL">Status: Semua</option>
-            <option value="COMPLETED">Status: Completed</option>
-            <option value="APPROVED">Status: Approved</option>
-            <option value="ONGOING">Status: Ongoing</option>
-            <option value="REJECTED">Status: Rejected</option>
-            <option value="CANCELLED">Status: Cancelled</option>
-            <option value="PENDING">Status: Pending</option>
+            <option value="COMPLETED">Status: Selesai</option>
+            <option value="APPROVED">Status: Disetujui</option>
+            <option value="ONGOING">Status: Berjalan</option>
+            <option value="REJECTED">Status: Ditolak</option>
+            <option value="CANCELLED">Status: Dibatalkan</option>
+            <option value="PENDING">Status: Menunggu</option>
           </select>
           <button
             onClick={() => { setSearch(''); setStatusFilter('ALL'); }}
@@ -188,12 +196,12 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500">
                   <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">ID</th>
-                  <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">Employee</th>
-                  <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">Destination</th>
+                  <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">Karyawan</th>
+                  <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">Tujuan</th>
                   <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">Driver</th>
-                  <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">Schedule</th>
+                  <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">Jadwal</th>
                   <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">Status</th>
-                  <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider text-center">Action</th>
+                  <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -244,7 +252,7 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                              Pending Assignment
+                              Belum Ditugaskan
                             </span>
                           )}
                         </td>

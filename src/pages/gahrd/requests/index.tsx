@@ -768,14 +768,22 @@ export default function GAHRDRequestsPage() {
 
   const isApprover = user?.role === "approver";
   const isCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
+  const isGAOrAdmin = user?.role === 'gahrd' || user?.role === 'admin' || user?.roles?.includes('ga') || user?.roles?.includes('admin');
+
+  const tabList: { key: TabFilter; label: string }[] = [
+    { key: "All", label: "Semua" },
+    { key: "Normal", label: "Normal" },
+    { key: "Urgent", label: "Mendesak" },
+    { key: "Critical", label: "Kritis" },
+  ];
 
   return (
     <Layout
-      activeNav={isCoordinator ? "Alokasi Armada" : (isApprover ? "Driver Assignment" : "Requests")}
-      topbarTitle={isCoordinator ? "Alokasi Armada & Driver" : (isApprover ? "Driver Assignment" : "GAHRD Driver Assignment")}
-      userName={user?.name || (isCoordinator ? "Koordinator Driver" : "GAHRD User")}
+      activeNav={isCoordinator ? "Alokasi Armada" : (isApprover ? "Penugasan Driver" : "Permohonan")}
+      topbarTitle={isCoordinator ? "Alokasi Armada & Driver" : (isApprover ? "Penugasan Driver" : "Penugasan Driver GA / HRD")}
+      userName={user?.name || (isCoordinator ? "Koordinator Driver" : "Pengguna GAHRD")}
       userRole={isCoordinator ? "Koordinator Driver" : (isApprover ? "Manager Approver" : "GA/HRD")}
-      searchPlaceholder="Cari request..."
+      searchPlaceholder="Cari permohonan..."
       searchValue={search}
       onSearchChange={setSearch}
     >
@@ -783,9 +791,9 @@ export default function GAHRDRequestsPage() {
 
         <div data-guide="gahrd-requests" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <div className="text-[18px] font-bold text-[#0f172a] mb-1">Driver Assignment Center</div>
+            <div className="text-[18px] font-bold text-[#0f172a] mb-1">Pusat Penugasan Driver</div>
             <div className="text-[13px] text-[#64748b] max-w-2xl">
-              Tugaskan driver yang tersedia ke permintaan perjalanan operasional yang sudah disetujui, dan kelola koordinasi transportasi di seluruh organisasi.
+              Tugaskan driver yang tersedia ke permohonan perjalanan operasional yang sudah disetujui, dan kelola koordinasi transportasi di seluruh organisasi.
             </div>
           </div>
           {!isApprover && !isCoordinator && (
@@ -793,7 +801,7 @@ export default function GAHRDRequestsPage() {
               onClick={() => navigate("/gahrd/requests/urgent")}
               className="flex items-center gap-2 h-10 px-5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
             >
-              <Icon name="add_alert" className="text-[17px]" /> Urgent Request
+              <Icon name="add_alert" className="text-[17px]" /> Permohonan Mendesak
             </button>
           )}
         </div>
@@ -826,7 +834,7 @@ export default function GAHRDRequestsPage() {
               <Icon name="route" className="text-[22px] text-white" />
             </div>
             <div>
-              <div className="text-[12px] text-[#64748b] font-medium">Trip Aktif</div>
+              <div className="text-[12px] text-[#64748b] font-medium">Perjalanan Aktif</div>
               <div className="text-[22px] font-bold text-[#0f172a]">{activeTripCount}</div>
             </div>
           </div>
@@ -847,19 +855,19 @@ export default function GAHRDRequestsPage() {
           {/* Tab filter */}
           <div className="overflow-x-auto max-w-full mb-5">
             <div className="flex gap-1 bg-white border border-[#e2e8f0] rounded-xl p-1 w-fit shadow-sm">
-              {(["All", "Normal", "Urgent", "Critical"] as TabFilter[]).map((t) => (
+              {tabList.map((t) => (
                 <button
-                  key={t}
-                  onClick={() => setTab(t)}
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
                   className={`px-5 h-9 rounded-lg text-[13px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    tab === t ? "bg-[#1e3a8a] text-white shadow-sm" : "text-[#64748b] hover:text-[#334155]"
+                    tab === t.key ? "bg-[#1e3a8a] text-white shadow-sm" : "text-[#64748b] hover:text-[#334155]"
                   }`}
                 >
-                  {t}
-                  {t === "Urgent" && urgentCount > 0 && (
+                  {t.label}
+                  {t.key === "Urgent" && urgentCount > 0 && (
                     <span className={`w-2 h-2 rounded-full ${tab === "Urgent" ? "bg-white" : "bg-[#f97316]"}`} />
                   )}
-                  {t === "Critical" && criticalCount > 0 && (
+                  {t.key === "Critical" && criticalCount > 0 && (
                     <span className={`w-2 h-2 rounded-full ${tab === "Critical" ? "bg-white" : "bg-[#dc2626]"}`} />
                   )}
                 </button>
@@ -891,8 +899,6 @@ export default function GAHRDRequestsPage() {
           ) : (
             <div className="space-y-4">
               {filtered.map((req) => {
-                const isCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
-                const isGAOrAdmin = user?.role === 'gahrd' || user?.role === 'admin' || user?.roles?.includes('ga') || user?.roles?.includes('admin');
                 const isUrgentReq = (req.priority || "").toUpperCase() === "URGENT" || (req.priority || "").toUpperCase() === "CRITICAL";
 
                 const isPendingDeptHead = req.rawStatus === "submitted" && !isUrgentReq;
