@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
-import { requestService } from "@/services/modules/requestService";
+import { requestService, mapRequestFromBackend } from "@/services/modules/requestService";
 import { driverService } from "@/services/modules/driverService";
 import { vehicleService } from "@/services/modules/vehicleService";
 import { assignmentService } from "@/services/modules/assignmentService";
@@ -168,6 +168,7 @@ export default function GAHRDRequestsPage() {
     setLoading(true);
     setError(null);
     try {
+      requestService.clearCache();
       const [reqRes, driverRes, vehicleRes] = await Promise.all([
         requestService.getAll({ per_page: 100 }),
         driverService.getAll(),
@@ -196,6 +197,7 @@ export default function GAHRDRequestsPage() {
   const handleReject = async (requestId: string, reason: string) => {
     setActionLoading(true);
     try {
+      requestService.clearCache();
       await apiClient.post(`/requests/${requestId}/reject`, {
         notes: reason,
         role: "hrd_head"
@@ -216,6 +218,8 @@ export default function GAHRDRequestsPage() {
       setIsDetailModalOpen(false);
       setDetailRequest(null);
       showToast("Permintaan perjalanan berhasil ditolak!");
+      requestService.clearCache();
+      await fetchData();
     } catch (err: any) {
       console.error(err);
       alert(err.response?.data?.message || "Gagal menolak permintaan.");
@@ -416,6 +420,7 @@ export default function GAHRDRequestsPage() {
         await requestService.storeDailyAssignments(selectedRequest.id, payload);
         setIsAssignModalOpen(false);
         showToast("Penugasan harian berhasil disimpan!");
+        requestService.clearCache();
         await fetchData();
         return;
       }
@@ -561,6 +566,7 @@ export default function GAHRDRequestsPage() {
   const handleCancelAssignment = async (requestId: string) => {
     setActionLoading(true);
     try {
+      requestService.clearCache();
       const res = await assignmentService.getAll({ per_page: 1000 });
       const assignment = (res.data || []).find(
         (a: any) => String(a.request?.id) === String(requestId) && a.status === 'pending_driver'
@@ -568,6 +574,7 @@ export default function GAHRDRequestsPage() {
       if (assignment) {
         await assignmentService.cancel(assignment.id);
         showToast("Penugasan driver berhasil dibatalkan!");
+        requestService.clearCache();
         await fetchData();
       } else {
         alert("Assignment tidak ditemukan.");
@@ -588,9 +595,11 @@ export default function GAHRDRequestsPage() {
 
   const handleConfirmApprove = async () => {
     if (!approveReviewRequest) return;
+    const targetId = String(approveReviewRequest.id);
     setActionLoading(true);
     try {
-      const res = await apiClient.post(`/requests/${approveReviewRequest.id}/approve`, {
+      requestService.clearCache();
+      const res = await apiClient.post(`/requests/${targetId}/approve`, {
         role: "hrd_head",
         notes: approvalNotes || "Disetujui oleh GA Koordinator",
       });
@@ -598,6 +607,54 @@ export default function GAHRDRequestsPage() {
         showToast("Alokasi armada disetujui & jadwal resmi berhasil diterbitkan!");
         setIsApproveReviewModalOpen(false);
         setApproveReviewRequest(null);
+
+        const backendData = res.data?.data;
+        const mappedApproved = backendData ? mapRequestFromBackend(backendData) : null;
+
+        // Immediate reactive local state update (0ms transition to approved card)
+        setRequests((prev) =>
+          prev.map((r) => {
+            if (String(r.id) === targetId) {
+              if (mappedApproved) {
+                return {
+                  ...mappedApproved,
+                  driverName: mappedApproved.driverName !== "Not Assigned" ? mappedApproved.driverName : r.driverName,
+                  vehicleModel: mappedApproved.vehicleModel !== "Not Assigned" ? mappedApproved.vehicleModel : r.vehicleModel,
+                };
+              }
+              return {
+                ...r,
+                rawStatus: "driver_assigned",
+                status: "APPROVED",
+                qr_code_token: backendData?.qr_code_token || backendData?.ticket_number || r.qr_code_token || `REQ-${r.id}`,
+                canApprove: false,
+                canReject: false,
+              };
+            }
+            return r;
+          })
+        );
+
+        // Immediate reactive update on detailRequest if open
+        setDetailRequest((prev: any) => {
+          if (prev && String(prev.id) === targetId) {
+            if (mappedApproved) return mappedApproved;
+            return {
+              ...prev,
+              rawStatus: "driver_assigned",
+              status: "APPROVED",
+              qr_code_token: backendData?.qr_code_token || backendData?.ticket_number || prev.qr_code_token || `REQ-${prev.id}`,
+              canApprove: false,
+              canReject: false,
+            };
+          }
+          return prev;
+        });
+
+        // Trigger notification refresh
+        window.dispatchEvent(new CustomEvent("ovms-notif-read"));
+
+        requestService.clearCache();
         await fetchData();
       } else {
         alert(res.data?.message || "Gagal menyetujui alokasi.");
@@ -613,8 +670,11 @@ export default function GAHRDRequestsPage() {
   const handleDeleteRequest = async (requestId: string, reason: string) => {
     setActionLoading(true);
     try {
+      requestService.clearCache();
       await requestService.delete(requestId, reason);
       showToast("Permintaan kendaraan berhasil dibatalkan!");
+      setRequests((prev) => prev.filter((r) => String(r.id) !== String(requestId)));
+      requestService.clearCache();
       await fetchData();
     } catch (err: any) {
       console.error(err);
@@ -2495,7 +2555,7 @@ export default function GAHRDRequestsPage() {
 
       {/* Build Stamp for Verification */}
       <div className="text-[10px] text-slate-400 text-right mt-4 pr-4 font-mono pb-4">
-        Build Version: 2026-08-07-v21 (Auto Cache Clean & Smooth Workflow)
+        Build Version: 2026-09-22-v23 (Instant GA Approval Reactivity)
       </div>
     </Layout>
   );

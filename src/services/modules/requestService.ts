@@ -111,7 +111,7 @@ function parseDateTime(dtStr: string | undefined) {
   return { date: datePart, time: timePart };
 }
 
-function mapRequestFromBackend(r: any): FleetRequest {
+export function mapRequestFromBackend(r: any): FleetRequest {
   const start = parseDateTime(r.start_time);
   const end = parseDateTime(r.end_time);
   const formattedStart = formatDate(r.start_time);
@@ -362,11 +362,11 @@ export const requestService = {
       message: res.data?.message
     };
   },
-  approve: async (id: string, notes?: string): Promise<ApiResponse<void>> => {
+  approve: async (id: string, notes?: string, role?: string): Promise<ApiResponse<FleetRequest>> => {
     requestCache = null;
-    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/approve`, { notes });
+    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/approve`, { notes, role });
     return {
-      data: undefined,
+      data: res.data?.data ? mapRequestFromBackend(res.data.data) : undefined,
       message: res.data?.message
     };
   },
