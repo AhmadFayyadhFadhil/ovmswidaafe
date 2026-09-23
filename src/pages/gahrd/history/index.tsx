@@ -302,18 +302,20 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1080px] text-left text-[13px] table-fixed">
               <colgroup>
+                <col className="w-[95px]" />
+                <col className="w-[200px]" />
+                <col className="w-[210px]" />
+                <col className="w-[190px]" />
+                <col className="w-[160px]" />
+                <col className="w-[130px]" />
+                <col className="w-[120px]" />
                 <col className="w-[100px]" />
-                <col className="w-[230px]" />
-                <col className="w-[220px]" />
-                <col className="w-[180px]" />
-                <col className="w-[120px]" />
-                <col className="w-[120px]" />
-                <col className="w-[110px]" />
               </colgroup>
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500">
                   <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">ID</th>
-                  <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">Karyawan</th>
+                  <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">Pemohon</th>
+                  <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">Penumpang</th>
                   <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">Tujuan</th>
                   <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">Driver</th>
                   <th className="px-5 py-4 text-[10.5px] font-bold uppercase tracking-wider">Jadwal</th>
@@ -324,14 +326,14 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
+                    <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e3a8a] mx-auto mb-3"></div>
                       <span className="font-semibold text-sm">Memuat data riwayat perjalanan...</span>
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                    <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
                       <Icon name="search_off" className="text-[40px] text-slate-200 mb-2" />
                       <p className="font-bold text-slate-500">Data Tidak Ditemukan</p>
                       <p className="text-[12px] mt-1">Coba ubah kata pencarian atau filter status.</p>
@@ -340,6 +342,8 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
                 ) : (
                   filtered.map(req => {
                     const initials = getInitials(req.employee);
+                    const pList = Array.isArray(req.passengers) && req.passengers.length > 0 ? req.passengers : [];
+                    const pCount = req.passengerCount || (pList.length > 0 ? pList.length : 1);
                     return (
                       <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-5 py-4 font-bold font-mono text-slate-800 text-[12.5px]">#RQ-{req.id}</td>
@@ -353,6 +357,31 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
                               <div className="text-[11px] text-slate-400 font-semibold truncate" title={req.department}>{req.department}</div>
                             </div>
                           </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          {pList.length > 0 ? (
+                            <div className="min-w-0 space-y-0.5">
+                              <div className="flex items-center gap-1.5 text-slate-800 font-semibold text-[12.5px] truncate" title={pList.map((p: any) => p.name).join(', ')}>
+                                <Icon name="groups" className="text-[15px] text-blue-600 shrink-0" />
+                                <span className="truncate">
+                                  {pList.slice(0, 2).map((p: any) => p.name).join(', ')}
+                                  {pList.length > 2 ? `, +${pList.length - 2}` : ''}
+                                </span>
+                              </div>
+                              <span className="inline-flex text-[9.5px] font-extrabold text-blue-800 bg-blue-50 border border-blue-100 px-1.5 py-0.2 rounded">
+                                {pCount} Orang
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="text-slate-600">
+                              <div className="flex items-center gap-1 text-[12px] font-medium truncate text-slate-700">
+                                <Icon name="person" className="text-[14px] text-slate-400" />
+                                <span className="truncate">{req.employee}</span>
+                                <span className="text-[9px] text-amber-700 bg-amber-50 px-1 rounded font-bold">PIC</span>
+                              </div>
+                              <span className="text-[10px] text-slate-400 italic">1 Orang (Pemohon)</span>
+                            </div>
+                          )}
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-1.5 text-slate-600 min-w-0" title={req.destination}>

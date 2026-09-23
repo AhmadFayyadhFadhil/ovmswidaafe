@@ -976,11 +976,36 @@ export function RequestDetailModal({
               {/* Passengers */}
               <div>
                 <h4 className="text-[11px] font-extrabold tracking-wider text-slate-400 uppercase mb-2">
-                  Daftar Penumpang ({passengers.length} Orang)
+                  Daftar Penumpang ({passengers.length > 0 ? passengers.length : (request.passengerCount || 1)} Orang)
                 </h4>
                 {passengers.length === 0 ? (
-                  <div className="text-[12px] text-slate-500 italic p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                    Hanya pemohon sendiri.
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-[13px]">
+                    <div className="font-semibold text-slate-700 flex flex-col sm:flex-row sm:items-center gap-2 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center text-[11px] font-extrabold flex-shrink-0 border border-blue-200">
+                          1
+                        </span>
+                        <span className="font-bold text-slate-900 text-[13.5px]">{request.employee || 'Pemohon'}</span>
+                        <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
+                          👑 PIC Penumpang (Pemohon Sendiri)
+                        </span>
+                      </div>
+                      {(request.userPhone || request.phone) && (
+                        <a
+                          href={`https://wa.me/${String(request.userPhone || request.phone).replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all flex-shrink-0 shadow-2xs active:scale-95"
+                          title={`Hubungi WhatsApp ${request.employee}`}
+                        >
+                          <Icon name="chat" className="text-xs" />
+                          <span>Hubungi WA PIC ({request.userPhone || request.phone})</span>
+                        </a>
+                      )}
+                    </div>
+                    <span className="text-[10.5px] font-extrabold text-slate-500 bg-white px-2.5 py-1 rounded-md border border-slate-200 uppercase self-start sm:self-center shrink-0">
+                      {request.department || 'General'}
+                    </span>
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
