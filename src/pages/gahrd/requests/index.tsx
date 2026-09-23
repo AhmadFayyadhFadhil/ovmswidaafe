@@ -5,8 +5,10 @@ import { requestService, mapRequestFromBackend } from "@/services/modules/reques
 import { driverService } from "@/services/modules/driverService";
 import { vehicleService } from "@/services/modules/vehicleService";
 import { userService } from "@/services/modules/userService";
+import { gaTeamApproverService } from "@/services/modules/gaTeamApproverService";
 import { useAuthContext } from "@/auth/authContext";
 import { RequestDetailModal } from "@/components/ui/RequestDetailModal";
+import { GaTeamApproverMasterModal } from "@/components/ui/GaTeamApproverMasterModal";
 import { apiClient } from "@/services/api/api";
 
 const formatNumberIndonesian = (value: string | number) => {
@@ -179,16 +181,33 @@ export default function GAHRDRequestsPage() {
     }, 4000);
   };
 
+  const [isMasterModalOpen, setIsMasterModalOpen] = useState(false);
+
+  const fetchGaApproversMaster = async () => {
+    try {
+      const res = await gaTeamApproverService.getAll({ active_only: true });
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        const names = res.data.map((item: any) => 
+          item.position ? `${item.name} (${item.position})` : item.name
+        );
+        setGaStaffList(names);
+      } else {
+        setGaStaffList(["Pak Agus (GA Supervisor)", "Melodi Bella Astria (GA Head)", "Tim GA Operasional", "Staff GA Standby"]);
+      }
+    } catch (err) {
+      console.error("Gagal memuat master penyetujui GA Team:", err);
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
       requestService.clearCache();
-      const [reqRes, driverRes, vehicleRes, userRes] = await Promise.all([
+      const [reqRes, driverRes, vehicleRes] = await Promise.all([
         requestService.getAll({ per_page: 100 }),
         driverService.getAll(),
         vehicleService.getAll({ per_page: 1000 }),
-        userService.getAll({ per_page: 250 }).catch(() => ({ data: [] })),
       ]);
 
       setRequests(reqRes.data || []);
@@ -203,25 +222,7 @@ export default function GAHRDRequestsPage() {
 
       setVehicles(vehicleRes.data || []);
 
-      if (Array.isArray(userRes.data)) {
-        const fetchedGaNames = userRes.data
-          .filter((u: any) => 
-            u.roleName === "GA" || 
-            u.roleName === "Approver" || 
-            u.department === "HRD & GA" || 
-            u.isDepartmentHead
-          )
-          .map((u: any) => u.fullName)
-          .filter((name: string) => 
-            name && 
-            !name.toLowerCase().includes("super admin") && 
-            !name.toLowerCase().includes("gateam")
-          );
-
-        const presets = ["Pak Agus", "Melodi Bella Astria", "Tim GA Operasional", "Staff GA Standby"];
-        const mergedUnique = Array.from(new Set([...presets, ...fetchedGaNames]));
-        setGaStaffList(mergedUnique);
-      }
+      await fetchGaApproversMaster();
     } catch (err: any) {
       console.error(err);
       setError("Gagal memuat data dari server.");
@@ -928,12 +929,20 @@ export default function GAHRDRequestsPage() {
             </div>
           </div>
           {!isApprover && !isCoordinator && (
-            <button
-              onClick={() => navigate("/gahrd/requests/urgent")}
-              className="flex items-center gap-2 h-10 px-5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
-            >
-              <Icon name="add_alert" className="text-[17px]" /> Permohonan Mendesak
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsMasterModalOpen(true)}
+                className="flex items-center gap-2 h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                <Icon name="badge" className="text-[17px]" /> Kelola Master Penyetujui
+              </button>
+              <button
+                onClick={() => navigate("/gahrd/requests/urgent")}
+                className="flex items-center gap-2 h-10 px-5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                <Icon name="add_alert" className="text-[17px]" /> Permohonan Mendesak
+              </button>
+            </div>
           )}
         </div>
 
@@ -2553,9 +2562,19 @@ export default function GAHRDRequestsPage() {
               {/* GA Team Backup Approver Name Combobox */}
               {isGaTeamAccount && (
                 <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl space-y-2.5">
-                  <div className="flex items-center gap-2 text-blue-900 font-bold text-[12px]">
-                    <Icon name="badge" className="text-blue-700 text-[18px]" />
-                    <span>Otoritas Penyetujui / Atas Nama (Akun GA Team Backup)</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-blue-900 font-bold text-[12px]">
+                      <Icon name="badge" className="text-blue-700 text-[18px]" />
+                      <span>Otoritas Penyetujui / Atas Nama (Akun GA Team Backup)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsMasterModalOpen(true)}
+                      className="text-[11px] font-bold text-blue-700 hover:text-blue-900 underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Icon name="settings" className="text-xs" />
+                      Kelola Master Data
+                    </button>
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-slate-600 mb-1">
@@ -2568,7 +2587,7 @@ export default function GAHRDRequestsPage() {
                     >
                       {gaStaffList.map((name) => (
                         <option key={name} value={name}>
-                          {name} {name.includes("Melodi") ? "(GA Head)" : (name.includes("Agus") ? "(GA Supervisor)" : "")}
+                          {name}
                         </option>
                       ))}
                       <option value="Lainnya (Ketik Manual)">+ Ketik Nama Lain secara Manual...</option>
@@ -2657,6 +2676,13 @@ export default function GAHRDRequestsPage() {
         </div>
       )}
 
+      {/* Master Data GA Team Approvers Modal */}
+      <GaTeamApproverMasterModal
+        isOpen={isMasterModalOpen}
+        onClose={() => setIsMasterModalOpen(false)}
+        onUpdated={fetchGaApproversMaster}
+      />
+
       {/* Premium Success Toast Alert */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 z-50 border border-slate-800 animate-fadein">
@@ -2667,7 +2693,7 @@ export default function GAHRDRequestsPage() {
 
       {/* Build Stamp for Verification */}
       <div className="text-[10px] text-slate-400 text-right mt-4 pr-4 font-mono pb-4">
-        Build Version: 2026-09-23-v25 (GA Team Backup Approver Dropdown & Status Display)
+        Build Version: 2026-09-23-v26 (Dedicated GA Team Approver Master Data Module)
       </div>
     </Layout>
   );
