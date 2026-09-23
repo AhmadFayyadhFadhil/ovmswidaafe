@@ -74,8 +74,10 @@ export function RequestDetailModal({
       dept_head: "Dep Head",
       hrd_head: "GA & HRD Head",
       ga_head: "GA Head",
+      ga_team: "GA Team Backup",
+      "GA Team Backup": "GA Team Backup",
     };
-    return labels[role] || role;
+    return labels[role] || (role === "ga_team" ? "GA Team Backup" : role);
   };
 
   const getStageLabel = (rawStatus: string | undefined, mappedStatus: string) => {
@@ -1175,6 +1177,32 @@ export function RequestDetailModal({
                   <div className="relative border-l-2 border-slate-100 pl-4 ml-3 space-y-4">
                     {approvals.map((app: any, idx: number) => {
                       const isApproved = app.status === "approved";
+                      const isGaTeamStep =
+                        app.role === "ga_team" ||
+                        app.role === "GA Team Backup" ||
+                        (app.role === "hrd_head" && request.ga_approval_source === "ga_team") ||
+                        (app.approver?.name && app.approver.name.toLowerCase().includes("gateam"));
+
+                      let roleTitle = getApprovalRoleLabel(app.role);
+                      if (isGaTeamStep) {
+                        roleTitle = "GA Team Backup";
+                      }
+
+                      let approverNameStr = app.approver?.name || "System";
+                      if (isGaTeamStep) {
+                        const specifiedName = request.ga_approved_by_name || request.ga_approved_name;
+                        if (specifiedName) {
+                          approverNameStr = `GA Team oleh ${specifiedName}`;
+                        } else if (approverNameStr.startsWith("GA Team oleh ")) {
+                          // Already formatted
+                        } else if (app.notes && app.notes.includes("oleh ")) {
+                          const extracted = app.notes.split("oleh ")[1];
+                          approverNameStr = `GA Team oleh ${extracted}`;
+                        } else {
+                          approverNameStr = "GA Team (Backup Account)";
+                        }
+                      }
+
                       return (
                         <div key={app.id || idx} className="relative">
                           <div className={`absolute -left-[23px] top-0 w-3.5 h-3.5 rounded-full border-2 border-white flex items-center justify-center ${
@@ -1184,7 +1212,7 @@ export function RequestDetailModal({
                           <div>
                             <div className="flex items-center justify-between">
                               <span className="text-[11.5px] font-bold text-slate-700">
-                                {getApprovalRoleLabel(app.role)}
+                                {roleTitle}
                               </span>
                               <span className={`text-[9px] font-bold uppercase px-1 py-0.2 rounded ${
                                 isApproved ? "text-green-700 bg-green-50" : "text-red-700 bg-red-50"
@@ -1192,8 +1220,8 @@ export function RequestDetailModal({
                                 {app.status === 'approved' ? 'Disetujui' : app.status === 'rejected' ? 'Ditolak' : app.status}
                               </span>
                             </div>
-                            <div className="text-[10px] text-slate-400 mt-0.5">
-                              Oleh: {app.approver?.name || "System"}
+                            <div className="text-[10.5px] text-slate-500 font-medium mt-0.5">
+                              Oleh: <span className="font-bold text-slate-800">{approverNameStr}</span>
                             </div>
                             {app.notes && (
                               <div className="mt-1 text-[11px] text-slate-600 bg-white p-1.5 border border-slate-100 rounded italic">
