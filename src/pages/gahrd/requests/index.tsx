@@ -4,7 +4,7 @@ import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { requestService, mapRequestFromBackend } from "@/services/modules/requestService";
 import { driverService } from "@/services/modules/driverService";
 import { vehicleService } from "@/services/modules/vehicleService";
-import { assignmentService } from "@/services/modules/assignmentService";
+import { userService } from "@/services/modules/userService";
 import { useAuthContext } from "@/auth/authContext";
 import { RequestDetailModal } from "@/components/ui/RequestDetailModal";
 import { apiClient } from "@/services/api/api";
@@ -159,6 +159,12 @@ export default function GAHRDRequestsPage() {
   const [approvalNotes, setApprovalNotes] = useState("Disetujui oleh GA Koordinator");
   const [selectedApproverName, setSelectedApproverName] = useState("Pak Agus");
   const [customApproverName, setCustomApproverName] = useState("");
+  const [gaStaffList, setGaStaffList] = useState<string[]>([
+    "Pak Agus",
+    "Melodi Bella Astria",
+    "Tim GA Operasional",
+    "Staff GA Standby"
+  ]);
 
   const isEdit = !!(selectedRequest && (
     selectedRequest.driverName !== "Not Assigned" ||
@@ -178,10 +184,11 @@ export default function GAHRDRequestsPage() {
     setError(null);
     try {
       requestService.clearCache();
-      const [reqRes, driverRes, vehicleRes] = await Promise.all([
+      const [reqRes, driverRes, vehicleRes, userRes] = await Promise.all([
         requestService.getAll({ per_page: 100 }),
         driverService.getAll(),
         vehicleService.getAll({ per_page: 1000 }),
+        userService.getAll({ per_page: 250 }).catch(() => ({ data: [] })),
       ]);
 
       setRequests(reqRes.data || []);
@@ -195,6 +202,26 @@ export default function GAHRDRequestsPage() {
       setDrivers(mappedDrivers);
 
       setVehicles(vehicleRes.data || []);
+
+      if (Array.isArray(userRes.data)) {
+        const fetchedGaNames = userRes.data
+          .filter((u: any) => 
+            u.roleName === "GA" || 
+            u.roleName === "Approver" || 
+            u.department === "HRD & GA" || 
+            u.isDepartmentHead
+          )
+          .map((u: any) => u.fullName)
+          .filter((name: string) => 
+            name && 
+            !name.toLowerCase().includes("super admin") && 
+            !name.toLowerCase().includes("gateam")
+          );
+
+        const presets = ["Pak Agus", "Melodi Bella Astria", "Tim GA Operasional", "Staff GA Standby"];
+        const mergedUnique = Array.from(new Set([...presets, ...fetchedGaNames]));
+        setGaStaffList(mergedUnique);
+      }
     } catch (err: any) {
       console.error(err);
       setError("Gagal memuat data dari server.");
@@ -2539,10 +2566,11 @@ export default function GAHRDRequestsPage() {
                       onChange={(e) => setSelectedApproverName(e.target.value)}
                       className="w-full px-3 py-2 border border-slate-300 rounded-xl text-[12.5px] font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
                     >
-                      <option value="Pak Agus">Pak Agus (GA Staff / Supervisor)</option>
-                      <option value="Melodi Bella Astria (GA Head)">Melodi Bella Astria (GA Head - Atas Nama)</option>
-                      <option value="Tim GA Operasional">Tim GA Operasional</option>
-                      <option value="Staff GA Standby">Staff GA Standby</option>
+                      {gaStaffList.map((name) => (
+                        <option key={name} value={name}>
+                          {name} {name.includes("Melodi") ? "(GA Head)" : (name.includes("Agus") ? "(GA Supervisor)" : "")}
+                        </option>
+                      ))}
                       <option value="Lainnya (Ketik Manual)">+ Ketik Nama Lain secara Manual...</option>
                     </select>
                   </div>
