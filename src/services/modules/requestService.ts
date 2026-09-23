@@ -210,6 +210,9 @@ export function mapRequestFromBackend(r: any): FleetRequest {
     operational_trips: r.operational_trips || [],
     ga_approved_by_name: r.ga_approved_by_name || r.ga_approved_name || null,
     ga_approval_source: r.ga_approval_source || (r.role === 'ga_team' ? 'ga_team' : 'primary'),
+    start_km: r.start_km ?? r.operational_trip?.start_km ?? (Array.isArray(r.operational_trips) && r.operational_trips[0]?.start_km) ?? (Array.isArray(r.itineraries) && r.itineraries[0]?.start_km) ?? null,
+    end_km: r.end_km ?? r.operational_trip?.end_km ?? (Array.isArray(r.operational_trips) && r.operational_trips[0]?.end_km) ?? (Array.isArray(r.itineraries) && r.itineraries[r.itineraries.length - 1]?.end_km) ?? null,
+    total_km: r.total_km ?? r.operational_trip?.total_km ?? (Array.isArray(r.operational_trips) && r.operational_trips[0]?.total_km) ?? null,
     ga_approval_display_text: r.ga_approval_display_text || (
       r.ga_approval_source === 'ga_team' || r.role === 'ga_team'
         ? `Disetujui oleh GA Team oleh ${r.ga_approved_by_name || r.ga_approved_name || 'Tim GA Operasional'}`

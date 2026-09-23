@@ -1,106 +1,42 @@
-// src/utils/exportHelper.ts
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 /**
- * EXPORT HIGH-QUALITY NATIVE EXCEL (.xls/.xlsx) WITH NEAT NAVY BLUE HEADERS, CELL BORDERS, AND COLORED BADGES
- * Matches corporate spreadsheet design (Navy Blue Header #1E3A8A, White Bold Text, Status & Priority Colors).
+ * EXPORT HIGH-QUALITY NATIVE EXCEL (.xlsx) USING SHEETJS
+ * Generates genuine native Excel workbooks with separate columns and auto-calculated column widths.
  */
-export function exportToExcel(filename: string, headers: string[], rows: (string | number | boolean | null | undefined)[][]) {
-  const clean = (val: any) => (val === null || val === undefined ? "" : String(val));
+export function exportToExcel(
+  filename: string,
+  headers: string[],
+  rows: (string | number | boolean | null | undefined)[][],
+  sheetName: string = "Riwayat Operasional"
+) {
+  const cleanData = [
+    headers,
+    ...rows.map(row => row.map(cell => (cell === null || cell === undefined ? "" : cell)))
+  ];
 
-  const tableHeader = headers
-    .map(h => `<th style="background-color:#1e3a8a; color:#ffffff; font-weight:bold; text-align:center; padding:10px 14px; border:1px solid #0f172a; font-size:11pt; vertical-align:middle;">${h}</th>`)
-    .join("");
+  const ws = XLSX.utils.aoa_to_sheet(cleanData);
 
-  const tableRows = rows
-    .map(row => {
-      const cells = row.map((cell, idx) => {
-        const val = clean(cell);
-        const headerName = (headers[idx] || "").toLowerCase();
+  // Auto-calculate column widths
+  const colWidths = headers.map((h, colIdx) => {
+    let maxLen = String(h || "").length;
+    for (const r of rows) {
+      const cellVal = r[colIdx] !== null && r[colIdx] !== undefined ? String(r[colIdx]) : "";
+      if (cellVal.length > maxLen) {
+        maxLen = cellVal.length;
+      }
+    }
+    return { wch: Math.min(Math.max(maxLen + 3, 12), 50) };
+  });
+  ws["!cols"] = colWidths;
 
-        let cellStyle = "border:1px solid #cbd5e1; padding:8px 12px; font-size:10pt; vertical-align:middle;";
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
-        if (headerName.includes("id request") || idx === 0) {
-          cellStyle += " text-align:center; font-weight:bold; color:#1e3a8a;";
-        } else if (headerName.includes("status")) {
-          const upper = val.toUpperCase();
-          if (upper.includes("APPROV")) {
-            cellStyle += " background-color:#dcfce7; color:#15803d; font-weight:bold; text-align:center;";
-          } else if (upper.includes("PEND")) {
-            cellStyle += " background-color:#fef3c7; color:#b45309; font-weight:bold; text-align:center;";
-          } else if (upper.includes("CANCEL") || upper.includes("REJECT")) {
-            cellStyle += " background-color:#fee2e2; color:#991b1b; font-weight:bold; text-align:center;";
-          } else {
-            cellStyle += " text-align:center;";
-          }
-        } else if (headerName.includes("prior")) {
-          const upper = val.toUpperCase();
-          if (upper.includes("HIGH") || upper.includes("URGENT") || upper.includes("CRITIC")) {
-            cellStyle += " background-color:#fee2e2; color:#991b1b; font-weight:bold; text-align:center;";
-          } else if (upper.includes("NORM")) {
-            cellStyle += " background-color:#e0f2fe; color:#0369a1; font-weight:bold; text-align:center;";
-          } else {
-            cellStyle += " background-color:#f1f5f9; color:#475569; font-weight:bold; text-align:center;";
-          }
-        } else if (headerName.includes("jadwal") || headerName.includes("date")) {
-          cellStyle += " text-align:center;";
-        } else {
-          cellStyle += " text-align:left; color:#0f172a;";
-        }
-
-        return `<td style="${cellStyle}">${val}</td>`;
-      }).join("");
-
-      return `<tr>${cells}</tr>`;
-    })
-    .join("");
-
-  const excelTemplate = `
-    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-    <head>
-      <meta charset="utf-8" />
-      <!--[if gte mso 9]>
-      <xml>
-        <x:ExcelWorkbook>
-          <x:ExcelWorksheets>
-            <x:ExcelWorksheet>
-              <x:Name>Laporan OVMS</x:Name>
-              <x:WorksheetOptions>
-                <x:DisplayGridlines/>
-              </x:WorksheetOptions>
-            </x:ExcelWorksheet>
-          </x:ExcelWorksheets>
-        </x:ExcelWorkbook>
-      </xml>
-      <![endif]-->
-      <style>
-        table { border-collapse: collapse; width: 100%; font-family: 'Segoe UI', Arial, sans-serif; }
-      </style>
-    </head>
-    <body>
-      <table>
-        <thead>
-          <tr>${tableHeader}</tr>
-        </thead>
-        <tbody>
-          ${tableRows}
-        </tbody>
-      </table>
-    </body>
-    </html>
-  `;
-
-  const blob = new Blob(["\uFEFF" + excelTemplate], { type: "application/vnd.ms-excel;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  const cleanName = filename.endsWith(".xls") || filename.endsWith(".xlsx") ? filename : `${filename}.xls`;
-  link.setAttribute("download", cleanName);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  const cleanName = filename.endsWith(".xlsx") ? filename : `${filename.replace(/\.(csv|xls)$/i, "")}.xlsx`;
+  XLSX.writeFile(wb, cleanName);
 }
 
 /**
