@@ -130,55 +130,109 @@ export function exportToCSV(filename: string, headers: string[], rows: (string |
 }
 
 /**
- * DIRECT AUTOMATIC PDF FILE DOWNLOAD (1-Click)
- * Generates an ultra-neat, publication-grade official PDF document directly into the browser Downloads folder.
+ * DIRECT AUTOMATIC PDF FILE DOWNLOAD FOR VEHICLE REQUEST (1-Click)
+ * Generates an ultra-neat, publication-grade official PDF document with QR Code & Passenger Details.
  */
-export function downloadItemPDF(title: string, item: Record<string, any>) {
+export async function exportRequestPDF(request: any) {
   try {
     const doc = new jsPDF({
       orientation: "portrait",
       unit: "mm",
-      format: "a4"
+      format: "a4",
     });
 
-    // Top Header Banner
-    doc.setFillColor(30, 58, 138); // #1e3a8a
+    // Top Header Banner (Navy Blue #1E3A8A)
+    doc.setFillColor(30, 58, 138);
     doc.rect(0, 0, 210, 26, "F");
 
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(15);
     doc.setFont("helvetica", "bold");
-    doc.text("PT. WIDATRA BHAKTI", 14, 12);
+    doc.text("PT. WIDATRA BHAKTI", 14, 11);
 
     doc.setFontSize(8.5);
     doc.setFont("helvetica", "normal");
-    doc.text("OPERATIONAL VEHICLE MANAGEMENT SYSTEM (OVMS)", 14, 18);
+    doc.text("OPERATIONAL VEHICLE MANAGEMENT SYSTEM (OVMS)", 14, 17);
 
     doc.setFontSize(8);
-    doc.text("Dokumen Resmi Penugasan & Keputusan Operasional", 14, 22);
+    doc.text("Dokumen Resmi Penugasan & Keputusan Perjalanan Operasional", 14, 22);
 
-    // Decorative Accent Line
-    doc.setFillColor(234, 179, 8); // Gold accent
+    // Decorative Accent Line (Gold Accent)
+    doc.setFillColor(234, 179, 8);
     doc.rect(0, 26, 210, 1.5, "F");
 
-    // Document Title Box
-    doc.setTextColor(15, 23, 42);
-    doc.setFontSize(13);
-    doc.setFont("helvetica", "bold");
-    doc.text(title.toUpperCase(), 14, 37);
+    // Document Title Box (Clean without underscores)
+    const reqIdStr = `REQ-${request.id}`;
+    const docTitle = `SURAT TUGAS PERJALANAN OPERASIONAL (#${reqIdStr})`;
 
-    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text(docTitle, 14, 36);
+
+    doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(100, 116, 139);
-    doc.text(`Waktu Cetak: ${new Date().toLocaleString("id-ID")} WIB  |  Status: VERIFIED & OFFICIAL`, 14, 43);
+    doc.text(`Waktu Cetak: ${new Date().toLocaleString("id-ID")} WIB  |  Status: VERIFIED & OFFICIAL`, 14, 41);
 
-    // Table Contents Format
-    const tableData = Object.entries(item)
-      .filter(([_, val]) => val !== null && val !== undefined && val !== "")
-      .map(([key, val]) => [key.replace(/_/g, " ").toUpperCase(), String(val)]);
+    // Format Passenger List
+    let passengerStr = "";
+    if (Array.isArray(request.passengers) && request.passengers.length > 0) {
+      const firstPicIdx = request.passengers.findIndex((p: any) => p.is_pic === true || p.is_pic === 1 || p.is_pic === "1");
+      const activePicIdx = firstPicIdx !== -1 ? firstPicIdx : 0;
+
+      passengerStr = request.passengers
+        .map((p: any, i: number) => {
+          const isPic = i === activePicIdx;
+          const picBadge = isPic ? " (PIC Penumpang)" : "";
+          const dept = p.department_name || p.department_id || request.department || "";
+          return `${i + 1}. ${p.name}${dept ? ` - ${dept}` : ""}${picBadge}`;
+        })
+        .join("\n");
+    } else {
+      passengerStr = `1. ${request.employee || "Pemohon"} - ${request.department || "General"} (PIC Penumpang)`;
+    }
+
+    // Format Approvals List
+    let approvalText = "";
+    if (Array.isArray(request.approvals) && request.approvals.length > 0) {
+      approvalText = request.approvals
+        .map((app: any) => {
+          const isGaTeamStep = app.role === "ga_team" || app.role === "GA Team Backup" || (app.role === "hrd_head" && request.ga_approval_source === "ga_team");
+          const roleName = isGaTeamStep ? "GA Team Backup" : (app.role === "dept_head" ? "Dep Head" : "GA Head");
+          let approverName = app.approver?.name || "System";
+          if (isGaTeamStep) {
+            const spec = request.ga_approved_by_name || request.ga_approved_name;
+            approverName = spec ? `GA Team oleh ${spec}` : "GA Team Backup";
+          }
+          return `${roleName}: ${app.status === "approved" ? "Disetujui" : app.status} (${approverName})`;
+        })
+        .join("\n");
+    } else {
+      approvalText = request.ga_approval_display_text || `Disetujui oleh GA Coordinator (${request.ga_approved_by_name || "Melodi Bella Astria"})`;
+    }
+
+    const rawSt = String(request.rawStatus || request.status || "APPROVED").toLowerCase();
+    const idnStatus = rawSt === "completed" ? "SELESAI" : (rawSt === "on_going" ? "SEDANG PERJALANAN" : (rawSt === "rejected" ? "DITOLAK" : (rawSt === "cancelled" ? "DIBATALKAN" : "DISETUJUI / TERJADWAL")));
+
+    const tableData: [string, string][] = [
+      ["ID PERMOHONAN", `#${reqIdStr}`],
+      ["STATUS PERJALANAN", idnStatus],
+      ["NAMA PEMOHON", `${request.employee || "-"} (${request.department || "-"})`],
+      ["NO. HP / WA PEMOHON", request.userPhone || request.email || "-"],
+      ["TUJUAN PERJALANAN", request.destination || "-"],
+      ["JADWAL KEBERANGKATAN", `${request.date || "-"} ${request.time || "09:00"}`],
+      ["TIPE PERMOHONAN", Array.isArray(request.itineraries) && request.itineraries.length > 0 ? `Multi-Day Itinerary (${request.itineraries.length} Hari)` : (request.is_external ? "Pihak Ketiga (Sewa Eksternal)" : "Armada Internal")],
+      ["DRIVER / PENGEMUDI", request.is_external ? (request.external_driver_name || "Sewa Eksternal") : (request.driverName || "Driver Internal")],
+      ["KENDARAAN / ARMADA", request.is_external ? (request.external_provider ? `Sewa (${request.external_provider})` : "Sewa Eksternal") : (request.vehicleModel || "Armada Internal")],
+      ["KEPERLUAN PERJALANAN", request.purpose || "-"],
+      [`DAFTAR PENUMPANG (${request.passengerCount || (request.passengers?.length || 1)} ORANG)`, passengerStr],
+      ["CATATAN / GA NOTES", request.notes || "-"],
+      ["RIWAYAT PERSETUJUAN", approvalText],
+    ];
 
     autoTable(doc, {
-      startY: 48,
+      startY: 46,
       head: [["PARAMETER DOKUMEN", "DETAIL INFORMASI & SPESIFIKASI"]],
       body: tableData,
       theme: "grid",
@@ -186,55 +240,172 @@ export function downloadItemPDF(title: string, item: Record<string, any>) {
         fillColor: [30, 58, 138],
         textColor: [255, 255, 255],
         fontStyle: "bold",
-        fontSize: 9.5,
+        fontSize: 9,
         halign: "left",
-        cellPadding: { top: 4, bottom: 4, left: 6, right: 6 }
+        cellPadding: { top: 3.5, bottom: 3.5, left: 5, right: 5 },
       },
       bodyStyles: {
-        fontSize: 9,
+        fontSize: 8.5,
         textColor: [15, 23, 42],
         lineColor: [226, 232, 240],
         lineWidth: 0.3,
-        cellPadding: { top: 3.5, bottom: 3.5, left: 6, right: 6 }
+        cellPadding: { top: 3, bottom: 3, left: 5, right: 5 },
       },
       columnStyles: {
-        0: { fontStyle: "bold", cellWidth: 65, fillColor: [248, 250, 252], textColor: [71, 85, 105] },
-        1: { cellWidth: "auto" }
+        0: { fontStyle: "bold", cellWidth: 55, fillColor: [248, 250, 252], textColor: [71, 85, 105] },
+        1: { cellWidth: "auto" },
       },
-      margin: { left: 14, right: 14 }
+      margin: { left: 14, right: 14 },
     });
 
-    const finalY = (doc as any).lastAutoTable?.finalY || 160;
+    let finalY = (doc as any).lastAutoTable?.finalY || 180;
 
-    // Official Verification Block & Signature Line
-    if (finalY + 35 < 280) {
+    // QR Code Section
+    const qrToken = request.qr_code_token || `REQ-${request.id}`;
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${qrToken}`)}`;
+
+    try {
+      const qrDataUrl = await new Promise<string>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } else {
+            reject(new Error("Canvas context null"));
+          }
+        };
+        img.onerror = (e) => reject(e);
+        img.src = qrApiUrl;
+      });
+
+      if (finalY + 36 > 275) {
+        doc.addPage();
+        finalY = 15;
+      }
+
+      // Draw QR Card Box
+      doc.setFillColor(248, 250, 252);
       doc.setDrawColor(226, 232, 240);
-      doc.setLineWidth(0.3);
-      doc.line(14, finalY + 8, 196, finalY + 8);
+      doc.roundedRect(14, finalY + 4, 182, 32, 3, 3, "FD");
+
+      doc.addImage(qrDataUrl, "PNG", 18, finalY + 7, 26, 26);
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30, 58, 138);
+      doc.text("QR CODE TIKET VERIFIKASI SECURITY POS GERBANG", 48, finalY + 13);
 
       doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(15, 23, 42);
+      doc.text(`Token Verifikasi: ${qrToken}`, 48, finalY + 18);
+
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 116, 139);
+      doc.text("Tunjukkan QR Code ini kepada Petugas Pos Security saat Keluar / Masuk Gerbang.", 48, finalY + 23);
+
+      finalY += 38;
+    } catch (e) {
+      if (finalY + 20 > 275) {
+        doc.addPage();
+        finalY = 15;
+      }
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30, 58, 138);
+      doc.text(`QR TOKEN VERIFIKASI SECURITY: ${qrToken}`, 14, finalY + 10);
+      finalY += 15;
+    }
+
+    // Official Verification Line
+    if (finalY + 22 < 280) {
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.3);
+      doc.line(14, finalY + 4, 196, finalY + 4);
+
+      doc.setFontSize(7.5);
       doc.setTextColor(100, 116, 139);
       doc.setFont("helvetica", "normal");
-      doc.text("Disetujui Oleh System OVMS", 14, finalY + 14);
-      doc.text("PT Widatra Bhakti Operational Command", 14, finalY + 18);
+      doc.text("Disetujui Oleh System OVMS", 14, finalY + 9);
+      doc.text("PT Widatra Bhakti Operational Command", 14, finalY + 13);
 
-      doc.text("Tanda Tangan Digital / QR Verified", 140, finalY + 14);
-      doc.text("PT. WIDATRA BHAKTI AUTHORIZED", 140, finalY + 18);
+      doc.text("Tanda Tangan Digital / QR Verified", 140, finalY + 9);
+      doc.text("PT. WIDATRA BHAKTI AUTHORIZED", 140, finalY + 13);
     }
 
     // Official Footer Notice
-    doc.setFontSize(7.5);
+    doc.setFontSize(7);
     doc.setTextColor(148, 163, 184);
     doc.text(
-      "Dokumen resmi ini diterbitkan secara sah dan otomatis oleh Sistem OVMS PT Widarta Bhakti. Hak Cipta Dilindungi.",
+      "Dokumen resmi ini diterbitkan secara sah dan otomatis oleh Sistem OVMS PT Widatra Bhakti. Hak Cipta Dilindungi.",
       14,
       287
     );
 
-    // DIRECT AUTOMATIC DOWNLOAD TO BROWSER DOWNLOADS FOLDER (1-CLICK)
-    const cleanFilename = (title.endsWith(".pdf") ? title : `${title}.pdf`).replace(/[^a-zA-Z0-9_.-]/g, "_");
+    const cleanFilename = `Surat_Tugas_REQ_${request.id}.pdf`;
     doc.save(cleanFilename);
   } catch (err) {
-    console.error("Gagal mendownload PDF langsung:", err);
+    console.error("Gagal mendownload PDF permohonan:", err);
+    alert("Gagal mendownload PDF permohonan.");
   }
 }
+
+/**
+ * DIRECT AUTOMATIC PDF FILE DOWNLOAD (Legacy Helper fallback)
+ */
+export function downloadItemPDF(title: string, item: Record<string, any>) {
+  if (item && item.id && item.employee) {
+    exportRequestPDF(item);
+    return;
+  }
+  // Generic fallback if passed plain dict
+  try {
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    doc.setFillColor(30, 58, 138);
+    doc.rect(0, 0, 210, 26, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(15);
+    doc.setFont("helvetica", "bold");
+    doc.text("PT. WIDATRA BHAKTI", 14, 12);
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "normal");
+    doc.text("OPERATIONAL VEHICLE MANAGEMENT SYSTEM (OVMS)", 14, 18);
+
+    doc.setFillColor(234, 179, 8);
+    doc.rect(0, 26, 210, 1.5, "F");
+
+    const cleanTitle = title.replace(/_/g, " ").replace(/\.pdf$/i, "");
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text(cleanTitle.toUpperCase(), 14, 37);
+
+    const tableData = Object.entries(item)
+      .filter(([_, val]) => val !== null && val !== undefined && val !== "")
+      .map(([key, val]) => [key.replace(/_/g, " ").toUpperCase(), String(val)]);
+
+    autoTable(doc, {
+      startY: 44,
+      head: [["PARAMETER DOKUMEN", "DETAIL INFORMASI & SPESIFIKASI"]],
+      body: tableData,
+      theme: "grid",
+      headStyles: { fillColor: [30, 58, 138], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
+      bodyStyles: { fontSize: 8.5, textColor: [15, 23, 42] },
+      columnStyles: { 0: { fontStyle: "bold", cellWidth: 60, fillColor: [248, 250, 252] } },
+      margin: { left: 14, right: 14 },
+    });
+
+    const filename = `${cleanTitle.replace(/[^a-zA-Z0-9-]/g, "_")}.pdf`;
+    doc.save(filename);
+  } catch (e) {
+    console.error(e);
+  }
+}
+

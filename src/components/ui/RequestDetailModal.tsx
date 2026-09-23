@@ -3,7 +3,7 @@ import { Icon } from "./Icon";
 import { PriorityBadge } from "../layout/PriorityBadge";
 import type { FleetRequest } from "../../types";
 import { useAuthContext } from "@/auth/authContext";
-import { downloadItemPDF } from "@/utils/exportHelper";
+import { exportRequestPDF } from "@/utils/exportHelper";
 import { requestService } from "@/services/modules/requestService";
 
 interface RequestDetailModalProps {
@@ -127,66 +127,119 @@ export function RequestDetailModal({
     const doc = iframe.contentWindow?.document || iframe.contentDocument;
     if (!doc) return;
 
+    const rawSt = String(request.rawStatus || request.status || "APPROVED").toLowerCase();
+    const idnStatus = rawSt === "completed" ? "SELESAI" : (rawSt === "on_going" ? "SEDANG PERJALANAN" : (rawSt === "rejected" ? "DITOLAK" : (rawSt === "cancelled" ? "DIBATALKAN" : "DISETUJUI / TERJADWAL")));
+
+    const passengerLines = (Array.isArray(request.passengers) && request.passengers.length > 0)
+      ? request.passengers.map((p: any, i: number) => {
+          const isPic = (p.is_pic === true || p.is_pic === 1 || p.is_pic === '1' || i === 0);
+          const picBadge = isPic ? " (PIC Penumpang)" : "";
+          const dept = p.department_name || p.department_id || request.department || "";
+          return `${i + 1}. ${esc(p.name)}${dept ? ` - ${esc(dept)}` : ""}${picBadge}`;
+        }).join("<br/>")
+      : `1. ${esc(request.employee || "Pemohon")} - ${esc(request.department || "General")} (PIC Penumpang)`;
+
+    const approvalLines = (Array.isArray(request.approvals) && request.approvals.length > 0)
+      ? request.approvals.map((app: any) => {
+          const isGaTeamStep = app.role === "ga_team" || app.role === "GA Team Backup" || (app.role === "hrd_head" && request.ga_approval_source === "ga_team");
+          const roleName = isGaTeamStep ? "GA Team Backup" : (app.role === "dept_head" ? "Dep Head" : "GA Head");
+          let approverName = app.approver?.name || "System";
+          if (isGaTeamStep) {
+            const spec = request.ga_approved_by_name || request.ga_approved_name;
+            approverName = spec ? `GA Team oleh ${spec}` : "GA Team Backup";
+          }
+          return `${esc(roleName)}: ${app.status === 'approved' ? 'Disetujui' : esc(app.status)} (${esc(approverName)})`;
+        }).join("<br/>")
+      : esc(request.ga_approval_display_text || `Disetujui oleh GA Coordinator (${request.ga_approved_by_name || "Melodi Bella Astria"})`);
+
+    const qrToken = request.qr_code_token || `REQ-${request.id}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${qrToken}`)}`;
+
     doc.open();
     doc.write(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Surat Tugas / Tiket Perjalanan #REQ-${esc(request.id)}</title>
+          <title>Surat Tugas Perjalanan Operasional #REQ-${esc(request.id)}</title>
           <style>
-            @page { size: A4; margin: 15mm; }
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #334155; }
-            .ticket { border: 2px dashed #94a3b8; padding: 25px; border-radius: 16px; max-width: 650px; margin: 0 auto; background: #fff; }
-            .header { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 16px; margin-bottom: 20px; }
-            .title { font-size: 18px; font-weight: 800; margin: 0; color: #1e3a8a; letter-spacing: 0.5px; }
-            .subtitle { font-size: 11px; color: #64748b; font-weight: bold; text-transform: uppercase; margin-top: 4px; }
-            .row { display: flex; margin-bottom: 10px; border-bottom: 1px solid #f8fafc; padding-bottom: 6px; }
-            .label { font-weight: bold; width: 180px; text-transform: uppercase; font-size: 11px; color: #64748b; letter-spacing: 0.5px; }
-            .value { font-size: 13px; color: #0f172a; font-weight: 600; }
-            .qr { text-align: center; margin-top: 20px; border-top: 2px dashed #e2e8f0; padding-top: 16px; }
-            .qr img { border: 1px solid #e2e8f0; padding: 6px; border-radius: 8px; }
+            @page { size: A4; margin: 12mm; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; margin: 0; padding: 15px; }
+            .document-banner { background: #1e3a8a; color: #ffffff; padding: 16px 20px; border-top-left-radius: 8px; border-top-right-radius: 8px; }
+            .company-name { font-size: 18px; font-weight: 800; margin: 0; letter-spacing: 0.5px; }
+            .system-name { font-size: 10px; font-weight: 600; margin-top: 2px; letter-spacing: 0.5px; text-transform: uppercase; opacity: 0.9; }
+            .doc-sub { font-size: 9px; margin-top: 2px; opacity: 0.8; }
+            .gold-bar { height: 4px; background: #eab308; }
+            .content-body { padding: 18px 20px; border: 1px solid #e2e8f0; border-top: none; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; background: #ffffff; }
+            .doc-header-title { font-size: 14px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+            .doc-meta { font-size: 10px; color: #64748b; margin-bottom: 16px; }
+            table.data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; }
+            table.data-table th { background: #1e3a8a; color: #ffffff; font-weight: 700; text-align: left; padding: 8px 12px; border: 1px solid #1e3a8a; }
+            table.data-table td { padding: 8px 12px; border: 1px solid #e2e8f0; vertical-align: top; }
+            table.data-table td.param-col { font-weight: 700; background: #f8fafc; color: #475569; width: 32%; }
+            table.data-table td.val-col { color: #0f172a; font-weight: 600; }
+            .qr-card { background: #f8fafc; border: 1px border-dashed #cbd5e1; border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 16px; margin-top: 15px; }
+            .qr-card img { border: 1px solid #e2e8f0; padding: 4px; background: #fff; border-radius: 8px; width: 95px; height: 95px; }
+            .qr-text { font-size: 11px; color: #334155; }
+            .qr-title { font-size: 12px; font-weight: 800; color: #1e3a8a; margin-bottom: 4px; }
+            .token-code { font-family: monospace; font-weight: 800; color: #0f172a; font-size: 11.5px; margin-bottom: 4px; }
+            .footer-sign { display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 20px; font-size: 9.5px; color: #64748b; }
           </style>
         </head>
         <body>
-          <div class="ticket">
-            <div class="header">
-              <h2 class="title">SURAT TUGAS LAYANAN KENDARAAN (OVMS)</h2>
-              <div class="subtitle">PT. WIDATRA BHAKTI</div>
-            </div>
-            <div class="row"><div class="label">ID Request</div><div class="value">#REQ-${esc(request.id)}</div></div>
-            <div class="row"><div class="label">Nama Pemohon</div><div class="value">${esc(request.employee)} (${esc(request.department)})</div></div>
-            <div class="row"><div class="label">Tujuan Perjalanan</div><div class="value">${esc(request.destination)}</div></div>
-            <div class="row"><div class="label">Jadwal Keberangkatan</div><div class="value">${esc(request.date)} ${esc(request.time || "09:00")}</div></div>
-            
-            ${Array.isArray(request.itineraries) && request.itineraries.length > 0 ? `
-              <div class="row"><div class="label">Tipe Request</div><div class="value" style="color: #1e3a8a; font-weight: bold;">MULTI-DAY ITINERARY (${request.itineraries.length} HARI)</div></div>
-              <div style="margin-top: 15px; margin-bottom: 15px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
-                <div style="font-weight: bold; font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">Rincian Penugasan Daily Itinerary:</div>
-                ${request.itineraries.map((it: any, idx: number) => `
-                  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 12px;">
-                    <div style="font-weight: bold; color: #1e3a8a;">Hari ${idx + 1} (${esc(it.date)}):</div>
-                    <div style="margin-top: 4px;">Sesi 1: ${esc(it.morning_time || "-")} - ${esc(it.morning_destination || "-")}</div>
-                    <div>Sesi 2: ${esc(it.afternoon_time || "-")} - ${esc(it.afternoon_destination || "-")}</div>
-                    <div style="margin-top: 4px; font-weight: bold; color: #334155;">Armada: ${esc(it.is_external ? `Pihak Ke-3 (${it.external_driver_name || "Sewa"})` : (it.driver_name ? `${it.driver_name} (${it.vehicle_name || ""})` : "Belum Ditugaskan"))}</div>
-                  </div>
-                `).join('')}
-              </div>
-            ` : `
-              <div class="row"><div class="label">Penyedia Armada</div><div class="value">${request.is_external ? "Pihak Ketiga (Sewa Eksternal)" : "Armada Internal"}</div></div>
-              ${!request.is_external ? `
-                <div class="row"><div class="label">Driver Internal</div><div class="value">${esc(request.driverName || "-")}</div></div>
-                <div class="row"><div class="label">Kendaraan Internal</div><div class="value">${esc(request.vehicleModel || "-")}</div></div>
-              ` : `
-                <div class="row"><div class="label">Estimasi Biaya Sewa</div><div class="value">Rp ${Number(request.third_party_cost || 0).toLocaleString('id-ID')}</div></div>
-              `}
-            `}
+          <div class="document-banner">
+            <h1 class="company-name">PT. WIDATRA BHAKTI</h1>
+            <div class="system-name">OPERATIONAL VEHICLE MANAGEMENT SYSTEM (OVMS)</div>
+            <div class="doc-sub">Dokumen Resmi Penugasan &amp; Keputusan Perjalanan Operasional</div>
+          </div>
+          <div class="gold-bar"></div>
+          <div class="content-body">
+            <div class="doc-header-title">SURAT TUGAS PERJALANAN OPERASIONAL (#REQ-${esc(request.id)})</div>
+            <div class="doc-meta">Waktu Cetak: ${new Date().toLocaleString("id-ID")} WIB &nbsp;|&nbsp; Status: VERIFIED &amp; OFFICIAL</div>
 
-            <div class="row"><div class="label">Tujuan / Keperluan</div><div class="value">${esc(request.purpose)}</div></div>
-            <div class="row"><div class="label">Jumlah Penumpang</div><div class="value">${esc(request.passengerCount)} Orang</div></div>
-            <div class="row"><div class="label">Estimasi Lama Perjalanan</div><div class="value">${esc(request.estimated_duration ? `${request.estimated_duration} Jam` : "-")}</div></div>
-            <div class="qr">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${request.qr_code_token || `REQ-${request.id}`}`)}" />
-              <p style="font-size: 10px; color: #94a3b8; margin-top: 6px; font-family: monospace; font-weight: bold;">${esc(request.qr_code_token || `REQ-${request.id}`)}</p>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>PARAMETER DOKUMEN</th>
+                  <th>DETAIL INFORMASI &amp; SPESIFIKASI</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td class="param-col">ID PERMOHONAN</td><td class="val-col">#REQ-${esc(request.id)}</td></tr>
+                <tr><td class="param-col">STATUS PERJALANAN</td><td class="val-col">${esc(idnStatus)}</td></tr>
+                <tr><td class="param-col">NAMA PEMOHON</td><td class="val-col">${esc(request.employee)} (${esc(request.department)})</td></tr>
+                <tr><td class="param-col">NO. HP / WA PEMOHON</td><td class="val-col">${esc(request.userPhone || request.email || "-")}</td></tr>
+                <tr><td class="param-col">TUJUAN PERJALANAN</td><td class="val-col">${esc(request.destination)}</td></tr>
+                <tr><td class="param-col">JADWAL KEBERANGKATAN</td><td class="val-col">${esc(request.date)} ${esc(request.time || "09:00")}</td></tr>
+                <tr><td class="param-col">TIPE PERMOHONAN</td><td class="val-col">${Array.isArray(request.itineraries) && request.itineraries.length > 0 ? `Multi-Day Itinerary (${request.itineraries.length} Hari)` : (request.is_external ? "Pihak Ketiga (Sewa Eksternal)" : "Armada Internal")}</td></tr>
+                <tr><td class="param-col">DRIVER / PENGEMUDI</td><td class="val-col">${request.is_external ? esc(request.external_driver_name || "Sewa Eksternal") : esc(request.driverName || "Driver Internal")}</td></tr>
+                <tr><td class="param-col">KENDARAAN / ARMADA</td><td class="val-col">${request.is_external ? (request.external_provider ? `Sewa (${esc(request.external_provider)})` : "Sewa Eksternal") : esc(request.vehicleModel || "Armada Internal")}</td></tr>
+                <tr><td class="param-col">KEPERLUAN PERJALANAN</td><td class="val-col">${esc(request.purpose || "-")}</td></tr>
+                <tr><td class="param-col">DAFTAR PENUMPANG (${esc(request.passengerCount || 1)} ORANG)</td><td class="val-col">${passengerLines}</td></tr>
+                <tr><td class="param-col">CATATAN / GA NOTES</td><td class="val-col">${esc(request.notes || "-")}</td></tr>
+                <tr><td class="param-col">RIWAYAT PERSETUJUAN</td><td class="val-col">${approvalLines}</td></tr>
+              </tbody>
+            </table>
+
+            <div class="qr-card">
+              <div class="qr-code">
+                <img src="${qrUrl}" alt="QR Code Validasi" />
+              </div>
+              <div class="qr-text">
+                <div class="qr-title">QR CODE TIKET VERIFIKASI SECURITY POS GERBANG</div>
+                <div class="token-code">Token Verifikasi: ${esc(qrToken)}</div>
+                <div>Tunjukkan QR Code ini kepada Petugas Pos Security saat Keluar / Masuk Gerbang.</div>
+              </div>
+            </div>
+
+            <div class="footer-sign">
+              <div>
+                <strong>Disetujui Oleh System OVMS</strong><br/>
+                PT Widatra Bhakti Operational Command
+              </div>
+              <div style="text-align: right;">
+                <strong>Tanda Tangan Digital / QR Verified</strong><br/>
+                PT. WIDATRA BHAKTI AUTHORIZED
+              </div>
             </div>
           </div>
         </body>
@@ -274,23 +327,8 @@ export function RequestDetailModal({
           <div className="flex items-center justify-end gap-1.5 shrink-0 self-end sm:self-auto">
             {/* Direct PDF Download Button */}
             <button
-              onClick={() => {
-                const rawSt = String(request.rawStatus || request.status || "APPROVED").toLowerCase();
-                const idnStatus = rawSt === "completed" ? "SELESAI" : rawSt === "on_going" ? "DALAM PERJALANAN" : rawSt === "rejected" ? "DITOLAK" : rawSt === "pending" ? "MENUNGGU" : "DISETUJUI";
-                downloadItemPDF(`Surat_Tugas_REQ_${request.id}`, {
-                  "ID Permohonan": `REQ-${request.id}`,
-                  "Nama Pemohon": `${request.employee || ''} (${request.department || ''})`,
-                  "Tujuan Perjalanan": request.destination || '',
-                  "Jadwal Keberangkatan": `${request.date || ''} ${request.time || '09:00'}`,
-                  "Tipe Permohonan": Array.isArray(request.itineraries) && request.itineraries.length > 0 ? `Multi-Day (${request.itineraries.length} Hari)` : (request.is_external ? "Sewa Pihak Ke-3" : "Armada Internal"),
-                  "Driver / Pengemudi": request.is_external ? (request.external_driver_name || "Sewa Eksternal") : (request.driverName || "Internal"),
-                  "Kendaraan / Armada": request.is_external ? (request.external_provider || "Eksternal") : (request.vehicleModel || "Internal"),
-                  "Jumlah Penumpang": `${request.passengerCount || 1} Orang`,
-                  "Keperluan Perjalanan": request.purpose || "-",
-                  "Status Pengajuan": idnStatus
-                });
-              }}
-              title="Unduh PDF Langsung (1-Sentuh)"
+              onClick={() => exportRequestPDF(request)}
+              title="Unduh PDF Surat Tugas (1-Sentuh)"
               className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors text-[11px] font-bold cursor-pointer shadow-2xs"
             >
               <Icon name="picture_as_pdf" className="text-[15px] text-red-600" />
