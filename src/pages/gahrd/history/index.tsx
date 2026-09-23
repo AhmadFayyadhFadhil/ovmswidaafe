@@ -35,9 +35,93 @@ function getInitials(name: string) {
   return parts.map(n => n[0]).join('').substring(0, 2).toUpperCase();
 }
 
+type DatePeriod = 'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'LAST_MONTH' | 'CUSTOM';
+
+function getRequestDate(req: any): Date | null {
+  const raw = req.start_time || req.startTime || req.created_at;
+  if (raw) {
+    const parsed = new Date(typeof raw === 'string' ? raw.replace(' ', 'T') : raw);
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+  if (req.date) {
+    const months: Record<string, number> = {
+      januari: 0, jan: 0,
+      februari: 1, feb: 1,
+      maret: 2, mar: 2,
+      april: 3, apr: 3,
+      mei: 4, may: 4,
+      juni: 5, jun: 5,
+      juli: 6, jul: 6,
+      agustus: 7, aug: 7,
+      september: 8, sep: 8,
+      oktober: 9, okt: 9, oct: 9,
+      november: 10, nov: 10,
+      desember: 11, des: 11, dec: 11,
+    };
+    const parts = String(req.date).trim().split(/\s+/);
+    if (parts.length >= 3) {
+      const day = parseInt(parts[0], 10);
+      const mStr = parts[1].toLowerCase();
+      const month = months[mStr] ?? -1;
+      const year = parseInt(parts[2], 10);
+      if (!isNaN(day) && month !== -1 && !isNaN(year)) {
+        return new Date(year, month, day);
+      }
+    }
+  }
+  return null;
+}
+
+function matchesDatePeriod(req: any, period: DatePeriod, customStart?: string, customEnd?: string): boolean {
+  if (period === 'ALL') return true;
+
+  const reqDate = getRequestDate(req);
+  if (!reqDate) return true;
+
+  const now = new Date();
+
+  if (period === 'TODAY') {
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    return reqDate >= startOfToday && reqDate <= endOfToday;
+  }
+
+  if (period === 'THIS_WEEK') {
+    const dayOfWeek = now.getDay();
+    const distanceToMonday = (dayOfWeek + 6) % 7;
+    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - distanceToMonday, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + 6, 23, 59, 59, 999);
+    return reqDate >= startOfWeek && reqDate <= endOfWeek;
+  }
+
+  if (period === 'THIS_MONTH') {
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    return reqDate >= startOfMonth && reqDate <= endOfMonth;
+  }
+
+  if (period === 'LAST_MONTH') {
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    return reqDate >= startOfLastMonth && reqDate <= endOfLastMonth;
+  }
+
+  if (period === 'CUSTOM') {
+    if (!customStart && !customEnd) return true;
+    const start = customStart ? new Date(`${customStart}T00:00:00`) : new Date(0);
+    const end = customEnd ? new Date(`${customEnd}T23:59:59.999`) : new Date(8640000000000000);
+    return reqDate >= start && reqDate <= end;
+  }
+
+  return true;
+}
+
 export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [datePeriod, setDatePeriod] = useState<DatePeriod>('ALL');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [rawRequests, setRawRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -68,13 +152,15 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
     };
   }, []);
 
-  const completedCount = rawRequests.filter(r => r.status === 'COMPLETED' || r.rawStatus === 'completed').length;
-  const pendingCount   = rawRequests.filter(r => r.status === 'PENDING' || ['submitted', 'approved_department', 'waiting_driver', 'assigned_by_ga'].includes(r.rawStatus || '')).length;
-  const cancelledCount = rawRequests.filter(r => r.status === 'CANCELLED' || r.rawStatus === 'cancelled').length;
-  const rejectedCount  = rawRequests.filter(r => r.status === 'REJECTED' || r.rawStatus === 'rejected').length;
-  const totalCount     = rawRequests.length;
+  const dateFilteredRequests = rawRequests.filter(req => matchesDatePeriod(req, datePeriod, customStartDate, customEndDate));
 
-  const filtered = rawRequests.filter(req => {
+  const completedCount = dateFilteredRequests.filter(r => r.status === 'COMPLETED' || r.rawStatus === 'completed').length;
+  const pendingCount   = dateFilteredRequests.filter(r => r.status === 'PENDING' || ['submitted', 'approved_department', 'waiting_driver', 'assigned_by_ga'].includes(r.rawStatus || '')).length;
+  const cancelledCount = dateFilteredRequests.filter(r => r.status === 'CANCELLED' || r.rawStatus === 'cancelled').length;
+  const rejectedCount  = dateFilteredRequests.filter(r => r.status === 'REJECTED' || r.rawStatus === 'rejected').length;
+  const totalCount     = dateFilteredRequests.length;
+
+  const filtered = dateFilteredRequests.filter(req => {
     const s = search.toLowerCase().trim();
     const matchSearch =
       !s ||
@@ -183,8 +269,15 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
                   ];
                 });
 
+                let periodSuffix = "Semua_Waktu";
+                if (datePeriod === 'TODAY') periodSuffix = "Hari_Ini";
+                else if (datePeriod === 'THIS_WEEK') periodSuffix = "Minggu_Ini";
+                else if (datePeriod === 'THIS_MONTH') periodSuffix = "Bulan_Ini";
+                else if (datePeriod === 'LAST_MONTH') periodSuffix = "Bulan_Lalu";
+                else if (datePeriod === 'CUSTOM') periodSuffix = `Rentang_${customStartDate || 'Awal'}_sd_${customEndDate || 'Akhir'}`;
+
                 const dateStr = new Date().toISOString().slice(0, 10);
-                exportToExcel(`Riwayat_Operasional_Armada_GA_${dateStr}.xlsx`, headers, rows, "Riwayat Operasional");
+                exportToExcel(`Riwayat_Operasional_Armada_GA_${periodSuffix}_${dateStr}.xlsx`, headers, rows, "Riwayat Operasional");
               }}
               className="flex items-center gap-2 h-9 px-4 bg-[#1e3a8a] text-white rounded-xl text-[12px] font-bold hover:bg-[#1e40af] shadow-2xs transition-all active:scale-95 cursor-pointer"
             >
@@ -196,6 +289,22 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
             >
               <Icon name="refresh" className="text-[16px] text-slate-500" /> Segarkan Data
             </button>
+          </div>
+        </div>
+
+        {/* Stat cards header */}
+        <div className="flex items-center justify-between mb-3 px-1">
+          <div className="flex items-center gap-2 text-[12.5px] font-bold text-slate-600">
+            <span>Ringkasan Statistik</span>
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-blue-100 text-blue-900 border border-blue-200 flex items-center gap-1">
+              <Icon name="calendar_today" className="text-[12px]" />
+              {datePeriod === 'ALL' && 'Semua Waktu'}
+              {datePeriod === 'TODAY' && 'Hari Ini'}
+              {datePeriod === 'THIS_WEEK' && 'Minggu Ini'}
+              {datePeriod === 'THIS_MONTH' && 'Bulan Ini'}
+              {datePeriod === 'LAST_MONTH' && 'Bulan Lalu'}
+              {datePeriod === 'CUSTOM' && (customStartDate || customEndDate ? `${customStartDate || '...'} s/d ${customEndDate || '...'}` : 'Rentang Kustom')}
+            </span>
           </div>
         </div>
 
@@ -231,39 +340,126 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
 
         {/* Quick Filter Tabs & Search Bar */}
         <div className="bg-white border border-slate-100 rounded-2xl p-4 mb-5 space-y-3.5 shadow-2xs">
-          {/* Quick Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 text-[12px] font-bold scrollbar-none">
-            {[
-              { key: 'ALL', label: 'Semua Status', count: totalCount, icon: 'list_alt' },
-              { key: 'COMPLETED', label: 'Selesai', count: completedCount, icon: 'check_circle' },
-              { key: 'PENDING', label: 'Menunggu / Pending', count: pendingCount, icon: 'hourglass_empty' },
-              { key: 'CANCELLED', label: 'Dibatalkan', count: cancelledCount, icon: 'block' },
-              { key: 'REJECTED', label: 'Ditolak', count: rejectedCount, icon: 'cancel' },
-            ].map(tab => {
-              const isActive = statusFilter === tab.key;
-              return (
+          {/* Baris 1: Filter Periode Waktu */}
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+              <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Icon name="date_range" className="text-[14px] text-blue-600" />
+                Periode Waktu:
+              </span>
+              {datePeriod !== 'ALL' && (
                 <button
-                  key={tab.key}
-                  onClick={() => setStatusFilter(tab.key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer whitespace-nowrap ${
-                    isActive
-                      ? 'bg-[#1e3a8a] text-white border-[#1e3a8a] shadow-xs'
-                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                  }`}
+                  onClick={() => {
+                    setDatePeriod('ALL');
+                    setCustomStartDate('');
+                    setCustomEndDate('');
+                  }}
+                  className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer flex items-center gap-1"
                 >
-                  <Icon name={tab.icon} className="text-[14px]" />
-                  <span>{tab.label}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-                  }`}>
-                    {tab.count}
-                  </span>
+                  <Icon name="restart_alt" className="text-[13px]" />
+                  Reset ke Semua Waktu
                 </button>
-              );
-            })}
+              )}
+            </div>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 text-[12px] font-bold scrollbar-none">
+              {[
+                { key: 'ALL' as DatePeriod, label: 'Semua Waktu', icon: 'all_inclusive' },
+                { key: 'TODAY' as DatePeriod, label: 'Hari Ini', icon: 'today' },
+                { key: 'THIS_WEEK' as DatePeriod, label: 'Minggu Ini', icon: 'date_range' },
+                { key: 'THIS_MONTH' as DatePeriod, label: 'Bulan Ini', icon: 'calendar_month' },
+                { key: 'LAST_MONTH' as DatePeriod, label: 'Bulan Lalu', icon: 'history' },
+                { key: 'CUSTOM' as DatePeriod, label: 'Rentang Kustom', icon: 'edit_calendar' },
+              ].map(tab => {
+                const isActive = datePeriod === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setDatePeriod(tab.key)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer whitespace-nowrap ${
+                      isActive
+                        ? 'bg-blue-900 text-white border-blue-900 shadow-xs'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Icon name={tab.icon} className="text-[14px]" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom Date Range Box */}
+            {datePeriod === 'CUSTOM' && (
+              <div className="mt-2.5 p-3 bg-blue-50/60 border border-blue-100 rounded-xl flex flex-wrap items-center gap-3 text-[12px]">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-700">Dari:</span>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={e => setCustomStartDate(e.target.value)}
+                    className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-700">Sampai:</span>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={e => setCustomEndDate(e.target.value)}
+                    className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                {(customStartDate || customEndDate) && (
+                  <button
+                    onClick={() => { setCustomStartDate(''); setCustomEndDate(''); }}
+                    className="text-[11px] font-bold text-slate-500 hover:text-rose-600 cursor-pointer"
+                  >
+                    Reset Tanggal
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Search bar & Dropdown */}
+          {/* Baris 2: Quick Filter Status Pills */}
+          <div className="pt-2 border-t border-slate-100">
+            <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+              <Icon name="verified" className="text-[14px] text-emerald-600" />
+              Status Perjalanan:
+            </span>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 text-[12px] font-bold scrollbar-none">
+              {[
+                { key: 'ALL', label: 'Semua Status', count: totalCount, icon: 'list_alt' },
+                { key: 'COMPLETED', label: 'Selesai', count: completedCount, icon: 'check_circle' },
+                { key: 'PENDING', label: 'Menunggu / Pending', count: pendingCount, icon: 'hourglass_empty' },
+                { key: 'CANCELLED', label: 'Dibatalkan', count: cancelledCount, icon: 'block' },
+                { key: 'REJECTED', label: 'Ditolak', count: rejectedCount, icon: 'cancel' },
+              ].map(tab => {
+                const isActive = statusFilter === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setStatusFilter(tab.key)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer whitespace-nowrap ${
+                      isActive
+                        ? 'bg-[#1e3a8a] text-white border-[#1e3a8a] shadow-xs'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Icon name={tab.icon} className="text-[14px]" />
+                    <span>{tab.label}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Baris 3: Search bar & Dropdown */}
           <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100">
             <div className="relative w-full sm:flex-1">
               <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[18px]" />
@@ -288,9 +484,15 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
               <option value="ONGOING">Status: Berjalan ({rawRequests.filter(r => r.status === 'ONGOING' || r.rawStatus === 'on_going').length})</option>
             </select>
             <button
-              onClick={() => { setSearch(''); setStatusFilter('ALL'); }}
+              onClick={() => { 
+                setSearch(''); 
+                setStatusFilter('ALL'); 
+                setDatePeriod('ALL');
+                setCustomStartDate('');
+                setCustomEndDate('');
+              }}
               className="p-2 border border-slate-200 rounded-xl text-[#94a3b8] hover:bg-[#f1f5f9] hover:text-[#475569] transition-colors cursor-pointer"
-              title="Reset filter"
+              title="Reset semua filter pencarian dan periode"
             >
               <Icon name="refresh" className="text-[20px]" />
             </button>
