@@ -39,12 +39,36 @@ export default function SecurityDashboard() {
   const [selectedItineraryId, setSelectedItineraryId] = useState<number | null>(null);
   const [selectedSession, setSelectedSession] = useState<'morning' | 'afternoon' | null>(null);
   const [activeItineraryIndex, setActiveItineraryIndex] = useState<number>(0);
+  const [odometerKm, setOdometerKm] = useState<string>("");
+
+  const getActiveStartKm = (): number | null => {
+    if (selectedTripId && scannedRequest?.operational_trips) {
+      const trip = scannedRequest.operational_trips.find((t: any) => t.id === selectedTripId);
+      if (trip && typeof trip.start_km === 'number' && trip.start_km > 0) return trip.start_km;
+    }
+    if (selectedItineraryId && scannedRequest?.itineraries) {
+      const it = scannedRequest.itineraries.find((i: any) => i.id === selectedItineraryId);
+      if (it && typeof it.start_km === 'number' && it.start_km > 0) return it.start_km;
+    }
+    if (typeof scannedRequest?.start_km === 'number' && scannedRequest.start_km > 0) return scannedRequest.start_km;
+    return null;
+  };
+
+  const getActiveVehicleLastOdometer = (): number | null => {
+    if (selectedTripId && scannedRequest?.operational_trips) {
+      const trip = scannedRequest.operational_trips.find((t: any) => t.id === selectedTripId);
+      if (trip?.vehicle?.odometer) return trip.vehicle.odometer;
+    }
+    if (scannedRequest?.vehicle?.odometer) return scannedRequest.vehicle.odometer;
+    return null;
+  };
 
   const handleConfirmTripScanClick = (tripId: number, type: "checkout" | "checkin") => {
     setSelectedTripId(tripId);
     setSelectedItineraryId(null);
     setSelectedSession(null);
     setConfirmingType(type);
+    setOdometerKm("");
     setShowNameModal(true);
   };
 
@@ -53,6 +77,7 @@ export default function SecurityDashboard() {
     setConfirmingType(type);
     setSelectedItineraryId(itId ?? null);
     setSelectedSession(session ?? null);
+    setOdometerKm("");
     setShowNameModal(true);
   };
 
@@ -505,6 +530,23 @@ export default function SecurityDashboard() {
     e.preventDefault();
     if (!guardName.trim() || !confirmingType || !scannedRequest) return;
 
+    if (!odometerKm.trim()) {
+      alert("Kilometer Odometer wajib diisi!");
+      return;
+    }
+
+    const kmNum = Number(odometerKm);
+    if (isNaN(kmNum) || kmNum < 0) {
+      alert("Masukkan angka kilometer yang valid!");
+      return;
+    }
+
+    const currentStartKm = getActiveStartKm();
+    if (confirmingType === "checkin" && currentStartKm !== null && kmNum < currentStartKm) {
+      alert(`KM Kembali (${kmNum.toLocaleString('id-ID')}) tidak boleh lebih kecil dari KM Berangkat (${currentStartKm.toLocaleString('id-ID')})!`);
+      return;
+    }
+
     localStorage.setItem("ovms_security_guard_name", guardName.trim());
 
     setActionLoading(true);
@@ -522,7 +564,9 @@ export default function SecurityDashboard() {
         security_name: guardName.trim(),
         type: confirmingType,
         notes: securityNotes,
-        scanned_at: scannedAtStr
+        scanned_at: scannedAtStr,
+        start_km: confirmingType === "checkout" ? kmNum : undefined,
+        end_km: confirmingType === "checkin" ? kmNum : undefined,
       };
 
       if (selectedTripId) {
@@ -540,6 +584,7 @@ export default function SecurityDashboard() {
       if (res.data && res.data.status === "success") {
         const successMessage = res.data.message;
         setSecurityNotes("");
+        setOdometerKm("");
         setConfirmingType(null);
         setCapturedPhoto(null);
 
@@ -1199,6 +1244,42 @@ export default function SecurityDashboard() {
                         {scannedRequest.passenger_count} Orang
                       </div>
                     </div>
+
+                    {(scannedRequest.start_km || scannedRequest.end_km) && (
+                      <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-2">
+                        <div className="text-[11px] font-extrabold text-[#00236f] uppercase tracking-wider flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <Icon name="speed" className="text-sm text-blue-600" />
+                            Data Odometer Perjalanan
+                          </span>
+                          {scannedRequest.total_km ? (
+                            <span className="text-[10px] bg-emerald-600 text-white font-extrabold px-2 py-0.5 rounded-full">
+                              Total: {Number(scannedRequest.total_km).toLocaleString('id-ID')} KM
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-center">
+                          <div className="bg-white p-2 rounded-xl border border-blue-100">
+                            <span className="text-[10px] text-slate-400 font-bold block uppercase">KM Keluar (Awal)</span>
+                            <span className="font-extrabold text-slate-800 mt-0.5 block">
+                              {scannedRequest.start_km ? `${Number(scannedRequest.start_km).toLocaleString('id-ID')} km` : "-"}
+                            </span>
+                          </div>
+                          <div className="bg-white p-2 rounded-xl border border-blue-100">
+                            <span className="text-[10px] text-slate-400 font-bold block uppercase">KM Masuk (Akhir)</span>
+                            <span className="font-extrabold text-slate-800 mt-0.5 block">
+                              {scannedRequest.end_km ? `${Number(scannedRequest.end_km).toLocaleString('id-ID')} km` : "-"}
+                            </span>
+                          </div>
+                          <div className="bg-white p-2 rounded-xl border border-blue-100 col-span-2 sm:col-span-1">
+                            <span className="text-[10px] text-slate-400 font-bold block uppercase">Jarak Tempuh</span>
+                            <span className="font-extrabold text-blue-700 mt-0.5 block">
+                              {scannedRequest.total_km ? `${Number(scannedRequest.total_km).toLocaleString('id-ID')} km` : "-"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1253,10 +1334,10 @@ export default function SecurityDashboard() {
           </div>
         )}
 
-        {/* State 3: Modal Input Nama Petugas Jaga ("Siapa yang bertugas") */}
+        {/* State 3: Modal Input Nama Petugas Jaga & Kilometer Odometer */}
         {showNameModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadein p-4">
-            <div className="bg-white rounded-3xl border border-slate-100 p-5 sm:p-8 w-full max-w-md shadow-2xl relative">
+            <div className="bg-white rounded-3xl border border-slate-100 p-5 sm:p-7 w-full max-w-md shadow-2xl relative max-h-[90vh] overflow-y-auto">
               <button 
                 onClick={() => setShowNameModal(false)}
                 className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
@@ -1264,22 +1345,32 @@ export default function SecurityDashboard() {
                 <Icon name="close" className="text-xl" />
               </button>
               
-              <div className="text-center mb-6">
-                <div className="w-12 h-12 bg-blue-50 text-[#1e3a8a] rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <Icon name="badge" className="text-2xl" />
+              <div className="text-center mb-5">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-2.5 ${
+                  confirmingType === 'checkout' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
+                }`}>
+                  <Icon name={confirmingType === 'checkout' ? "flight_takeoff" : "flight_land"} className="text-2xl" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-800">Siapa Yang Bertugas?</h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  Masukkan nama petugas jaga yang memverifikasi scan ini untuk disimpan ke buku log.
+                <div className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider mb-1 ${
+                  confirmingType === 'checkout' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  {confirmingType === 'checkout' ? 'Pemberangkatan (Check-Out)' : 'Pengembalian (Check-In)'}
+                </div>
+                <h3 className="text-lg font-extrabold text-slate-800">
+                  {confirmingType === 'checkout' ? 'Konfirmasi Berangkat Gate' : 'Konfirmasi Kembali Gate'}
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Isi kilometer spedometer kendaraan dan nama petugas jaga.
                 </p>
               </div>
 
               <form onSubmit={handleSaveScan} className="space-y-4">
+                {/* Petugas Security */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">
-                    Nama Petugas Security
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
+                    Petugas Security Jaga <span className="text-red-500">*</span>
                   </label>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <div className="relative">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                         <Icon name="assignment_ind" className="text-lg" />
@@ -1296,7 +1387,7 @@ export default function SecurityDashboard() {
                             setGuardName("");
                           }
                         }}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold"
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold text-xs sm:text-sm"
                       >
                         <option value="" disabled>-- Pilih Nama Petugas --</option>
                         {predefinedGuards.map((name) => (
@@ -1317,14 +1408,93 @@ export default function SecurityDashboard() {
                           value={guardName}
                           onChange={(e) => setGuardName(e.target.value)}
                           placeholder="Ketik Nama Anda (Contoh: Budi)"
-                          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold"
+                          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold text-xs sm:text-sm"
                         />
                       </div>
                     )}
                   </div>
                 </div>
 
-                 <div className="flex gap-2.5 pt-2 text-xs sm:text-sm font-semibold">
+                {/* Kilometer Odometer Mandatory Section */}
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
+                  {confirmingType === 'checkin' && (
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-200 text-xs">
+                      <span className="text-slate-500 font-semibold">KM Berangkat (Keluar):</span>
+                      <span className="font-extrabold text-slate-800 bg-white px-2.5 py-0.5 rounded-lg border border-slate-200">
+                        {getActiveStartKm() !== null ? `${getActiveStartKm()?.toLocaleString('id-ID')} km` : 'Belum tercatat'}
+                      </span>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-700 uppercase">
+                        {confirmingType === 'checkout' ? 'KM Odometer Keluar (Awal)' : 'KM Odometer Masuk (Akhir)'}
+                        <span className="text-red-500 ml-0.5">*</span>
+                      </label>
+                      {confirmingType === 'checkout' && getActiveVehicleLastOdometer() ? (
+                        <button
+                          type="button"
+                          onClick={() => setOdometerKm(String(getActiveVehicleLastOdometer()))}
+                          className="text-[10px] text-blue-700 font-bold hover:underline cursor-pointer"
+                        >
+                          Gunakan Terakhir ({getActiveVehicleLastOdometer()?.toLocaleString('id-ID')} km)
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <Icon name="speed" className="text-lg" />
+                      </span>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        step="1"
+                        value={odometerKm}
+                        onChange={(e) => setOdometerKm(e.target.value)}
+                        placeholder={confirmingType === 'checkout' ? "Contoh: 45230" : "Contoh: 45315"}
+                        className="w-full pl-10 pr-12 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-bold text-sm"
+                      />
+                      <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-bold text-slate-400">
+                        KM
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Real-time Calculation for Check-in */}
+                  {confirmingType === 'checkin' && odometerKm && (
+                    <div className="pt-1">
+                      {(() => {
+                        const startKm = getActiveStartKm();
+                        const currentKm = Number(odometerKm);
+                        if (startKm !== null && currentKm < startKm) {
+                          return (
+                            <div className="p-2 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-semibold flex items-center gap-1.5">
+                              <Icon name="error" className="text-sm shrink-0" />
+                              <span>KM Masuk ({currentKm.toLocaleString('id-ID')}) tidak boleh lebih kecil dari KM Berangkat ({startKm.toLocaleString('id-ID')})</span>
+                            </div>
+                          );
+                        } else if (startKm !== null && currentKm >= startKm) {
+                          const diff = currentKm - startKm;
+                          return (
+                            <div className="p-2 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-between">
+                              <span className="flex items-center gap-1">
+                                <Icon name="check_circle" className="text-sm text-emerald-600" />
+                                Estimasi Jarak Tempuh:
+                              </span>
+                              <span className="text-emerald-700 text-sm font-extrabold">{diff.toLocaleString('id-ID')} km</span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2.5 pt-2 text-xs sm:text-sm font-semibold">
                   <button
                     type="button"
                     onClick={() => setShowNameModal(false)}
@@ -1334,15 +1504,23 @@ export default function SecurityDashboard() {
                   </button>
                   <button
                     type="submit"
-                    disabled={actionLoading}
-                    className="flex-1 py-3 bg-[#1e3a8a] text-white rounded-xl hover:bg-blue-800 transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    disabled={
+                      actionLoading || 
+                      !odometerKm.trim() || 
+                      (confirmingType === 'checkin' && getActiveStartKm() !== null && Number(odometerKm) < (getActiveStartKm() || 0))
+                    }
+                    className={`flex-1 py-3 text-white rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                      confirmingType === 'checkout' 
+                        ? 'bg-amber-600 hover:bg-amber-700' 
+                        : 'bg-emerald-600 hover:bg-emerald-700'
+                    }`}
                   >
                     {actionLoading ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
-                        <Icon name="save" className="text-base" />
-                        Simpan Log
+                        <Icon name="done_all" className="text-base" />
+                        <span>{confirmingType === 'checkout' ? 'Berangkatkan' : 'Konfirmasi Masuk'}</span>
                       </>
                     )}
                   </button>

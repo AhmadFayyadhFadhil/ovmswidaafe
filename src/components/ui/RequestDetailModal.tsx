@@ -217,6 +217,15 @@ export function RequestDetailModal({
                 <tr><td class="param-col">DAFTAR PENUMPANG (${esc(request.passengerCount || 1)} ORANG)</td><td class="val-col">${passengerLines}</td></tr>
                 <tr><td class="param-col">CATATAN / GA NOTES</td><td class="val-col">${esc(request.notes || "-")}</td></tr>
                 <tr><td class="param-col">RIWAYAT PERSETUJUAN</td><td class="val-col">${approvalLines}</td></tr>
+                ${request.start_km || request.end_km ? `
+                <tr>
+                  <td class="param-col">DATA ODOMETER PERJALANAN</td>
+                  <td class="val-col">
+                    KM Keluar: <strong>${request.start_km ? Number(request.start_km).toLocaleString('id-ID') + ' km' : '-'}</strong> &nbsp;|&nbsp; 
+                    KM Masuk: <strong>${request.end_km ? Number(request.end_km).toLocaleString('id-ID') + ' km' : '-'}</strong> &nbsp;|&nbsp; 
+                    Total Tempuh: <strong style="color: #1e3a8a;">${request.total_km ? Number(request.total_km).toLocaleString('id-ID') + ' km' : '-'}</strong>
+                  </td>
+                </tr>` : ''}
               </tbody>
             </table>
 
@@ -588,6 +597,46 @@ export function RequestDetailModal({
                       <span className="bg-amber-600 text-white px-2.5 py-1 rounded-lg text-[11px] font-extrabold uppercase">
                         {request.overtime_formatted}
                       </span>
+                    </div>
+                  )}
+
+                  {/* Odometer Section if recorded */}
+                  {(request.start_km || request.end_km) && (
+                    <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-2.5">
+                      <div className="flex items-center justify-between border-b border-blue-200/70 pb-2">
+                        <div className="text-[11px] font-extrabold text-[#00236f] uppercase tracking-wider flex items-center gap-1.5">
+                          <Icon name="speed" className="text-base text-blue-600" />
+                          <span>Rincian Odometer & Jarak Tempuh</span>
+                        </div>
+                        {request.total_km ? (
+                          <span className="bg-emerald-600 text-white px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase">
+                            Total: {Number(request.total_km).toLocaleString('id-ID')} KM
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-center">
+                        <div className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
+                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">KM Keluar (Awal)</div>
+                          <div className="text-sm font-extrabold text-slate-800 mt-0.5">
+                            {request.start_km ? `${Number(request.start_km).toLocaleString('id-ID')} km` : "-"}
+                          </div>
+                        </div>
+
+                        <div className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
+                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">KM Masuk (Akhir)</div>
+                          <div className="text-sm font-extrabold text-slate-800 mt-0.5">
+                            {request.end_km ? `${Number(request.end_km).toLocaleString('id-ID')} km` : "-"}
+                          </div>
+                        </div>
+
+                        <div className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
+                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Jarak Tempuh</div>
+                          <div className="text-sm font-extrabold text-blue-700 mt-0.5">
+                            {request.total_km ? `${Number(request.total_km).toLocaleString('id-ID')} km` : "-"}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 

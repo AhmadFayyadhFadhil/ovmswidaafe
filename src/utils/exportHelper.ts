@@ -231,6 +231,13 @@ export async function exportRequestPDF(request: any) {
       ["RIWAYAT PERSETUJUAN", approvalText],
     ];
 
+    if (request.start_km || request.end_km) {
+      const startKmStr = request.start_km ? `${Number(request.start_km).toLocaleString('id-ID')} km` : '-';
+      const endKmStr = request.end_km ? `${Number(request.end_km).toLocaleString('id-ID')} km` : '-';
+      const totalKmStr = request.total_km ? `${Number(request.total_km).toLocaleString('id-ID')} km` : '-';
+      tableData.push(["DATA ODOMETER PERJALANAN", `KM Keluar: ${startKmStr} | KM Masuk: ${endKmStr} | Total Tempuh: ${totalKmStr}`]);
+    }
+
     autoTable(doc, {
       startY: 46,
       head: [["PARAMETER DOKUMEN", "DETAIL INFORMASI & SPESIFIKASI"]],
