@@ -123,6 +123,9 @@ export interface FleetRequest {
   overtime_minutes?: number;
   overtime_formatted?: string | null;
   operational_trips?: OperationalTrip[];
+  ga_approved_by_name?: string;
+  ga_approval_source?: 'primary' | 'ga_team';
+  ga_approval_display_text?: string;
 }
 
 export interface RequestItinerary {

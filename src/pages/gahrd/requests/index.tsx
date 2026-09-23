@@ -146,10 +146,19 @@ export default function GAHRDRequestsPage() {
   const [dailyAssignments, setDailyAssignments] = useState<any[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const isGaTeamAccount = !!(
+    user?.nik?.toLowerCase() === "gateam" ||
+    user?.email?.toLowerCase() === "gateam@widatra.com" ||
+    user?.name?.toLowerCase().includes("gateam") ||
+    user?.name?.toLowerCase().includes("ga team")
+  );
+
   // Approve Review Modal States (Pengecekan Alokasi Sebelum Persetujuan GA)
   const [isApproveReviewModalOpen, setIsApproveReviewModalOpen] = useState(false);
   const [approveReviewRequest, setApproveReviewRequest] = useState<any | null>(null);
   const [approvalNotes, setApprovalNotes] = useState("Disetujui oleh GA Koordinator");
+  const [selectedApproverName, setSelectedApproverName] = useState("Pak Agus");
+  const [customApproverName, setCustomApproverName] = useState("");
 
   const isEdit = !!(selectedRequest && (
     selectedRequest.driverName !== "Not Assigned" ||
@@ -589,7 +598,9 @@ export default function GAHRDRequestsPage() {
 
   const handleOpenApproveModal = (req: any) => {
     setApproveReviewRequest(req);
-    setApprovalNotes("Disetujui oleh GA Koordinator");
+    setApprovalNotes(isGaTeamAccount ? "Disetujui oleh GA Team" : "Disetujui oleh GA Koordinator");
+    setSelectedApproverName("Pak Agus");
+    setCustomApproverName("");
     setIsApproveReviewModalOpen(true);
   };
 
@@ -597,12 +608,29 @@ export default function GAHRDRequestsPage() {
     if (!approveReviewRequest) return;
     const targetId = String(approveReviewRequest.id);
     setActionLoading(true);
+
+    const finalApprovedName = isGaTeamAccount
+      ? (selectedApproverName === "Lainnya (Ketik Manual)"
+          ? (customApproverName.trim() || "Pak Agus")
+          : (selectedApproverName.includes(" (") ? selectedApproverName.split(" (")[0] : selectedApproverName))
+      : "Melodi Bella Astria";
+
+    const finalApprovalNotes = isGaTeamAccount
+      ? (approvalNotes || `Disetujui oleh GA Team oleh ${finalApprovedName}`)
+      : (approvalNotes || "Disetujui oleh GA Koordinator");
+
+    const displayApprovalText = isGaTeamAccount
+      ? `Disetujui oleh GA Team oleh ${finalApprovedName}`
+      : `Disetujui oleh GA Coordinator (${finalApprovedName})`;
+
     try {
       requestService.clearCache();
       const res = await apiClient.post(`/requests/${targetId}/approve`, {
         role: "hrd_head",
-        notes: approvalNotes || "Disetujui oleh GA Koordinator",
+        notes: finalApprovalNotes,
+        approved_by_name: finalApprovedName,
       });
+
       if (res.data?.status === "success") {
         showToast("Alokasi armada disetujui & jadwal resmi berhasil diterbitkan!");
         setIsApproveReviewModalOpen(false);
@@ -618,6 +646,9 @@ export default function GAHRDRequestsPage() {
               if (mappedApproved) {
                 return {
                   ...mappedApproved,
+                  ga_approval_source: isGaTeamAccount ? "ga_team" : "primary",
+                  ga_approved_by_name: finalApprovedName,
+                  ga_approval_display_text: displayApprovalText,
                   driverName: mappedApproved.driverName !== "Not Assigned" ? mappedApproved.driverName : r.driverName,
                   vehicleModel: mappedApproved.vehicleModel !== "Not Assigned" ? mappedApproved.vehicleModel : r.vehicleModel,
                 };
@@ -626,6 +657,9 @@ export default function GAHRDRequestsPage() {
                 ...r,
                 rawStatus: "driver_assigned",
                 status: "APPROVED",
+                ga_approval_source: isGaTeamAccount ? "ga_team" : "primary",
+                ga_approved_by_name: finalApprovedName,
+                ga_approval_display_text: displayApprovalText,
                 qr_code_token: backendData?.qr_code_token || backendData?.ticket_number || r.qr_code_token || `REQ-${r.id}`,
                 canApprove: false,
                 canReject: false,
@@ -638,11 +672,21 @@ export default function GAHRDRequestsPage() {
         // Immediate reactive update on detailRequest if open
         setDetailRequest((prev: any) => {
           if (prev && String(prev.id) === targetId) {
-            if (mappedApproved) return mappedApproved;
+            if (mappedApproved) {
+              return {
+                ...mappedApproved,
+                ga_approval_source: isGaTeamAccount ? "ga_team" : "primary",
+                ga_approved_by_name: finalApprovedName,
+                ga_approval_display_text: displayApprovalText,
+              };
+            }
             return {
               ...prev,
               rawStatus: "driver_assigned",
               status: "APPROVED",
+              ga_approval_source: isGaTeamAccount ? "ga_team" : "primary",
+              ga_approved_by_name: finalApprovedName,
+              ga_approval_display_text: displayApprovalText,
               qr_code_token: backendData?.qr_code_token || backendData?.ticket_number || prev.qr_code_token || `REQ-${prev.id}`,
               canApprove: false,
               canReject: false,
@@ -2479,6 +2523,46 @@ export default function GAHRDRequestsPage() {
                 )}
               </div>
 
+              {/* GA Team Backup Approver Name Combobox */}
+              {isGaTeamAccount && (
+                <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl space-y-2.5">
+                  <div className="flex items-center gap-2 text-blue-900 font-bold text-[12px]">
+                    <Icon name="badge" className="text-blue-700 text-[18px]" />
+                    <span>Otoritas Penyetujui / Atas Nama (Akun GA Team Backup)</span>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Disetujui Oleh / Atas Nama Siapa:
+                    </label>
+                    <select
+                      value={selectedApproverName}
+                      onChange={(e) => setSelectedApproverName(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-[12.5px] font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
+                    >
+                      <option value="Pak Agus">Pak Agus (GA Staff / Supervisor)</option>
+                      <option value="Melodi Bella Astria (GA Head)">Melodi Bella Astria (GA Head - Atas Nama)</option>
+                      <option value="Tim GA Operasional">Tim GA Operasional</option>
+                      <option value="Staff GA Standby">Staff GA Standby</option>
+                      <option value="Lainnya (Ketik Manual)">+ Ketik Nama Lain secara Manual...</option>
+                    </select>
+                  </div>
+                  {selectedApproverName === "Lainnya (Ketik Manual)" && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Ketik Nama Penyetujui Manual:
+                      </label>
+                      <input
+                        type="text"
+                        value={customApproverName}
+                        onChange={(e) => setCustomApproverName(e.target.value)}
+                        placeholder="Contoh: Pak Agus / Bu Dewi..."
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-[12.5px] font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Notes Input */}
               <div>
                 <label className="block text-[11px] font-bold text-[#475569] mb-1.5">
@@ -2555,7 +2639,7 @@ export default function GAHRDRequestsPage() {
 
       {/* Build Stamp for Verification */}
       <div className="text-[10px] text-slate-400 text-right mt-4 pr-4 font-mono pb-4">
-        Build Version: 2026-09-22-v24 (Universal Logo & Instant GA Approval)
+        Build Version: 2026-09-23-v25 (GA Team Backup Approver Dropdown & Status Display)
       </div>
     </Layout>
   );

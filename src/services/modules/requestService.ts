@@ -208,6 +208,13 @@ export function mapRequestFromBackend(r: any): FleetRequest {
 
     assignments: r.assignments || [],
     operational_trips: r.operational_trips || [],
+    ga_approved_by_name: r.ga_approved_by_name || r.ga_approved_name || null,
+    ga_approval_source: r.ga_approval_source || (r.role === 'ga_team' ? 'ga_team' : 'primary'),
+    ga_approval_display_text: r.ga_approval_display_text || (
+      r.ga_approval_source === 'ga_team' || r.role === 'ga_team'
+        ? `Disetujui oleh GA Team oleh ${r.ga_approved_by_name || r.ga_approved_name || 'Tim GA Operasional'}`
+        : `Disetujui oleh GA Coordinator (${r.ga_approved_by_name || r.ga_approved_name || 'Melodi Bella Astria'})`
+    ),
   } as any;
 }
 
@@ -362,9 +369,9 @@ export const requestService = {
       message: res.data?.message
     };
   },
-  approve: async (id: string, notes?: string, role?: string): Promise<ApiResponse<FleetRequest>> => {
+  approve: async (id: string, notes?: string, role?: string, approvedByName?: string): Promise<ApiResponse<FleetRequest>> => {
     requestCache = null;
-    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/approve`, { notes, role });
+    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/approve`, { notes, role, approved_by_name: approvedByName });
     return {
       data: res.data?.data ? mapRequestFromBackend(res.data.data) : undefined,
       message: res.data?.message
