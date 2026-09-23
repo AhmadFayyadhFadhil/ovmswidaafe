@@ -33,6 +33,10 @@ export function RequestDetailModal({
 
   if (!isOpen || !request) return null;
 
+  const startKm = request.start_km ?? request.operational_trip?.start_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.start_km) ?? (Array.isArray(request.itineraries) && request.itineraries[0]?.start_km);
+  const endKm = request.end_km ?? request.operational_trip?.end_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.end_km) ?? (Array.isArray(request.itineraries) && request.itineraries[request.itineraries.length - 1]?.end_km);
+  const totalKm = request.total_km ?? request.operational_trip?.total_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.total_km) ?? ((startKm && endKm) ? Math.max(0, Number(endKm) - Number(startKm)) : null);
+
   const formatScanTime = (dtStr: string | null | undefined) => {
     if (!dtStr) return "";
     try {
@@ -217,13 +221,13 @@ export function RequestDetailModal({
                 <tr><td class="param-col">DAFTAR PENUMPANG (${esc(request.passengerCount || 1)} ORANG)</td><td class="val-col">${passengerLines}</td></tr>
                 <tr><td class="param-col">CATATAN / GA NOTES</td><td class="val-col">${esc(request.notes || "-")}</td></tr>
                 <tr><td class="param-col">RIWAYAT PERSETUJUAN</td><td class="val-col">${approvalLines}</td></tr>
-                ${request.start_km || request.end_km ? `
+                ${(startKm || endKm) ? `
                 <tr>
                   <td class="param-col">DATA ODOMETER PERJALANAN</td>
                   <td class="val-col">
-                    KM Keluar: <strong>${request.start_km ? Number(request.start_km).toLocaleString('id-ID') + ' km' : '-'}</strong> &nbsp;|&nbsp; 
-                    KM Masuk: <strong>${request.end_km ? Number(request.end_km).toLocaleString('id-ID') + ' km' : '-'}</strong> &nbsp;|&nbsp; 
-                    Total Tempuh: <strong style="color: #1e3a8a;">${request.total_km ? Number(request.total_km).toLocaleString('id-ID') + ' km' : '-'}</strong>
+                    KM Keluar: <strong>${startKm ? Number(startKm).toLocaleString('id-ID') + ' km' : '-'}</strong> &nbsp;|&nbsp; 
+                    KM Masuk: <strong>${endKm ? Number(endKm).toLocaleString('id-ID') + ' km' : '-'}</strong> &nbsp;|&nbsp; 
+                    Total Tempuh: <strong style="color: #1e3a8a;">${totalKm ? Number(totalKm).toLocaleString('id-ID') + ' km' : '-'}</strong>
                   </td>
                 </tr>` : ''}
               </tbody>
@@ -601,16 +605,16 @@ export function RequestDetailModal({
                   )}
 
                   {/* Odometer Section if recorded */}
-                  {(request.start_km || request.end_km) && (
+                  {(startKm || endKm) && (
                     <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-2.5">
                       <div className="flex items-center justify-between border-b border-blue-200/70 pb-2">
                         <div className="text-[11px] font-extrabold text-[#00236f] uppercase tracking-wider flex items-center gap-1.5">
                           <Icon name="speed" className="text-base text-blue-600" />
                           <span>Rincian Odometer & Jarak Tempuh</span>
                         </div>
-                        {request.total_km ? (
+                        {totalKm ? (
                           <span className="bg-emerald-600 text-white px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase">
-                            Total: {Number(request.total_km).toLocaleString('id-ID')} KM
+                            Total: {Number(totalKm).toLocaleString('id-ID')} KM
                           </span>
                         ) : null}
                       </div>
@@ -619,21 +623,21 @@ export function RequestDetailModal({
                         <div className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
                           <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">KM Keluar (Awal)</div>
                           <div className="text-sm font-extrabold text-slate-800 mt-0.5">
-                            {request.start_km ? `${Number(request.start_km).toLocaleString('id-ID')} km` : "-"}
+                            {startKm ? `${Number(startKm).toLocaleString('id-ID')} km` : "-"}
                           </div>
                         </div>
 
                         <div className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
                           <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">KM Masuk (Akhir)</div>
                           <div className="text-sm font-extrabold text-slate-800 mt-0.5">
-                            {request.end_km ? `${Number(request.end_km).toLocaleString('id-ID')} km` : "-"}
+                            {endKm ? `${Number(endKm).toLocaleString('id-ID')} km` : "-"}
                           </div>
                         </div>
 
                         <div className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
                           <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Jarak Tempuh</div>
                           <div className="text-sm font-extrabold text-blue-700 mt-0.5">
-                            {request.total_km ? `${Number(request.total_km).toLocaleString('id-ID')} km` : "-"}
+                            {totalKm ? `${Number(totalKm).toLocaleString('id-ID')} km` : "-"}
                           </div>
                         </div>
                       </div>
@@ -1047,6 +1051,38 @@ export function RequestDetailModal({
                     {getStageLabel(request.rawStatus, request.status)}
                   </span>
                 </div>
+                {(startKm || endKm) && (
+                  <div className="pt-3 border-t border-slate-200/80">
+                    <span className="block text-[10px] font-extrabold text-blue-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <Icon name="speed" className="text-[14px] text-blue-600" /> Data Odometer Kendaraan
+                    </span>
+                    <div className="bg-white p-3 rounded-xl border border-blue-100 shadow-2xs space-y-2">
+                      <div className="flex justify-between items-center text-[11.5px]">
+                        <span className="text-slate-500 font-medium">KM Keluar (Awal):</span>
+                        <span className="font-extrabold font-mono text-slate-800">
+                          {startKm ? `${Number(startKm).toLocaleString('id-ID')} km` : '-'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11.5px]">
+                        <span className="text-slate-500 font-medium">KM Masuk (Akhir):</span>
+                        <span className="font-extrabold font-mono text-slate-800">
+                          {endKm ? `${Number(endKm).toLocaleString('id-ID')} km` : '-'}
+                        </span>
+                      </div>
+                      {totalKm ? (
+                        <div className="flex justify-between items-center text-[11.5px] pt-1.5 border-t border-slate-100 font-bold text-blue-800">
+                          <span className="flex items-center gap-1">
+                            <Icon name="straighten" className="text-[13px] text-blue-600" />
+                            Total Tempuh:
+                          </span>
+                          <span className="font-extrabold font-mono text-[12px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/60">
+                            {Number(totalKm).toLocaleString('id-ID')} km
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
               </div>
                {request.qr_code_token && (
                 ["driver_assigned", "on_going"].includes(request.rawStatus) ||
@@ -1102,6 +1138,7 @@ export function RequestDetailModal({
                               time: it.morning_checked_out_at,
                               by: it.morning_checkout_by || request.security_checkout_by,
                               notes: it.morning_checkout_notes || request.security_checkout_notes,
+                              km: it.start_km ?? startKm,
                             });
                           }
                           if (it.morning_checked_in_at || it.morning_status === 'completed') {
@@ -1112,6 +1149,8 @@ export function RequestDetailModal({
                               time: it.morning_checked_in_at || it.updated_at,
                               by: it.morning_checkin_by || (isMorningSecCheckin ? (request.security_checkin_by || "Petugas Security Pos Gerbang") : `${request.employee || 'Pemohon'} (Pemohon / Requestor)`),
                               notes: it.morning_checkin_notes || (isMorningSecCheckin ? null : (it.is_external ? 'Diselesaikan secara mandiri (Sewa Eksternal)' : null)),
+                              km: it.end_km ?? endKm,
+                              total_km: it.total_km ?? totalKm,
                             });
                           }
                           if (it.afternoon_checked_out_at) {
@@ -1121,6 +1160,7 @@ export function RequestDetailModal({
                               time: it.afternoon_checked_out_at,
                               by: it.afternoon_checkout_by || request.security_checkout_by,
                               notes: it.afternoon_checkout_notes || request.security_checkout_notes,
+                              km: it.start_km ?? startKm,
                             });
                           }
                           if (it.afternoon_checked_in_at || it.afternoon_status === 'completed') {
@@ -1131,6 +1171,8 @@ export function RequestDetailModal({
                               time: it.afternoon_checked_in_at || it.updated_at,
                               by: it.afternoon_checkin_by || (isAfternoonSecCheckin ? (request.security_checkin_by || "Petugas Security Pos Gerbang") : `${request.employee || 'Pemohon'} (Pemohon / Requestor)`),
                               notes: it.afternoon_checkin_notes || (isAfternoonSecCheckin ? null : (it.is_external ? 'Diselesaikan secara mandiri (Sewa Eksternal)' : null)),
+                              km: it.end_km ?? endKm,
+                              total_km: it.total_km ?? totalKm,
                             });
                           }
 
@@ -1163,6 +1205,20 @@ export function RequestDetailModal({
                                       {log.by && (
                                         <div className="text-[10.5px] text-slate-600 font-medium pl-4">
                                           Petugas: <span className="font-bold text-slate-700">{log.by}</span>
+                                        </div>
+                                      )}
+                                      {log.km !== undefined && log.km !== null && (
+                                        <div className="text-[10.5px] text-slate-700 font-medium pl-4 flex items-center gap-1">
+                                          <Icon name="speed" className="text-[13px] text-blue-600" />
+                                          <span>KM {log.type === 'checkout' ? 'Berangkat' : 'Kembali'}:</span>
+                                          <span className="font-extrabold font-mono text-slate-900 bg-white px-1.5 py-0.2 rounded border border-slate-200">
+                                            {Number(log.km).toLocaleString('id-ID')} km
+                                          </span>
+                                          {log.total_km ? (
+                                            <span className="text-blue-700 font-bold font-mono text-[10px]">
+                                              (Total: {Number(log.total_km).toLocaleString('id-ID')} km)
+                                            </span>
+                                          ) : null}
                                         </div>
                                       )}
                                       {log.notes && (
@@ -1215,6 +1271,17 @@ export function RequestDetailModal({
                             </span>
                           </div>
                           <div className="text-slate-600 font-semibold text-[11.5px] mt-1">Petugas: <span className="font-bold text-slate-800">{request.security_checkout_by || "Security Pos Gerbang"}</span></div>
+                          {startKm && (
+                            <div className="mt-2 pt-2 border-t border-amber-100 flex items-center justify-between text-[11.5px]">
+                              <span className="text-amber-800 font-semibold flex items-center gap-1">
+                                <Icon name="speed" className="text-[14px] text-amber-600" />
+                                KM Berangkat:
+                              </span>
+                              <span className="font-extrabold font-mono text-amber-950 bg-amber-50 px-2.5 py-0.5 rounded-lg border border-amber-200">
+                                {Number(startKm).toLocaleString('id-ID')} km
+                              </span>
+                            </div>
+                          )}
                           {request.security_checkout_notes && (
                             <div className="mt-1 text-[11px] text-slate-500 italic bg-amber-50/50 p-1.5 rounded-lg border border-amber-100/60">" {request.security_checkout_notes} "</div>
                           )}
@@ -1239,6 +1306,32 @@ export function RequestDetailModal({
                           <div className="text-slate-700 font-semibold text-[11.5px] mt-1">
                             Petugas / Oleh: <span className="font-extrabold text-slate-900">{checkinBy}</span>
                           </div>
+                          {(endKm || totalKm) && (
+                            <div className="mt-2 pt-2 border-t border-emerald-100 space-y-1.5 text-[11.5px]">
+                              {endKm && (
+                                <div className="flex justify-between items-center">
+                                  <span className="text-emerald-800 font-semibold flex items-center gap-1">
+                                    <Icon name="speed" className="text-[14px] text-emerald-600" />
+                                    KM Kembali:
+                                  </span>
+                                  <span className="font-extrabold font-mono text-emerald-950 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+                                    {Number(endKm).toLocaleString('id-ID')} km
+                                  </span>
+                                </div>
+                              )}
+                              {totalKm && (
+                                <div className="flex justify-between items-center font-bold text-blue-900">
+                                  <span className="flex items-center gap-1">
+                                    <Icon name="straighten" className="text-[14px] text-blue-600" />
+                                    Total Tempuh:
+                                  </span>
+                                  <span className="font-extrabold font-mono bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200 text-blue-800">
+                                    {Number(totalKm).toLocaleString('id-ID')} km
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                           {checkinNotes && (
                             <div className="mt-1 text-[11px] text-emerald-800 italic bg-white/80 p-2 rounded-lg border border-emerald-200/60 font-medium">
                               " {checkinNotes} "

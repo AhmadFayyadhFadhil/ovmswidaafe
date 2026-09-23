@@ -231,10 +231,14 @@ export async function exportRequestPDF(request: any) {
       ["RIWAYAT PERSETUJUAN", approvalText],
     ];
 
-    if (request.start_km || request.end_km) {
-      const startKmStr = request.start_km ? `${Number(request.start_km).toLocaleString('id-ID')} km` : '-';
-      const endKmStr = request.end_km ? `${Number(request.end_km).toLocaleString('id-ID')} km` : '-';
-      const totalKmStr = request.total_km ? `${Number(request.total_km).toLocaleString('id-ID')} km` : '-';
+    const fallbackStartKm = request.start_km ?? request.operational_trip?.start_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.start_km) ?? (Array.isArray(request.itineraries) && request.itineraries[0]?.start_km);
+    const fallbackEndKm = request.end_km ?? request.operational_trip?.end_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.end_km) ?? (Array.isArray(request.itineraries) && request.itineraries[request.itineraries.length - 1]?.end_km);
+    const fallbackTotalKm = request.total_km ?? request.operational_trip?.total_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.total_km) ?? ((fallbackStartKm && fallbackEndKm) ? Math.max(0, Number(fallbackEndKm) - Number(fallbackStartKm)) : null);
+
+    if (fallbackStartKm || fallbackEndKm) {
+      const startKmStr = fallbackStartKm ? `${Number(fallbackStartKm).toLocaleString('id-ID')} km` : '-';
+      const endKmStr = fallbackEndKm ? `${Number(fallbackEndKm).toLocaleString('id-ID')} km` : '-';
+      const totalKmStr = fallbackTotalKm ? `${Number(fallbackTotalKm).toLocaleString('id-ID')} km` : '-';
       tableData.push(["DATA ODOMETER PERJALANAN", `KM Keluar: ${startKmStr} | KM Masuk: ${endKmStr} | Total Tempuh: ${totalKmStr}`]);
     }
 
