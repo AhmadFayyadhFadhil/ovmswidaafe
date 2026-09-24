@@ -4,9 +4,11 @@ import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { requestService, mapRequestFromBackend } from "@/services/modules/requestService";
 import { driverService } from "@/services/modules/driverService";
 import { vehicleService } from "@/services/modules/vehicleService";
-import { assignmentService } from "@/services/modules/assignmentService";
+import { userService } from "@/services/modules/userService";
+import { gaTeamApproverService } from "@/services/modules/gaTeamApproverService";
 import { useAuthContext } from "@/auth/authContext";
 import { RequestDetailModal } from "@/components/ui/RequestDetailModal";
+import { GaTeamApproverMasterModal } from "@/components/ui/GaTeamApproverMasterModal";
 import { apiClient } from "@/services/api/api";
 
 const formatNumberIndonesian = (value: string | number) => {
@@ -146,10 +148,25 @@ export default function GAHRDRequestsPage() {
   const [dailyAssignments, setDailyAssignments] = useState<any[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const isGaTeamAccount = !!(
+    user?.nik?.toLowerCase() === "gateam" ||
+    user?.email?.toLowerCase() === "gateam@widatra.com" ||
+    user?.name?.toLowerCase().includes("gateam") ||
+    user?.name?.toLowerCase().includes("ga team")
+  );
+
   // Approve Review Modal States (Pengecekan Alokasi Sebelum Persetujuan GA)
   const [isApproveReviewModalOpen, setIsApproveReviewModalOpen] = useState(false);
   const [approveReviewRequest, setApproveReviewRequest] = useState<any | null>(null);
   const [approvalNotes, setApprovalNotes] = useState("Disetujui oleh GA Koordinator");
+  const [selectedApproverName, setSelectedApproverName] = useState("Pak Agus");
+  const [customApproverName, setCustomApproverName] = useState("");
+  const [gaStaffList, setGaStaffList] = useState<string[]>([
+    "Pak Agus",
+    "Melodi Bella Astria",
+    "Tim GA Operasional",
+    "Staff GA Standby"
+  ]);
 
   const isEdit = !!(selectedRequest && (
     selectedRequest.driverName !== "Not Assigned" ||
@@ -162,6 +179,24 @@ export default function GAHRDRequestsPage() {
     setTimeout(() => {
       setToastMessage(null);
     }, 4000);
+  };
+
+  const [isMasterModalOpen, setIsMasterModalOpen] = useState(false);
+
+  const fetchGaApproversMaster = async () => {
+    try {
+      const res = await gaTeamApproverService.getAll({ active_only: true });
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        const names = res.data.map((item: any) => 
+          item.position ? `${item.name} (${item.position})` : item.name
+        );
+        setGaStaffList(names);
+      } else {
+        setGaStaffList(["Pak Agus (GA Supervisor)", "Melodi Bella Astria (GA Head)", "Tim GA Operasional", "Staff GA Standby"]);
+      }
+    } catch (err) {
+      console.error("Gagal memuat master penyetujui GA Team:", err);
+    }
   };
 
   const fetchData = async () => {
@@ -186,6 +221,8 @@ export default function GAHRDRequestsPage() {
       setDrivers(mappedDrivers);
 
       setVehicles(vehicleRes.data || []);
+
+      await fetchGaApproversMaster();
     } catch (err: any) {
       console.error(err);
       setError("Gagal memuat data dari server.");
@@ -589,7 +626,9 @@ export default function GAHRDRequestsPage() {
 
   const handleOpenApproveModal = (req: any) => {
     setApproveReviewRequest(req);
-    setApprovalNotes("Disetujui oleh GA Koordinator");
+    setApprovalNotes(isGaTeamAccount ? "Disetujui oleh GA Team" : "Disetujui oleh GA Koordinator");
+    setSelectedApproverName("Pak Agus");
+    setCustomApproverName("");
     setIsApproveReviewModalOpen(true);
   };
 
@@ -597,12 +636,29 @@ export default function GAHRDRequestsPage() {
     if (!approveReviewRequest) return;
     const targetId = String(approveReviewRequest.id);
     setActionLoading(true);
+
+    const finalApprovedName = isGaTeamAccount
+      ? (selectedApproverName === "Lainnya (Ketik Manual)"
+          ? (customApproverName.trim() || "Pak Agus")
+          : (selectedApproverName.includes(" (") ? selectedApproverName.split(" (")[0] : selectedApproverName))
+      : "Melodi Bella Astria";
+
+    const finalApprovalNotes = isGaTeamAccount
+      ? (approvalNotes || `Disetujui oleh GA Team oleh ${finalApprovedName}`)
+      : (approvalNotes || "Disetujui oleh GA Koordinator");
+
+    const displayApprovalText = isGaTeamAccount
+      ? `Disetujui oleh GA Team oleh ${finalApprovedName}`
+      : `Disetujui oleh GA Coordinator (${finalApprovedName})`;
+
     try {
       requestService.clearCache();
       const res = await apiClient.post(`/requests/${targetId}/approve`, {
         role: "hrd_head",
-        notes: approvalNotes || "Disetujui oleh GA Koordinator",
+        notes: finalApprovalNotes,
+        approved_by_name: finalApprovedName,
       });
+
       if (res.data?.status === "success") {
         showToast("Alokasi armada disetujui & jadwal resmi berhasil diterbitkan!");
         setIsApproveReviewModalOpen(false);
@@ -618,6 +674,9 @@ export default function GAHRDRequestsPage() {
               if (mappedApproved) {
                 return {
                   ...mappedApproved,
+                  ga_approval_source: isGaTeamAccount ? "ga_team" : "primary",
+                  ga_approved_by_name: finalApprovedName,
+                  ga_approval_display_text: displayApprovalText,
                   driverName: mappedApproved.driverName !== "Not Assigned" ? mappedApproved.driverName : r.driverName,
                   vehicleModel: mappedApproved.vehicleModel !== "Not Assigned" ? mappedApproved.vehicleModel : r.vehicleModel,
                 };
@@ -626,6 +685,9 @@ export default function GAHRDRequestsPage() {
                 ...r,
                 rawStatus: "driver_assigned",
                 status: "APPROVED",
+                ga_approval_source: isGaTeamAccount ? "ga_team" : "primary",
+                ga_approved_by_name: finalApprovedName,
+                ga_approval_display_text: displayApprovalText,
                 qr_code_token: backendData?.qr_code_token || backendData?.ticket_number || r.qr_code_token || `REQ-${r.id}`,
                 canApprove: false,
                 canReject: false,
@@ -638,11 +700,21 @@ export default function GAHRDRequestsPage() {
         // Immediate reactive update on detailRequest if open
         setDetailRequest((prev: any) => {
           if (prev && String(prev.id) === targetId) {
-            if (mappedApproved) return mappedApproved;
+            if (mappedApproved) {
+              return {
+                ...mappedApproved,
+                ga_approval_source: isGaTeamAccount ? "ga_team" : "primary",
+                ga_approved_by_name: finalApprovedName,
+                ga_approval_display_text: displayApprovalText,
+              };
+            }
             return {
               ...prev,
               rawStatus: "driver_assigned",
               status: "APPROVED",
+              ga_approval_source: isGaTeamAccount ? "ga_team" : "primary",
+              ga_approved_by_name: finalApprovedName,
+              ga_approval_display_text: displayApprovalText,
               qr_code_token: backendData?.qr_code_token || backendData?.ticket_number || prev.qr_code_token || `REQ-${prev.id}`,
               canApprove: false,
               canReject: false,
@@ -857,12 +929,20 @@ export default function GAHRDRequestsPage() {
             </div>
           </div>
           {!isApprover && !isCoordinator && (
-            <button
-              onClick={() => navigate("/gahrd/requests/urgent")}
-              className="flex items-center gap-2 h-10 px-5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
-            >
-              <Icon name="add_alert" className="text-[17px]" /> Permohonan Mendesak
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsMasterModalOpen(true)}
+                className="flex items-center gap-2 h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                <Icon name="badge" className="text-[17px]" /> Kelola Master Penyetujui
+              </button>
+              <button
+                onClick={() => navigate("/gahrd/requests/urgent")}
+                className="flex items-center gap-2 h-10 px-5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                <Icon name="add_alert" className="text-[17px]" /> Permohonan Mendesak
+              </button>
+            </div>
           )}
         </div>
 
@@ -2479,6 +2559,57 @@ export default function GAHRDRequestsPage() {
                 )}
               </div>
 
+              {/* GA Team Backup Approver Name Combobox */}
+              {isGaTeamAccount && (
+                <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-blue-900 font-bold text-[12px]">
+                      <Icon name="badge" className="text-blue-700 text-[18px]" />
+                      <span>Otoritas Penyetujui / Atas Nama (Akun GA Team Backup)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsMasterModalOpen(true)}
+                      className="text-[11px] font-bold text-blue-700 hover:text-blue-900 underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Icon name="settings" className="text-xs" />
+                      Kelola Master Data
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Disetujui Oleh / Atas Nama Siapa:
+                    </label>
+                    <select
+                      value={selectedApproverName}
+                      onChange={(e) => setSelectedApproverName(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-[12.5px] font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
+                    >
+                      {gaStaffList.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                      <option value="Lainnya (Ketik Manual)">+ Ketik Nama Lain secara Manual...</option>
+                    </select>
+                  </div>
+                  {selectedApproverName === "Lainnya (Ketik Manual)" && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Ketik Nama Penyetujui Manual:
+                      </label>
+                      <input
+                        type="text"
+                        value={customApproverName}
+                        onChange={(e) => setCustomApproverName(e.target.value)}
+                        placeholder="Contoh: Pak Agus / Bu Dewi..."
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-[12.5px] font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Notes Input */}
               <div>
                 <label className="block text-[11px] font-bold text-[#475569] mb-1.5">
@@ -2545,6 +2676,13 @@ export default function GAHRDRequestsPage() {
         </div>
       )}
 
+      {/* Master Data GA Team Approvers Modal */}
+      <GaTeamApproverMasterModal
+        isOpen={isMasterModalOpen}
+        onClose={() => setIsMasterModalOpen(false)}
+        onUpdated={fetchGaApproversMaster}
+      />
+
       {/* Premium Success Toast Alert */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 z-50 border border-slate-800 animate-fadein">
@@ -2555,7 +2693,7 @@ export default function GAHRDRequestsPage() {
 
       {/* Build Stamp for Verification */}
       <div className="text-[10px] text-slate-400 text-right mt-4 pr-4 font-mono pb-4">
-        Build Version: 2026-09-22-v24 (Universal Logo & Instant GA Approval)
+        Build Version: 2026-09-23-v26 (Dedicated GA Team Approver Master Data Module)
       </div>
     </Layout>
   );

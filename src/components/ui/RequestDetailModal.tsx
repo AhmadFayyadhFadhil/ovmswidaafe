@@ -3,7 +3,7 @@ import { Icon } from "./Icon";
 import { PriorityBadge } from "../layout/PriorityBadge";
 import type { FleetRequest } from "../../types";
 import { useAuthContext } from "@/auth/authContext";
-import { downloadItemPDF } from "@/utils/exportHelper";
+import { exportRequestPDF } from "@/utils/exportHelper";
 import { requestService } from "@/services/modules/requestService";
 
 interface RequestDetailModalProps {
@@ -32,6 +32,10 @@ export function RequestDetailModal({
   const [isApproving, setIsApproving] = useState(false);
 
   if (!isOpen || !request) return null;
+
+  const startKm = request.start_km ?? request.operational_trip?.start_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.start_km) ?? (Array.isArray(request.itineraries) && request.itineraries[0]?.start_km);
+  const endKm = request.end_km ?? request.operational_trip?.end_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.end_km) ?? (Array.isArray(request.itineraries) && request.itineraries[request.itineraries.length - 1]?.end_km);
+  const totalKm = request.total_km ?? request.operational_trip?.total_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.total_km) ?? ((startKm && endKm) ? Math.max(0, Number(endKm) - Number(startKm)) : null);
 
   const formatScanTime = (dtStr: string | null | undefined) => {
     if (!dtStr) return "";
@@ -74,8 +78,10 @@ export function RequestDetailModal({
       dept_head: "Dep Head",
       hrd_head: "GA & HRD Head",
       ga_head: "GA Head",
+      ga_team: "GA Team Backup",
+      "GA Team Backup": "GA Team Backup",
     };
-    return labels[role] || role;
+    return labels[role] || (role === "ga_team" ? "GA Team Backup" : role);
   };
 
   const getStageLabel = (rawStatus: string | undefined, mappedStatus: string) => {
@@ -125,66 +131,128 @@ export function RequestDetailModal({
     const doc = iframe.contentWindow?.document || iframe.contentDocument;
     if (!doc) return;
 
+    const rawSt = String(request.rawStatus || request.status || "APPROVED").toLowerCase();
+    const idnStatus = rawSt === "completed" ? "SELESAI" : (rawSt === "on_going" ? "SEDANG PERJALANAN" : (rawSt === "rejected" ? "DITOLAK" : (rawSt === "cancelled" ? "DIBATALKAN" : "DISETUJUI / TERJADWAL")));
+
+    const passengerLines = (Array.isArray(request.passengers) && request.passengers.length > 0)
+      ? request.passengers.map((p: any, i: number) => {
+          const isPic = (p.is_pic === true || p.is_pic === 1 || p.is_pic === '1' || i === 0);
+          const picBadge = isPic ? " (PIC Penumpang)" : "";
+          const dept = p.department_name || p.department_id || request.department || "";
+          return `${i + 1}. ${esc(p.name)}${dept ? ` - ${esc(dept)}` : ""}${picBadge}`;
+        }).join("<br/>")
+      : `1. ${esc(request.employee || "Pemohon")} - ${esc(request.department || "General")} (PIC Penumpang)`;
+
+    const approvalLines = (Array.isArray(request.approvals) && request.approvals.length > 0)
+      ? request.approvals.map((app: any) => {
+          const isGaTeamStep = app.role === "ga_team" || app.role === "GA Team Backup" || (app.role === "hrd_head" && request.ga_approval_source === "ga_team");
+          const roleName = isGaTeamStep ? "GA Team Backup" : (app.role === "dept_head" ? "Dep Head" : "GA Head");
+          let approverName = app.approver?.name || "System";
+          if (isGaTeamStep) {
+            const spec = request.ga_approved_by_name || request.ga_approved_name;
+            approverName = spec ? `GA Team oleh ${spec}` : "GA Team Backup";
+          }
+          return `${esc(roleName)}: ${app.status === 'approved' ? 'Disetujui' : esc(app.status)} (${esc(approverName)})`;
+        }).join("<br/>")
+      : esc(request.ga_approval_display_text || `Disetujui oleh GA Coordinator (${request.ga_approved_by_name || "Melodi Bella Astria"})`);
+
+    const qrToken = request.qr_code_token || `REQ-${request.id}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${qrToken}`)}`;
+
     doc.open();
     doc.write(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Surat Tugas / Tiket Perjalanan #REQ-${esc(request.id)}</title>
+          <title>Surat Tugas Perjalanan Operasional #REQ-${esc(request.id)}</title>
           <style>
-            @page { size: A4; margin: 15mm; }
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #334155; }
-            .ticket { border: 2px dashed #94a3b8; padding: 25px; border-radius: 16px; max-width: 650px; margin: 0 auto; background: #fff; }
-            .header { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 16px; margin-bottom: 20px; }
-            .title { font-size: 18px; font-weight: 800; margin: 0; color: #1e3a8a; letter-spacing: 0.5px; }
-            .subtitle { font-size: 11px; color: #64748b; font-weight: bold; text-transform: uppercase; margin-top: 4px; }
-            .row { display: flex; margin-bottom: 10px; border-bottom: 1px solid #f8fafc; padding-bottom: 6px; }
-            .label { font-weight: bold; width: 180px; text-transform: uppercase; font-size: 11px; color: #64748b; letter-spacing: 0.5px; }
-            .value { font-size: 13px; color: #0f172a; font-weight: 600; }
-            .qr { text-align: center; margin-top: 20px; border-top: 2px dashed #e2e8f0; padding-top: 16px; }
-            .qr img { border: 1px solid #e2e8f0; padding: 6px; border-radius: 8px; }
+            @page { size: A4; margin: 12mm; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; margin: 0; padding: 15px; }
+            .document-banner { background: #1e3a8a; color: #ffffff; padding: 16px 20px; border-top-left-radius: 8px; border-top-right-radius: 8px; }
+            .company-name { font-size: 18px; font-weight: 800; margin: 0; letter-spacing: 0.5px; }
+            .system-name { font-size: 10px; font-weight: 600; margin-top: 2px; letter-spacing: 0.5px; text-transform: uppercase; opacity: 0.9; }
+            .doc-sub { font-size: 9px; margin-top: 2px; opacity: 0.8; }
+            .gold-bar { height: 4px; background: #eab308; }
+            .content-body { padding: 18px 20px; border: 1px solid #e2e8f0; border-top: none; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; background: #ffffff; }
+            .doc-header-title { font-size: 14px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+            .doc-meta { font-size: 10px; color: #64748b; margin-bottom: 16px; }
+            table.data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; }
+            table.data-table th { background: #1e3a8a; color: #ffffff; font-weight: 700; text-align: left; padding: 8px 12px; border: 1px solid #1e3a8a; }
+            table.data-table td { padding: 8px 12px; border: 1px solid #e2e8f0; vertical-align: top; }
+            table.data-table td.param-col { font-weight: 700; background: #f8fafc; color: #475569; width: 32%; }
+            table.data-table td.val-col { color: #0f172a; font-weight: 600; }
+            .qr-card { background: #f8fafc; border: 1px border-dashed #cbd5e1; border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 16px; margin-top: 15px; }
+            .qr-card img { border: 1px solid #e2e8f0; padding: 4px; background: #fff; border-radius: 8px; width: 95px; height: 95px; }
+            .qr-text { font-size: 11px; color: #334155; }
+            .qr-title { font-size: 12px; font-weight: 800; color: #1e3a8a; margin-bottom: 4px; }
+            .token-code { font-family: monospace; font-weight: 800; color: #0f172a; font-size: 11.5px; margin-bottom: 4px; }
+            .footer-sign { display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 20px; font-size: 9.5px; color: #64748b; }
           </style>
         </head>
         <body>
-          <div class="ticket">
-            <div class="header">
-              <h2 class="title">SURAT TUGAS LAYANAN KENDARAAN (OVMS)</h2>
-              <div class="subtitle">PT. WIDATRA BHAKTI</div>
-            </div>
-            <div class="row"><div class="label">ID Request</div><div class="value">#REQ-${esc(request.id)}</div></div>
-            <div class="row"><div class="label">Nama Pemohon</div><div class="value">${esc(request.employee)} (${esc(request.department)})</div></div>
-            <div class="row"><div class="label">Tujuan Perjalanan</div><div class="value">${esc(request.destination)}</div></div>
-            <div class="row"><div class="label">Jadwal Keberangkatan</div><div class="value">${esc(request.date)} ${esc(request.time || "09:00")}</div></div>
-            
-            ${Array.isArray(request.itineraries) && request.itineraries.length > 0 ? `
-              <div class="row"><div class="label">Tipe Request</div><div class="value" style="color: #1e3a8a; font-weight: bold;">MULTI-DAY ITINERARY (${request.itineraries.length} HARI)</div></div>
-              <div style="margin-top: 15px; margin-bottom: 15px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
-                <div style="font-weight: bold; font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">Rincian Penugasan Daily Itinerary:</div>
-                ${request.itineraries.map((it: any, idx: number) => `
-                  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 12px;">
-                    <div style="font-weight: bold; color: #1e3a8a;">Hari ${idx + 1} (${esc(it.date)}):</div>
-                    <div style="margin-top: 4px;">Sesi 1: ${esc(it.morning_time || "-")} - ${esc(it.morning_destination || "-")}</div>
-                    <div>Sesi 2: ${esc(it.afternoon_time || "-")} - ${esc(it.afternoon_destination || "-")}</div>
-                    <div style="margin-top: 4px; font-weight: bold; color: #334155;">Armada: ${esc(it.is_external ? `Pihak Ke-3 (${it.external_driver_name || "Sewa"})` : (it.driver_name ? `${it.driver_name} (${it.vehicle_name || ""})` : "Belum Ditugaskan"))}</div>
-                  </div>
-                `).join('')}
-              </div>
-            ` : `
-              <div class="row"><div class="label">Penyedia Armada</div><div class="value">${request.is_external ? "Pihak Ketiga (Sewa Eksternal)" : "Armada Internal"}</div></div>
-              ${!request.is_external ? `
-                <div class="row"><div class="label">Driver Internal</div><div class="value">${esc(request.driverName || "-")}</div></div>
-                <div class="row"><div class="label">Kendaraan Internal</div><div class="value">${esc(request.vehicleModel || "-")}</div></div>
-              ` : `
-                <div class="row"><div class="label">Estimasi Biaya Sewa</div><div class="value">Rp ${Number(request.third_party_cost || 0).toLocaleString('id-ID')}</div></div>
-              `}
-            `}
+          <div class="document-banner">
+            <h1 class="company-name">PT. WIDATRA BHAKTI</h1>
+            <div class="system-name">OPERATIONAL VEHICLE MANAGEMENT SYSTEM (OVMS)</div>
+            <div class="doc-sub">Dokumen Resmi Penugasan &amp; Keputusan Perjalanan Operasional</div>
+          </div>
+          <div class="gold-bar"></div>
+          <div class="content-body">
+            <div class="doc-header-title">SURAT TUGAS PERJALANAN OPERASIONAL (#REQ-${esc(request.id)})</div>
+            <div class="doc-meta">Waktu Cetak: ${new Date().toLocaleString("id-ID")} WIB &nbsp;|&nbsp; Status: VERIFIED &amp; OFFICIAL</div>
 
-            <div class="row"><div class="label">Tujuan / Keperluan</div><div class="value">${esc(request.purpose)}</div></div>
-            <div class="row"><div class="label">Jumlah Penumpang</div><div class="value">${esc(request.passengerCount)} Orang</div></div>
-            <div class="row"><div class="label">Estimasi Lama Perjalanan</div><div class="value">${esc(request.estimated_duration ? `${request.estimated_duration} Jam` : "-")}</div></div>
-            <div class="qr">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${request.qr_code_token || `REQ-${request.id}`}`)}" />
-              <p style="font-size: 10px; color: #94a3b8; margin-top: 6px; font-family: monospace; font-weight: bold;">${esc(request.qr_code_token || `REQ-${request.id}`)}</p>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>PARAMETER DOKUMEN</th>
+                  <th>DETAIL INFORMASI &amp; SPESIFIKASI</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td class="param-col">ID PERMOHONAN</td><td class="val-col">#REQ-${esc(request.id)}</td></tr>
+                <tr><td class="param-col">STATUS PERJALANAN</td><td class="val-col">${esc(idnStatus)}</td></tr>
+                <tr><td class="param-col">NAMA PEMOHON</td><td class="val-col">${esc(request.employee)} (${esc(request.department)})</td></tr>
+                <tr><td class="param-col">NO. HP / WA PEMOHON</td><td class="val-col">${esc(request.userPhone || request.email || "-")}</td></tr>
+                <tr><td class="param-col">TUJUAN PERJALANAN</td><td class="val-col">${esc(request.destination)}</td></tr>
+                <tr><td class="param-col">JADWAL KEBERANGKATAN</td><td class="val-col">${esc(request.date)} ${esc(request.time || "09:00")}</td></tr>
+                <tr><td class="param-col">TIPE PERMOHONAN</td><td class="val-col">${Array.isArray(request.itineraries) && request.itineraries.length > 0 ? `Multi-Day Itinerary (${request.itineraries.length} Hari)` : (request.is_external ? "Pihak Ketiga (Sewa Eksternal)" : "Armada Internal")}</td></tr>
+                <tr><td class="param-col">DRIVER / PENGEMUDI</td><td class="val-col">${request.is_external ? esc(request.external_driver_name || "Sewa Eksternal") : esc(request.driverName || "Driver Internal")}</td></tr>
+                <tr><td class="param-col">KENDARAAN / ARMADA</td><td class="val-col">${request.is_external ? (request.external_provider ? `Sewa (${esc(request.external_provider)})` : "Sewa Eksternal") : esc(request.vehicleModel || "Armada Internal")}</td></tr>
+                <tr><td class="param-col">KEPERLUAN PERJALANAN</td><td class="val-col">${esc(request.purpose || "-")}</td></tr>
+                <tr><td class="param-col">DAFTAR PENUMPANG (${esc(request.passengerCount || 1)} ORANG)</td><td class="val-col">${passengerLines}</td></tr>
+                <tr><td class="param-col">CATATAN / GA NOTES</td><td class="val-col">${esc(request.notes || "-")}</td></tr>
+                <tr><td class="param-col">RIWAYAT PERSETUJUAN</td><td class="val-col">${approvalLines}</td></tr>
+                ${(startKm || endKm) ? `
+                <tr>
+                  <td class="param-col">DATA ODOMETER PERJALANAN</td>
+                  <td class="val-col">
+                    KM Keluar: <strong>${startKm ? Number(startKm).toLocaleString('id-ID') + ' km' : '-'}</strong> &nbsp;|&nbsp; 
+                    KM Masuk: <strong>${endKm ? Number(endKm).toLocaleString('id-ID') + ' km' : '-'}</strong> &nbsp;|&nbsp; 
+                    Total Tempuh: <strong style="color: #1e3a8a;">${totalKm ? Number(totalKm).toLocaleString('id-ID') + ' km' : '-'}</strong>
+                  </td>
+                </tr>` : ''}
+              </tbody>
+            </table>
+
+            <div class="qr-card">
+              <div class="qr-code">
+                <img src="${qrUrl}" alt="QR Code Validasi" />
+              </div>
+              <div class="qr-text">
+                <div class="qr-title">QR CODE TIKET VERIFIKASI SECURITY POS GERBANG</div>
+                <div class="token-code">Token Verifikasi: ${esc(qrToken)}</div>
+                <div>Tunjukkan QR Code ini kepada Petugas Pos Security saat Keluar / Masuk Gerbang.</div>
+              </div>
+            </div>
+
+            <div class="footer-sign">
+              <div>
+                <strong>Disetujui Oleh System OVMS</strong><br/>
+                PT Widatra Bhakti Operational Command
+              </div>
+              <div style="text-align: right;">
+                <strong>Tanda Tangan Digital / QR Verified</strong><br/>
+                PT. WIDATRA BHAKTI AUTHORIZED
+              </div>
             </div>
           </div>
         </body>
@@ -272,23 +340,8 @@ export function RequestDetailModal({
           <div className="flex items-center justify-end gap-1.5 shrink-0 self-end sm:self-auto">
             {/* Direct PDF Download Button */}
             <button
-              onClick={() => {
-                const rawSt = String(request.rawStatus || request.status || "APPROVED").toLowerCase();
-                const idnStatus = rawSt === "completed" ? "SELESAI" : rawSt === "on_going" ? "DALAM PERJALANAN" : rawSt === "rejected" ? "DITOLAK" : rawSt === "pending" ? "MENUNGGU" : "DISETUJUI";
-                downloadItemPDF(`Surat_Tugas_REQ_${request.id}`, {
-                  "ID Permohonan": `REQ-${request.id}`,
-                  "Nama Pemohon": `${request.employee || ''} (${request.department || ''})`,
-                  "Tujuan Perjalanan": request.destination || '',
-                  "Jadwal Keberangkatan": `${request.date || ''} ${request.time || '09:00'}`,
-                  "Tipe Permohonan": Array.isArray(request.itineraries) && request.itineraries.length > 0 ? `Multi-Day (${request.itineraries.length} Hari)` : (request.is_external ? "Sewa Pihak Ke-3" : "Armada Internal"),
-                  "Driver / Pengemudi": request.is_external ? (request.external_driver_name || "Sewa Eksternal") : (request.driverName || "Internal"),
-                  "Kendaraan / Armada": request.is_external ? (request.external_provider || "Eksternal") : (request.vehicleModel || "Internal"),
-                  "Jumlah Penumpang": `${request.passengerCount || 1} Orang`,
-                  "Keperluan Perjalanan": request.purpose || "-",
-                  "Status Pengajuan": idnStatus
-                });
-              }}
-              title="Unduh PDF Langsung (1-Sentuh)"
+              onClick={() => exportRequestPDF(request)}
+              title="Unduh PDF Surat Tugas (1-Sentuh)"
               className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors text-[11px] font-bold cursor-pointer shadow-2xs"
             >
               <Icon name="picture_as_pdf" className="text-[15px] text-red-600" />
@@ -548,6 +601,46 @@ export function RequestDetailModal({
                       <span className="bg-amber-600 text-white px-2.5 py-1 rounded-lg text-[11px] font-extrabold uppercase">
                         {request.overtime_formatted}
                       </span>
+                    </div>
+                  )}
+
+                  {/* Odometer Section if recorded */}
+                  {(startKm || endKm) && (
+                    <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-2.5">
+                      <div className="flex items-center justify-between border-b border-blue-200/70 pb-2">
+                        <div className="text-[11px] font-extrabold text-[#00236f] uppercase tracking-wider flex items-center gap-1.5">
+                          <Icon name="speed" className="text-base text-blue-600" />
+                          <span>Rincian Odometer & Jarak Tempuh</span>
+                        </div>
+                        {totalKm ? (
+                          <span className="bg-emerald-600 text-white px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase">
+                            Total: {Number(totalKm).toLocaleString('id-ID')} KM
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-center">
+                        <div className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
+                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">KM Keluar (Awal)</div>
+                          <div className="text-sm font-extrabold text-slate-800 mt-0.5">
+                            {startKm ? `${Number(startKm).toLocaleString('id-ID')} km` : "-"}
+                          </div>
+                        </div>
+
+                        <div className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
+                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">KM Masuk (Akhir)</div>
+                          <div className="text-sm font-extrabold text-slate-800 mt-0.5">
+                            {endKm ? `${Number(endKm).toLocaleString('id-ID')} km` : "-"}
+                          </div>
+                        </div>
+
+                        <div className="bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
+                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Jarak Tempuh</div>
+                          <div className="text-sm font-extrabold text-blue-700 mt-0.5">
+                            {totalKm ? `${Number(totalKm).toLocaleString('id-ID')} km` : "-"}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -883,11 +976,36 @@ export function RequestDetailModal({
               {/* Passengers */}
               <div>
                 <h4 className="text-[11px] font-extrabold tracking-wider text-slate-400 uppercase mb-2">
-                  Daftar Penumpang ({passengers.length} Orang)
+                  Daftar Penumpang ({passengers.length > 0 ? passengers.length : (request.passengerCount || 1)} Orang)
                 </h4>
                 {passengers.length === 0 ? (
-                  <div className="text-[12px] text-slate-500 italic p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                    Hanya pemohon sendiri.
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-[13px]">
+                    <div className="font-semibold text-slate-700 flex flex-col sm:flex-row sm:items-center gap-2 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center text-[11px] font-extrabold flex-shrink-0 border border-blue-200">
+                          1
+                        </span>
+                        <span className="font-bold text-slate-900 text-[13.5px]">{request.employee || 'Pemohon'}</span>
+                        <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
+                          👑 PIC Penumpang (Pemohon Sendiri)
+                        </span>
+                      </div>
+                      {(request.userPhone || request.phone) && (
+                        <a
+                          href={`https://wa.me/${String(request.userPhone || request.phone).replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all flex-shrink-0 shadow-2xs active:scale-95"
+                          title={`Hubungi WhatsApp ${request.employee}`}
+                        >
+                          <Icon name="chat" className="text-xs" />
+                          <span>Hubungi WA PIC ({request.userPhone || request.phone})</span>
+                        </a>
+                      )}
+                    </div>
+                    <span className="text-[10.5px] font-extrabold text-slate-500 bg-white px-2.5 py-1 rounded-md border border-slate-200 uppercase self-start sm:self-center shrink-0">
+                      {request.department || 'General'}
+                    </span>
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
@@ -958,6 +1076,38 @@ export function RequestDetailModal({
                     {getStageLabel(request.rawStatus, request.status)}
                   </span>
                 </div>
+                {(startKm || endKm) && (
+                  <div className="pt-3 border-t border-slate-200/80">
+                    <span className="block text-[10px] font-extrabold text-blue-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <Icon name="speed" className="text-[14px] text-blue-600" /> Data Odometer Kendaraan
+                    </span>
+                    <div className="bg-white p-3 rounded-xl border border-blue-100 shadow-2xs space-y-2">
+                      <div className="flex justify-between items-center text-[11.5px]">
+                        <span className="text-slate-500 font-medium">KM Keluar (Awal):</span>
+                        <span className="font-extrabold font-mono text-slate-800">
+                          {startKm ? `${Number(startKm).toLocaleString('id-ID')} km` : '-'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11.5px]">
+                        <span className="text-slate-500 font-medium">KM Masuk (Akhir):</span>
+                        <span className="font-extrabold font-mono text-slate-800">
+                          {endKm ? `${Number(endKm).toLocaleString('id-ID')} km` : '-'}
+                        </span>
+                      </div>
+                      {totalKm ? (
+                        <div className="flex justify-between items-center text-[11.5px] pt-1.5 border-t border-slate-100 font-bold text-blue-800">
+                          <span className="flex items-center gap-1">
+                            <Icon name="straighten" className="text-[13px] text-blue-600" />
+                            Total Tempuh:
+                          </span>
+                          <span className="font-extrabold font-mono text-[12px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/60">
+                            {Number(totalKm).toLocaleString('id-ID')} km
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
               </div>
                {request.qr_code_token && (
                 ["driver_assigned", "on_going"].includes(request.rawStatus) ||
@@ -1013,6 +1163,7 @@ export function RequestDetailModal({
                               time: it.morning_checked_out_at,
                               by: it.morning_checkout_by || request.security_checkout_by,
                               notes: it.morning_checkout_notes || request.security_checkout_notes,
+                              km: it.start_km ?? startKm,
                             });
                           }
                           if (it.morning_checked_in_at || it.morning_status === 'completed') {
@@ -1023,6 +1174,8 @@ export function RequestDetailModal({
                               time: it.morning_checked_in_at || it.updated_at,
                               by: it.morning_checkin_by || (isMorningSecCheckin ? (request.security_checkin_by || "Petugas Security Pos Gerbang") : `${request.employee || 'Pemohon'} (Pemohon / Requestor)`),
                               notes: it.morning_checkin_notes || (isMorningSecCheckin ? null : (it.is_external ? 'Diselesaikan secara mandiri (Sewa Eksternal)' : null)),
+                              km: it.end_km ?? endKm,
+                              total_km: it.total_km ?? totalKm,
                             });
                           }
                           if (it.afternoon_checked_out_at) {
@@ -1032,6 +1185,7 @@ export function RequestDetailModal({
                               time: it.afternoon_checked_out_at,
                               by: it.afternoon_checkout_by || request.security_checkout_by,
                               notes: it.afternoon_checkout_notes || request.security_checkout_notes,
+                              km: it.start_km ?? startKm,
                             });
                           }
                           if (it.afternoon_checked_in_at || it.afternoon_status === 'completed') {
@@ -1042,6 +1196,8 @@ export function RequestDetailModal({
                               time: it.afternoon_checked_in_at || it.updated_at,
                               by: it.afternoon_checkin_by || (isAfternoonSecCheckin ? (request.security_checkin_by || "Petugas Security Pos Gerbang") : `${request.employee || 'Pemohon'} (Pemohon / Requestor)`),
                               notes: it.afternoon_checkin_notes || (isAfternoonSecCheckin ? null : (it.is_external ? 'Diselesaikan secara mandiri (Sewa Eksternal)' : null)),
+                              km: it.end_km ?? endKm,
+                              total_km: it.total_km ?? totalKm,
                             });
                           }
 
@@ -1074,6 +1230,20 @@ export function RequestDetailModal({
                                       {log.by && (
                                         <div className="text-[10.5px] text-slate-600 font-medium pl-4">
                                           Petugas: <span className="font-bold text-slate-700">{log.by}</span>
+                                        </div>
+                                      )}
+                                      {log.km !== undefined && log.km !== null && (
+                                        <div className="text-[10.5px] text-slate-700 font-medium pl-4 flex items-center gap-1">
+                                          <Icon name="speed" className="text-[13px] text-blue-600" />
+                                          <span>KM {log.type === 'checkout' ? 'Berangkat' : 'Kembali'}:</span>
+                                          <span className="font-extrabold font-mono text-slate-900 bg-white px-1.5 py-0.2 rounded border border-slate-200">
+                                            {Number(log.km).toLocaleString('id-ID')} km
+                                          </span>
+                                          {log.total_km ? (
+                                            <span className="text-blue-700 font-bold font-mono text-[10px]">
+                                              (Total: {Number(log.total_km).toLocaleString('id-ID')} km)
+                                            </span>
+                                          ) : null}
                                         </div>
                                       )}
                                       {log.notes && (
@@ -1126,6 +1296,17 @@ export function RequestDetailModal({
                             </span>
                           </div>
                           <div className="text-slate-600 font-semibold text-[11.5px] mt-1">Petugas: <span className="font-bold text-slate-800">{request.security_checkout_by || "Security Pos Gerbang"}</span></div>
+                          {startKm && (
+                            <div className="mt-2 pt-2 border-t border-amber-100 flex items-center justify-between text-[11.5px]">
+                              <span className="text-amber-800 font-semibold flex items-center gap-1">
+                                <Icon name="speed" className="text-[14px] text-amber-600" />
+                                KM Berangkat:
+                              </span>
+                              <span className="font-extrabold font-mono text-amber-950 bg-amber-50 px-2.5 py-0.5 rounded-lg border border-amber-200">
+                                {Number(startKm).toLocaleString('id-ID')} km
+                              </span>
+                            </div>
+                          )}
                           {request.security_checkout_notes && (
                             <div className="mt-1 text-[11px] text-slate-500 italic bg-amber-50/50 p-1.5 rounded-lg border border-amber-100/60">" {request.security_checkout_notes} "</div>
                           )}
@@ -1150,6 +1331,32 @@ export function RequestDetailModal({
                           <div className="text-slate-700 font-semibold text-[11.5px] mt-1">
                             Petugas / Oleh: <span className="font-extrabold text-slate-900">{checkinBy}</span>
                           </div>
+                          {(endKm || totalKm) && (
+                            <div className="mt-2 pt-2 border-t border-emerald-100 space-y-1.5 text-[11.5px]">
+                              {endKm && (
+                                <div className="flex justify-between items-center">
+                                  <span className="text-emerald-800 font-semibold flex items-center gap-1">
+                                    <Icon name="speed" className="text-[14px] text-emerald-600" />
+                                    KM Kembali:
+                                  </span>
+                                  <span className="font-extrabold font-mono text-emerald-950 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+                                    {Number(endKm).toLocaleString('id-ID')} km
+                                  </span>
+                                </div>
+                              )}
+                              {totalKm && (
+                                <div className="flex justify-between items-center font-bold text-blue-900">
+                                  <span className="flex items-center gap-1">
+                                    <Icon name="straighten" className="text-[14px] text-blue-600" />
+                                    Total Tempuh:
+                                  </span>
+                                  <span className="font-extrabold font-mono bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200 text-blue-800">
+                                    {Number(totalKm).toLocaleString('id-ID')} km
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                           {checkinNotes && (
                             <div className="mt-1 text-[11px] text-emerald-800 italic bg-white/80 p-2 rounded-lg border border-emerald-200/60 font-medium">
                               " {checkinNotes} "
@@ -1175,6 +1382,32 @@ export function RequestDetailModal({
                   <div className="relative border-l-2 border-slate-100 pl-4 ml-3 space-y-4">
                     {approvals.map((app: any, idx: number) => {
                       const isApproved = app.status === "approved";
+                      const isGaTeamStep =
+                        app.role === "ga_team" ||
+                        app.role === "GA Team Backup" ||
+                        (app.role === "hrd_head" && request.ga_approval_source === "ga_team") ||
+                        (app.approver?.name && app.approver.name.toLowerCase().includes("gateam"));
+
+                      let roleTitle = getApprovalRoleLabel(app.role);
+                      if (isGaTeamStep) {
+                        roleTitle = "GA Team Backup";
+                      }
+
+                      let approverNameStr = app.approver?.name || "System";
+                      if (isGaTeamStep) {
+                        const specifiedName = request.ga_approved_by_name || request.ga_approved_name;
+                        if (specifiedName) {
+                          approverNameStr = `GA Team oleh ${specifiedName}`;
+                        } else if (approverNameStr.startsWith("GA Team oleh ")) {
+                          // Already formatted
+                        } else if (app.notes && app.notes.includes("oleh ")) {
+                          const extracted = app.notes.split("oleh ")[1];
+                          approverNameStr = `GA Team oleh ${extracted}`;
+                        } else {
+                          approverNameStr = "GA Team (Backup Account)";
+                        }
+                      }
+
                       return (
                         <div key={app.id || idx} className="relative">
                           <div className={`absolute -left-[23px] top-0 w-3.5 h-3.5 rounded-full border-2 border-white flex items-center justify-center ${
@@ -1184,7 +1417,7 @@ export function RequestDetailModal({
                           <div>
                             <div className="flex items-center justify-between">
                               <span className="text-[11.5px] font-bold text-slate-700">
-                                {getApprovalRoleLabel(app.role)}
+                                {roleTitle}
                               </span>
                               <span className={`text-[9px] font-bold uppercase px-1 py-0.2 rounded ${
                                 isApproved ? "text-green-700 bg-green-50" : "text-red-700 bg-red-50"
@@ -1192,8 +1425,8 @@ export function RequestDetailModal({
                                 {app.status === 'approved' ? 'Disetujui' : app.status === 'rejected' ? 'Ditolak' : app.status}
                               </span>
                             </div>
-                            <div className="text-[10px] text-slate-400 mt-0.5">
-                              Oleh: {app.approver?.name || "System"}
+                            <div className="text-[10.5px] text-slate-500 font-medium mt-0.5">
+                              Oleh: <span className="font-bold text-slate-800">{approverNameStr}</span>
                             </div>
                             {app.notes && (
                               <div className="mt-1 text-[11px] text-slate-600 bg-white p-1.5 border border-slate-100 rounded italic">
