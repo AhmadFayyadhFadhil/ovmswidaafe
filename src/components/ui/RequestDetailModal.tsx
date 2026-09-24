@@ -166,27 +166,35 @@ export function RequestDetailModal({
         <head>
           <title>Surat Tugas Perjalanan Operasional #REQ-${esc(request.id)}</title>
           <style>
-            @page { size: A4; margin: 12mm; }
-            body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; margin: 0; padding: 15px; }
-            .document-banner { background: #1e3a8a; color: #ffffff; padding: 16px 20px; border-top-left-radius: 8px; border-top-right-radius: 8px; }
-            .company-name { font-size: 18px; font-weight: 800; margin: 0; letter-spacing: 0.5px; }
-            .system-name { font-size: 10px; font-weight: 600; margin-top: 2px; letter-spacing: 0.5px; text-transform: uppercase; opacity: 0.9; }
-            .doc-sub { font-size: 9px; margin-top: 2px; opacity: 0.8; }
-            .gold-bar { height: 4px; background: #eab308; }
-            .content-body { padding: 18px 20px; border: 1px solid #e2e8f0; border-top: none; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; background: #ffffff; }
-            .doc-header-title { font-size: 14px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
-            .doc-meta { font-size: 10px; color: #64748b; margin-bottom: 16px; }
-            table.data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; }
-            table.data-table th { background: #1e3a8a; color: #ffffff; font-weight: 700; text-align: left; padding: 8px 12px; border: 1px solid #1e3a8a; }
-            table.data-table td { padding: 8px 12px; border: 1px solid #e2e8f0; vertical-align: top; }
-            table.data-table td.param-col { font-weight: 700; background: #f8fafc; color: #475569; width: 32%; }
-            table.data-table td.val-col { color: #0f172a; font-weight: 600; }
-            .qr-card { background: #f8fafc; border: 1px border-dashed #cbd5e1; border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 16px; margin-top: 15px; }
-            .qr-card img { border: 1px solid #e2e8f0; padding: 4px; background: #fff; border-radius: 8px; width: 95px; height: 95px; }
-            .qr-text { font-size: 11px; color: #334155; }
-            .qr-title { font-size: 12px; font-weight: 800; color: #1e3a8a; margin-bottom: 4px; }
-            .token-code { font-family: monospace; font-weight: 800; color: #0f172a; font-size: 11.5px; margin-bottom: 4px; }
-            .footer-sign { display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 20px; font-size: 9.5px; color: #64748b; }
+            @page { size: A4; margin: 10mm; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
+            body { 
+              font-family: Arial, Helvetica, sans-serif !important; 
+              color: #0f172a; 
+              margin: 0; 
+              padding: 10px; 
+              -webkit-font-smoothing: antialiased;
+              text-rendering: optimizeLegibility;
+            }
+            .document-banner { background: #1e3a8a !important; color: #ffffff !important; padding: 14px 18px; border-top-left-radius: 8px; border-top-right-radius: 8px; }
+            .company-name { font-size: 17px; font-weight: bold; margin: 0; letter-spacing: 0.5px; color: #ffffff !important; }
+            .system-name { font-size: 9.5px; font-weight: bold; margin-top: 2px; letter-spacing: 0.5px; text-transform: uppercase; color: #ffffff !important; opacity: 0.9; }
+            .doc-sub { font-size: 8.5px; margin-top: 2px; color: #ffffff !important; opacity: 0.85; }
+            .gold-bar { height: 4px; background: #eab308 !important; }
+            .content-body { padding: 16px 18px; border: 1px solid #e2e8f0; border-top: none; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; background: #ffffff; }
+            .doc-header-title { font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
+            .doc-meta { font-size: 9.5px; color: #64748b; margin-bottom: 14px; }
+            table.data-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 10.5px; }
+            table.data-table th { background: #1e3a8a !important; color: #ffffff !important; font-weight: bold; text-align: left; padding: 7px 10px; border: 1px solid #1e3a8a; }
+            table.data-table td { padding: 7px 10px; border: 1px solid #e2e8f0; vertical-align: top; }
+            table.data-table td.param-col { font-weight: bold; background: #f8fafc !important; color: #475569; width: 32%; }
+            table.data-table td.val-col { color: #0f172a; font-weight: normal; }
+            .qr-card { background: #f8fafc !important; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 14px; margin-top: 14px; }
+            .qr-card img { border: 1px solid #e2e8f0; padding: 3px; background: #fff; border-radius: 6px; width: 85px; height: 85px; }
+            .qr-text { font-size: 10.5px; color: #334155; }
+            .qr-title { font-size: 11px; font-weight: bold; color: #1e3a8a; margin-bottom: 3px; }
+            .token-code { font-family: 'Courier New', Courier, monospace; font-weight: bold; color: #0f172a; font-size: 11px; margin-bottom: 3px; }
+            .footer-sign { display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 16px; font-size: 9px; color: #64748b; }
           </style>
         </head>
         <body>
