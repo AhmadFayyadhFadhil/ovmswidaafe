@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { auditLogService } from "@/services/modules/auditLogService";
-import { exportToCSV } from "@/utils/exportHelper";
+import { exportToExcel } from "@/utils/exportHelper";
 import { formatDateTime } from "@/utils/formatDate";
 
 // ── Severity styling ──────────────────────────
@@ -254,7 +254,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
   ], [cardCounts]);
 
   const filtered = useMemo(() => {
-    return LOGS.filter((l: any, idx: number) => {
+    return LOGS.filter((l: any) => {
       // 0. Card Filter Category with guaranteed 100% exact match to card count
       if (cardFilter !== "ALL") {
         if (!matchAuditCategory(l, cardFilter)) return false;
@@ -331,18 +331,19 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
             )}
             <button
               onClick={() => {
-                const csvData = filtered.map(l => ({
-                  ID: l.id,
-                  Pengguna: l.name,
-                  Peran: l.role,
-                  Tipe_Aktivitas: l.activity,
-                  Aksi: l.action,
-                  Departemen: l.department,
-                  Tingkat_Keparahan: SEV_LABEL[l.severity] || l.severity,
-                  Alamat_IP: l.email,
-                  Waktu: l.time,
-                }));
-                exportToCSV(csvData, `audit_logs_${cardFilter.toLowerCase()}`);
+                const headers = ["ID", "Pengguna", "Peran", "Tipe Aktivitas", "Aksi", "Departemen", "Tingkat Keparahan", "Alamat IP", "Waktu"];
+                const rows = filtered.map((l: any) => [
+                  l.id,
+                  l.name,
+                  l.role,
+                  l.activity,
+                  l.action,
+                  l.department,
+                  SEV_LABEL[l.severity] || l.severity,
+                  l.email,
+                  l.time,
+                ]);
+                exportToExcel(`audit_logs_${cardFilter.toLowerCase()}.xlsx`, headers, rows, "Audit Logs");
               }}
               className="flex items-center gap-1.5 h-9 px-5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl text-[12px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
             >

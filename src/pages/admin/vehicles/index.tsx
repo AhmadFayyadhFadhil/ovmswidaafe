@@ -17,10 +17,6 @@ const getVehicleImage = (imageType: string) => {
   return map[imageType] || map.generic;
 };
 
-const getStatusColor = (status: string) => {
-  return status === "AVAILABLE" ? "bg-[#dcfce7] text-[#16a34a]" : "bg-[#dbeafe] text-[#1d4ed8]";
-};
-
 export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => void }) {
   const { user } = useAuthContext();
   const isDriverCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));

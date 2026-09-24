@@ -375,7 +375,7 @@ export const requestService = {
       message: res.data?.message
     };
   },
-  approve: async (id: string, notes?: string, role?: string, approvedByName?: string): Promise<ApiResponse<FleetRequest>> => {
+  approve: async (id: string, notes?: string, role?: string, approvedByName?: string): Promise<ApiResponse<FleetRequest | undefined>> => {
     requestCache = null;
     const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/approve`, { notes, role, approved_by_name: approvedByName });
     return {

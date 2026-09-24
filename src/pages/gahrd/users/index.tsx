@@ -348,12 +348,7 @@ export default function GAHRDUsersPage() {
 
     setDeleteModal(prev => ({ ...prev, deleting: true, error: null }));
     try {
-      await userService.delete(deleteModal.user.id, {
-        fullName: deleteModal.user.name,
-        email: deleteModal.user.email,
-        roleName: deleteModal.user.roles[0],
-        department_id: deleteModal.user.department_id,
-      });
+      await userService.delete(deleteModal.user.id);
       showToast(`Pengguna ${deleteModal.user.name} berhasil dihapus/dinonaktifkan.`);
       setDeleteModal({ isOpen: false, user: null, deleting: false, error: null });
       fetchUsers();

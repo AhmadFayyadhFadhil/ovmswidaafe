@@ -290,10 +290,9 @@ export function RequestDetailModal({
     user?.id === request.userId ||
     user?.id === request.user_id ||
     user?.id === request.requestedById ||
-    user?.role === "GA" ||
-    user?.role === "Administrator" ||
-    user?.role === "Superadmin" ||
-    user?.role === "HRD"
+    user?.role === "gahrd" ||
+    user?.role === "admin" ||
+    user?.roles?.some(r => ["GA", "Admin", "HRD", "Superadmin"].includes(r))
   );
 
   const handleConfirmCompleteSubmit = async (e: React.FormEvent) => {
