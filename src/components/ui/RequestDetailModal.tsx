@@ -107,180 +107,7 @@ export function RequestDetailModal({
     }
   };
 
-  const handlePrint = () => {
-    const esc = (s: any) => {
-      if (s === undefined || s === null) return "";
-      return String(s)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    };
 
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-    iframe.style.visibility = "hidden";
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document || iframe.contentDocument;
-    if (!doc) return;
-
-    const rawSt = String(request.rawStatus || request.status || "APPROVED").toLowerCase();
-    const idnStatus = rawSt === "completed" ? "SELESAI" : (rawSt === "on_going" ? "SEDANG PERJALANAN" : (rawSt === "rejected" ? "DITOLAK" : (rawSt === "cancelled" ? "DIBATALKAN" : "DISETUJUI / TERJADWAL")));
-
-    const passengerLines = (Array.isArray(request.passengers) && request.passengers.length > 0)
-      ? request.passengers.map((p: any, i: number) => {
-          const isPic = (p.is_pic === true || p.is_pic === 1 || p.is_pic === '1' || i === 0);
-          const picBadge = isPic ? " (PIC Penumpang)" : "";
-          const dept = p.department_name || p.department_id || request.department || "";
-          return `${i + 1}. ${esc(p.name)}${dept ? ` - ${esc(dept)}` : ""}${picBadge}`;
-        }).join("<br/>")
-      : `1. ${esc(request.employee || "Pemohon")} - ${esc(request.department || "General")} (PIC Penumpang)`;
-
-    const approvalLines = (Array.isArray(request.approvals) && request.approvals.length > 0)
-      ? request.approvals.map((app: any) => {
-          const isGaTeamStep = app.role === "ga_team" || app.role === "GA Team Backup" || (app.role === "hrd_head" && request.ga_approval_source === "ga_team");
-          const roleName = isGaTeamStep ? "GA Team Backup" : (app.role === "dept_head" ? "Dep Head" : "GA Head");
-          let approverName = app.approver?.name || "System";
-          if (isGaTeamStep) {
-            const spec = request.ga_approved_by_name || request.ga_approved_name;
-            approverName = spec ? `GA Team oleh ${spec}` : "GA Team Backup";
-          }
-          return `${esc(roleName)}: ${app.status === 'approved' ? 'Disetujui' : esc(app.status)} (${esc(approverName)})`;
-        }).join("<br/>")
-      : esc(request.ga_approval_display_text || `Disetujui oleh GA Coordinator (${request.ga_approved_by_name || "Melodi Bella Astria"})`);
-
-    const qrToken = request.qr_code_token || `REQ-${request.id}`;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${qrToken}`)}`;
-
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Surat Tugas Perjalanan Operasional #REQ-${esc(request.id)}</title>
-          <style>
-            @page { size: A4; margin: 0; }
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
-            body { 
-              font-family: Arial, Helvetica, sans-serif !important; 
-              color: #0f172a; 
-              margin: 0; 
-              padding: 12mm 15mm; 
-              -webkit-font-smoothing: antialiased;
-              text-rendering: optimizeLegibility;
-            }
-            .document-banner { background: #1e3a8a !important; color: #ffffff !important; padding: 14px 18px; border-top-left-radius: 8px; border-top-right-radius: 8px; }
-            .company-name { font-size: 17px; font-weight: bold; margin: 0; letter-spacing: 0.5px; color: #ffffff !important; }
-            .system-name { font-size: 9.5px; font-weight: bold; margin-top: 2px; letter-spacing: 0.5px; text-transform: uppercase; color: #ffffff !important; }
-            .doc-sub { font-size: 9px; margin-top: 3px; color: #e2e8f0 !important; font-weight: normal; }
-            .gold-bar { height: 4px; background: #eab308 !important; }
-            .content-body { padding: 16px 18px; border: 1px solid #e2e8f0; border-top: none; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; background: #ffffff; }
-            .doc-header-title { font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
-            .doc-meta { font-size: 9.5px; color: #64748b; margin-bottom: 14px; }
-            table.data-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 10.5px; }
-            table.data-table th { background: #1e3a8a !important; color: #ffffff !important; font-weight: bold; text-align: left; padding: 7px 10px; border: 1px solid #1e3a8a; }
-            table.data-table td { padding: 7px 10px; border: 1px solid #e2e8f0; vertical-align: top; }
-            table.data-table td.param-col { font-weight: bold; background: #f8fafc !important; color: #475569; width: 32%; }
-            table.data-table td.val-col { color: #0f172a; font-weight: normal; }
-            .qr-card { background: #f8fafc !important; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 14px; margin-top: 14px; }
-            .qr-card img { border: 1px solid #e2e8f0; padding: 3px; background: #fff; border-radius: 6px; width: 85px; height: 85px; }
-            .qr-text { font-size: 10.5px; color: #334155; }
-            .qr-title { font-size: 11px; font-weight: bold; color: #1e3a8a; margin-bottom: 3px; }
-            .token-code { font-family: 'Courier New', Courier, monospace; font-weight: bold; color: #0f172a; font-size: 11px; margin-bottom: 3px; }
-            .footer-sign { display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 16px; font-size: 9px; color: #64748b; }
-          </style>
-        </head>
-        <body>
-          <div class="document-banner">
-            <h1 class="company-name">PT. WIDATRA BHAKTI</h1>
-            <div class="system-name">OPERATIONAL VEHICLE MANAGEMENT SYSTEM (OVMS)</div>
-            <div class="doc-sub">Dokumen Resmi Penugasan &amp; Keputusan Perjalanan Operasional</div>
-          </div>
-          <div class="gold-bar"></div>
-          <div class="content-body">
-            <div class="doc-header-title">SURAT TUGAS PERJALANAN OPERASIONAL (#REQ-${esc(request.id)})</div>
-            <div class="doc-meta">Waktu Cetak: ${new Date().toLocaleString("id-ID")} WIB &nbsp;|&nbsp; Status: VERIFIED &amp; OFFICIAL</div>
-
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>PARAMETER DOKUMEN</th>
-                  <th>DETAIL INFORMASI &amp; SPESIFIKASI</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td class="param-col">ID PERMOHONAN</td><td class="val-col">#REQ-${esc(request.id)}</td></tr>
-                <tr><td class="param-col">STATUS PERJALANAN</td><td class="val-col">${esc(idnStatus)}</td></tr>
-                <tr><td class="param-col">NAMA PEMOHON</td><td class="val-col">${esc(request.employee)} (${esc(request.department)})</td></tr>
-                <tr><td class="param-col">NO. HP / WA PEMOHON</td><td class="val-col">${esc(request.userPhone || request.email || "-")}</td></tr>
-                <tr><td class="param-col">TUJUAN PERJALANAN</td><td class="val-col">${esc(request.destination)}</td></tr>
-                <tr><td class="param-col">JADWAL KEBERANGKATAN</td><td class="val-col">${esc(request.date)} ${esc(request.time || "09:00")}</td></tr>
-                <tr><td class="param-col">TIPE PERMOHONAN</td><td class="val-col">${Array.isArray(request.itineraries) && request.itineraries.length > 0 ? `Multi-Day Itinerary (${request.itineraries.length} Hari)` : (request.is_external ? "Pihak Ketiga (Sewa Eksternal)" : "Armada Internal")}</td></tr>
-                <tr><td class="param-col">DRIVER / PENGEMUDI</td><td class="val-col">${request.is_external ? esc(request.external_driver_name || "Sewa Eksternal") : esc(request.driverName || "Driver Internal")}</td></tr>
-                <tr><td class="param-col">KENDARAAN / ARMADA</td><td class="val-col">${request.is_external ? (request.external_provider ? `Sewa (${esc(request.external_provider)})` : "Sewa Eksternal") : esc(request.vehicleModel || "Armada Internal")}</td></tr>
-                <tr><td class="param-col">KEPERLUAN PERJALANAN</td><td class="val-col">${esc(request.purpose || "-")}</td></tr>
-                <tr><td class="param-col">DAFTAR PENUMPANG (${esc(request.passengerCount || 1)} ORANG)</td><td class="val-col">${passengerLines}</td></tr>
-                <tr><td class="param-col">CATATAN / GA NOTES</td><td class="val-col">${esc(request.notes || "-")}</td></tr>
-                <tr><td class="param-col">RIWAYAT PERSETUJUAN</td><td class="val-col">${approvalLines}</td></tr>
-                ${(startKm || endKm) ? `
-                <tr>
-                  <td class="param-col">DATA ODOMETER PERJALANAN</td>
-                  <td class="val-col">
-                    KM Keluar: <strong>${startKm ? Number(startKm).toLocaleString('id-ID') + ' km' : '-'}</strong> &nbsp;|&nbsp; 
-                    KM Masuk: <strong>${endKm ? Number(endKm).toLocaleString('id-ID') + ' km' : '-'}</strong> &nbsp;|&nbsp; 
-                    Total Tempuh: <strong style="color: #1e3a8a;">${totalKm ? Number(totalKm).toLocaleString('id-ID') + ' km' : '-'}</strong>
-                  </td>
-                </tr>` : ''}
-              </tbody>
-            </table>
-
-            <div class="qr-card">
-              <div class="qr-code">
-                <img src="${qrUrl}" alt="QR Code Validasi" />
-              </div>
-              <div class="qr-text">
-                <div class="qr-title">QR CODE TIKET VERIFIKASI SECURITY POS GERBANG</div>
-                <div class="token-code">Token Verifikasi: ${esc(qrToken)}</div>
-                <div>Tunjukkan QR Code ini kepada Petugas Pos Security saat Keluar / Masuk Gerbang.</div>
-              </div>
-            </div>
-
-            <div class="footer-sign">
-              <div>
-                <strong>Disetujui Oleh System OVMS</strong><br/>
-                PT Widatra Bhakti Operational Command
-              </div>
-              <div style="text-align: right;">
-                <strong>Tanda Tangan Digital / QR Verified</strong><br/>
-                PT. WIDATRA BHAKTI AUTHORIZED
-              </div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `);
-    doc.close();
-
-    setTimeout(() => {
-      try {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-      } catch (e) {
-        console.error("Print window error", e);
-      } finally {
-        setTimeout(() => {
-          if (document.body.contains(iframe)) document.body.removeChild(iframe);
-        }, 3000);
-      }
-    }, 300);
-  };
 
   const handleConfirmRejectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -345,29 +172,15 @@ export function RequestDetailModal({
             )}
           </div>
           <div className="flex items-center justify-end gap-1.5 shrink-0 self-end sm:self-auto">
-            {/* Direct PDF Download Button */}
+            {/* Direct Official PDF Download */}
             <button
               onClick={() => exportRequestPDF(request)}
-              title="Unduh PDF Surat Tugas (1-Sentuh)"
+              title="Unduh Surat Tugas (PDF Resmi)"
               className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors text-[11px] font-bold cursor-pointer shadow-2xs"
             >
               <Icon name="picture_as_pdf" className="text-[15px] text-red-600" />
-              <span>Unduh PDF</span>
+              <span>Unduh Surat Tugas</span>
             </button>
-
-            {/* Print Ticket Button */}
-            {request.qr_code_token && (
-              ["driver_assigned", "on_going", "completed"].includes(request.rawStatus) ||
-              (request.is_external && request.rawStatus === "assigned_by_ga")
-            ) && (
-              <button
-                onClick={handlePrint}
-                title="Cetak Tiket / Surat Tugas"
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors flex items-center justify-center cursor-pointer"
-              >
-                <Icon name="print" className="text-[19px]" />
-              </button>
-            )}
             <button
               onClick={onClose}
               className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center cursor-pointer"
