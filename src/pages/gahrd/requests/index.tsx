@@ -5,6 +5,7 @@ import { requestService, mapRequestFromBackend } from "@/services/modules/reques
 import { driverService } from "@/services/modules/driverService";
 import { vehicleService } from "@/services/modules/vehicleService";
 import { userService } from "@/services/modules/userService";
+import { assignmentService } from "@/services/modules/assignmentService";
 import { gaTeamApproverService } from "@/services/modules/gaTeamApproverService";
 import { useAuthContext } from "@/auth/authContext";
 import { RequestDetailModal } from "@/components/ui/RequestDetailModal";
