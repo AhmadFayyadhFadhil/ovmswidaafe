@@ -166,20 +166,20 @@ export function RequestDetailModal({
         <head>
           <title>Surat Tugas Perjalanan Operasional #REQ-${esc(request.id)}</title>
           <style>
-            @page { size: A4; margin: 10mm; }
+            @page { size: A4; margin: 0; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
             body { 
               font-family: Arial, Helvetica, sans-serif !important; 
               color: #0f172a; 
               margin: 0; 
-              padding: 10px; 
+              padding: 12mm 15mm; 
               -webkit-font-smoothing: antialiased;
               text-rendering: optimizeLegibility;
             }
             .document-banner { background: #1e3a8a !important; color: #ffffff !important; padding: 14px 18px; border-top-left-radius: 8px; border-top-right-radius: 8px; }
             .company-name { font-size: 17px; font-weight: bold; margin: 0; letter-spacing: 0.5px; color: #ffffff !important; }
-            .system-name { font-size: 9.5px; font-weight: bold; margin-top: 2px; letter-spacing: 0.5px; text-transform: uppercase; color: #ffffff !important; opacity: 0.9; }
-            .doc-sub { font-size: 8.5px; margin-top: 2px; color: #ffffff !important; opacity: 0.85; }
+            .system-name { font-size: 9.5px; font-weight: bold; margin-top: 2px; letter-spacing: 0.5px; text-transform: uppercase; color: #ffffff !important; }
+            .doc-sub { font-size: 9px; margin-top: 3px; color: #e2e8f0 !important; font-weight: normal; }
             .gold-bar { height: 4px; background: #eab308 !important; }
             .content-body { padding: 16px 18px; border: 1px solid #e2e8f0; border-top: none; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; background: #ffffff; }
             .doc-header-title { font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
