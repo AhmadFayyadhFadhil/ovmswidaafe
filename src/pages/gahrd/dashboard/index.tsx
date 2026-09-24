@@ -277,7 +277,7 @@ export default function GAHRDDashboard({ onNavigate }: { onNavigate: (p: string)
                           <div className="text-[10px] text-[#94a3b8]">DRV-{d.id}{d.dest ? ` · ${d.dest}` : ""}</div>
                         </div>
                         <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex-shrink-0 ${badgeClass}`}>
-                          {d.status === "AVAILABLE" ? "Tersedia" : d.status === "ON DUTY" ? "Bertugas" : d.status === "OFF" ? "Lepas Dinas" : d.status}
+                          {d.status === "AVAILABLE" ? "Tersedia" : d.status === "ON DUTY" ? "Bertugas" : d.status === "OFF DUTY" ? "Lepas Dinas" : d.status}
                         </span>
                       </div>
                     );

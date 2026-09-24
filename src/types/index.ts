@@ -208,6 +208,8 @@ export interface SystemNotification {
   isRead: boolean;
   metadata?: string;
   userInitiated?: string;
+  timestamp?: string;
+  actionUrl?: string;
 }
 
 export interface AuditLog {

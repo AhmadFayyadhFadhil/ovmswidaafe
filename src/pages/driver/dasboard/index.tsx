@@ -43,7 +43,7 @@ function PriBadge({ p }: { p: string }) {
 }
 
 function RequestCard({
-  req, onApprove, onReject, onViewDetail,
+  req, onApprove: _onApprove, onReject: _onReject, onViewDetail,
 }: { req: Assignment; onApprove: (id: string) => void; onReject: (id: string) => void; onViewDetail: (reqId: string) => void }) {
   return (
     <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 flex flex-col gap-4 hover:border-[#c7d7f7] hover:shadow-sm transition-all">

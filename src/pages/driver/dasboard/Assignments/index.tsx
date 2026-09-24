@@ -47,7 +47,7 @@ function ReqIdBadge({ id }: { id: string }) {
 }
 
 function AssignmentCard({
-  req, isPending, onApprove, onReject, onViewDetail, onStartTrip: _onStartTrip, onCompleteTrip: _onCompleteTrip
+  req, isPending: _isPending, onApprove: _onApprove, onReject: _onReject, onViewDetail, onStartTrip: _onStartTrip, onCompleteTrip: _onCompleteTrip
 }: {
   req: Assignment;
   isPending: boolean;
