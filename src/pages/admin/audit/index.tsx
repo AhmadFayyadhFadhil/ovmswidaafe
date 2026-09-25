@@ -427,6 +427,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
                 <option value="Regulatory Affairs & PV">Regulatory Affairs & PV</option>
                 <option value="Supply Chain">Supply Chain</option>
                 <option value="Technical and Development">Technical and Development</option>
+                <option value="Outsource / Tamu">Outsource / Tamu</option>
                 <option value="Driver">Driver</option>
               </select>
               <button onClick={() => { setCardFilter("ALL"); setSeverityF("All"); setUserRoleF("All"); setDepartmentF("All"); setSearch(""); setCurrentPage(1); }}
