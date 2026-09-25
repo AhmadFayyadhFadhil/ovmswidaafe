@@ -57,8 +57,9 @@ export default function MyProfilePage({ onNavigate }: Props) {
     employee: "Dashboard Karyawan"
   };
 
-  const displayRole = roleDisplayMap[user?.role || "employee"] || "Karyawan";
-  const displayTitle = dashboardTitleMap[user?.role || "employee"] || "Dashboard Karyawan";
+  const isPlantManagement = (user?.department_name === "Plant Management" || String(user?.department_id) === "11" || department === "Plant Management");
+  const displayRole = isPlantManagement ? "Plant Management" : (roleDisplayMap[user?.role || "employee"] || "Karyawan");
+  const displayTitle = isPlantManagement ? "Dashboard Plant Management" : (dashboardTitleMap[user?.role || "employee"] || "Dashboard Karyawan");
 
   const loadData = async () => {
     setLoading(true);
@@ -85,11 +86,30 @@ export default function MyProfilePage({ onNavigate }: Props) {
         const officialDeptName = u.department_name 
           || (typeof u.department === 'object' ? u.department?.name : u.department)
           || (foundDept ? foundDept.name : null)
-          || "Plant Management";
+          || (String(u.department_id) === '11' ? 'Plant Management' : '')
+          || (user?.department_name || "-");
 
         setDepartment(officialDeptName);
         setPhone(u.phone || "+62 812-3456-7890");
-        setPosition(u.position || (u.roles?.[0] ? u.roles[0].toUpperCase() : "Staff"));
+
+        const rawRole = (u.roles?.[0] || user?.role || "Employee").toLowerCase();
+        let displayPosition = u.rank || u.position || "";
+        if (!displayPosition) {
+          if (officialDeptName === "Plant Management") {
+            displayPosition = "Plant Management";
+          } else if (rawRole === "employee") {
+            displayPosition = "Karyawan / Staff";
+          } else if (rawRole === "approver") {
+            displayPosition = "Approver (Atasan)";
+          } else if (rawRole === "gahrd" || rawRole === "ga") {
+            displayPosition = "GA & HRD";
+          } else if (rawRole === "driver") {
+            displayPosition = "Driver";
+          } else {
+            displayPosition = rawRole.toUpperCase();
+          }
+        }
+        setPosition(displayPosition);
         setLocation(u.location && !u.location.includes("Jakarta") ? u.location : "Pandaan Head Office");
         setAvatar(u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || "User")}&background=00236f&color=fff&size=120`);
         setSimPhotoUrl(u.sim_a_photo_url || null);
