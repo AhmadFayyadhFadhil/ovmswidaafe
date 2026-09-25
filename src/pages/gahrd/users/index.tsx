@@ -245,6 +245,9 @@ export default function GAHRDUsersPage() {
       formData.append("email", addForm.email.trim());
       formData.append("password", addForm.password);
       formData.append("role", addForm.role);
+      if (addForm.department_id) formData.append("department_id", addForm.department_id);
+      if (addForm.rank?.trim()) formData.append("rank", addForm.rank.trim());
+      formData.append("is_department_head", addForm.is_department_head ? "1" : "0");
       if (addForm.role === "Driver" || addForm.role === "Driver Coordinator") {
         formData.append("sim_type", addForm.sim_type || "SIM A");
         if (addForm.sim_number.trim()) formData.append("sim_number", addForm.sim_number.trim());

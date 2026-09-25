@@ -25,7 +25,8 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
 
   const displayUserName = user?.name || userName || "User";
   const displayUserRole = user?.role ? (roleDisplayMap[user.role] || user.role) : (userRole || "User");
-  const displayUserSubtitle = user?.department_name || displayUserRole;
+  const resolvedDept = user?.department_name || (String(user?.department_id) === '11' ? 'Plant Management' : '');
+  const displayUserSubtitle = resolvedDept || (userRole && userRole !== "User" && userRole !== "Karyawan" ? userRole : displayUserRole);
 
   const handleNavigate = (page: string) => {
     if (onNavigate) {

@@ -12,6 +12,7 @@ export interface AuthUser {
   token: string;
   department_id?: string | number;
   department_name?: string;
+  rank?: string;
   is_department_head?: boolean;
   is_driver_coordinator?: boolean;
   availability_status?: 'available' | 'unavailable' | 'on_trip' | 'assigned';
