@@ -16,6 +16,20 @@ dist-ssr
 .env.*
 !.env.example
 
+# SSL Certificates and Keys
+*.pem
+*.key
+*.crt
+*.pfx
+*.p12
+
+# Archives / Compressed files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
