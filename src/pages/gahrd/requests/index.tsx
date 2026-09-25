@@ -155,6 +155,12 @@ export default function GAHRDRequestsPage() {
     user?.name?.toLowerCase().includes("ga team")
   );
 
+  const isMelodiOrAdmin = !!(
+    user?.role?.toLowerCase() === "admin" ||
+    user?.name?.toLowerCase().includes("melodi") ||
+    user?.email?.toLowerCase().includes("melodi")
+  );
+
   // Approve Review Modal States (Pengecekan Alokasi Sebelum Persetujuan GA)
   const [isApproveReviewModalOpen, setIsApproveReviewModalOpen] = useState(false);
   const [approveReviewRequest, setApproveReviewRequest] = useState<any | null>(null);
@@ -930,12 +936,14 @@ export default function GAHRDRequestsPage() {
           </div>
           {!isApprover && !isCoordinator && (
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsMasterModalOpen(true)}
-                className="flex items-center gap-2 h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
-              >
-                <Icon name="badge" className="text-[17px]" /> Kelola Master Penyetujui
-              </button>
+              {isMelodiOrAdmin && (
+                <button
+                  onClick={() => setIsMasterModalOpen(true)}
+                  className="flex items-center gap-2 h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+                >
+                  <Icon name="badge" className="text-[17px]" /> Kelola Master Penyetujui
+                </button>
+              )}
               <button
                 onClick={() => navigate("/gahrd/requests/urgent")}
                 className="flex items-center gap-2 h-10 px-5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[13px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
@@ -2562,19 +2570,9 @@ export default function GAHRDRequestsPage() {
               {/* GA Team Backup Approver Name Combobox */}
               {isGaTeamAccount && (
                 <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-blue-900 font-bold text-[12px]">
-                      <Icon name="badge" className="text-blue-700 text-[18px]" />
-                      <span>Otoritas Penyetujui / Atas Nama (Akun GA Team Backup)</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsMasterModalOpen(true)}
-                      className="text-[11px] font-bold text-blue-700 hover:text-blue-900 underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <Icon name="settings" className="text-xs" />
-                      Kelola Master Data
-                    </button>
+                  <div className="flex items-center gap-2 text-blue-900 font-bold text-[12px]">
+                    <Icon name="badge" className="text-blue-700 text-[18px]" />
+                    <span>Otoritas Penyetujui / Atas Nama (Akun GA Team Backup)</span>
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-slate-600 mb-1">
