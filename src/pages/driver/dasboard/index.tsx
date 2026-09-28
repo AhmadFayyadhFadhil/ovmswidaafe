@@ -186,6 +186,8 @@ export default function DriverDashboard() {
   const [isEditingStartKm, setIsEditingStartKm] = useState(false);
   const [isSavingStartKm, setIsSavingStartKm] = useState(false);
   const [endKmInput, setEndKmInput] = useState<string>("");
+  const [isEditingEndKm, setIsEditingEndKm] = useState(false);
+  const [isSavingEndKm, setIsSavingEndKm] = useState(false);
 
   const handleSaveStartKm = async (reqId: string | number, kmStr: string, minKm?: number | null) => {
     const cleaned = kmStr.replace(/[^\d]/g, '');
@@ -208,6 +210,31 @@ export default function DriverDashboard() {
       alert(err.response?.data?.message || "Gagal menyimpan kilometer awal.");
     } finally {
       setIsSavingStartKm(false);
+    }
+  };
+
+  const handleSaveEndKm = async (reqId: string | number, kmStr: string, minKm?: number | null) => {
+    const cleaned = kmStr.replace(/[^\d]/g, '');
+    const kmNum = cleaned ? parseInt(cleaned, 10) : NaN;
+    if (isNaN(kmNum) || kmNum < 0) {
+      alert("Masukkan angka kilometer akhir yang valid!");
+      return;
+    }
+    if (minKm !== undefined && minKm !== null && minKm > 0 && kmNum < minKm) {
+      alert(`KM Akhir (${kmNum.toLocaleString('id-ID')} KM) tidak boleh lebih kecil dari KM Awal (${minKm.toLocaleString('id-ID')} KM)!`);
+      return;
+    }
+    setIsSavingEndKm(true);
+    try {
+      await requestService.recordEndKm(String(reqId), kmNum);
+      setIsEditingEndKm(false);
+      setEndKmInput("");
+      await fetchData(true);
+      alert("Kilometer akhir berhasil disimpan!");
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Gagal menyimpan kilometer akhir.");
+    } finally {
+      setIsSavingEndKm(false);
     }
   };
   
@@ -912,27 +939,168 @@ export default function DriverDashboard() {
                           );
                         }
 
+                        const recordedEndKm = 
+                          (activeItineraryForDriver && activeItineraryForDriver.end_km) ??
+                          currentTrip.end_km ??
+                          currentTrip.operational_trip?.end_km ??
+                          (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id))?.end_km) ??
+                          null;
+                        const hasRecordedEndKm = Boolean(recordedEndKm && Number(recordedEndKm) > 0);
+                        const isCheckedInBySecurity = Boolean(currentTrip.security_checked_in_at);
+
+                        // Opsi B Flow 1: If security already scanned check-in at gate, driver MUST input KM Akhir to complete
+                        if (driverTripStatus === "on_going" && isCheckedInBySecurity && (!hasRecordedEndKm || isEditingEndKm)) {
+                          return (
+                            <div className="bg-[#102447] border border-emerald-400/60 p-4 rounded-2xl flex flex-col items-center gap-2.5 w-full max-w-[280px] text-center shadow-lg animate-fadein">
+                              <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                                <Icon name="check_circle" className="text-[20px]" />
+                              </div>
+                              <div>
+                                <div className="text-[12.5px] font-bold text-emerald-300">
+                                  Kendaraan Telah Masuk Gate
+                                </div>
+                                <p className="text-[11px] text-slate-300 mt-0.5 leading-snug">
+                                  Masukkan KM akhir spidometer untuk menyelesaikan perjalanan:
+                                </p>
+                              </div>
+                              <div className="w-full space-y-1.5">
+                                <div className="flex items-center gap-1.5 w-full">
+                                  <input
+                                    type="number"
+                                    min={recordedStartKm ? Number(recordedStartKm) : 0}
+                                    value={endKmInput}
+                                    onChange={(e) => setEndKmInput(e.target.value)}
+                                    placeholder={recordedStartKm ? `Min: ${Number(recordedStartKm).toLocaleString('id-ID')}` : "Contoh: 45315"}
+                                    className="w-full h-9 px-3 bg-white text-slate-900 rounded-xl text-[13px] font-bold text-center focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                  />
+                                  <span className="text-[11px] font-bold text-slate-300">KM</span>
+                                </div>
+
+                                {(() => {
+                                  const minKm = recordedStartKm ? Number(recordedStartKm) : 0;
+                                  const cleaned = endKmInput.replace(/[^\d]/g, '');
+                                  const curVal = cleaned ? parseInt(cleaned, 10) : NaN;
+                                  if (!isNaN(curVal) && minKm > 0 && curVal < minKm) {
+                                    return (
+                                      <div className="text-[10px] text-red-400 font-bold flex items-center justify-center gap-1 px-1">
+                                        <Icon name="error" className="text-[12px] shrink-0" />
+                                        <span>Minimal KM Akhir: {Number(recordedStartKm).toLocaleString('id-ID')} KM</span>
+                                      </div>
+                                    );
+                                  }
+                                  if (!isNaN(curVal) && curVal >= minKm && curVal > 0) {
+                                    return (
+                                      <div className="text-[10px] text-emerald-400 font-bold flex items-center justify-center gap-1 px-1">
+                                        <Icon name="check_circle" className="text-[12px] shrink-0" />
+                                        <span>Jarak: {(curVal - minKm).toLocaleString('id-ID')} KM</span>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                              </div>
+                              <button
+                                type="button"
+                                disabled={(() => {
+                                  if (isSavingEndKm) return true;
+                                  const minKm = recordedStartKm ? Number(recordedStartKm) : 0;
+                                  const cleaned = endKmInput.replace(/[^\d]/g, '');
+                                  const curVal = cleaned ? parseInt(cleaned, 10) : NaN;
+                                  return isNaN(curVal) || (minKm > 0 && curVal < minKm);
+                                })()}
+                                onClick={() => {
+                                  const minKm = recordedStartKm ? Number(recordedStartKm) : 0;
+                                  handleSaveEndKm(currentTrip.id, endKmInput, minKm);
+                                }}
+                                className="w-full h-9 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+                              >
+                                <Icon name="flag" className="text-[14px]" />
+                                <span>{isSavingEndKm ? "Menyelesaikan..." : "Selesaikan Perjalanan"}</span>
+                              </button>
+                            </div>
+                          );
+                        }
+
+                        // Otherwise show normal Gate QR Code with KM Awal & optional pre-fill KM Akhir
                         return (
                           <div className="flex flex-col items-center gap-2 animate-fadein">
-                            <div className="flex items-center justify-between w-full px-1">
-                              <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-500/40 px-2.5 py-1 rounded-xl shadow-xs">
-                                <Icon name="check_circle" className="text-[13px]" />
-                                <span>KM Awal: {Number(recordedStartKm).toLocaleString('id-ID')} KM</span>
+                            <div className="flex flex-col gap-1 w-full px-1">
+                              <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-500/40 px-2.5 py-1 rounded-xl shadow-xs">
+                                  <Icon name="check_circle" className="text-[13px]" />
+                                  <span>KM Awal: {Number(recordedStartKm).toLocaleString('id-ID')} KM</span>
+                                </div>
+                                {!currentTrip.security_checked_out_at && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setStartKmInput(String(recordedStartKm));
+                                      setIsEditingStartKm(true);
+                                    }}
+                                    className="text-[11px] font-bold text-blue-300 hover:text-white underline cursor-pointer ml-2"
+                                    title="Klik untuk mengubah KM awal jika ada kesalahan ketik"
+                                  >
+                                    Ubah
+                                  </button>
+                                )}
                               </div>
-                              {!currentTrip.security_checked_out_at && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setStartKmInput(String(recordedStartKm));
-                                    setIsEditingStartKm(true);
-                                  }}
-                                  className="text-[11px] font-bold text-blue-300 hover:text-white underline cursor-pointer ml-2"
-                                  title="Klik untuk mengubah KM awal jika ada kesalahan ketik"
-                                >
-                                  Ubah
-                                </button>
+
+                              {/* If driver pre-filled end_km before reaching gate */}
+                              {driverTripStatus === "on_going" && hasRecordedEndKm && !isEditingEndKm && (
+                                <div className="flex items-center justify-between w-full mt-1">
+                                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-cyan-300 bg-cyan-950/70 border border-cyan-500/40 px-2.5 py-1 rounded-xl shadow-xs">
+                                    <Icon name="speed" className="text-[13px]" />
+                                    <span>KM Akhir: {Number(recordedEndKm).toLocaleString('id-ID')} KM</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEndKmInput(String(recordedEndKm));
+                                      setIsEditingEndKm(true);
+                                    }}
+                                    className="text-[11px] font-bold text-cyan-300 hover:text-white underline cursor-pointer ml-2"
+                                    title="Klik untuk mengubah KM akhir"
+                                  >
+                                    Ubah
+                                  </button>
+                                </div>
                               )}
                             </div>
+
+                            {/* Pre-gate End KM Input form if driver toggles it */}
+                            {driverTripStatus === "on_going" && !isCheckedInBySecurity && isEditingEndKm && (
+                              <div className="w-full bg-[#102447] border border-cyan-400/50 p-2.5 rounded-xl space-y-2 mt-1 shadow-md">
+                                <div className="text-[11px] font-bold text-cyan-300">Catat KM Akhir Sekarang:</div>
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={recordedStartKm ? Number(recordedStartKm) : 0}
+                                    value={endKmInput}
+                                    onChange={(e) => setEndKmInput(e.target.value)}
+                                    placeholder={recordedStartKm ? `Min: ${Number(recordedStartKm).toLocaleString('id-ID')}` : "KM"}
+                                    className="w-full h-8 px-2 bg-white text-slate-900 rounded-lg text-xs font-bold text-center focus:outline-none"
+                                  />
+                                  <span className="text-[10px] text-slate-300 font-bold">KM</span>
+                                </div>
+                                <div className="flex gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setIsEditingEndKm(false)}
+                                    className="flex-1 h-7 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-[10px] font-bold cursor-pointer"
+                                  >
+                                    Batal
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isSavingEndKm || !endKmInput.trim() || Number(endKmInput) < (Number(recordedStartKm) || 0)}
+                                    onClick={() => handleSaveEndKm(currentTrip.id, endKmInput, recordedStartKm)}
+                                    className="flex-1 h-7 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-[10px] font-bold disabled:opacity-50 cursor-pointer"
+                                  >
+                                    {isSavingEndKm ? "Menyimpan..." : "Simpan KM"}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
 
                             {currentTrip.qr_code_token && (
                               <div 
@@ -949,6 +1117,19 @@ export default function DriverDashboard() {
                                   {currentTrip.qr_code_token}
                                 </span>
                               </div>
+                            )}
+
+                            {driverTripStatus === "on_going" && !isCheckedInBySecurity && !hasRecordedEndKm && !isEditingEndKm && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEndKmInput("");
+                                  setIsEditingEndKm(true);
+                                }}
+                                className="text-[10.5px] font-semibold text-cyan-300 hover:text-white underline cursor-pointer mt-0.5"
+                              >
+                                + Catat KM Akhir Sekarang (Opsional)
+                              </button>
                             )}
                           </div>
                         );
@@ -1005,10 +1186,18 @@ export default function DriverDashboard() {
                       }
 
                       if ((!isTripInternal || hasRecordedStartKm) && driverTripStatus === "on_going") {
+                        if (currentTrip.security_checked_in_at) {
+                          return (
+                            <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-[#102447] border border-emerald-500/50 px-3.5 py-2 rounded-xl max-w-xs">
+                              <Icon name="check_circle" className="text-[15px] text-emerald-400 shrink-0" />
+                              <span className="font-semibold text-emerald-300">Mobil telah masuk gerbang. Lengkapi KM Akhir spidometer di atas untuk menyelesaikan penugasan.</span>
+                            </div>
+                          );
+                        }
                         return (
                           <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-[#1a2d4f]/60 border border-[#2a4a7f] px-3.5 py-2 rounded-xl max-w-xs">
                             <Icon name="info" className="text-[15px] text-green-400 animate-pulse shrink-0" />
-                            <span className="font-semibold text-green-300">Tunjukkan QR Code di samping ke Security saat kembali</span>
+                            <span className="font-semibold text-green-300">Tunjukkan QR Code di samping ke Security saat kembali di gerbang</span>
                           </div>
                         );
                       }

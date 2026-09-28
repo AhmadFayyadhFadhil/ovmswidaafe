@@ -73,9 +73,7 @@ export default function SecurityDashboard() {
       const prefillKm = trip?.start_km || scannedRequest?.start_km || trip?.vehicle?.odometer || scannedRequest?.vehicle?.odometer || getActiveStartKm() || getActiveVehicleLastOdometer() || "";
       setOdometerKm(prefillKm ? String(prefillKm) : "");
     } else {
-      const trip = scannedRequest?.operational_trips?.find((t: any) => t.id === tripId);
-      const prefillKm = trip?.end_km || scannedRequest?.end_km || trip?.vehicle?.odometer || scannedRequest?.vehicle?.odometer || "";
-      setOdometerKm(prefillKm ? String(prefillKm) : "");
+      setOdometerKm("");
     }
     setShowNameModal(true);
   };
@@ -90,9 +88,7 @@ export default function SecurityDashboard() {
       const prefillKm = it?.start_km || scannedRequest?.start_km || scannedRequest?.vehicle?.odometer || getActiveStartKm() || getActiveVehicleLastOdometer() || "";
       setOdometerKm(prefillKm ? String(prefillKm) : "");
     } else {
-      const it = itId && scannedRequest?.itineraries?.find((i: any) => i.id === itId);
-      const prefillKm = it?.end_km || scannedRequest?.end_km || scannedRequest?.vehicle?.odometer || "";
-      setOdometerKm(prefillKm ? String(prefillKm) : "");
+      setOdometerKm("");
     }
     setShowNameModal(true);
   };
@@ -546,21 +542,17 @@ export default function SecurityDashboard() {
     e.preventDefault();
     if (!guardName.trim() || !confirmingType || !scannedRequest) return;
 
-    if (!odometerKm.trim()) {
-      alert("Kilometer Odometer wajib diisi!");
-      return;
-    }
-
-    const kmNum = Number(odometerKm);
-    if (isNaN(kmNum) || kmNum < 0) {
-      alert("Masukkan angka kilometer yang valid!");
-      return;
-    }
-
-    const currentStartKm = getActiveStartKm();
-    if (confirmingType === "checkin" && currentStartKm !== null && kmNum < currentStartKm) {
-      alert(`KM Kembali (${kmNum.toLocaleString('id-ID')}) tidak boleh lebih kecil dari KM Berangkat (${currentStartKm.toLocaleString('id-ID')})!`);
-      return;
+    let kmNum: number | undefined = undefined;
+    if (confirmingType === "checkout") {
+      if (!odometerKm.trim()) {
+        alert("Kilometer Odometer wajib diisi!");
+        return;
+      }
+      kmNum = Number(odometerKm);
+      if (isNaN(kmNum) || kmNum < 0) {
+        alert("Masukkan angka kilometer yang valid!");
+        return;
+      }
     }
 
     localStorage.setItem("ovms_security_guard_name", guardName.trim());
@@ -582,7 +574,6 @@ export default function SecurityDashboard() {
         notes: securityNotes,
         scanned_at: scannedAtStr,
         start_km: confirmingType === "checkout" ? kmNum : undefined,
-        end_km: confirmingType === "checkin" ? kmNum : undefined,
       };
 
       if (selectedTripId) {
@@ -1032,7 +1023,7 @@ export default function SecurityDashboard() {
                                             className="w-full py-2 px-3 bg-amber-600 hover:bg-amber-700 active:scale-[0.99] text-white font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
                                           >
                                             <Icon name="done_all" className="text-base" />
-                                            <span>Berangkat (Checkout Sesi 1)</span>
+                                            <span>Konfirmasi Keluar (Sesi 1)</span>
                                           </button>
                                         )
                                       )}
@@ -1043,7 +1034,7 @@ export default function SecurityDashboard() {
                                           className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
                                         >
                                           <Icon name="done_all" className="text-base" />
-                                          <span>Kembali (Checkin Sesi 1)</span>
+                                          <span>Konfirmasi Masuk (Sesi 1)</span>
                                         </button>
                                       )}
                                       {morningCompleted && (
@@ -1097,7 +1088,7 @@ export default function SecurityDashboard() {
                                             className="w-full py-2 px-3 bg-amber-600 hover:bg-amber-700 active:scale-[0.99] text-white font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
                                           >
                                             <Icon name="done_all" className="text-base" />
-                                            <span>Berangkat (Checkout Sesi 2)</span>
+                                            <span>Konfirmasi Keluar (Sesi 2)</span>
                                           </button>
                                         )
                                       )}
@@ -1108,7 +1099,7 @@ export default function SecurityDashboard() {
                                           className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
                                         >
                                           <Icon name="done_all" className="text-base" />
-                                          <span>Kembali (Checkin Sesi 2)</span>
+                                          <span>Konfirmasi Masuk (Sesi 2)</span>
                                         </button>
                                       )}
                                       {hasAfternoon && afternoonCompleted && (
@@ -1207,14 +1198,14 @@ export default function SecurityDashboard() {
                                             onClick={() => handleConfirmTripScanClick(trip.id, "checkout")}
                                             className="flex-1 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
                                           >
-                                            <Icon name="done_all" className="text-xs" /> Berangkat
+                                            <Icon name="done_all" className="text-xs" /> Keluar Gate
                                           </button>
                                         ) : (
                                           <button
                                             onClick={() => handleConfirmTripScanClick(trip.id, "checkin")}
                                             className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
                                           >
-                                            <Icon name="done_all" className="text-xs" /> Kembali
+                                            <Icon name="done_all" className="text-xs" /> Masuk Gate
                                           </button>
                                         )}
                                       </div>
@@ -1231,7 +1222,7 @@ export default function SecurityDashboard() {
                                       className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
                                     >
                                       <Icon name="done_all" className="text-base" />
-                                      Berangkat (Checkout)
+                                      Konfirmasi Keluar Gate
                                     </button>
                                   ) : !scannedRequest.security_checked_in_at ? (
                                     <button
@@ -1239,7 +1230,7 @@ export default function SecurityDashboard() {
                                       className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
                                     >
                                       <Icon name="done_all" className="text-base" />
-                                      Kembali (Checkin)
+                                      Konfirmasi Masuk Gate
                                     </button>
                                   ) : (
                                     <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl text-center text-xs font-bold border border-emerald-200">
@@ -1328,7 +1319,7 @@ export default function SecurityDashboard() {
                         className="w-full py-3.5 px-4 bg-amber-600 text-white font-bold rounded-xl hover:bg-amber-700 transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm"
                       >
                         <Icon name="done_all" className="text-lg" />
-                        OKE - Konfirmasi Berangkat
+                        Konfirmasi Keluar Gate
                       </button>
                     ) : !scannedRequest.security_checked_in_at ? (
                       <button
@@ -1336,7 +1327,7 @@ export default function SecurityDashboard() {
                         className="w-full py-3.5 px-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm"
                       >
                         <Icon name="done_all" className="text-lg" />
-                        OKE - Konfirmasi Kembali
+                        Konfirmasi Masuk Gate
                       </button>
                     ) : (
                       <div className="p-4 bg-emerald-50 text-emerald-800 rounded-xl text-sm font-semibold text-center">
@@ -1350,7 +1341,7 @@ export default function SecurityDashboard() {
           </div>
         )}
 
-        {/* State 3: Modal Input Nama Petugas Jaga & Kilometer Odometer */}
+        {/* State 3: Modal Input Nama Petugas Jaga */}
         {showNameModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadein p-4">
             <div className="bg-white rounded-3xl border border-slate-100 p-5 sm:p-7 w-full max-w-md shadow-2xl relative max-h-[90vh] overflow-y-auto">
@@ -1363,12 +1354,12 @@ export default function SecurityDashboard() {
               
               <div className="text-center mb-5 pt-2">
                 <h3 className="text-lg sm:text-xl font-extrabold text-slate-800">
-                  {confirmingType === 'checkout' ? 'Konfirmasi Berangkat Gate' : 'Konfirmasi Kembali Gate'}
+                  {confirmingType === 'checkout' ? 'Konfirmasi Keluar Gate' : 'Konfirmasi Masuk Gate'}
                 </h3>
                 <p className="text-xs text-slate-400 mt-1">
                   {confirmingType === 'checkout'
                     ? 'Verifikasi kilometer spedometer kendaraan dan nama petugas jaga.'
-                    : 'Isi kilometer spedometer kendaraan dan nama petugas jaga.'}
+                    : 'Pilih nama petugas jaga untuk konfirmasi masuk gerbang pabrik.'}
                 </p>
               </div>
 
@@ -1423,18 +1414,9 @@ export default function SecurityDashboard() {
                   </div>
                 </div>
 
-                {/* Kilometer Odometer Mandatory Section */}
-                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
-                  {confirmingType === 'checkin' && (
-                    <div className="flex items-center justify-between pb-2 border-b border-slate-200 text-xs">
-                      <span className="text-slate-500 font-semibold">KM Berangkat (Keluar):</span>
-                      <span className="font-extrabold text-slate-800 bg-white px-2.5 py-0.5 rounded-lg border border-slate-200">
-                        {getActiveStartKm() !== null ? `${getActiveStartKm()?.toLocaleString('id-ID')} km` : 'Belum tercatat'}
-                      </span>
-                    </div>
-                  )}
-
-                  {confirmingType === 'checkout' ? (
+                {/* Kilometer Odometer Section (Hanya untuk Keluar Gate) */}
+                {confirmingType === 'checkout' && (
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
@@ -1463,65 +1445,8 @@ export default function SecurityDashboard() {
                         *Petugas Security hanya memverifikasi kesesuaian fisik spedometer dengan angka di atas.
                       </p>
                     </div>
-                  ) : (
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-xs font-bold text-slate-700 uppercase">
-                          KM Odometer Masuk (Akhir) <span className="text-red-500 ml-0.5">*</span>
-                        </label>
-                      </div>
-
-                      <div className="relative">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                          <Icon name="speed" className="text-lg" />
-                        </span>
-                        <input
-                          type="number"
-                          required
-                          min="0"
-                          step="1"
-                          value={odometerKm}
-                          onChange={(e) => setOdometerKm(e.target.value)}
-                          placeholder="Contoh: 45315"
-                          className="w-full pl-10 pr-12 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-bold text-sm"
-                        />
-                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-bold text-slate-400">
-                          KM
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Real-time Calculation for Check-in */}
-                  {confirmingType === 'checkin' && odometerKm && (
-                    <div className="pt-1">
-                      {(() => {
-                        const startKm = getActiveStartKm();
-                        const currentKm = Number(odometerKm);
-                        if (startKm !== null && currentKm < startKm) {
-                          return (
-                            <div className="p-2 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-semibold flex items-center gap-1.5">
-                              <Icon name="error" className="text-sm shrink-0" />
-                              <span>KM Masuk ({currentKm.toLocaleString('id-ID')}) tidak boleh lebih kecil dari KM Berangkat ({startKm.toLocaleString('id-ID')})</span>
-                            </div>
-                          );
-                        } else if (startKm !== null && currentKm >= startKm) {
-                          const diff = currentKm - startKm;
-                          return (
-                            <div className="p-2 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-between">
-                              <span className="flex items-center gap-1">
-                                <Icon name="check_circle" className="text-sm text-emerald-600" />
-                                Estimasi Jarak Tempuh:
-                              </span>
-                              <span className="text-emerald-700 text-sm font-extrabold">{diff.toLocaleString('id-ID')} km</span>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 <div className="flex gap-2.5 pt-2 text-xs sm:text-sm font-semibold">
                   <button
@@ -1535,8 +1460,8 @@ export default function SecurityDashboard() {
                     type="submit"
                     disabled={
                       actionLoading || 
-                      !odometerKm.trim() || 
-                      (confirmingType === 'checkin' && getActiveStartKm() !== null && Number(odometerKm) < (getActiveStartKm() || 0))
+                      !guardName.trim() ||
+                      (confirmingType === 'checkout' && !odometerKm.trim())
                     }
                     className={`flex-1 py-3 text-white rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                       confirmingType === 'checkout' 
@@ -1549,7 +1474,7 @@ export default function SecurityDashboard() {
                     ) : (
                       <>
                         <Icon name="done_all" className="text-base" />
-                        <span>{confirmingType === 'checkout' ? 'Berangkatkan' : 'Konfirmasi Masuk'}</span>
+                        <span>{confirmingType === 'checkout' ? 'Konfirmasi Keluar' : 'Konfirmasi Masuk Gate'}</span>
                       </>
                     )}
                   </button>
