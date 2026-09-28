@@ -30,10 +30,15 @@ export function RequestDetailModal({
   const [previewFile, setPreviewFile] = useState<any | null>(null);
   const [isQrZoomed, setIsQrZoomed] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+  const [localStartKm, setLocalStartKm] = useState<number | null>(null);
+  const [startKmInput, setStartKmInput] = useState<string>("");
+  const [isSavingStartKm, setIsSavingStartKm] = useState(false);
+  const [isEditingStartKm, setIsEditingStartKm] = useState(false);
 
   if (!isOpen || !request) return null;
 
-  const startKm = request.start_km ?? request.operational_trip?.start_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.start_km) ?? (Array.isArray(request.itineraries) && request.itineraries[0]?.start_km);
+  const rawStartKm = request.start_km ?? request.operational_trip?.start_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.start_km) ?? (Array.isArray(request.itineraries) && request.itineraries[0]?.start_km);
+  const startKm = localStartKm ?? rawStartKm;
   const endKm = request.end_km ?? request.operational_trip?.end_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.end_km) ?? (Array.isArray(request.itineraries) && request.itineraries[request.itineraries.length - 1]?.end_km);
   const totalKm = request.total_km ?? request.operational_trip?.total_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.total_km) ?? ((startKm && endKm) ? Math.max(0, Number(endKm) - Number(startKm)) : null);
 
@@ -929,31 +934,150 @@ export function RequestDetailModal({
                   </div>
                 )}
               </div>
-               {request.qr_code_token && (
-                ["driver_assigned", "on_going"].includes(request.rawStatus) ||
-                (request.is_external && request.rawStatus === "assigned_by_ga")
-              ) && (
-                <div className="bg-white border-2 border-dashed border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-xs">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">QR Code Tiket</div>
-                  <div 
-                    onClick={() => setIsQrZoomed(true)}
-                    className="bg-slate-50 p-2 rounded-lg border border-slate-100 cursor-zoom-in hover:scale-105 hover:bg-slate-100 transition-all group relative"
-                    title="Klik untuk memperbesar"
-                  >
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${request.qr_code_token}`)}`}
-                      alt="Ticket QR Code"
-                      className="w-28 h-28 object-contain"
-                    />
-                    <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                      <Icon name="zoom_in" className="text-slate-700 text-lg drop-shadow-sm bg-white/80 p-1.5 rounded-full" />
+              {/* QR Code Gate Pass & Odometer KM Gating */}
+              {(() => {
+                const canShowQrStructure = request.qr_code_token && (
+                  ["driver_assigned", "on_going", "pending"].includes(request.rawStatus) ||
+                  (request.is_external && request.rawStatus === "assigned_by_ga")
+                );
+
+                if (!canShowQrStructure) return null;
+
+                const isTripInternal = !request.is_external;
+                const hasRecordedStartKm = Boolean(startKm && Number(startKm) > 0);
+                const isDriverOrAdmin = Boolean(user && (
+                  user.role === 'admin' ||
+                  user.role === 'gahrd' ||
+                  user.id === request.driver_id ||
+                  request.driver?.id === user.id ||
+                  (Array.isArray(request.operational_trips) && request.operational_trips.some((ot: any) => String(ot.driver?.id) === String(user.id))) ||
+                  (Array.isArray(request.itineraries) && request.itineraries.some((it: any) => String(it.driver_id) === String(user.id)))
+                ));
+
+                if (isTripInternal && (!hasRecordedStartKm || isEditingStartKm)) {
+                  return (
+                    <div className="bg-amber-50/70 border border-amber-200/90 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-xs animate-fadein">
+                      <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mb-2 shadow-2xs">
+                        <Icon name="lock" className="text-[20px]" />
+                      </div>
+                      <div className="text-[12px] font-extrabold text-amber-900 uppercase tracking-wide">
+                        {isEditingStartKm ? "Ubah Kilometer Awal" : "QR Code Tiket Terkunci"}
+                      </div>
+                      <p className="text-[11px] text-amber-700 mt-1 max-w-[260px] leading-snug">
+                        {isEditingStartKm 
+                          ? "Perbarui angka spidometer awal kendaraan:" 
+                          : "Driver wajib mengisi KM Awal kendaraan sebelum QR Code Gate Pass dapat digunakan di pos keamanan."}
+                      </p>
+
+                      {isDriverOrAdmin ? (
+                        <div className="w-full max-w-[240px] mt-3 space-y-2">
+                          <div className="flex items-center gap-1.5 w-full">
+                            <input
+                              type="number"
+                              min={0}
+                              value={startKmInput}
+                              onChange={(e) => setStartKmInput(e.target.value)}
+                              placeholder={request.vehicle?.odometer ? `Odo: ${Number(request.vehicle.odometer).toLocaleString('id-ID')}` : "Contoh: 45210"}
+                              className="w-full h-8 px-3 bg-white text-slate-800 rounded-lg text-[12px] font-bold text-center border border-amber-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
+                            />
+                            <span className="text-[11px] font-extrabold text-amber-800">KM</span>
+                          </div>
+                          {request.vehicle?.odometer && (
+                            <div className="text-[10px] text-slate-500 text-left px-1">
+                              Odometer mobil: <span className="text-blue-700 font-bold">{Number(request.vehicle.odometer).toLocaleString('id-ID')} KM</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 pt-1">
+                            {isEditingStartKm && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsEditingStartKm(false);
+                                  setStartKmInput("");
+                                }}
+                                className="flex-1 h-7 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                              >
+                                Batal
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              disabled={isSavingStartKm || !startKmInput.trim()}
+                              onClick={async () => {
+                                const val = parseInt(startKmInput.trim(), 10);
+                                if (isNaN(val) || val < 0) return;
+                                try {
+                                  setIsSavingStartKm(true);
+                                  await requestService.recordStartKm(String(request.id), val);
+                                  setLocalStartKm(val);
+                                  request.start_km = val;
+                                  setIsEditingStartKm(false);
+                                } catch (err: any) {
+                                  alert(err.response?.data?.message || "Gagal menyimpan KM awal.");
+                                } finally {
+                                  setIsSavingStartKm(false);
+                                }
+                              }}
+                              className="flex-1 h-7 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1 shadow-2xs active:scale-95"
+                            >
+                              <Icon name="check" className="text-xs" />
+                              <span>{isSavingStartKm ? "Menyimpan..." : (isEditingStartKm ? "Simpan" : "Buka QR Code")}</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-2.5 px-3 py-1.5 bg-amber-100/70 border border-amber-200 text-amber-800 rounded-lg text-[10.5px] font-semibold">
+                          Menunggu driver mencatat KM awal kendaraan
+                        </div>
+                      )}
                     </div>
+                  );
+                }
+
+                return (
+                  <div className="bg-white border-2 border-dashed border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-xs">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">QR Code Tiket</div>
+
+                    {isTripInternal && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200/80 rounded-lg text-[11px] font-bold mb-2.5 shadow-2xs">
+                        <Icon name="check_circle" className="text-[13px] text-emerald-600" />
+                        <span>KM Awal: {Number(startKm).toLocaleString('id-ID')} KM</span>
+                        {isDriverOrAdmin && !request.security_checked_out_at && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStartKmInput(String(startKm));
+                              setIsEditingStartKm(true);
+                            }}
+                            className="text-[10px] font-bold text-blue-600 hover:text-blue-800 underline cursor-pointer ml-1"
+                            title="Ubah KM awal jika ada koreksi"
+                          >
+                            Ubah
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    <div 
+                      onClick={() => setIsQrZoomed(true)}
+                      className="bg-slate-50 p-2 rounded-lg border border-slate-100 cursor-zoom-in hover:scale-105 hover:bg-slate-100 transition-all group relative"
+                      title="Klik untuk memperbesar"
+                    >
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${request.qr_code_token}`)}`}
+                        alt="Ticket QR Code"
+                        className="w-28 h-28 object-contain"
+                      />
+                      <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                        <Icon name="zoom_in" className="text-slate-700 text-lg drop-shadow-sm bg-white/80 p-1.5 rounded-full" />
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono font-semibold text-slate-400 mt-2">
+                      {request.qr_code_token}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-mono font-semibold text-slate-400 mt-2">
-                    {request.qr_code_token}
-                  </span>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Security Logs checkin/out if checked */}
               {(() => {
