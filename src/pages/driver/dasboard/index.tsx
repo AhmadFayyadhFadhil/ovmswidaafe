@@ -187,10 +187,15 @@ export default function DriverDashboard() {
   const [isSavingStartKm, setIsSavingStartKm] = useState(false);
   const [endKmInput, setEndKmInput] = useState<string>("");
 
-  const handleSaveStartKm = async (reqId: string | number, kmStr: string) => {
-    const kmNum = parseInt(kmStr.trim(), 10);
+  const handleSaveStartKm = async (reqId: string | number, kmStr: string, minKm?: number | null) => {
+    const cleaned = kmStr.replace(/[^\d]/g, '');
+    const kmNum = cleaned ? parseInt(cleaned, 10) : NaN;
     if (isNaN(kmNum) || kmNum < 0) {
       alert("Masukkan angka kilometer awal yang valid!");
+      return;
+    }
+    if (minKm !== undefined && minKm !== null && minKm > 0 && kmNum < minKm) {
+      alert(`KM Awal (${kmNum.toLocaleString('id-ID')} KM) tidak boleh lebih kecil dari Odometer kendaraan (${minKm.toLocaleString('id-ID')} KM)!`);
       return;
     }
     setIsSavingStartKm(true);
@@ -823,23 +828,53 @@ export default function DriverDashboard() {
                                     : "Masukkan KM awal kendaraan untuk mengaktifkan QR Code Security:"}
                                 </p>
                               </div>
-                              <div className="w-full space-y-1">
+                              <div className="w-full space-y-1.5">
                                 <div className="flex items-center gap-1.5 w-full">
                                   <input
                                     type="number"
-                                    min={0}
+                                    min={lastOdometerNum ? Number(lastOdometerNum) : 0}
                                     value={startKmInput}
                                     onChange={(e) => setStartKmInput(e.target.value)}
-                                    placeholder={lastOdometerNum ? `Odo: ${Number(lastOdometerNum).toLocaleString('id-ID')}` : "Contoh: 45210"}
+                                    placeholder={lastOdometerNum ? `Min: ${Number(lastOdometerNum).toLocaleString('id-ID')}` : "Contoh: 45210"}
                                     className="w-full h-9 px-3 bg-white text-slate-900 rounded-xl text-[13px] font-bold text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
                                   />
                                   <span className="text-[11px] font-bold text-slate-300">KM</span>
                                 </div>
+
                                 {lastOdometerNum && (
-                                  <div className="text-[10px] text-slate-400 text-left px-1">
-                                    Odometer mobil: <span className="text-blue-300 font-semibold">{Number(lastOdometerNum).toLocaleString('id-ID')} KM</span>
-                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setStartKmInput(String(lastOdometerNum))}
+                                    className="w-full flex items-center justify-center gap-1.5 py-1 px-2 bg-blue-900/60 hover:bg-blue-800/80 text-blue-200 border border-blue-400/40 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer shadow-xs active:scale-98"
+                                    title="Klik untuk langsung mengisi dengan Odometer mobil saat ini"
+                                  >
+                                    <Icon name="history" className="text-[12px]" />
+                                    <span>Pakai KM Terakhir: {Number(lastOdometerNum).toLocaleString('id-ID')} KM</span>
+                                  </button>
                                 )}
+
+                                {(() => {
+                                  const minKm = lastOdometerNum ? Number(lastOdometerNum) : 0;
+                                  const cleaned = startKmInput.replace(/[^\d]/g, '');
+                                  const curVal = cleaned ? parseInt(cleaned, 10) : NaN;
+                                  if (!isNaN(curVal) && minKm > 0 && curVal < minKm) {
+                                    return (
+                                      <div className="text-[10px] text-red-400 font-bold flex items-center justify-center gap-1 px-1">
+                                        <Icon name="error" className="text-[12px] shrink-0" />
+                                        <span>Minimal KM Awal: {Number(lastOdometerNum).toLocaleString('id-ID')} KM</span>
+                                      </div>
+                                    );
+                                  }
+                                  if (!isNaN(curVal) && (minKm === 0 || curVal >= minKm) && curVal > 0) {
+                                    return (
+                                      <div className="text-[10px] text-emerald-400 font-bold flex items-center justify-center gap-1 px-1">
+                                        <Icon name="check_circle" className="text-[12px] shrink-0" />
+                                        <span>KM Awal valid ({curVal.toLocaleString('id-ID')} KM)</span>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </div>
                               <div className="flex items-center gap-2 w-full pt-1">
                                 {isEditingStartKm && (
@@ -856,8 +891,17 @@ export default function DriverDashboard() {
                                 )}
                                 <button
                                   type="button"
-                                  disabled={isSavingStartKm || !startKmInput.trim()}
-                                  onClick={() => handleSaveStartKm(currentTrip.id, startKmInput)}
+                                  disabled={(() => {
+                                    if (isSavingStartKm) return true;
+                                    const minKm = lastOdometerNum ? Number(lastOdometerNum) : 0;
+                                    const cleaned = startKmInput.replace(/[^\d]/g, '');
+                                    const curVal = cleaned ? parseInt(cleaned, 10) : NaN;
+                                    return isNaN(curVal) || (minKm > 0 && curVal < minKm);
+                                  })()}
+                                  onClick={() => {
+                                    const minKm = lastOdometerNum ? Number(lastOdometerNum) : 0;
+                                    handleSaveStartKm(currentTrip.id, startKmInput, minKm);
+                                  }}
                                   className="flex-1 h-8 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
                                 >
                                   <Icon name="check" className="text-[14px]" />

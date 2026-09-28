@@ -999,23 +999,54 @@ export function RequestDetailModal({
                           <div className="flex items-center gap-1.5 w-full">
                             <input
                               type="number"
-                              min={0}
+                              min={vehicleOdometer ? Number(vehicleOdometer) : 0}
                               value={startKmInput}
                               onChange={(e) => setStartKmInput(e.target.value)}
-                              placeholder={vehicleOdometer ? `Odo: ${Number(vehicleOdometer).toLocaleString('id-ID')}` : "Contoh: 45210"}
+                              placeholder={vehicleOdometer ? `Min: ${Number(vehicleOdometer).toLocaleString('id-ID')}` : "Contoh: 45210"}
                               className="w-full h-8 px-3 bg-white text-slate-800 rounded-lg text-[12px] font-bold text-center border border-amber-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                             />
                             <span className="text-[11px] font-extrabold text-amber-800">KM</span>
                           </div>
+
                           {vehicleOdometer ? (
-                            <div className="text-[10px] text-slate-500 text-left px-1">
-                              Odometer mobil: <span className="text-blue-700 font-bold">{Number(vehicleOdometer).toLocaleString('id-ID')} KM</span>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setStartKmInput(String(vehicleOdometer))}
+                              className="w-full flex items-center justify-center gap-1.5 py-1 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-[10.5px] font-bold transition-all cursor-pointer shadow-2xs active:scale-98"
+                              title="Klik untuk langsung mengisi dengan Odometer mobil saat ini"
+                            >
+                              <Icon name="history" className="text-[12px]" />
+                              <span>Pakai KM Terakhir: {Number(vehicleOdometer).toLocaleString('id-ID')} KM</span>
+                            </button>
                           ) : (
                             <div className="text-[10px] text-slate-400 text-left px-1 italic">
                               *Odometer mobil belum diset di Master Kendaraan
                             </div>
                           )}
+
+                          {(() => {
+                            const minKm = vehicleOdometer ? Number(vehicleOdometer) : 0;
+                            const cleaned = startKmInput.replace(/[^\d]/g, '');
+                            const curVal = cleaned ? parseInt(cleaned, 10) : NaN;
+                            if (!isNaN(curVal) && minKm > 0 && curVal < minKm) {
+                              return (
+                                <div className="text-[10px] text-red-600 font-bold flex items-center justify-center gap-1 px-1">
+                                  <Icon name="error" className="text-[12px] shrink-0" />
+                                  <span>Minimal KM Awal: {Number(vehicleOdometer).toLocaleString('id-ID')} KM</span>
+                                </div>
+                              );
+                            }
+                            if (!isNaN(curVal) && (minKm === 0 || curVal >= minKm) && curVal > 0) {
+                              return (
+                                <div className="text-[10px] text-emerald-600 font-bold flex items-center justify-center gap-1 px-1">
+                                  <Icon name="check_circle" className="text-[12px] shrink-0" />
+                                  <span>KM Awal valid ({curVal.toLocaleString('id-ID')} KM)</span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+
                           <div className="flex items-center gap-2 pt-1">
                             {isEditingStartKm && (
                               <button
@@ -1031,10 +1062,22 @@ export function RequestDetailModal({
                             )}
                             <button
                               type="button"
-                              disabled={isSavingStartKm || !startKmInput.trim()}
+                              disabled={(() => {
+                                if (isSavingStartKm) return true;
+                                const minKm = vehicleOdometer ? Number(vehicleOdometer) : 0;
+                                const cleaned = startKmInput.replace(/[^\d]/g, '');
+                                const curVal = cleaned ? parseInt(cleaned, 10) : NaN;
+                                return isNaN(curVal) || (minKm > 0 && curVal < minKm);
+                              })()}
                               onClick={async () => {
-                                const val = parseInt(startKmInput.trim(), 10);
+                                const minKm = vehicleOdometer ? Number(vehicleOdometer) : 0;
+                                const cleaned = startKmInput.replace(/[^\d]/g, '');
+                                const val = cleaned ? parseInt(cleaned, 10) : NaN;
                                 if (isNaN(val) || val < 0) return;
+                                if (minKm > 0 && val < minKm) {
+                                  alert(`KM Awal (${val.toLocaleString('id-ID')} KM) tidak boleh lebih kecil dari Odometer kendaraan (${minKm.toLocaleString('id-ID')} KM)!`);
+                                  return;
+                                }
                                 try {
                                   setIsSavingStartKm(true);
                                   await requestService.recordStartKm(String(request.id), val);
