@@ -399,11 +399,19 @@ export const requestService = {
       message: res.data?.message
     };
   },
-  complete: async (id: string): Promise<ApiResponse<void>> => {
+  complete: async (id: string, endKm?: number): Promise<ApiResponse<void>> => {
     requestCache = null;
-    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/complete`);
+    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/complete`, endKm !== undefined ? { end_km: endKm } : {});
     return {
       data: undefined,
+      message: res.data?.message
+    };
+  },
+  recordStartKm: async (id: string, startKm: number): Promise<ApiResponse<any>> => {
+    requestCache = null;
+    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/record-start-km`, { start_km: startKm });
+    return {
+      data: res.data?.data ? mapRequestFromBackend(res.data.data) : undefined,
       message: res.data?.message
     };
   },

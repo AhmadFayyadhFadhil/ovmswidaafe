@@ -180,6 +180,31 @@ export default function DriverDashboard() {
     }
     setDetailLoading(false);
   };
+
+  // Driver Odometer KM States
+  const [startKmInput, setStartKmInput] = useState<string>("");
+  const [isEditingStartKm, setIsEditingStartKm] = useState(false);
+  const [isSavingStartKm, setIsSavingStartKm] = useState(false);
+  const [endKmInput, setEndKmInput] = useState<string>("");
+
+  const handleSaveStartKm = async (reqId: string | number, kmStr: string) => {
+    const kmNum = parseInt(kmStr.trim(), 10);
+    if (isNaN(kmNum) || kmNum < 0) {
+      alert("Masukkan angka kilometer awal yang valid!");
+      return;
+    }
+    setIsSavingStartKm(true);
+    try {
+      await requestService.recordStartKm(String(reqId), kmNum);
+      setIsEditingStartKm(false);
+      setStartKmInput("");
+      await fetchData(true);
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Gagal menyimpan kilometer awal.");
+    } finally {
+      setIsSavingStartKm(false);
+    }
+  };
   
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -767,36 +792,185 @@ export default function DriverDashboard() {
                       </button>
                     </div>
 
-                    {["driver_assigned", "pending", "on_going"].includes(driverTripStatus || "") && currentTrip.qr_code_token && (
-                      <div 
-                        onClick={() => setZoomedQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${currentTrip.qr_code_token}`)}`)}
-                        className="bg-white p-2.5 rounded-xl border border-slate-700 shadow-sm flex flex-col items-center cursor-zoom-in hover:border-blue-500 transition-all hover:scale-105"
-                        title="Klik untuk memperbesar"
-                      >
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${currentTrip.qr_code_token}`)}`}
-                          alt="Security Scan QR"
-                          className="w-[80px] h-[80px] object-contain"
-                        />
-                        <span className="text-[8px] font-mono font-bold text-slate-500 mt-1">
-                          {currentTrip.qr_code_token}
-                        </span>
-                      </div>
-                    )}
+                    {/* Gated QR Code & Odometer KM Awal */}
+                    {(() => {
+                      const recordedStartKm = 
+                        (activeItineraryForDriver && activeItineraryForDriver.start_km) ??
+                        currentTrip.start_km ??
+                        currentTrip.operational_trip?.start_km ??
+                        (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id))?.start_km) ??
+                        null;
 
-                    {(driverTripStatus === "driver_assigned" || driverTripStatus === "pending") && (
-                      <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-[#1a2d4f]/60 border border-[#2a4a7f] px-3.5 py-2 rounded-xl max-w-xs">
-                        <Icon name="info" className="text-[15px] text-blue-400" />
-                        <span className="font-semibold text-blue-300">Tunjukkan QR Code di samping ke Security saat berangkat</span>
-                      </div>
-                    )}
+                      const matchedVehicle = rawVehicles.find(v => String(v.id) === String(currentTrip.vehicleId || currentTrip.vehicle?.id));
+                      const lastOdometerNum = matchedVehicle?.odometer || null;
+                      const hasRecordedStartKm = Boolean(recordedStartKm && Number(recordedStartKm) > 0);
+                      const isTripInternal = !currentTrip.is_external;
 
-                    {driverTripStatus === "on_going" && (
-                      <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-[#1a2d4f]/60 border border-[#2a4a7f] px-3.5 py-2 rounded-xl max-w-xs">
-                        <Icon name="info" className="text-[15px] text-green-400 animate-pulse" />
-                        <span className="font-semibold text-green-300">Tunjukkan QR Code di samping ke Security saat kembali</span>
-                      </div>
-                    )}
+                      if (isTripInternal && ["driver_assigned", "pending", "on_going"].includes(driverTripStatus || "")) {
+                        if (!hasRecordedStartKm || isEditingStartKm) {
+                          return (
+                            <div className="bg-[#102447] border border-blue-400/40 p-4 rounded-2xl flex flex-col items-center gap-2.5 w-full max-w-[280px] text-center shadow-lg animate-fadein">
+                              <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                                <Icon name="lock" className="text-[20px]" />
+                              </div>
+                              <div>
+                                <div className="text-[12.5px] font-bold text-amber-300">
+                                  {isEditingStartKm ? "Ubah Kilometer Awal" : "QR Gerbang Terkunci"}
+                                </div>
+                                <p className="text-[11px] text-slate-300 mt-0.5 leading-snug">
+                                  {isEditingStartKm 
+                                    ? "Perbarui angka spidometer awal kendaraan:" 
+                                    : "Masukkan KM awal kendaraan untuk mengaktifkan QR Code Security:"}
+                                </p>
+                              </div>
+                              <div className="w-full space-y-1">
+                                <div className="flex items-center gap-1.5 w-full">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={startKmInput}
+                                    onChange={(e) => setStartKmInput(e.target.value)}
+                                    placeholder={lastOdometerNum ? `Odo: ${Number(lastOdometerNum).toLocaleString('id-ID')}` : "Contoh: 45210"}
+                                    className="w-full h-9 px-3 bg-white text-slate-900 rounded-xl text-[13px] font-bold text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                  />
+                                  <span className="text-[11px] font-bold text-slate-300">KM</span>
+                                </div>
+                                {lastOdometerNum && (
+                                  <div className="text-[10px] text-slate-400 text-left px-1">
+                                    Odometer mobil: <span className="text-blue-300 font-semibold">{Number(lastOdometerNum).toLocaleString('id-ID')} KM</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 w-full pt-1">
+                                {isEditingStartKm && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsEditingStartKm(false);
+                                      setStartKmInput("");
+                                    }}
+                                    className="flex-1 h-8 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl text-[11px] font-bold transition-all cursor-pointer"
+                                  >
+                                    Batal
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  disabled={isSavingStartKm || !startKmInput.trim()}
+                                  onClick={() => handleSaveStartKm(currentTrip.id, startKmInput)}
+                                  className="flex-1 h-8 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+                                >
+                                  <Icon name="check" className="text-[14px]" />
+                                  <span>{isSavingStartKm ? "Menyimpan..." : (isEditingStartKm ? "Simpan" : "Buka QR Code")}</span>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="flex flex-col items-center gap-2 animate-fadein">
+                            <div className="flex items-center justify-between w-full px-1">
+                              <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-500/40 px-2.5 py-1 rounded-xl shadow-xs">
+                                <Icon name="check_circle" className="text-[13px]" />
+                                <span>KM Awal: {Number(recordedStartKm).toLocaleString('id-ID')} KM</span>
+                              </div>
+                              {!currentTrip.security_checked_out_at && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setStartKmInput(String(recordedStartKm));
+                                    setIsEditingStartKm(true);
+                                  }}
+                                  className="text-[11px] font-bold text-blue-300 hover:text-white underline cursor-pointer ml-2"
+                                  title="Klik untuk mengubah KM awal jika ada kesalahan ketik"
+                                >
+                                  Ubah
+                                </button>
+                              )}
+                            </div>
+
+                            {currentTrip.qr_code_token && (
+                              <div 
+                                onClick={() => setZoomedQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${currentTrip.qr_code_token}`)}`)}
+                                className="bg-white p-2.5 rounded-xl border border-slate-700 shadow-sm flex flex-col items-center cursor-zoom-in hover:border-blue-500 transition-all hover:scale-105"
+                                title="Klik untuk memperbesar"
+                              >
+                                <img
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${currentTrip.qr_code_token}`)}`}
+                                  alt="Security Scan QR"
+                                  className="w-[80px] h-[80px] object-contain"
+                                />
+                                <span className="text-[8px] font-mono font-bold text-slate-500 mt-1">
+                                  {currentTrip.qr_code_token}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      if (currentTrip.is_external && ["driver_assigned", "pending", "on_going"].includes(driverTripStatus || "") && currentTrip.qr_code_token) {
+                        return (
+                          <div 
+                            onClick={() => setZoomedQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${currentTrip.qr_code_token}`)}`)}
+                            className="bg-white p-2.5 rounded-xl border border-slate-700 shadow-sm flex flex-col items-center cursor-zoom-in hover:border-blue-500 transition-all hover:scale-105"
+                            title="Klik untuk memperbesar"
+                          >
+                            <img
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${currentTrip.qr_code_token}`)}`}
+                              alt="Security Scan QR"
+                              className="w-[80px] h-[80px] object-contain"
+                            />
+                            <span className="text-[8px] font-mono font-bold text-slate-500 mt-1">
+                              {currentTrip.qr_code_token}
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      return null;
+                    })()}
+
+                    {(() => {
+                      const recordedStartKm = 
+                        (activeItineraryForDriver && activeItineraryForDriver.start_km) ??
+                        currentTrip.start_km ??
+                        currentTrip.operational_trip?.start_km ??
+                        (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id))?.start_km) ??
+                        null;
+                      const hasRecordedStartKm = Boolean(recordedStartKm && Number(recordedStartKm) > 0);
+                      const isTripInternal = !currentTrip.is_external;
+
+                      if (isTripInternal && (!hasRecordedStartKm || isEditingStartKm) && (driverTripStatus === "driver_assigned" || driverTripStatus === "pending")) {
+                        return (
+                          <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-[#1a2d4f]/60 border border-amber-500/40 px-3.5 py-2 rounded-xl max-w-xs">
+                            <Icon name="lock" className="text-[15px] text-amber-400 shrink-0" />
+                            <span className="font-semibold text-amber-200">Isi KM Awal terlebih dahulu untuk membuka QR Code pemeriksaan security</span>
+                          </div>
+                        );
+                      }
+
+                      if ((!isTripInternal || hasRecordedStartKm) && (driverTripStatus === "driver_assigned" || driverTripStatus === "pending")) {
+                        return (
+                          <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-[#1a2d4f]/60 border border-[#2a4a7f] px-3.5 py-2 rounded-xl max-w-xs">
+                            <Icon name="info" className="text-[15px] text-blue-400 shrink-0" />
+                            <span className="font-semibold text-blue-300">Tunjukkan QR Code di samping ke Security saat berangkat</span>
+                          </div>
+                        );
+                      }
+
+                      if ((!isTripInternal || hasRecordedStartKm) && driverTripStatus === "on_going") {
+                        return (
+                          <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-[#1a2d4f]/60 border border-[#2a4a7f] px-3.5 py-2 rounded-xl max-w-xs">
+                            <Icon name="info" className="text-[15px] text-green-400 animate-pulse shrink-0" />
+                            <span className="font-semibold text-green-300">Tunjukkan QR Code di samping ke Security saat kembali</span>
+                          </div>
+                        );
+                      }
+
+                      return null;
+                    })()}
 
                     {driverTripStatus === "completed" && (
                       <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-emerald-950/60 border border-emerald-500/50 px-3.5 py-2 rounded-xl max-w-xs">
@@ -1251,7 +1425,10 @@ export default function DriverDashboard() {
               </h3>
               <button
                 type="button"
-                onClick={() => setConfirmModal({ isOpen: false, type: "start", targetId: "" })}
+                onClick={() => {
+                  setEndKmInput("");
+                  setConfirmModal({ isOpen: false, type: "start", targetId: "" });
+                }}
                 className="text-[#94a3b8] hover:text-[#64748b] cursor-pointer"
               >
                 <Icon name="close" className="text-[20px]" />
@@ -1259,96 +1436,159 @@ export default function DriverDashboard() {
             </div>
 
             <div className="p-6 space-y-4">
-              <p className="text-[13px] text-[#475569]">
-                {confirmModal.type === "start" && "Apakah Anda yakin ingin memulai perjalanan operasional ini?"}
-                {confirmModal.type === "complete" && "Apakah Anda yakin telah menyelesaikan perjalanan operasional ini?"}
-                {confirmModal.type === "reject" && "Silakan masukkan alasan penolakan tugas berikut:"}
-              </p>
+              {(() => {
+                const targetReq = rawRequests.find((r) => String(r.id) === String(confirmModal.targetId)) || currentTrip;
+                const targetStartKm = targetReq?.start_km ?? targetReq?.operational_trip?.start_km ?? (Array.isArray(targetReq?.operational_trips) && targetReq?.operational_trips[0]?.start_km) ?? null;
+                const isTripInternal = !targetReq?.is_external;
 
-              {confirmModal.type === "reject" && (
-                <div>
-                  <textarea
-                    required
-                    value={confirmModal.rejectReason || ""}
-                    onChange={(e) => setConfirmModal(prev => ({ ...prev, rejectReason: e.target.value }))}
-                    placeholder="Contoh: Kendaraan sedang diservis / sakit..."
-                    rows={3}
-                    className="w-full px-3 py-2 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none"
-                  />
-                </div>
-              )}
+                return (
+                  <>
+                    <p className="text-[13px] text-[#475569]">
+                      {confirmModal.type === "start" && "Apakah Anda yakin ingin memulai perjalanan operasional ini?"}
+                      {confirmModal.type === "complete" && "Apakah Anda yakin telah menyelesaikan perjalanan operasional ini?"}
+                      {confirmModal.type === "reject" && "Silakan masukkan alasan penolakan tugas berikut:"}
+                    </p>
 
-              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-[#f1f5f9]">
-                <button
-                  type="button"
-                  onClick={() => setConfirmModal({ isOpen: false, type: "start", targetId: "" })}
-                  className="w-full sm:w-auto h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[12.5px] font-bold text-[#475569] transition-colors cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  disabled={actionLoading || (confirmModal.type === "reject" && !confirmModal.rejectReason?.trim())}
-                  onClick={async () => {
-                    const id = confirmModal.targetId;
-                    setActionLoading(true);
-                    try {
-                      if (confirmModal.type === "start") {
-                        await requestService.start(id);
-                      } else if (confirmModal.type === "complete") {
-                        await requestService.complete(id);
-                      } else if (confirmModal.type === "reject") {
-                        await assignmentService.respond(id, {
-                          response: "rejected",
-                          reject_reason: confirmModal.rejectReason,
-                        });
-                        
-                        try {
-                          const matchedAsg = rawAssignments.find((a: any) => String(a.id) === String(id));
-                          const reqId = matchedAsg?.request?.id || matchedAsg?.request_id || "1";
-                          
-                          const GAHRD_NOTIFS_KEY = 'ovms_gahrd_notifications';
-                          const stored = localStorage.getItem(GAHRD_NOTIFS_KEY);
-                          let notifs: any[] = [];
-                          if (stored) {
-                            try { notifs = JSON.parse(stored); } catch {}
-                          }
-                          const newNotif = {
-                            id: 'NTF-' + Date.now(),
-                            category: 'assignment',
-                            priority: 'CRITICAL',
-                            title: 'Penugasan Ditolak oleh Pengemudi',
-                            description: `Driver ${user?.name || 'Driver'} menolak penugasan untuk Request #${reqId}. Alasan: "${confirmModal.rejectReason}"`,
-                            time: 'Baru saja',
-                            unread: true,
-                            requestId: String(reqId),
-                          };
-                          notifs.unshift(newNotif);
-                          localStorage.setItem(GAHRD_NOTIFS_KEY, JSON.stringify(notifs));
-                        } catch (notifErr) {
-                          console.error("Gagal menyimpan notifikasi penolakan driver:", notifErr);
+                    {confirmModal.type === "complete" && isTripInternal && (
+                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                        <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-200">
+                          <span className="text-slate-500 font-medium">KM Awal Tercatat:</span>
+                          <span className="font-extrabold text-blue-900 font-mono text-[13px] bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-lg">
+                            {targetStartKm ? `${Number(targetStartKm).toLocaleString('id-ID')} KM` : "Belum tercatat"}
+                          </span>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Masukkan KM Akhir (Spidometer):
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min={targetStartKm ? Number(targetStartKm) : 0}
+                              value={endKmInput}
+                              onChange={(e) => setEndKmInput(e.target.value)}
+                              placeholder={targetStartKm ? `Min: ${targetStartKm}` : "Contoh: 45350"}
+                              className="w-full h-10 px-3 bg-white border border-slate-300 rounded-xl text-[13px] font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <span className="text-[12px] font-bold text-slate-500">KM</span>
+                          </div>
+                        </div>
+
+                        {endKmInput && targetStartKm && Number(endKmInput) >= Number(targetStartKm) && (
+                          <div className="text-[12px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl flex items-center justify-between shadow-2xs">
+                            <span>Total Jarak Ditempuh:</span>
+                            <span className="font-mono text-[14px]">
+                              {(Number(endKmInput) - Number(targetStartKm)).toLocaleString('id-ID')} KM
+                            </span>
+                          </div>
+                        )}
+
+                        {endKmInput && targetStartKm && Number(endKmInput) < Number(targetStartKm) && (
+                          <div className="text-[11px] font-bold text-red-600 bg-red-50 border border-red-200 p-2.5 rounded-xl flex items-center gap-1.5">
+                            <Icon name="error" className="text-base shrink-0" />
+                            <span>KM Akhir tidak boleh lebih kecil dari KM Awal ({Number(targetStartKm).toLocaleString('id-ID')} KM)!</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {confirmModal.type === "reject" && (
+                      <div>
+                        <textarea
+                          required
+                          value={confirmModal.rejectReason || ""}
+                          onChange={(e) => setConfirmModal(prev => ({ ...prev, rejectReason: e.target.value }))}
+                          placeholder="Contoh: Kendaraan sedang diservis / sakit..."
+                          rows={3}
+                          className="w-full px-3 py-2 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none"
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-[#f1f5f9]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEndKmInput("");
+                          setConfirmModal({ isOpen: false, type: "start", targetId: "" });
+                        }}
+                        className="w-full sm:w-auto h-10 px-5 border border-[#e2e8f0] hover:bg-[#f8fafc] rounded-xl text-[12.5px] font-bold text-[#475569] transition-colors cursor-pointer"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="button"
+                        disabled={
+                          actionLoading ||
+                          (confirmModal.type === "reject" && !confirmModal.rejectReason?.trim()) ||
+                          (confirmModal.type === "complete" && isTripInternal && targetStartKm && (!endKmInput.trim() || Number(endKmInput) < Number(targetStartKm)))
                         }
-                      }
-                      setConfirmModal({ isOpen: false, type: "start", targetId: "" });
-                      await fetchData();
-                    } catch (err: any) {
-                      console.error(err);
-                      alert(err.response?.data?.message || "Terjadi kesalahan saat memproses aksi.");
-                    } finally {
-                      setActionLoading(false);
-                    }
-                  }}
-                  className={`w-full sm:w-auto h-10 px-6 text-white rounded-xl text-[12.5px] font-bold transition-all disabled:opacity-50 cursor-pointer ${
-                    confirmModal.type === "reject" ? "bg-red-600 hover:bg-red-700" : "bg-[#1e3a8a] hover:bg-[#1e40af]"
-                  }`}
-                >
-                  {actionLoading ? "Memproses..." : (
-                    confirmModal.type === "start" ? "Mulai" : (
-                      confirmModal.type === "complete" ? "Selesaikan" : "Tolak Tugas"
-                    )
-                  )}
-                </button>
-              </div>
+                        onClick={async () => {
+                          const id = confirmModal.targetId;
+                          setActionLoading(true);
+                          try {
+                            if (confirmModal.type === "start") {
+                              await requestService.start(id);
+                            } else if (confirmModal.type === "complete") {
+                              const endKmNum = endKmInput.trim() ? parseInt(endKmInput.trim(), 10) : undefined;
+                              await requestService.complete(id, endKmNum);
+                              setEndKmInput("");
+                            } else if (confirmModal.type === "reject") {
+                              await assignmentService.respond(id, {
+                                response: "rejected",
+                                reject_reason: confirmModal.rejectReason,
+                              });
+                              
+                              try {
+                                const matchedAsg = rawAssignments.find((a: any) => String(a.id) === String(id));
+                                const reqId = matchedAsg?.request?.id || matchedAsg?.request_id || "1";
+                                
+                                const GAHRD_NOTIFS_KEY = 'ovms_gahrd_notifications';
+                                const stored = localStorage.getItem(GAHRD_NOTIFS_KEY);
+                                let notifs: any[] = [];
+                                if (stored) {
+                                  try { notifs = JSON.parse(stored); } catch {}
+                                }
+                                const newNotif = {
+                                  id: 'NTF-' + Date.now(),
+                                  category: 'assignment',
+                                  priority: 'CRITICAL',
+                                  title: 'Penugasan Ditolak oleh Pengemudi',
+                                  description: `Driver ${user?.name || 'Driver'} menolak penugasan untuk Request #${reqId}. Alasan: "${confirmModal.rejectReason}"`,
+                                  time: 'Baru saja',
+                                  unread: true,
+                                  requestId: String(reqId),
+                                };
+                                notifs.unshift(newNotif);
+                                localStorage.setItem(GAHRD_NOTIFS_KEY, JSON.stringify(notifs));
+                              } catch (notifErr) {
+                                console.error("Gagal menyimpan notifikasi penolakan driver:", notifErr);
+                              }
+                            }
+                            setConfirmModal({ isOpen: false, type: "start", targetId: "" });
+                            await fetchData();
+                          } catch (err: any) {
+                            console.error(err);
+                            alert(err.response?.data?.message || "Terjadi kesalahan saat memproses aksi.");
+                          } finally {
+                            setActionLoading(false);
+                          }
+                        }}
+                        className={`w-full sm:w-auto h-10 px-6 text-white rounded-xl text-[12.5px] font-bold transition-all disabled:opacity-50 cursor-pointer ${
+                          confirmModal.type === "reject" ? "bg-red-600 hover:bg-red-700" : "bg-[#1e3a8a] hover:bg-[#1e40af]"
+                        }`}
+                      >
+                        {actionLoading ? "Memproses..." : (
+                          confirmModal.type === "start" ? "Mulai" : (
+                            confirmModal.type === "complete" ? "Selesaikan" : "Tolak Tugas"
+                          )
+                        )}
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
