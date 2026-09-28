@@ -42,6 +42,10 @@ export function RequestDetailModal({
   const endKm = request.end_km ?? request.operational_trip?.end_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.end_km) ?? (Array.isArray(request.itineraries) && request.itineraries[request.itineraries.length - 1]?.end_km);
   const totalKm = request.total_km ?? request.operational_trip?.total_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.total_km) ?? ((startKm && endKm) ? Math.max(0, Number(endKm) - Number(startKm)) : null);
 
+  const isTripInternal = !request.is_external;
+  const isKmRecorded = Boolean(startKm && Number(startKm) > 0);
+  const isPdfDisabled = isTripInternal && !isKmRecorded;
+
   const formatScanTime = (dtStr: string | null | undefined) => {
     if (!dtStr) return "";
     try {
@@ -179,11 +183,26 @@ export function RequestDetailModal({
           <div className="flex items-center justify-end gap-1.5 shrink-0 self-end sm:self-auto">
             {/* Direct Official PDF Download */}
             <button
-              onClick={() => exportRequestPDF(request)}
-              title="Unduh Surat Tugas (PDF Resmi)"
-              className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors text-[11px] font-bold cursor-pointer shadow-2xs"
+              onClick={() => {
+                if (isPdfDisabled) return;
+                exportRequestPDF({
+                  ...request,
+                  start_km: startKm ?? request.start_km,
+                });
+              }}
+              disabled={isPdfDisabled}
+              title={
+                isPdfDisabled
+                  ? "Unduh Surat Tugas terkunci: Driver wajib mengisi KM Awal kendaraan terlebih dahulu."
+                  : "Unduh Surat Tugas (PDF Resmi)"
+              }
+              className={`flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg border transition-all text-[11px] font-bold shadow-2xs ${
+                isPdfDisabled
+                  ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60"
+                  : "bg-red-50 text-red-700 hover:bg-red-100 border-red-200 cursor-pointer active:scale-95"
+              }`}
             >
-              <Icon name="picture_as_pdf" className="text-[15px] text-red-600" />
+              <Icon name={isPdfDisabled ? "lock" : "picture_as_pdf"} className={`text-[15px] ${isPdfDisabled ? "text-slate-400" : "text-red-600"}`} />
               <span>Unduh Surat Tugas</span>
             </button>
             <button
