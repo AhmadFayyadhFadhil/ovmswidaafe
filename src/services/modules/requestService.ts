@@ -416,6 +416,14 @@ export const requestService = {
       message: res.data?.message
     };
   },
+  recordEndKm: async (id: string, endKm: number): Promise<ApiResponse<any>> => {
+    requestCache = null;
+    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/record-end-km`, { end_km: endKm });
+    return {
+      data: res.data?.data ? mapRequestFromBackend(res.data.data) : undefined,
+      message: res.data?.message
+    };
+  },
   delete: async (id: string, reason?: string): Promise<ApiResponse<void>> => {
     requestCache = null;
     const finalReason = reason && reason.trim().length >= 3 ? reason.trim() : 'Dibatalkan oleh pemohon / koordinator';
