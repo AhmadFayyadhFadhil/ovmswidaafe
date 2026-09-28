@@ -76,6 +76,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
     type: "Sedan",
     capacity: 5,
     status: "Available",
+    odometer: 0,
   });
   const [adding, setAdding] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -93,6 +94,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
     type: "Sedan",
     capacity: 5,
     status: "Available",
+    odometer: 0,
   });
   const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
   const [editPhotoPreview, setEditPhotoPreview] = useState<string>("");
@@ -130,6 +132,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
       type: v.type || "Sedan",
       capacity: v.capacity || 5,
       status: v.backendStatus || "Available",
+      odometer: v.odometer || 0,
     });
     setEditPhotoFile(null);
     setEditPhotoPreview(v.photoUrl || "");
@@ -170,6 +173,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
       data.append("type", editFormData.type);
       data.append("capacity", String(editFormData.capacity));
       data.append("status", editFormData.status);
+      data.append("odometer", String(editFormData.odometer || 0));
       if (editPhotoFile) {
         data.append("photo", editPhotoFile);
       }
@@ -204,6 +208,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
       data.append("type", formData.type);
       data.append("capacity", String(formData.capacity));
       data.append("status", formData.status);
+      data.append("odometer", String(formData.odometer || 0));
       if (photoFile) {
         data.append("photo", photoFile);
       }
@@ -219,6 +224,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
         type: "Sedan",
         capacity: 5,
         status: "Available",
+        odometer: 0,
       });
       setPhotoFile(null);
       setPhotoPreview("");
@@ -341,7 +347,7 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                   <table className="w-full min-w-[900px]">
                   <thead>
                     <tr className="bg-[#f8fafc]">
-                      {["INFO KENDARAAN", "TIPE", "STATUS", "KAPASITAS", "FOTO STNK", ...(canManageVehicles ? ["AKSI"] : [])].map(h => (
+                      {["INFO KENDARAAN", "TIPE", "STATUS", "ODOMETER", "KAPASITAS", "FOTO STNK", ...(canManageVehicles ? ["AKSI"] : [])].map(h => (
                         <th key={h} className="px-5 py-3 text-left text-[10.5px] font-bold text-[#94a3b8] uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
@@ -366,6 +372,9 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                         <td className="px-5 py-3.5 text-[13px] text-[#475569]">{v.type}</td>
                         <td className="px-5 py-3.5">
                           <VehicleStatusBadge status={v.status} />
+                        </td>
+                        <td className="px-5 py-3.5 text-[13px] font-mono font-bold text-blue-900">
+                          {v.odometer ? `${Number(v.odometer).toLocaleString('id-ID')} KM` : '-'}
                         </td>
                         <td className="px-5 py-3.5 text-[13px] font-semibold text-[#0f172a]">{v.capacity || 0} orang</td>
                         <td className="px-5 py-3.5">
@@ -433,14 +442,18 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                         <VehicleStatusBadge status={v.status} />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 pt-1">
+                      <div className="grid grid-cols-3 gap-3 pt-1">
                         <div>
                           <span className="text-[#94a3b8] block text-[10px] uppercase font-bold tracking-wider">Tipe</span>
                           <span className="text-[12.5px] font-semibold text-[#0f172a]">{v.type}</span>
                         </div>
                         <div>
                           <span className="text-[#94a3b8] block text-[10px] uppercase font-bold tracking-wider">Kapasitas</span>
-                          <span className="text-[12.5px] font-semibold text-[#0f172a]">{v.capacity || 0} orang</span>
+                          <span className="text-[12.5px] font-semibold text-[#0f172a]">{v.capacity || 0} org</span>
+                        </div>
+                        <div>
+                          <span className="text-[#94a3b8] block text-[10px] uppercase font-bold tracking-wider">Odometer</span>
+                          <span className="text-[12.5px] font-bold font-mono text-blue-900">{v.odometer ? `${Number(v.odometer).toLocaleString('id-ID')} KM` : '-'}</span>
                         </div>
                       </div>
 
@@ -582,6 +595,17 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                     <option value="Maintenance">Dalam Perbaikan</option>
                     <option value="Retired">Tidak Aktif</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Odometer Awal (KM)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={formData.odometer}
+                    onChange={e => setFormData({ ...formData, odometer: parseInt(e.target.value) || 0 })}
+                    placeholder="misal: 45000"
+                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 font-mono font-bold"
+                  />
                 </div>
               </div>
 
@@ -729,6 +753,17 @@ export default function Vehicle({ onNavigate }: { onNavigate?: (p: string) => vo
                     <option value="Maintenance">Dalam Perbaikan</option>
                     <option value="Retired">Tidak Aktif</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Odometer Terkini (KM)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editFormData.odometer}
+                    onChange={e => setEditFormData({ ...editFormData, odometer: parseInt(e.target.value) || 0 })}
+                    placeholder="misal: 45200"
+                    className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 font-mono font-bold"
+                  />
                 </div>
               </div>
 

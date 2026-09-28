@@ -136,6 +136,7 @@ export function mapRequestFromBackend(r: any): FleetRequest {
     ratingNotes: r.rating_notes || '',
     ratedAt: r.rated_at || null,
     vehicleId: r.vehicle?.id || r.operational_trip?.vehicle?.id || null,
+    vehicle: r.vehicle || r.operational_trip?.vehicle || (Array.isArray(r.operational_trips) && r.operational_trips[0]?.vehicle) || (Array.isArray(r.itineraries) && r.itineraries[0]?.vehicle) || null,
     date: formattedStart !== '-' ? formattedStart : start.date,
     time: start.time,
     endDate: formattedEnd !== '-' ? formattedEnd : end.date,
