@@ -973,6 +973,12 @@ export function RequestDetailModal({
                   (Array.isArray(request.itineraries) && request.itineraries.some((it: any) => String(it.driver_id) === String(user.id)))
                 ));
 
+                const vehicleOdometer = request.vehicle?.odometer ?? 
+                  request.operational_trip?.vehicle?.odometer ?? 
+                  (Array.isArray(request.operational_trips) && request.operational_trips[0]?.vehicle?.odometer) ?? 
+                  (Array.isArray(request.itineraries) && request.itineraries[0]?.vehicle?.odometer) ?? 
+                  null;
+
                 if (isTripInternal && (!hasRecordedStartKm || isEditingStartKm)) {
                   return (
                     <div className="bg-amber-50/70 border border-amber-200/90 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-xs animate-fadein">
@@ -996,14 +1002,18 @@ export function RequestDetailModal({
                               min={0}
                               value={startKmInput}
                               onChange={(e) => setStartKmInput(e.target.value)}
-                              placeholder={request.vehicle?.odometer ? `Odo: ${Number(request.vehicle.odometer).toLocaleString('id-ID')}` : "Contoh: 45210"}
+                              placeholder={vehicleOdometer ? `Odo: ${Number(vehicleOdometer).toLocaleString('id-ID')}` : "Contoh: 45210"}
                               className="w-full h-8 px-3 bg-white text-slate-800 rounded-lg text-[12px] font-bold text-center border border-amber-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                             />
                             <span className="text-[11px] font-extrabold text-amber-800">KM</span>
                           </div>
-                          {request.vehicle?.odometer && (
+                          {vehicleOdometer ? (
                             <div className="text-[10px] text-slate-500 text-left px-1">
-                              Odometer mobil: <span className="text-blue-700 font-bold">{Number(request.vehicle.odometer).toLocaleString('id-ID')} KM</span>
+                              Odometer mobil: <span className="text-blue-700 font-bold">{Number(vehicleOdometer).toLocaleString('id-ID')} KM</span>
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-slate-400 text-left px-1 italic">
+                              *Odometer mobil belum diset di Master Kendaraan
                             </div>
                           )}
                           <div className="flex items-center gap-2 pt-1">
