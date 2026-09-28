@@ -70,7 +70,7 @@ export default function SecurityDashboard() {
     setConfirmingType(type);
     if (type === "checkout") {
       const trip = scannedRequest?.operational_trips?.find((t: any) => t.id === tripId);
-      const prefillKm = trip?.start_km || scannedRequest?.start_km || trip?.vehicle?.odometer || scannedRequest?.vehicle?.odometer || "";
+      const prefillKm = trip?.start_km || scannedRequest?.start_km || trip?.vehicle?.odometer || scannedRequest?.vehicle?.odometer || getActiveStartKm() || getActiveVehicleLastOdometer() || "";
       setOdometerKm(prefillKm ? String(prefillKm) : "");
     } else {
       const trip = scannedRequest?.operational_trips?.find((t: any) => t.id === tripId);
@@ -87,7 +87,7 @@ export default function SecurityDashboard() {
     setSelectedSession(session ?? null);
     if (type === "checkout") {
       const it = itId && scannedRequest?.itineraries?.find((i: any) => i.id === itId);
-      const prefillKm = it?.start_km || scannedRequest?.start_km || scannedRequest?.vehicle?.odometer || "";
+      const prefillKm = it?.start_km || scannedRequest?.start_km || scannedRequest?.vehicle?.odometer || getActiveStartKm() || getActiveVehicleLastOdometer() || "";
       setOdometerKm(prefillKm ? String(prefillKm) : "");
     } else {
       const it = itId && scannedRequest?.itineraries?.find((i: any) => i.id === itId);
@@ -1361,22 +1361,14 @@ export default function SecurityDashboard() {
                 <Icon name="close" className="text-xl" />
               </button>
               
-              <div className="text-center mb-5">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-2.5 ${
-                  confirmingType === 'checkout' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
-                }`}>
-                  <Icon name={confirmingType === 'checkout' ? "flight_takeoff" : "flight_land"} className="text-2xl" />
-                </div>
-                <div className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider mb-1 ${
-                  confirmingType === 'checkout' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  {confirmingType === 'checkout' ? 'Pemberangkatan (Check-Out)' : 'Pengembalian (Check-In)'}
-                </div>
-                <h3 className="text-lg font-extrabold text-slate-800">
+              <div className="text-center mb-5 pt-2">
+                <h3 className="text-lg sm:text-xl font-extrabold text-slate-800">
                   {confirmingType === 'checkout' ? 'Konfirmasi Berangkat Gate' : 'Konfirmasi Kembali Gate'}
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Isi kilometer spedometer kendaraan dan nama petugas jaga.
+                <p className="text-xs text-slate-400 mt-1">
+                  {confirmingType === 'checkout'
+                    ? 'Verifikasi kilometer spedometer kendaraan dan nama petugas jaga.'
+                    : 'Isi kilometer spedometer kendaraan dan nama petugas jaga.'}
                 </p>
               </div>
 
@@ -1442,42 +1434,63 @@ export default function SecurityDashboard() {
                     </div>
                   )}
 
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-bold text-slate-700 uppercase">
-                        {confirmingType === 'checkout' ? 'KM Odometer Keluar (Awal)' : 'KM Odometer Masuk (Akhir)'}
-                        <span className="text-red-500 ml-0.5">*</span>
-                      </label>
-                      {confirmingType === 'checkout' && getActiveVehicleLastOdometer() ? (
-                        <button
-                          type="button"
-                          onClick={() => setOdometerKm(String(getActiveVehicleLastOdometer()))}
-                          className="text-[10px] text-blue-700 font-bold hover:underline cursor-pointer"
-                        >
-                          Gunakan Terakhir ({getActiveVehicleLastOdometer()?.toLocaleString('id-ID')} km)
-                        </button>
-                      ) : null}
-                    </div>
+                  {confirmingType === 'checkout' ? (
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
+                          <span>KM Odometer Keluar (Awal)</span>
+                          <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                            Dicatat Driver
+                          </span>
+                        </label>
+                      </div>
 
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                        <Icon name="speed" className="text-lg" />
-                      </span>
-                      <input
-                        type="number"
-                        required
-                        min="0"
-                        step="1"
-                        value={odometerKm}
-                        onChange={(e) => setOdometerKm(e.target.value)}
-                        placeholder={confirmingType === 'checkout' ? "Contoh: 45230" : "Contoh: 45315"}
-                        className="w-full pl-10 pr-12 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-bold text-sm"
-                      />
-                      <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-bold text-slate-400">
-                        KM
-                      </span>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                          <Icon name="speed" className="text-lg" />
+                        </span>
+                        <input
+                          type="text"
+                          readOnly
+                          value={odometerKm ? `${Number(odometerKm).toLocaleString('id-ID')} KM` : "0 KM"}
+                          className="w-full pl-10 pr-10 py-2.5 bg-slate-100/90 border border-slate-200 rounded-xl text-slate-800 font-bold text-sm cursor-not-allowed select-none focus:outline-none"
+                        />
+                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400" title="KM Awal hanya dapat dilihat (tidak dapat diubah security)">
+                          <Icon name="lock" className="text-base text-slate-400" />
+                        </span>
+                      </div>
+                      <p className="text-[10.5px] text-slate-500 mt-1 italic">
+                        *Petugas Security hanya memverifikasi kesesuaian fisik spedometer dengan angka di atas.
+                      </p>
                     </div>
-                  </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-bold text-slate-700 uppercase">
+                          KM Odometer Masuk (Akhir) <span className="text-red-500 ml-0.5">*</span>
+                        </label>
+                      </div>
+
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                          <Icon name="speed" className="text-lg" />
+                        </span>
+                        <input
+                          type="number"
+                          required
+                          min="0"
+                          step="1"
+                          value={odometerKm}
+                          onChange={(e) => setOdometerKm(e.target.value)}
+                          placeholder="Contoh: 45315"
+                          className="w-full pl-10 pr-12 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-bold text-sm"
+                        />
+                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-bold text-slate-400">
+                          KM
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Real-time Calculation for Check-in */}
                   {confirmingType === 'checkin' && odometerKm && (
