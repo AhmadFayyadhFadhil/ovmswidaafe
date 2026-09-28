@@ -68,7 +68,15 @@ export default function SecurityDashboard() {
     setSelectedItineraryId(null);
     setSelectedSession(null);
     setConfirmingType(type);
-    setOdometerKm("");
+    if (type === "checkout") {
+      const trip = scannedRequest?.operational_trips?.find((t: any) => t.id === tripId);
+      const prefillKm = trip?.start_km || scannedRequest?.start_km || trip?.vehicle?.odometer || scannedRequest?.vehicle?.odometer || "";
+      setOdometerKm(prefillKm ? String(prefillKm) : "");
+    } else {
+      const trip = scannedRequest?.operational_trips?.find((t: any) => t.id === tripId);
+      const prefillKm = trip?.end_km || scannedRequest?.end_km || trip?.vehicle?.odometer || scannedRequest?.vehicle?.odometer || "";
+      setOdometerKm(prefillKm ? String(prefillKm) : "");
+    }
     setShowNameModal(true);
   };
 
@@ -77,7 +85,15 @@ export default function SecurityDashboard() {
     setConfirmingType(type);
     setSelectedItineraryId(itId ?? null);
     setSelectedSession(session ?? null);
-    setOdometerKm("");
+    if (type === "checkout") {
+      const it = itId && scannedRequest?.itineraries?.find((i: any) => i.id === itId);
+      const prefillKm = it?.start_km || scannedRequest?.start_km || scannedRequest?.vehicle?.odometer || "";
+      setOdometerKm(prefillKm ? String(prefillKm) : "");
+    } else {
+      const it = itId && scannedRequest?.itineraries?.find((i: any) => i.id === itId);
+      const prefillKm = it?.end_km || scannedRequest?.end_km || scannedRequest?.vehicle?.odometer || "";
+      setOdometerKm(prefillKm ? String(prefillKm) : "");
+    }
     setShowNameModal(true);
   };
 
