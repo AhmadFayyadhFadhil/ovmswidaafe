@@ -219,9 +219,15 @@ export default function GAHRDRequestsPage() {
       setRequests(reqRes.data || []);
 
       const mappedDrivers: Driver[] = (driverRes.data || []).map((d: any) => ({
+        ...d,
         id: String(d.id),
         name: d.name,
         email: d.email,
+        simNumber: d.simNumber || d.sim_number || "",
+        simType: d.simType || d.sim_type || "SIM A",
+        simExpiryDate: d.simExpiryDate || d.sim_expiry_date || d.licenseExpiry || "",
+        simStatus: d.simStatus || d.sim_status || (d.sim_expiry_date ? "valid" : "not_set"),
+        simExpiryDaysLeft: d.simExpiryDaysLeft ?? d.sim_expiry_days_left ?? null,
         status: d.status === "AVAILABLE" ? "AVAILABLE" : (d.status === "ON DUTY" ? "ON TRIP" : (d.status === "ASSIGNED" ? "ASSIGNED" : "OFF DUTY")),
       } as Driver));
       setDrivers(mappedDrivers);
@@ -427,9 +433,15 @@ export default function GAHRDRequestsPage() {
       setVehicles(vList);
 
       const mappedDrivers: Driver[] = (dRes.data || []).map((d: any) => ({
+        ...d,
         id: String(d.id),
         name: d.name,
         email: d.email,
+        simNumber: d.simNumber || d.sim_number || "",
+        simType: d.simType || d.sim_type || "SIM A",
+        simExpiryDate: d.simExpiryDate || d.sim_expiry_date || d.licenseExpiry || "",
+        simStatus: d.simStatus || d.sim_status || (d.sim_expiry_date ? "valid" : "not_set"),
+        simExpiryDaysLeft: d.simExpiryDaysLeft ?? d.sim_expiry_days_left ?? null,
         status: d.status === "AVAILABLE" ? "AVAILABLE" : (d.status === "ON DUTY" ? "ON TRIP" : (d.status === "ASSIGNED" ? "ASSIGNED" : "OFF DUTY")),
       } as Driver));
       setDrivers(mappedDrivers);
@@ -814,6 +826,39 @@ export default function GAHRDRequestsPage() {
 
       return rStart < targetEnd && rEnd > targetStart;
     });
+  };
+
+  const getDriverSimValidation = (driver: Driver, targetDateStr?: string | null) => {
+    if (driver.simStatus === "expired") {
+      return {
+        isDisabled: true,
+        badgeText: `⛔ (SIM Kedaluwarsa: ${driver.simExpiryDate || "-"})`,
+      };
+    }
+
+    if (targetDateStr && driver.simExpiryDate && driver.simExpiryDate !== "-") {
+      const targetDateOnly = targetDateStr.substring(0, 10);
+      const expiryDateOnly = driver.simExpiryDate.substring(0, 10);
+
+      if (targetDateOnly > expiryDateOnly) {
+        return {
+          isDisabled: true,
+          badgeText: `⛔ (SIM Berakhir ${driver.simExpiryDate} sebelum jadwal trip)`,
+        };
+      }
+    }
+
+    if (driver.simStatus === "expiring_soon") {
+      return {
+        isDisabled: false,
+        badgeText: `⚠️ (SIM H-30: Berakhir ${driver.simExpiryDate})`,
+      };
+    }
+
+    return {
+      isDisabled: false,
+      badgeText: "",
+    };
   };
 
   const getAvailableDriversForRequest = (req: any) => {
@@ -1587,9 +1632,14 @@ export default function GAHRDRequestsPage() {
                                   className="w-full h-9 px-2 border border-slate-200 rounded-xl text-[12px] bg-white focus:outline-none"
                                 >
                                   <option value="">-- Pilih Driver --</option>
-                                  {dateAvailableDrivers.map(d => (
-                                    <option key={d.id} value={d.id}>{d.name}</option>
-                                  ))}
+                                  {dateAvailableDrivers.map(d => {
+                                    const simVal = getDriverSimValidation(d, asg.trip_date || itDate);
+                                    return (
+                                      <option key={d.id} value={d.id} disabled={simVal.isDisabled}>
+                                        {d.name} {simVal.badgeText}
+                                      </option>
+                                    );
+                                  })}
                                 </select>
                               </div>
 
@@ -2170,16 +2220,14 @@ export default function GAHRDRequestsPage() {
                               className="w-full h-10 px-2 border border-[#e2e8f0] rounded-xl text-[12.5px] bg-white focus:outline-none"
                             >
                               <option value="">-- Pilih Driver --</option>
-                              {availableDrivers.map((d) => (
-                                <option key={d.id} value={d.id}>
-                                  {d.name}
-                                  {d.simStatus === "expired"
-                                    ? " ⛔ (SIM Expired!)"
-                                    : d.simStatus === "expiring_soon"
-                                    ? ` ⚠️ (SIM H-30: ${d.simExpiryDaysLeft !== null && d.simExpiryDaysLeft !== undefined ? `${d.simExpiryDaysLeft} hr lagi` : d.simExpiryDate})`
-                                    : ""}
-                                </option>
-                              ))}
+                              {availableDrivers.map((d) => {
+                                const simVal = getDriverSimValidation(d, selectedRequest?.startDate || selectedRequest?.start_time || selectedRequest?.date);
+                                return (
+                                  <option key={d.id} value={d.id} disabled={simVal.isDisabled}>
+                                    {d.name} {simVal.badgeText}
+                                  </option>
+                                );
+                              })}
                             </select>
                           </div>
 
@@ -2237,16 +2285,14 @@ export default function GAHRDRequestsPage() {
                                 className="w-full h-10 px-2 border border-blue-200 rounded-xl text-[12.5px] bg-white focus:outline-none"
                               >
                                 <option value="">-- Tanpa Driver 2 --</option>
-                                {(availableDrivers && availableDrivers.length > 0 ? availableDrivers : drivers).filter(d => String(d.id) !== String(selectedDriverId)).map((d) => (
-                                  <option key={d.id} value={d.id}>
-                                    {d.name}
-                                    {d.simStatus === "expired"
-                                      ? " ⛔ (SIM Expired!)"
-                                      : d.simStatus === "expiring_soon"
-                                      ? ` ⚠️ (SIM H-30: ${d.simExpiryDaysLeft !== null && d.simExpiryDaysLeft !== undefined ? `${d.simExpiryDaysLeft} hr lagi` : d.simExpiryDate})`
-                                      : ""}
-                                  </option>
-                                ))}
+                                {(availableDrivers && availableDrivers.length > 0 ? availableDrivers : drivers).filter(d => String(d.id) !== String(selectedDriverId)).map((d) => {
+                                  const simVal = getDriverSimValidation(d, selectedRequest?.startDate || selectedRequest?.start_time || selectedRequest?.date);
+                                  return (
+                                    <option key={d.id} value={d.id} disabled={simVal.isDisabled}>
+                                      {d.name} {simVal.badgeText}
+                                    </option>
+                                  );
+                                })}
                               </select>
                             </div>
 

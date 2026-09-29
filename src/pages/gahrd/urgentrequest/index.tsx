@@ -604,11 +604,30 @@ export default function CreateUrgentRequestPage() {
                       className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                     >
                       <option value="">-- Pilih Driver (Bisa Dikosongkan) --</option>
-                      {drivers.map(d => (
-                        <option key={d.id} value={d.id}>
-                          {d.name}
-                        </option>
-                      ))}
+                      {drivers.map(d => {
+                        const isExpired = d.simStatus === "expired";
+                        let isTripPastSim = false;
+                        if (departureDate && d.simExpiryDate && d.simExpiryDate !== "-") {
+                          if (departureDate > d.simExpiryDate.substring(0, 10)) {
+                            isTripPastSim = true;
+                          }
+                        }
+                        const isDisabled = isExpired || isTripPastSim;
+                        let badgeText = "";
+                        if (isExpired) {
+                          badgeText = `⛔ (SIM Expired: ${d.simExpiryDate || "-"})`;
+                        } else if (isTripPastSim) {
+                          badgeText = `⛔ (SIM Berakhir ${d.simExpiryDate} sebelum trip)`;
+                        } else if (d.simStatus === "expiring_soon") {
+                          badgeText = `⚠️ (SIM H-30: Berakhir ${d.simExpiryDate})`;
+                        }
+
+                        return (
+                          <option key={d.id} value={d.id} disabled={isDisabled}>
+                            {d.name} {badgeText}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                 </div>

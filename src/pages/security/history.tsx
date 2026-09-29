@@ -1,14 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Layout, Icon } from "@/components/layout/RoleLayout";
 import { useApi } from "@/hooks/useApi";
 import { requestService } from "@/services/modules/requestService";
+import { apiClient } from "@/services/api/api";
 
 type HistoryTab = "Semua" | "Sedang Jalan" | "Selesai";
 
 export default function SecurityHistoryPage() {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<HistoryTab>("Semua");
   const [search, setSearch] = useState("");
   const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // Modal Check-in (Konfirmasi Kembali)
+  const [predefinedGuards, setPredefinedGuards] = useState<string[]>([]);
+  const [checkinModalOpen, setCheckinModalOpen] = useState(false);
+  const [selectedLogForCheckin, setSelectedLogForCheckin] = useState<any | null>(null);
+  const [selectedTripForCheckin, setSelectedTripForCheckin] = useState<any | null>(null);
+  const [guardName, setGuardName] = useState(() => localStorage.getItem("ovms_security_guard_name") || "");
+  const [selectedGuardOption, setSelectedGuardOption] = useState<string>("");
+  const [checkinNotes, setCheckinNotes] = useState("");
+  const [checkinSubmitting, setCheckinSubmitting] = useState(false);
+  const [checkinError, setCheckinError] = useState<string | null>(null);
 
   // Fetch all requests
   const { data: fetchedRequests, loading, error, refetch } = useApi(async () => {
@@ -17,6 +32,53 @@ export default function SecurityHistoryPage() {
   }, true, []);
 
   const requestsList = fetchedRequests || [];
+
+  // Load guards list
+  useEffect(() => {
+    const fetchGuards = async () => {
+      try {
+        const res = await apiClient.get("/security-guards");
+        if (res.data && res.data.status === "success") {
+          const names = (res.data.data || []).map((g: any) => g.name);
+          setPredefinedGuards(names);
+          const saved = localStorage.getItem("ovms_security_guard_name") || "";
+          if (saved) {
+            if (names.includes(saved)) {
+              setSelectedGuardOption(saved);
+            } else {
+              setSelectedGuardOption("custom");
+            }
+          } else if (names.length > 0) {
+            setSelectedGuardOption(names[0]);
+            setGuardName(names[0]);
+          }
+        }
+      } catch (e) {
+        console.error("Gagal memuat daftar security:", e);
+      }
+    };
+    fetchGuards();
+  }, []);
+
+  // Handle redirect from dashboard (autoExpandId & successMsg)
+  useEffect(() => {
+    if (location.state && (location.state as any).autoExpandId) {
+      const targetId = String((location.state as any).autoExpandId);
+      setExpandedRequestId(targetId);
+      if ((location.state as any).successMsg) {
+        setToastMsg((location.state as any).successMsg);
+      }
+      setTimeout(() => {
+        const el = document.getElementById(`log-card-${targetId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 400);
+
+      // Clean navigation state
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, requestsList.length]);
 
   // Filter requests that have check-out or check-in recorded by security
   const securityLogs = requestsList.filter((r) => {
@@ -59,12 +121,66 @@ export default function SecurityHistoryPage() {
     setExpandedRequestId(expandedRequestId === id ? null : id);
   };
 
+  const handleOpenCheckin = (log: any, trip?: any) => {
+    setSelectedLogForCheckin(log);
+    setSelectedTripForCheckin(trip || null);
+    setCheckinNotes("");
+    setCheckinError(null);
+    setCheckinModalOpen(true);
+  };
+
+  const handleSaveCheckin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!guardName.trim()) {
+      setCheckinError("Nama petugas security jaga wajib dipilih/diisi!");
+      return;
+    }
+
+    localStorage.setItem("ovms_security_guard_name", guardName.trim());
+    setCheckinSubmitting(true);
+    setCheckinError(null);
+
+    try {
+      const nowDevice = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const scannedAtStr = `${nowDevice.getFullYear()}-${pad(nowDevice.getMonth() + 1)}-${pad(nowDevice.getDate())} ${pad(nowDevice.getHours())}:${pad(nowDevice.getMinutes())}:${pad(nowDevice.getSeconds())}`;
+
+      const payload: any = {
+        qr_code_token: selectedLogForCheckin.qr_code_token || `REQ-${selectedLogForCheckin.id}`,
+        security_name: guardName.trim(),
+        type: "checkin",
+        notes: checkinNotes.trim() || undefined,
+        scanned_at: scannedAtStr,
+      };
+
+      if (selectedTripForCheckin?.id) {
+        payload.trip_id = selectedTripForCheckin.id;
+      }
+
+      const res = await apiClient.post("/security/scan", payload);
+      if (res.data && res.data.status === "success") {
+        setToastMsg(res.data.message || `Konfirmasi kembali REQ #${selectedLogForCheckin.id} berhasil dicatat!`);
+        setCheckinModalOpen(false);
+        setSelectedLogForCheckin(null);
+        setSelectedTripForCheckin(null);
+        setCheckinNotes("");
+        await refetch();
+      } else {
+        setCheckinError(res.data?.message || "Gagal mencatat konfirmasi masuk gate.");
+      }
+    } catch (err: any) {
+      console.error("Checkin error:", err);
+      setCheckinError(err.response?.data?.message || "Gagal mencatat konfirmasi masuk gate.");
+    } finally {
+      setCheckinSubmitting(false);
+    }
+  };
+
   const formatDateTime = (dtStr: string | null | undefined) => {
     if (!dtStr) return "-";
     try {
       const date = new Date(dtStr);
       if (isNaN(date.getTime())) {
-        // Fallback: replace T and slice
         return dtStr.replace("T", " ").substring(0, 16);
       }
       return date.toLocaleString("id-ID", {
@@ -100,6 +216,23 @@ export default function SecurityHistoryPage() {
             <Icon name="refresh" className="text-base" /> Segarkan
           </button>
         </div>
+
+        {/* Success Toast / Notification Banner */}
+        {toastMsg && (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-bold rounded-2xl flex items-center justify-between gap-3 animate-fadein shadow-xs">
+            <div className="flex items-center gap-2">
+              <Icon name="check_circle" className="text-lg flex-shrink-0 text-emerald-600" />
+              <span>{toastMsg}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToastMsg(null)}
+              className="text-emerald-700 hover:text-emerald-900 font-bold text-xs cursor-pointer p-1"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -202,11 +335,14 @@ export default function SecurityHistoryPage() {
 
               return (
                 <div
+                  id={`log-card-${log.id}`}
                   key={log.id}
-                  className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden transition-all duration-200"
+                  className={`bg-white border rounded-2xl shadow-sm overflow-hidden transition-all duration-200 ${
+                    isExpanded ? "ring-2 ring-blue-500/40 border-blue-200" : "border-slate-100 hover:border-slate-200"
+                  }`}
                 >
                   {/* Summary Bar */}
-                  <button
+                  <div
                     onClick={() => toggleExpand(log.id)}
                     className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 hover:bg-slate-50/50 text-left transition-colors cursor-pointer"
                   >
@@ -242,7 +378,7 @@ export default function SecurityHistoryPage() {
                       </div>
                     </div>
 
-                    {/* Status Badge & Chevron */}
+                    {/* Status Badge, Action Button & Chevron */}
                     <div className="flex items-center justify-between sm:justify-end gap-3 self-stretch sm:self-auto border-t sm:border-t-0 border-slate-50 pt-2 sm:pt-0">
                       <div className="text-left sm:text-right">
                         <span
@@ -256,11 +392,29 @@ export default function SecurityHistoryPage() {
                           Update terakhir: {formatDateTime(log.security_checked_in_at || log.security_checked_out_at)}
                         </div>
                       </div>
+
+                      {/* Tombol Konfirmasi Kembali (Masuk Gate) langsung dari kartu riwayat */}
+                      {!hasCheckin && log.security_checked_out_at && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenCheckin(log);
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer flex-shrink-0"
+                          title="Konfirmasi unit armada telah kembali masuk gate pabrik"
+                        >
+                          <Icon name="login" className="text-base" />
+                          <span className="hidden sm:inline">Konfirmasi Kembali</span>
+                          <span className="sm:hidden">Kembali</span>
+                        </button>
+                      )}
+
                       <div className={`text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}>
                         <Icon name="keyboard_arrow_down" className="text-2xl" />
                       </div>
                     </div>
-                  </button>
+                  </div>
 
                   {/* Expanded Detail Panel */}
                   {isExpanded && (
@@ -320,7 +474,18 @@ export default function SecurityHistoryPage() {
                                       {trip.security_checkin_notes && <p className="italic bg-white p-1.5 rounded-md mt-1 border border-slate-100">"{trip.security_checkin_notes}"</p>}
                                     </div>
                                   ) : (
-                                    <div className="text-slate-400 italic mt-1 text-[11px]">Belum kembali</div>
+                                    <div className="space-y-2 mt-1">
+                                      <div className="text-slate-400 italic text-[11px]">Belum kembali</div>
+                                      {trip.security_checked_out_at && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleOpenCheckin(log, trip)}
+                                          className="w-full py-1.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                                        >
+                                          <Icon name="login" className="text-sm" /> Konfirmasi Masuk Unit Ini
+                                        </button>
+                                      )}
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -406,8 +571,15 @@ export default function SecurityHistoryPage() {
                                     </div>
                                   </>
                                 ) : (
-                                  <div className="py-6 text-center text-xs text-slate-400 italic">
-                                    Belum kembali.
+                                  <div className="py-4 text-center space-y-2">
+                                    <div className="text-slate-400 italic text-[11px]">Belum kembali (sedang jalan).</div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenCheckin(log)}
+                                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+                                    >
+                                      <Icon name="login" className="text-base" /> Konfirmasi Masuk Gate
+                                    </button>
                                   </div>
                                 )}
                               </div>
@@ -425,6 +597,160 @@ export default function SecurityHistoryPage() {
         </div>
 
       </div>
+
+      {/* Modal Konfirmasi Kembali (Masuk Gate) */}
+      {checkinModalOpen && selectedLogForCheckin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadein">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-100 animate-scalein">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <Icon name="login" className="text-2xl" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-800 leading-tight">
+                    Konfirmasi Masuk Gate (Kembali)
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    REQ #{selectedLogForCheckin.id} • {selectedLogForCheckin.destination}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCheckinModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer"
+              >
+                <Icon name="close" className="text-xl" />
+              </button>
+            </div>
+
+            {selectedTripForCheckin ? (
+              <div className="mb-4 p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs space-y-1">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unit Khusus:</div>
+                <div className="font-bold text-slate-700">
+                  {selectedTripForCheckin.vehicle?.name || "Kendaraan"} ({selectedTripForCheckin.vehicle?.plate_number || "-"})
+                </div>
+                <div className="text-slate-500">
+                  Driver: <span className="font-semibold">{selectedTripForCheckin.driver?.name || "-"}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-4 p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Driver:</span>
+                  <span className="font-bold text-slate-700">
+                    {selectedLogForCheckin.driverName || selectedLogForCheckin.external_driver_name || "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Kendaraan:</span>
+                  <span className="font-bold text-slate-700">
+                    {selectedLogForCheckin.vehicleModel || selectedLogForCheckin.external_license_plate || "-"}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {checkinError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-red-700 text-xs font-semibold flex items-center gap-2">
+                <Icon name="error" className="text-base flex-shrink-0" />
+                <span>{checkinError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveCheckin} className="space-y-4">
+              {/* Petugas Security */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
+                  Petugas Security Jaga <span className="text-red-500">*</span>
+                </label>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                      <Icon name="assignment_ind" className="text-lg" />
+                    </span>
+                    <select
+                      required
+                      value={selectedGuardOption}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSelectedGuardOption(val);
+                        if (val !== "custom") {
+                          setGuardName(val);
+                        } else {
+                          setGuardName("");
+                        }
+                      }}
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-semibold text-xs sm:text-sm"
+                    >
+                      <option value="" disabled>-- Pilih Nama Petugas --</option>
+                      {predefinedGuards.map((name) => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                      <option value="custom">Ketik Manual (Nama Lainnya)</option>
+                    </select>
+                  </div>
+
+                  {selectedGuardOption === "custom" && (
+                    <div className="relative animate-fadein">
+                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <Icon name="person" className="text-lg" />
+                      </span>
+                      <input
+                        type="text"
+                        required
+                        value={guardName}
+                        onChange={(e) => setGuardName(e.target.value)}
+                        placeholder="Ketik Nama Petugas (Contoh: Budi)"
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-semibold text-xs sm:text-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Catatan Masuk */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
+                  Catatan Petugas (Opsional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={checkinNotes}
+                  onChange={(e) => setCheckinNotes(e.target.value)}
+                  placeholder="Kondisi armada, barang bawaan, atau catatan lainnya..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-medium resize-none"
+                />
+              </div>
+
+              <div className="flex gap-2.5 pt-2 text-xs sm:text-sm font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setCheckinModalOpen(false)}
+                  className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={checkinSubmitting || !guardName.trim()}
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-bold"
+                >
+                  {checkinSubmitting ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Icon name="done_all" className="text-base" />
+                      <span>Konfirmasi Masuk</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
