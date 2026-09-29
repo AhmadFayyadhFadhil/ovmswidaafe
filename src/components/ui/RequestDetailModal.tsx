@@ -980,6 +980,26 @@ export function RequestDetailModal({
                   null;
 
                 if (isTripInternal && (!hasRecordedStartKm || isEditingStartKm)) {
+                  const isLockedByPrev = Boolean(request.pending_previous_trip?.is_locked);
+                  if (isLockedByPrev && !hasRecordedStartKm) {
+                    return (
+                      <div className="bg-amber-50/90 border-2 border-amber-300 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-xs animate-fadein max-w-[320px] mx-auto">
+                        <div className="w-11 h-11 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mb-2 shadow-2xs animate-pulse">
+                          <Icon name="hourglass_top" className="text-[22px]" />
+                        </div>
+                        <div className="text-[12.5px] font-extrabold text-amber-900 leading-tight">
+                          Menunggu KM Akhir Trip Sebelumnya
+                        </div>
+                        <p className="text-[11px] text-amber-800 mt-1.5 leading-relaxed font-medium">
+                          {request.pending_previous_trip?.message}
+                        </p>
+                        <div className="mt-3 px-3 py-1.5 bg-amber-100/90 border border-amber-300 text-amber-900 rounded-lg text-[10.5px] font-bold">
+                          🔒 Form KM Awal akan aktif setelah perjalanan sebelumnya selesai.
+                        </div>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div className="bg-amber-50/70 border border-amber-200/90 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-xs animate-fadein">
                       <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mb-2 shadow-2xs">

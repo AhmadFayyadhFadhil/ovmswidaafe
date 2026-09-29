@@ -839,6 +839,28 @@ export default function DriverDashboard() {
                       const isTripInternal = !currentTrip.is_external;
 
                       if (isTripInternal && ["driver_assigned", "pending", "on_going"].includes(driverTripStatus || "")) {
+                        const isLockedByPrev = Boolean(currentTrip.pending_previous_trip?.is_locked);
+                        if (isLockedByPrev && !hasRecordedStartKm) {
+                          return (
+                            <div className="bg-[#102447] border-2 border-amber-400/60 p-4 rounded-2xl flex flex-col items-center gap-2.5 w-full max-w-[280px] text-center shadow-lg animate-fadein">
+                              <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center animate-pulse">
+                                <Icon name="hourglass_top" className="text-[22px]" />
+                              </div>
+                              <div>
+                                <div className="text-[13px] font-extrabold text-amber-300">
+                                  Menunggu KM Akhir
+                                </div>
+                                <p className="text-[11px] text-slate-300 mt-1 leading-snug">
+                                  {currentTrip.pending_previous_trip?.message}
+                                </p>
+                              </div>
+                              <div className="text-[10.5px] text-amber-200 bg-amber-950/60 px-2.5 py-1.5 rounded-lg border border-amber-500/30 font-semibold">
+                                🔒 Form KM Awal akan aktif setelah perjalanan sebelumnya selesai.
+                              </div>
+                            </div>
+                          );
+                        }
+
                         if (!hasRecordedStartKm || isEditingStartKm) {
                           return (
                             <div className="bg-[#102447] border border-blue-400/40 p-4 rounded-2xl flex flex-col items-center gap-2.5 w-full max-w-[280px] text-center shadow-lg animate-fadein">
