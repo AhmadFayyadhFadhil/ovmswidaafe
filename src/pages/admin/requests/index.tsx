@@ -968,13 +968,13 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Lokasi / Tempat Tujuan</label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Detail Lokasi Tujuan</label>
                   <input
                     type="text"
                     required
                     value={editFormData.destinationPlace}
                     onChange={e => setEditFormData({ ...editFormData, destinationPlace: e.target.value })}
-                    placeholder="cth. Kantor Sudirman"
+                    placeholder="cth. Kantor Sudirman, Pabrik Pasuruan, dsb."
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                   />
                 </div>

@@ -191,7 +191,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
 
   const handlePreSubmitCheck = () => {
     if (!purpose || !destinationCity || !destinationPlace || !departure || !estReturn) {
-      const errMsg = "Tujuan perjalanan, kota, tempat tujuan, waktu keberangkatan, dan estimasi waktu kembali wajib diisi.";
+      const errMsg = "Tujuan perjalanan, kota tujuan, detail lokasi tujuan, waktu keberangkatan, dan estimasi waktu kembali wajib diisi.";
       setFormError(errMsg);
       showAlert(errMsg);
       return;
@@ -248,7 +248,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
 
   const handleSubmit = async () => {
     if (!purpose || !destinationCity || !destinationPlace || !departure || !estReturn) {
-      const errMsg = "Tujuan perjalanan, kota, tempat tujuan, waktu keberangkatan, dan estimasi waktu kembali wajib diisi.";
+      const errMsg = "Tujuan perjalanan, kota tujuan, detail lokasi tujuan, waktu keberangkatan, dan estimasi waktu kembali wajib diisi.";
       setFormError(errMsg);
       showAlert(errMsg);
       return;
@@ -476,13 +476,13 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                     />
                   </div>
                   <div>
-                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Tempat Tujuan <span className="text-red-500">*</span></label>
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Detail Lokasi Tujuan <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <Icon name="location_on" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[17px]" />
                       <input
                         required
                         value={destinationPlace} onChange={e => setDestinationPlace(e.target.value)}
-                        placeholder="cth. Kantor Pusat / Pabrik"
+                        placeholder="cth. Kantor Pusat, Nama Gedung, atau Alamat Lengkap"
                         className="w-full h-10 pl-9 pr-4 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all"
                       />
                     </div>
@@ -844,7 +844,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                 <span className="font-semibold text-slate-800">{destinationCity}</span>
               </div>
               <div className="flex justify-between border-b border-slate-200/60 pb-2">
-                <span className="font-bold text-slate-400">Tempat Tujuan:</span>
+                <span className="font-bold text-slate-400">Detail Lokasi Tujuan:</span>
                 <span className="font-semibold text-slate-800">{destinationPlace}</span>
               </div>
               <div className="flex justify-between border-b border-slate-200/60 pb-2">

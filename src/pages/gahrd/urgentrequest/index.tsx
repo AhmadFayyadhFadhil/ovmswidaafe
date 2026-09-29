@@ -131,7 +131,7 @@ export default function CreateUrgentRequestPage() {
 
   const handlePreSubmitCheck = () => {
     if (!purpose || !destinationCity || !destinationPlace || !departureTime) {
-      setFormError("Keperluan, kota tujuan, tempat tujuan, dan jam keberangkatan harus diisi.");
+      setFormError("Keperluan, kota tujuan, detail lokasi tujuan, dan jam keberangkatan harus diisi.");
       return;
     }
     setFormError("");
@@ -140,7 +140,7 @@ export default function CreateUrgentRequestPage() {
 
   const handleSubmit = async () => {
     if (!purpose || !destinationCity || !destinationPlace || !departureTime) {
-      setFormError("Keperluan, kota tujuan, tempat tujuan, dan jam keberangkatan harus diisi.");
+      setFormError("Keperluan, kota tujuan, detail lokasi tujuan, dan jam keberangkatan harus diisi.");
       return;
     }
     setIsConfirmOpen(false);
@@ -289,14 +289,14 @@ export default function CreateUrgentRequestPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Tempat Tujuan <span className="text-red-500">*</span></label>
+                  <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Detail Lokasi Tujuan <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <Icon name="location_on" className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[17px]" />
                     <input
                       required
                       value={destinationPlace}
                       onChange={e => setDestinationPlace(e.target.value)}
-                      placeholder="Contoh: Kantor Cabang Sudirman"
+                      placeholder="Contoh: Kantor Cabang, Nama Gedung, atau Alamat"
                       className="w-full h-10 pl-9 pr-4 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
                     />
                   </div>
