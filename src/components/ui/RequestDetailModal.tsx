@@ -5,6 +5,7 @@ import type { FleetRequest } from "../../types";
 import { useAuthContext } from "@/auth/authContext";
 import { exportRequestPDF } from "@/utils/exportHelper";
 import { requestService } from "@/services/modules/requestService";
+import { ConfirmModal } from "./ConfirmModal";
 
 interface RequestDetailModalProps {
   isOpen: boolean;
@@ -34,6 +35,18 @@ export function RequestDetailModal({
   const [startKmInput, setStartKmInput] = useState<string>("");
   const [isSavingStartKm, setIsSavingStartKm] = useState(false);
   const [isEditingStartKm, setIsEditingStartKm] = useState(false);
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    variant: "warning" | "danger" | "success" | "info";
+    onDismiss?: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    variant: "warning",
+  });
 
   if (!isOpen || !request) return null;
 
@@ -144,14 +157,26 @@ export function RequestDetailModal({
     setIsCompleting(true);
     try {
       await requestService.complete(request.id);
-      alert("Perjalanan sewa eksternal (drop-off) berhasil diselesaikan!");
       setIsConfirmCompleteOpen(false);
-      onClose();
-      if (typeof window !== 'undefined' && window.location) {
-        window.location.reload();
-      }
+      setAlertModal({
+        isOpen: true,
+        title: "Perjalanan Selesai",
+        message: "Perjalanan sewa eksternal (drop-off) berhasil diselesaikan!",
+        variant: "success",
+        onDismiss: () => {
+          onClose();
+          if (typeof window !== 'undefined' && window.location) {
+            window.location.reload();
+          }
+        },
+      });
     } catch (err: any) {
-      alert(err.response?.data?.message || "Gagal menyelesaikan perjalanan.");
+      setAlertModal({
+        isOpen: true,
+        title: "Gagal Menyelesaikan Perjalanan",
+        message: err.response?.data?.message || "Gagal menyelesaikan perjalanan.",
+        variant: "danger",
+      });
     } finally {
       setIsCompleting(false);
     }
@@ -1095,7 +1120,12 @@ export function RequestDetailModal({
                                 const val = cleaned ? parseInt(cleaned, 10) : NaN;
                                 if (isNaN(val) || val < 0) return;
                                 if (minKm > 0 && val < minKm) {
-                                  alert(`KM Awal (${val.toLocaleString('id-ID')} KM) tidak boleh lebih kecil dari Odometer kendaraan (${minKm.toLocaleString('id-ID')} KM)!`);
+                                  setAlertModal({
+                                    isOpen: true,
+                                    title: "Kilometer Awal Kurang",
+                                    message: `KM Awal (${val.toLocaleString('id-ID')} KM) tidak boleh lebih kecil dari Odometer kendaraan (${minKm.toLocaleString('id-ID')} KM)!`,
+                                    variant: "warning",
+                                  });
                                   return;
                                 }
                                 try {
@@ -1105,7 +1135,20 @@ export function RequestDetailModal({
                                   request.start_km = val;
                                   setIsEditingStartKm(false);
                                 } catch (err: any) {
-                                  alert(err.response?.data?.message || "Gagal menyimpan KM awal.");
+                                  const errorMsg = err.response?.data?.message || "Gagal menyimpan KM awal.";
+                                  const isLockError = errorMsg.includes("masih aktif") || errorMsg.includes("KM Akhir");
+                                  if (isLockError) {
+                                    request.pending_previous_trip = {
+                                      is_locked: true,
+                                      message: errorMsg,
+                                    };
+                                  }
+                                  setAlertModal({
+                                    isOpen: true,
+                                    title: isLockError ? "Kendaraan Masih Bertugas" : "Gagal Menyimpan KM Awal",
+                                    message: errorMsg,
+                                    variant: "warning",
+                                  });
                                 } finally {
                                   setIsSavingStartKm(false);
                                 }
@@ -1683,8 +1726,13 @@ export function RequestDetailModal({
                   </div>
                   <button
                     onClick={() => {
-                      alert(`Mengunduh berkas simulasi: ${previewFile.name}`);
-                      setPreviewFile(null);
+                      setAlertModal({
+                        isOpen: true,
+                        title: "Unduh Berkas",
+                        message: `Mengunduh berkas simulasi: ${previewFile.name}`,
+                        variant: "info",
+                        onDismiss: () => setPreviewFile(null),
+                      });
                     }}
                     className="px-5 py-2 bg-[#00236f] text-white font-bold rounded-xl text-xs hover:bg-blue-900 transition-colors shadow-sm cursor-pointer"
                   >
@@ -1733,6 +1781,21 @@ export function RequestDetailModal({
           </div>
         </div>
       )}
+
+      {/* Alert / Notification Modal */}
+      <ConfirmModal
+        isOpen={alertModal.isOpen}
+        onClose={() => {
+          const cb = alertModal.onDismiss;
+          setAlertModal(prev => ({ ...prev, isOpen: false, onDismiss: undefined }));
+          if (cb) cb();
+        }}
+        title={alertModal.title}
+        message={alertModal.message}
+        confirmText="Mengerti"
+        variant={alertModal.variant}
+        isAlertOnly={true}
+      />
     </div>
   );
 }

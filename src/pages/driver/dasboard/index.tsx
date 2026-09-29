@@ -8,6 +8,7 @@ import { vehicleService } from "@/services/modules/vehicleService";
 import { driverService } from "@/services/modules/driverService";
 import { apiClient } from "@/services/api/api";
 import { RequestDetailModal } from "@/components/ui/RequestDetailModal";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 import MyAssignmentsPage from "./Assignments";
 import type { Assignment } from "./Assignments";
@@ -158,6 +159,18 @@ export default function DriverDashboard() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [zoomedQrUrl, setZoomedQrUrl] = useState<string | null>(null);
   const [showAllReviews, setShowAllReviews] = useState(false);
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    variant: "warning" | "danger" | "success" | "info";
+    onDismiss?: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    variant: "warning",
+  });
 
   const handleViewDetail = async (reqId: string) => {
     setDetailLoading(true);
@@ -176,7 +189,12 @@ export default function DriverDashboard() {
     if (found) {
       setSelectedRequestForDetail(found);
     } else {
-      alert("Gagal memuat detail permintaan.");
+      setAlertModal({
+        isOpen: true,
+        title: "Gagal Memuat Detail",
+        message: "Data detail permintaan tidak dapat ditemukan atau gagal dimuat.",
+        variant: "danger",
+      });
     }
     setDetailLoading(false);
   };
@@ -193,11 +211,21 @@ export default function DriverDashboard() {
     const cleaned = kmStr.replace(/[^\d]/g, '');
     const kmNum = cleaned ? parseInt(cleaned, 10) : NaN;
     if (isNaN(kmNum) || kmNum < 0) {
-      alert("Masukkan angka kilometer awal yang valid!");
+      setAlertModal({
+        isOpen: true,
+        title: "Input Tidak Valid",
+        message: "Masukkan angka kilometer awal yang valid!",
+        variant: "warning",
+      });
       return;
     }
     if (minKm !== undefined && minKm !== null && minKm > 0 && kmNum < minKm) {
-      alert(`KM Awal (${kmNum.toLocaleString('id-ID')} KM) tidak boleh lebih kecil dari Odometer kendaraan (${minKm.toLocaleString('id-ID')} KM)!`);
+      setAlertModal({
+        isOpen: true,
+        title: "Kilometer Awal Kurang",
+        message: `KM Awal (${kmNum.toLocaleString('id-ID')} KM) tidak boleh lebih kecil dari Odometer kendaraan (${minKm.toLocaleString('id-ID')} KM)!`,
+        variant: "warning",
+      });
       return;
     }
     setIsSavingStartKm(true);
@@ -207,7 +235,14 @@ export default function DriverDashboard() {
       setStartKmInput("");
       await fetchData(true);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Gagal menyimpan kilometer awal.");
+      const errorMsg = err.response?.data?.message || "Gagal menyimpan kilometer awal.";
+      const isLockError = errorMsg.includes("masih aktif") || errorMsg.includes("KM Akhir");
+      setAlertModal({
+        isOpen: true,
+        title: isLockError ? "Kendaraan Masih Bertugas" : "Gagal Menyimpan KM Awal",
+        message: errorMsg,
+        variant: "warning",
+      });
     } finally {
       setIsSavingStartKm(false);
     }
@@ -217,11 +252,21 @@ export default function DriverDashboard() {
     const cleaned = kmStr.replace(/[^\d]/g, '');
     const kmNum = cleaned ? parseInt(cleaned, 10) : NaN;
     if (isNaN(kmNum) || kmNum < 0) {
-      alert("Masukkan angka kilometer akhir yang valid!");
+      setAlertModal({
+        isOpen: true,
+        title: "Input Tidak Valid",
+        message: "Masukkan angka kilometer akhir yang valid!",
+        variant: "warning",
+      });
       return;
     }
     if (minKm !== undefined && minKm !== null && minKm > 0 && kmNum < minKm) {
-      alert(`KM Akhir (${kmNum.toLocaleString('id-ID')} KM) tidak boleh lebih kecil dari KM Awal (${minKm.toLocaleString('id-ID')} KM)!`);
+      setAlertModal({
+        isOpen: true,
+        title: "Kilometer Akhir Kurang",
+        message: `KM Akhir (${kmNum.toLocaleString('id-ID')} KM) tidak boleh lebih kecil dari KM Awal (${minKm.toLocaleString('id-ID')} KM)!`,
+        variant: "warning",
+      });
       return;
     }
     setIsSavingEndKm(true);
@@ -230,9 +275,19 @@ export default function DriverDashboard() {
       setIsEditingEndKm(false);
       setEndKmInput("");
       await fetchData(true);
-      alert("Kilometer akhir berhasil disimpan!");
+      setAlertModal({
+        isOpen: true,
+        title: "Berhasil",
+        message: "Kilometer akhir berhasil disimpan!",
+        variant: "success",
+      });
     } catch (err: any) {
-      alert(err.response?.data?.message || "Gagal menyimpan kilometer akhir.");
+      setAlertModal({
+        isOpen: true,
+        title: "Gagal Menyimpan KM Akhir",
+        message: err.response?.data?.message || "Gagal menyimpan kilometer akhir.",
+        variant: "danger",
+      });
     } finally {
       setIsSavingEndKm(false);
     }
@@ -316,7 +371,12 @@ export default function DriverDashboard() {
       });
       await fetchData();
     } catch (err: any) {
-      alert(err.response?.data?.message || "Gagal menyetujui tugas.");
+      setAlertModal({
+        isOpen: true,
+        title: "Gagal Menyetujui Tugas",
+        message: err.response?.data?.message || "Gagal menyetujui tugas.",
+        variant: "danger",
+      });
     } finally {
       setActionLoading(false);
     }
@@ -334,7 +394,12 @@ export default function DriverDashboard() {
       setSearchParams({});
       await fetchData();
     } catch (err: any) {
-      alert(err.response?.data?.message || "Gagal menyetujui tugas.");
+      setAlertModal({
+        isOpen: true,
+        title: "Gagal Menyetujui Tugas",
+        message: err.response?.data?.message || "Gagal menyetujui tugas.",
+        variant: "danger",
+      });
     } finally {
       setActionLoading(false);
     }
@@ -1825,7 +1890,14 @@ export default function DriverDashboard() {
                             await fetchData();
                           } catch (err: any) {
                             console.error(err);
-                            alert(err.response?.data?.message || "Terjadi kesalahan saat memproses aksi.");
+                            const errorMsg = err.response?.data?.message || "Terjadi kesalahan saat memproses aksi.";
+                            const isLockError = errorMsg.includes("masih aktif") || errorMsg.includes("KM Akhir");
+                            setAlertModal({
+                              isOpen: true,
+                              title: isLockError ? "Kendaraan Masih Bertugas" : "Gagal Memproses Aksi",
+                              message: errorMsg,
+                              variant: isLockError ? "warning" : "danger",
+                            });
                           } finally {
                             setActionLoading(false);
                           }
@@ -1895,6 +1967,21 @@ export default function DriverDashboard() {
           </div>
         </div>
       )}
+
+      {/* Alert / Notification Modal */}
+      <ConfirmModal
+        isOpen={alertModal.isOpen}
+        onClose={() => {
+          const cb = alertModal.onDismiss;
+          setAlertModal(prev => ({ ...prev, isOpen: false, onDismiss: undefined }));
+          if (cb) cb();
+        }}
+        title={alertModal.title}
+        message={alertModal.message}
+        confirmText="Mengerti"
+        variant={alertModal.variant}
+        isAlertOnly={true}
+      />
     </Layout>
   );
 }
