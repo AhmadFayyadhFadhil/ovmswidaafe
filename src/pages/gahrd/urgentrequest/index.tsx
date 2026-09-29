@@ -575,10 +575,25 @@ export default function CreateUrgentRequestPage() {
                       <option value="">-- Pilih Kendaraan (Bisa Dikosongkan) --</option>
                       {vehicles.map(v => (
                         <option key={v.id} value={v.id}>
-                          [{v.plate}] {v.model} ({v.type})
+                          [{v.plate || v.plate_number}] {v.model || v.name} ({v.type})
+                          {v.active_trip_info ? ` ⚠️ (Belum KM Akhir di #REQ-${v.active_trip_info.request_id}: ${v.active_trip_info.driver_name})` : ""}
                         </option>
                       ))}
                     </select>
+                    {(() => {
+                      const chosen = vehicles.find(v => String(v.id) === String(selectedVehicleId));
+                      if (chosen?.active_trip_info) {
+                        return (
+                          <div className="mt-1.5 p-2 bg-amber-50 border border-amber-300 rounded-lg text-[11px] text-amber-900 flex items-start gap-1.5 leading-snug">
+                            <Icon name="info" className="text-amber-600 text-[14px] shrink-0 mt-0.5" />
+                            <span>
+                              <strong>Catatan Antrean:</strong> Mobil ini masih aktif pada <strong>#REQ-{chosen.active_trip_info.request_id}</strong> (Driver: {chosen.active_trip_info.driver_name}). Driver baru dapat mencatat KM Awal setelah KM Akhir perjalanan sebelumnya dicatat.
+                            </span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
 
                   <div>

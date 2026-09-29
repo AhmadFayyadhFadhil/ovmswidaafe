@@ -2198,11 +2198,28 @@ export default function GAHRDRequestsPage() {
                                 <>
                                   <option value="">-- Pilih Mobil --</option>
                                   {(availableVehicles && availableVehicles.length > 0 ? availableVehicles : vehicles).map((v) => (
-                                    <option key={v.id} value={v.id}>{v.model || v.name} ({v.plate || v.plate_number})</option>
+                                    <option key={v.id} value={v.id}>
+                                      {v.model || v.name} ({v.plate || v.plate_number})
+                                      {v.active_trip_info ? ` ⚠️ (Belum KM Akhir di #REQ-${v.active_trip_info.request_id}: ${v.active_trip_info.driver_name})` : ""}
+                                    </option>
                                   ))}
                                 </>
                               )}
                             </select>
+                            {(() => {
+                              const chosen = vehicles.find(v => String(v.id) === String(selectedVehicleId));
+                              if (chosen?.active_trip_info) {
+                                return (
+                                  <div className="mt-1.5 p-2 bg-amber-50 border border-amber-300 rounded-lg text-[11px] text-amber-900 flex items-start gap-1.5 leading-snug">
+                                    <Icon name="info" className="text-amber-600 text-[14px] shrink-0 mt-0.5" />
+                                    <span>
+                                      <strong>Catatan Antrean:</strong> Mobil ini masih aktif pada <strong>#REQ-{chosen.active_trip_info.request_id}</strong> (Driver: {chosen.active_trip_info.driver_name}). Penugasan tetap dapat dijadwalkan, namun driver baru dapat memulai KM Awal setelah KM Akhir perjalanan sebelumnya dicatat.
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -2249,11 +2266,28 @@ export default function GAHRDRequestsPage() {
                                     {(availableVehicles && availableVehicles.length > 0 ? availableVehicles : vehicles)
                                       .filter(v => String(v.id) !== String(selectedVehicleId))
                                       .map((v) => (
-                                        <option key={v.id} value={v.id}>{v.model || v.name} ({v.plate || v.plate_number})</option>
+                                        <option key={v.id} value={v.id}>
+                                          {v.model || v.name} ({v.plate || v.plate_number})
+                                          {v.active_trip_info ? ` ⚠️ (Belum KM Akhir di #REQ-${v.active_trip_info.request_id}: ${v.active_trip_info.driver_name})` : ""}
+                                        </option>
                                       ))}
                                   </>
                                 )}
                               </select>
+                              {(() => {
+                                const chosen2 = vehicles.find(v => String(v.id) === String(selectedVehicleId2));
+                                if (chosen2?.active_trip_info) {
+                                  return (
+                                    <div className="mt-1.5 p-2 bg-amber-50 border border-amber-300 rounded-lg text-[11px] text-amber-900 flex items-start gap-1.5 leading-snug">
+                                      <Icon name="info" className="text-amber-600 text-[14px] shrink-0 mt-0.5" />
+                                      <span>
+                                        <strong>Catatan Antrean:</strong> Mobil 2 masih aktif pada <strong>#REQ-{chosen2.active_trip_info.request_id}</strong> (Driver: {chosen2.active_trip_info.driver_name}).
+                                      </span>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                           </div>
                         </div>
