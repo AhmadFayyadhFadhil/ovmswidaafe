@@ -222,6 +222,7 @@ export function mapRequestFromBackend(r: any): FleetRequest {
         ? `Disetujui oleh GA Team oleh ${r.ga_approved_by_name || r.ga_approved_name || 'Tim GA Operasional'}`
         : `Disetujui oleh GA Coordinator (${r.ga_approved_by_name || r.ga_approved_name || 'Melodi Bella Astria'})`
     ),
+    pending_previous_trip: r.pending_previous_trip || null,
   } as any;
 }
 

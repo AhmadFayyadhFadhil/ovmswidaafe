@@ -126,6 +126,15 @@ export interface FleetRequest {
   ga_approved_by_name?: string;
   ga_approval_source?: 'primary' | 'ga_team';
   ga_approval_display_text?: string;
+  pending_previous_trip?: {
+    is_locked: boolean;
+    lock_type?: string;
+    vehicle_name?: string;
+    plate_number?: string;
+    other_request_id?: number | string;
+    other_driver_name?: string;
+    message?: string;
+  } | null;
 }
 
 export interface RequestItinerary {
