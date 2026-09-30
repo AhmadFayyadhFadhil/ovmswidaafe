@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/RoleLayout";
 import { Icon } from "@/components/ui/Icon";
 import { apiClient } from "@/services/api/api";
@@ -18,6 +19,7 @@ const parseTimeStr = (dtStr: string | null | undefined): string => {
 };
 
 export default function SecurityDashboard() {
+  const navigate = useNavigate();
   const [guardName, setGuardName] = useState(() => {
     return localStorage.getItem("ovms_security_guard_name") || "";
   });
@@ -590,10 +592,22 @@ export default function SecurityDashboard() {
 
       if (res.data && res.data.status === "success") {
         const successMessage = res.data.message;
+        const reqId = scannedRequest.id;
         setSecurityNotes("");
         setOdometerKm("");
         setConfirmingType(null);
         setCapturedPhoto(null);
+
+        // Jika konfirmasi keluar gate (checkout), langsung alihkan ke Riwayat Scan dan buka detail request
+        if (confirmingType === "checkout") {
+          navigate("/security/history", {
+            state: {
+              autoExpandId: String(reqId),
+              successMsg: successMessage || "Konfirmasi keluar gate berhasil dicatat!"
+            }
+          });
+          return;
+        }
 
         // Refresh request data so security sees updated status
         try {
@@ -601,13 +615,11 @@ export default function SecurityDashboard() {
             params: { qr_code_token: scannedRequest.qr_code_token || `REQ-${scannedRequest.id}` }
           });
           if (refreshRes.data && refreshRes.data.status === "success") {
-            // Always show refreshed data (including completed status) so user can see updated scan log
             setScannedRequest(refreshRes.data.data);
           }
         } catch (e) {
           // silently ignore refresh errors, keep showing current data
         }
-        // Set success message after data is refreshed
         setSuccessMsg(successMessage);
       } else {
         setError("Gagal mengonfirmasi scan.");

@@ -58,12 +58,9 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     sim_expiry_date: "",
   });
   const [adding, setAdding] = useState(false);
-  const [simFile, setSimFile] = useState<File | null>(null);
-  const [simPreview, setSimPreview] = useState("");
   const [formError, setFormError] = useState("");
 
-  // Edit & View States
-  const [viewingSimDriver, setViewingSimDriver] = useState<any | null>(null);
+  // Edit States
   const [editingDriver, setEditingDriver] = useState<any | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({
@@ -76,8 +73,6 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     sim_number: "",
     sim_expiry_date: "",
   });
-  const [editSimFile, setEditSimFile] = useState<File | null>(null);
-  const [editSimPreview, setEditSimPreview] = useState("");
   const [editFormError, setEditFormError] = useState("");
   const [updating, setUpdating] = useState(false);
 
@@ -106,14 +101,6 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
     }
   };
 
-  const handleSimChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSimFile(file);
-      setSimPreview(URL.createObjectURL(file));
-    }
-  };
-
   const handleEditClick = (d: any) => {
     setEditingDriver(d);
     setEditFormData({
@@ -126,18 +113,8 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       sim_number: d.simNumber || d.sim_number || "",
       sim_expiry_date: d.simExpiryDate || d.sim_expiry_date || "",
     });
-    setEditSimFile(null);
-    setEditSimPreview(d.simPhotoUrl || "");
     setEditFormError("");
     setIsEditModalOpen(true);
-  };
-
-  const handleEditSimChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setEditSimFile(file);
-      setEditSimPreview(URL.createObjectURL(file));
-    }
   };
 
   const handleEditDriverSubmit = async (e: React.FormEvent) => {
@@ -173,11 +150,6 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       if (editFormData.department) {
         const parsedDeptId = parseInt(editFormData.department);
         data.append("department_id", String(isNaN(parsedDeptId) ? 1 : parsedDeptId));
-      }
-      if (editSimFile) {
-        data.append("sim_a_photo", editSimFile);
-        data.append("sim_photo", editSimFile);
-        data.append("photo", editSimFile);
       }
 
       await driverService.update(editingDriver.id, data);
@@ -231,10 +203,6 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
       const parsedDeptId = formData.department ? parseInt(formData.department) : (departments[0]?.id || 1);
       data.append("department_id", String(isNaN(parsedDeptId) ? 1 : parsedDeptId));
 
-      if (simFile) {
-        data.append("sim_a_photo", simFile);
-      }
-
       await driverService.create(data);
       setIsModalOpen(false);
       setFormData({
@@ -247,8 +215,6 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
         sim_number: "",
         sim_expiry_date: "",
       });
-      setSimFile(null);
-      setSimPreview("");
       refetch();
     } catch (err: any) {
       console.error("Add driver error:", err);
@@ -460,7 +426,7 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                             </div>
                             <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
                               {d.simStatus === "expired" ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-red-100 text-red-700 border border-red-200">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-red-100 text-red-700 border border-red-300">
                                   <Icon name="error" className="text-[12px]" /> Kadaluarsa ({d.simExpiryDate || d.licenseExpiry})
                                 </span>
                               ) : d.simStatus === "expiring_soon" ? (
@@ -475,15 +441,6 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                                 <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
                                   Masa berlaku belum diatur
                                 </span>
-                              )}
-                              {d.simPhotoUrl && (
-                                <button
-                                  onClick={() => setViewingSimDriver(d)}
-                                  title="Lihat Foto Kartu SIM"
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#e8edf8] text-[#1e3a8a] hover:bg-[#dbeafe] transition cursor-pointer"
-                                >
-                                  <Icon name="badge" className="text-[12px]" /> Foto
-                                </button>
                               )}
                             </div>
                           </div>
@@ -544,16 +501,14 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                         </div>
                         <div>
                           <span className="text-[#94a3b8] block text-[10px] uppercase font-bold tracking-wider">Status SIM</span>
-                          {d.simPhotoUrl ? (
-                            <button
-                              onClick={() => setViewingSimDriver(d)}
-                              className="text-[11.5px] font-bold text-[#15803d] flex items-center gap-1 hover:underline cursor-pointer"
-                            >
-                              <Icon name="visibility" className="text-[14px]" />
-                              Lihat SIM
-                            </button>
+                          {d.simStatus === "expired" ? (
+                            <span className="text-[11px] font-extrabold text-red-600">Expired ({d.simExpiryDate})</span>
+                          ) : d.simStatus === "expiring_soon" ? (
+                            <span className="text-[11px] font-extrabold text-amber-600">H-30 ({d.simExpiryDate})</span>
+                          ) : d.simExpiryDate ? (
+                            <span className="text-[11px] font-bold text-emerald-600">s/d {d.simExpiryDate}</span>
                           ) : (
-                            <span className="text-[11.5px] font-bold text-[#b91c1c]">Belum Diunggah</span>
+                            <span className="text-[11px] text-slate-400">Belum diatur</span>
                           )}
                         </div>
                       </div>
@@ -729,26 +684,6 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                 />
               </div>
 
-              <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Foto Kartu SIM Driver</label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleSimChange}
-                    className="hidden"
-                    id="sim-upload"
-                  />
-                  <label htmlFor="sim-upload" className="cursor-pointer h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
-                    <Icon name="upload" className="text-[16px]" />
-                    Unggah Foto SIM
-                  </label>
-                  {simPreview && (
-                    <img src={simPreview} alt="SIM Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0]" />
-                  )}
-                </div>
-              </div>
-
               <div className="flex justify-end gap-3 pt-4 border-t border-[#f1f5f9]">
                 <button
                   type="button"
@@ -886,26 +821,6 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                 />
               </div>
 
-              <div>
-                <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Foto Kartu SIM Driver</label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleEditSimChange}
-                    className="hidden"
-                    id="edit-sim-upload"
-                  />
-                  <label htmlFor="edit-sim-upload" className="cursor-pointer h-10 px-4 border border-[#e2e8f0] bg-white rounded-xl text-[12px] font-bold text-[#475569] hover:bg-[#f8fafc] transition-colors flex items-center gap-2">
-                    <Icon name="upload" className="text-[16px]" />
-                    Unggah Foto SIM
-                  </label>
-                  {editSimPreview && (
-                    <img src={editSimPreview} alt="SIM Preview" className="w-12 h-10 rounded-lg object-cover border border-[#e2e8f0]" />
-                  )}
-                </div>
-              </div>
-
               <div className="flex justify-end gap-3 pt-4 border-t border-[#f1f5f9]">
                 <button
                   type="button"
@@ -923,70 +838,6 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* SIM Card Lightbox Modal */}
-      {viewingSimDriver && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 animate-fadein" onClick={() => setViewingSimDriver(null)}>
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="text-base font-bold text-slate-800">Detail & Foto SIM Driver</h3>
-                <p className="text-xs text-slate-500">{viewingSimDriver.name} ({viewingSimDriver.nik ? `NIK: ${viewingSimDriver.nik}` : viewingSimDriver.email})</p>
-              </div>
-              <button onClick={() => setViewingSimDriver(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 cursor-pointer">
-                <Icon name="close" className="text-[18px]" />
-              </button>
-            </div>
-
-            {/* SIM Summary Box */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <span className="text-slate-400 block font-semibold">Golongan SIM:</span>
-                <span className="font-bold text-slate-800 text-sm">{viewingSimDriver.simType || viewingSimDriver.sim_type || "SIM A"}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block font-semibold">Nomor SIM:</span>
-                <span className="font-mono font-bold text-slate-800 text-sm">{viewingSimDriver.simNumber || viewingSimDriver.sim_number || "-"}</span>
-              </div>
-              <div className="col-span-2 pt-2 border-t border-slate-200 flex items-center justify-between">
-                <span className="text-slate-500 font-semibold">Masa Berlaku:</span>
-                {viewingSimDriver.simStatus === "expired" ? (
-                  <span className="px-2 py-0.5 rounded text-[11px] font-extrabold bg-red-100 text-red-700">
-                    Expired ({viewingSimDriver.simExpiryDate || viewingSimDriver.licenseExpiry})
-                  </span>
-                ) : viewingSimDriver.simStatus === "expiring_soon" ? (
-                  <span className="px-2 py-0.5 rounded text-[11px] font-extrabold bg-amber-100 text-amber-800 animate-pulse">
-                    H-30 ({viewingSimDriver.simExpiryDaysLeft !== null && viewingSimDriver.simExpiryDaysLeft !== undefined ? `${viewingSimDriver.simExpiryDaysLeft} hari lagi` : viewingSimDriver.simExpiryDate})
-                  </span>
-                ) : viewingSimDriver.simExpiryDate ? (
-                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">
-                    Berlaku s/d {viewingSimDriver.simExpiryDate}
-                  </span>
-                ) : (
-                  <span className="text-slate-400">Belum diatur</span>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center p-2 min-h-[220px]">
-              <img
-                src={viewingSimDriver.simPhotoUrl}
-                alt={`SIM ${viewingSimDriver.name}`}
-                className="max-h-[380px] w-auto object-contain rounded-lg shadow-md"
-              />
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={() => setViewingSimDriver(null)}
-                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition cursor-pointer"
-              >
-                Tutup
-              </button>
-            </div>
           </div>
         </div>
       )}
