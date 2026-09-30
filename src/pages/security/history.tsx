@@ -197,32 +197,32 @@ export default function SecurityHistoryPage() {
 
   return (
     <Layout activeNav="Riwayat" topbarTitle="Portal Keamanan">
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         
         {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <h2 className="text-[22px] font-extrabold text-slate-800 tracking-tight">
+            <h2 className="text-xl sm:text-[22px] font-extrabold text-slate-800 tracking-tight">
               Buku Log Scan Security
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-400 mt-0.5">
               Riwayat keluar masuk armada kendaraan perusahaan beserta catatan petugas jaga.
             </p>
           </div>
           <button 
             onClick={() => refetch()}
-            className="flex items-center gap-1.5 h-9 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all self-start sm:self-auto cursor-pointer"
+            className="flex items-center gap-1.5 h-8 sm:h-9 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all self-start sm:self-auto cursor-pointer"
           >
-            <Icon name="refresh" className="text-base" /> Segarkan
+            <Icon name="refresh" className="text-sm sm:text-base" /> Segarkan
           </button>
         </div>
 
         {/* Success Toast / Notification Banner */}
         {toastMsg && (
-          <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-bold rounded-2xl flex items-center justify-between gap-3 animate-fadein shadow-xs">
-            <div className="flex items-center gap-2">
+          <div className="p-3.5 sm:p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-bold rounded-2xl flex items-center justify-between gap-3 animate-fadein shadow-xs">
+            <div className="flex items-center gap-2 min-w-0">
               <Icon name="check_circle" className="text-lg flex-shrink-0 text-emerald-600" />
-              <span>{toastMsg}</span>
+              <span className="truncate">{toastMsg}</span>
             </div>
             <button
               type="button"
@@ -234,43 +234,42 @@ export default function SecurityHistoryPage() {
           </div>
         )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-            <div className="w-11 h-11 bg-blue-50 text-[#1e3a8a] rounded-xl flex items-center justify-center flex-shrink-0">
-              <Icon name="history" className="text-xl" />
+        {/* Stats Cards - Compact 3-Column on Mobile */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          <div className="bg-white border border-slate-100 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-xs flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-4 text-center sm:text-left">
+            <div className="w-8 h-8 sm:w-11 sm:h-11 bg-blue-50 text-[#1e3a8a] rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+              <Icon name="history" className="text-base sm:text-xl" />
             </div>
             <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Scan</div>
-              <div className="text-2xl font-black text-slate-800 leading-tight mt-0.5">{totalScans}</div>
+              <div className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total</div>
+              <div className="text-base sm:text-2xl font-black text-slate-800 leading-tight mt-0.5">{totalScans}</div>
             </div>
           </div>
 
-          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-            <div className="w-11 h-11 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Icon name="local_shipping" className="text-xl" />
+          <div className="bg-white border border-slate-100 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-xs flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-4 text-center sm:text-left">
+            <div className="w-8 h-8 sm:w-11 sm:h-11 bg-amber-50 text-amber-600 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+              <Icon name="local_shipping" className="text-base sm:text-xl" />
             </div>
             <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sedang Jalan</div>
-              <div className="text-2xl font-black text-slate-800 leading-tight mt-0.5">{activeTrips}</div>
+              <div className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Di Luar</div>
+              <div className="text-base sm:text-2xl font-black text-slate-800 leading-tight mt-0.5">{activeTrips}</div>
             </div>
           </div>
 
-          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-            <div className="w-11 h-11 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Icon name="check_circle" className="text-xl" />
+          <div className="bg-white border border-slate-100 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-xs flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-4 text-center sm:text-left">
+            <div className="w-8 h-8 sm:w-11 sm:h-11 bg-emerald-50 text-emerald-600 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+              <Icon name="check_circle" className="text-base sm:text-xl" />
             </div>
             <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Selesai</div>
-              <div className="text-2xl font-black text-slate-800 leading-tight mt-0.5">{completedTrips}</div>
+              <div className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Selesai</div>
+              <div className="text-base sm:text-2xl font-black text-slate-800 leading-tight mt-0.5">{completedTrips}</div>
             </div>
           </div>
         </div>
 
         {/* Filters and Tabs */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            
+        <div className="bg-white rounded-2xl border border-slate-100 p-3 sm:p-4 shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row gap-2.5">
             {/* Search Input */}
             <div className="relative flex-1">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
@@ -280,8 +279,8 @@ export default function SecurityHistoryPage() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari ID Request, pemohon, driver, atau nama petugas..."
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-400 font-medium"
+                placeholder="Cari ID Request, tujuan, driver, atau petugas..."
+                className="w-full pl-10 pr-4 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-400 font-medium"
               />
             </div>
 
@@ -291,9 +290,9 @@ export default function SecurityHistoryPage() {
                 <button
                   key={t}
                   onClick={() => setActiveTab(t)}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     activeTab === t
-                      ? "bg-white text-[#1e3a8a] shadow-sm"
+                      ? "bg-white text-[#1e3a8a] shadow-xs"
                       : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
@@ -307,21 +306,21 @@ export default function SecurityHistoryPage() {
         {/* Logs List Section */}
         <div className="space-y-3">
           {loading && (
-            <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center shadow-sm">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center shadow-xs">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
               <p className="text-xs text-slate-500 font-semibold">Memuat riwayat scan...</p>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-50 text-red-700 text-xs p-5 rounded-2xl border border-red-100 text-center">
+            <div className="bg-red-50 text-red-700 text-xs p-4 rounded-2xl border border-red-100 text-center">
               Gagal memuat riwayat log scan security.
             </div>
           )}
 
           {!loading && !error && filteredLogs.length === 0 && (
-            <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center shadow-sm text-slate-400">
-              <Icon name="search_off" className="text-4xl mb-3 text-slate-300" />
+            <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center shadow-xs text-slate-400">
+              <Icon name="search_off" className="text-4xl mb-2 text-slate-300" />
               <p className="text-xs font-semibold">Tidak ada riwayat scan yang cocok.</p>
             </div>
           )}
@@ -333,186 +332,240 @@ export default function SecurityHistoryPage() {
               const hasCheckin = !!log.security_checked_in_at;
               const isExternal = !!log.is_external;
 
+              // Determine primary driver and vehicle info
+              const primaryDriver = isExternal 
+                ? log.external_driver_name 
+                : log.driverName || log.operational_trips?.[0]?.driver?.name;
+              const primaryVehicle = isExternal 
+                ? log.external_license_plate 
+                : log.vehicleModel || log.operational_trips?.[0]?.vehicle?.name;
+
               return (
                 <div
                   id={`log-card-${log.id}`}
                   key={log.id}
-                  className={`bg-white border rounded-2xl shadow-sm overflow-hidden transition-all duration-200 ${
+                  className={`bg-white border rounded-2xl shadow-xs overflow-hidden transition-all duration-200 ${
                     isExpanded ? "ring-2 ring-blue-500/40 border-blue-200" : "border-slate-100 hover:border-slate-200"
                   }`}
                 >
                   {/* Summary Bar */}
                   <div
                     onClick={() => toggleExpand(log.id)}
-                    className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 hover:bg-slate-50/50 text-left transition-colors cursor-pointer"
+                    className="p-4 sm:p-5 hover:bg-slate-50/50 transition-colors cursor-pointer select-none space-y-3"
                   >
-                    <div className="flex items-center gap-3">
-                      {/* Status Icon Indicator */}
-                      <div
-                        className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          hasCheckin ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
-                        }`}
-                      >
-                        <Icon name={hasCheckin ? "check_circle" : "local_shipping"} className="text-lg" />
+                    {/* Top Row: REQ ID, Fleet Type, Status Badge & Chevron */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[11px] font-extrabold text-[#1e3a8a] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md">
+                          REQ #{log.id}
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                            isExternal
+                              ? "bg-amber-50 text-amber-800 border border-amber-200/60"
+                              : "bg-slate-100 text-slate-700 border border-slate-200/60"
+                          }`}
+                        >
+                          {isExternal ? "Armada Eksternal" : "Armada Internal"}
+                        </span>
                       </div>
-                      
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-extrabold text-[#1e3a8a] bg-blue-50 px-2 py-0.5 rounded-md">
-                            REQ #{log.id}
+
+                      {/* Status Pill & Chevron Toggle */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {hasCheckin ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                            <Icon name="check_circle" className="text-xs text-emerald-600" />
+                            <span>Selesai</span>
                           </span>
-                          <span
-                            className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                              isExternal
-                                ? "bg-amber-50 text-amber-800 border border-amber-100"
-                                : "bg-blue-50 text-blue-800 border border-blue-100"
-                            }`}
-                          >
-                            {isExternal ? "Armada Eksternal" : "Armada Internal"}
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                            <span>Sedang Jalan</span>
                           </span>
-                        </div>
-                        <h4 className="text-sm font-bold text-slate-800 mt-1.5">{log.destination}</h4>
-                        <div className="text-[11px] text-slate-400 mt-0.5">
-                          Pemohon: <span className="font-semibold text-slate-500">{log.employee} ({log.department})</span>
+                        )}
+
+                        <div className={`w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 transition-transform ${isExpanded ? "rotate-180 bg-blue-50 text-[#1e3a8a]" : ""}`}>
+                          <Icon name="keyboard_arrow_down" className="text-lg" />
                         </div>
                       </div>
                     </div>
 
-                    {/* Status Badge, Action Button & Chevron */}
-                    <div className="flex items-center justify-between sm:justify-end gap-3 self-stretch sm:self-auto border-t sm:border-t-0 border-slate-50 pt-2 sm:pt-0">
-                      <div className="text-left sm:text-right">
-                        <span
-                          className={`text-xs font-extrabold uppercase ${
-                            hasCheckin ? "text-emerald-600" : "text-amber-600"
-                          }`}
-                        >
-                          {hasCheckin ? "SELESAI (KEMBALI)" : "SEDANG JALAN (BERANGKAT)"}
-                        </span>
-                        <div className="text-[10px] text-slate-400 mt-0.5">
-                          Update terakhir: {formatDateTime(log.security_checked_in_at || log.security_checked_out_at)}
-                        </div>
+                    {/* Middle Row: Vehicle Icon, Destination & Requester Details */}
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                          hasCheckin ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+                        }`}
+                      >
+                        <Icon name={hasCheckin ? "check_circle" : "local_shipping"} className="text-xl" />
                       </div>
 
-                      {/* Tombol Konfirmasi Kembali (Masuk Gate) langsung dari kartu riwayat */}
-                      {!hasCheckin && log.security_checked_out_at && (
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm sm:text-base font-bold text-slate-800 truncate leading-snug">
+                          {log.destination}
+                        </h4>
+                        <div className="text-[11.5px] text-slate-500 mt-0.5 truncate">
+                          Pemohon: <span className="font-semibold text-slate-700">{log.employee}</span>
+                          {log.department ? ` (${log.department})` : ""}
+                        </div>
+                        {(primaryDriver || primaryVehicle) && (
+                          <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5 truncate">
+                            <Icon name="directions_car" className="text-xs text-slate-400 flex-shrink-0" />
+                            <span className="truncate">{primaryVehicle || "Armada"}</span>
+                            <span className="text-slate-300">•</span>
+                            <Icon name="person" className="text-xs text-slate-400 flex-shrink-0" />
+                            <span className="truncate">{primaryDriver || "Driver"}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Bottom Row: Timestamp and (when collapsed) Quick Return Button */}
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100/80 text-[10.5px] text-slate-400">
+                      <div>
+                        <span>Update: </span>
+                        <span className="font-medium text-slate-600">
+                          {formatDateTime(log.security_checked_in_at || log.security_checked_out_at)}
+                        </span>
+                      </div>
+
+                      {/* Quick Return Action Button only when Collapsed to avoid duplicate */}
+                      {!hasCheckin && log.security_checked_out_at && !isExpanded && (
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenCheckin(log);
                           }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer flex-shrink-0"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg text-[11px] font-bold shadow-2xs transition-all cursor-pointer"
                           title="Konfirmasi unit armada telah kembali masuk gate pabrik"
                         >
-                          <Icon name="login" className="text-base" />
-                          <span className="hidden sm:inline">Konfirmasi Kembali</span>
-                          <span className="sm:hidden">Kembali</span>
+                          <Icon name="login" className="text-sm" />
+                          <span>Konfirmasi Kembali</span>
                         </button>
                       )}
-
-                      <div className={`text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}>
-                        <Icon name="keyboard_arrow_down" className="text-2xl" />
-                      </div>
                     </div>
                   </div>
 
                   {/* Expanded Detail Panel */}
                   {isExpanded && (
-                    <div className="border-t border-slate-100 bg-slate-50/50 p-4 sm:p-5 space-y-4 animate-fadein">
+                    <div className="border-t border-slate-100 bg-slate-50/60 p-4 sm:p-5 space-y-4 animate-fadein">
                       
                       {!isExternal && log.operational_trips && log.operational_trips.length > 0 ? (
-                        <div className="space-y-4">
-                          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                            Rincian Perjalanan Unit Kendaraan ({log.operational_trips.length} Armada)
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                              <Icon name="directions_car" className="text-sm text-slate-400" />
+                              Rincian Unit Kendaraan ({log.operational_trips.length} Armada)
+                            </span>
                           </div>
-                          {log.operational_trips.map((trip: any) => (
-                            <div key={trip.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-3">
-                              <div className="flex justify-between items-start border-b border-slate-50 pb-2">
-                                <div>
-                                  <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                                    <Icon name="directions_car" className="text-sm text-slate-400" />
-                                    {trip.vehicle?.name || "Kendaraan"} ({trip.vehicle?.plate_number || ""})
-                                  </div>
-                                  <div className="text-[11px] text-slate-500 font-semibold mt-0.5">
-                                    Driver: {trip.driver?.name || "Driver"}
-                                  </div>
-                                </div>
-                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                                  trip.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
-                                  trip.status === 'on_going' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
-                                }`}>
-                                  {trip.status === 'completed' ? 'Selesai' : trip.status === 'on_going' ? 'Sedang Jalan' : 'Terjadwal'}
-                                </span>
-                              </div>
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                                {/* Trip Checkout */}
-                                <div className="bg-slate-50/50 p-2.5 rounded-lg border border-slate-100/60">
-                                  <div className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                                    <Icon name="arrow_outward" className="text-xs text-amber-600" /> Berangkat
-                                  </div>
-                                  {trip.security_checked_out_at ? (
-                                    <div className="space-y-0.5 mt-1 text-[11px] text-slate-600">
-                                      <div>Waktu: <span className="font-semibold">{formatDateTime(trip.security_checked_out_at)}</span></div>
-                                      <div>Petugas: <span className="font-semibold">{trip.security_checkout_by}</span></div>
-                                      {trip.security_checkout_notes && <p className="italic bg-white p-1.5 rounded-md mt-1 border border-slate-100">"{trip.security_checkout_notes}"</p>}
+                          {log.operational_trips.map((trip: any) => {
+                            const isTripCompleted = trip.status === "completed" || !!trip.security_checked_in_at;
+                            const isTripOngoing = trip.status === "on_going" || (!!trip.security_checked_out_at && !trip.security_checked_in_at);
+
+                            return (
+                              <div key={trip.id} className="bg-white p-4 rounded-xl border border-slate-200/70 shadow-xs space-y-3">
+                                {/* Unit Title & Status */}
+                                <div className="flex justify-between items-start gap-2 border-b border-slate-100 pb-2.5">
+                                  <div>
+                                    <div className="font-extrabold text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
+                                      <Icon name="directions_car" className="text-base text-blue-900" />
+                                      <span>{trip.vehicle?.name || "Kendaraan"}</span>
+                                      <span className="text-slate-400 font-normal">({trip.vehicle?.plate_number || "-"})</span>
                                     </div>
-                                  ) : (
-                                    <div className="text-slate-400 italic mt-1 text-[11px]">Belum berangkat</div>
-                                  )}
+                                    <div className="text-[11.5px] text-slate-600 font-medium mt-0.5 flex items-center gap-1">
+                                      <Icon name="person" className="text-xs text-slate-400" />
+                                      <span>Driver: <strong className="text-slate-800">{trip.driver?.name || "-"}</strong></span>
+                                    </div>
+                                  </div>
+
+                                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full flex-shrink-0 ${
+                                    isTripCompleted ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                                    isTripOngoing ? "bg-amber-50 text-amber-700 border border-amber-200" :
+                                    "bg-slate-100 text-slate-600 border border-slate-200"
+                                  }`}>
+                                    {isTripCompleted ? "Selesai" : isTripOngoing ? "Sedang Jalan" : "Terjadwal"}
+                                  </span>
                                 </div>
 
-                                {/* Trip Checkin */}
-                                <div className="bg-slate-50/50 p-2.5 rounded-lg border border-slate-100/60">
-                                  <div className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                                    <Icon name="login" className="text-xs text-emerald-600" /> Kembali
+                                {/* Timestamps Grid */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                                  {/* Trip Checkout */}
+                                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1">
+                                    <div className="text-[10px] font-bold text-amber-700 uppercase flex items-center gap-1">
+                                      <Icon name="arrow_outward" className="text-xs" /> Log Berangkat
+                                    </div>
+                                    {trip.security_checked_out_at ? (
+                                      <div className="space-y-0.5 text-[11px] text-slate-600">
+                                        <div>Waktu: <span className="font-bold text-slate-800">{formatDateTime(trip.security_checked_out_at)}</span></div>
+                                        <div>Petugas: <span className="font-semibold text-slate-700">{trip.security_checkout_by || "-"}</span></div>
+                                        {trip.security_checkout_notes && (
+                                          <p className="italic bg-white p-1.5 rounded-md mt-1 border border-slate-200/60 text-slate-600">"{trip.security_checkout_notes}"</p>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div className="text-slate-400 italic text-[11px]">Belum tercatat berangkat</div>
+                                    )}
                                   </div>
-                                  {trip.security_checked_in_at ? (
-                                    <div className="space-y-0.5 mt-1 text-[11px] text-slate-600">
-                                      <div>Waktu: <span className="font-semibold">{formatDateTime(trip.security_checked_in_at)}</span></div>
-                                      <div>Petugas: <span className="font-semibold">{trip.security_checkin_by}</span></div>
-                                      {trip.security_checkin_notes && <p className="italic bg-white p-1.5 rounded-md mt-1 border border-slate-100">"{trip.security_checkin_notes}"</p>}
+
+                                  {/* Trip Checkin */}
+                                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1">
+                                    <div className="text-[10px] font-bold text-emerald-700 uppercase flex items-center gap-1">
+                                      <Icon name="login" className="text-xs" /> Log Kembali
                                     </div>
-                                  ) : (
-                                    <div className="space-y-2 mt-1">
-                                      <div className="text-slate-400 italic text-[11px]">Belum kembali</div>
-                                      {trip.security_checked_out_at && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleOpenCheckin(log, trip)}
-                                          className="w-full py-1.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
-                                        >
-                                          <Icon name="login" className="text-sm" /> Konfirmasi Masuk Unit Ini
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
+                                    {trip.security_checked_in_at ? (
+                                      <div className="space-y-0.5 text-[11px] text-slate-600">
+                                        <div>Waktu: <span className="font-bold text-slate-800">{formatDateTime(trip.security_checked_in_at)}</span></div>
+                                        <div>Petugas: <span className="font-semibold text-slate-700">{trip.security_checkin_by || "-"}</span></div>
+                                        {trip.security_checkin_notes && (
+                                          <p className="italic bg-white p-1.5 rounded-md mt-1 border border-slate-200/60 text-slate-600">"{trip.security_checkin_notes}"</p>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div className="text-slate-400 italic text-[11px]">Belum kembali (masih di luar)</div>
+                                    )}
+                                  </div>
                                 </div>
+
+                                {/* Return Action Button for this unit */}
+                                {trip.security_checked_out_at && !trip.security_checked_in_at && (
+                                  <div className="pt-2 border-t border-slate-100">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenCheckin(log, trip)}
+                                      className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                    >
+                                      <Icon name="login" className="text-base" />
+                                      <span>Konfirmasi Masuk Gate (Kembali)</span>
+                                    </button>
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
-                        <>
+                        <div className="space-y-3">
                           {/* Driver & Vehicle Details */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-xs">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-4 rounded-xl border border-slate-200/70 shadow-xs text-xs">
                             <div>
                               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                                 Kendaraan
                               </div>
-                              <div className="font-bold text-slate-700 flex items-center gap-1.5">
+                              <div className="font-bold text-slate-800 flex items-center gap-1.5">
                                 <Icon name="directions_car" className="text-sm text-slate-400" />
                                 {isExternal ? log.external_license_plate || "Tipe Sewa" : log.vehicleModel}
                               </div>
                               {isExternal && log.external_fleet_info && (
-                                <div className="text-[10px] text-slate-400 mt-0.5 italic">Info: {log.external_fleet_info}</div>
+                                <div className="text-[10.5px] text-slate-400 mt-0.5 italic">Info: {log.external_fleet_info}</div>
                               )}
                             </div>
                             <div>
                               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                                 Driver / Pengemudi
                               </div>
-                              <div className="font-bold text-slate-700 flex items-center gap-1.5">
+                              <div className="font-bold text-slate-800 flex items-center gap-1.5">
                                 <Icon name="person" className="text-sm text-slate-400" />
                                 {isExternal ? log.external_driver_name || "Driver Eksternal" : log.driverName}
                               </div>
@@ -520,36 +573,37 @@ export default function SecurityHistoryPage() {
                           </div>
 
                           {/* Security Scan Logs */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {/* Checkout Log */}
-                            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-2">
-                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-50 pb-1.5 flex items-center gap-1">
-                                <Icon name="arrow_outward" className="text-xs text-amber-600" />
+                            <div className="bg-white p-4 rounded-xl border border-slate-200/70 shadow-xs space-y-2">
+                              <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1">
+                                <Icon name="arrow_outward" className="text-xs" />
                                 LOG BERANGKAT
                               </div>
                               <div className="text-xs space-y-1">
                                 <div className="flex justify-between">
                                   <span className="text-slate-400">Waktu:</span>
-                                  <span className="font-semibold text-slate-700">{formatDateTime(log.security_checked_out_at)}</span>
+                                  <span className="font-bold text-slate-800">{formatDateTime(log.security_checked_out_at)}</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-slate-400">Petugas Jaga:</span>
                                   <span className="font-semibold text-slate-700">{log.security_checkout_by || "-"}</span>
                                 </div>
-                                <div className="mt-2 pt-1 border-t border-slate-50">
-                                  <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Catatan Petugas:</span>
-                                  <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg italic">
-                                    "{log.security_checkout_notes || "Tidak ada catatan."}"
-                                  </p>
-                                </div>
+                                {log.security_checkout_notes && (
+                                  <div className="mt-2 pt-1 border-t border-slate-100">
+                                    <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Catatan:</span>
+                                    <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg italic border border-slate-100">
+                                      "{log.security_checkout_notes}"
+                                    </p>
+                                  </div>
+                                )}
                               </div>
                             </div>
 
                             {/* Checkin Log */}
-                            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-2">
-                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-50 pb-1.5 flex items-center gap-1">
-                                <Icon name="login" className="text-xs text-emerald-600" />
+                            <div className="bg-white p-4 rounded-xl border border-slate-200/70 shadow-xs space-y-2">
+                              <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1">
+                                <Icon name="login" className="text-xs" />
                                 LOG KEMBALI
                               </div>
                               <div className="text-xs space-y-1">
@@ -557,36 +611,44 @@ export default function SecurityHistoryPage() {
                                   <>
                                     <div className="flex justify-between">
                                       <span className="text-slate-400">Waktu:</span>
-                                      <span className="font-semibold text-slate-700">{formatDateTime(log.security_checked_in_at)}</span>
+                                      <span className="font-bold text-slate-800">{formatDateTime(log.security_checked_in_at)}</span>
                                     </div>
                                     <div className="flex justify-between">
                                       <span className="text-slate-400">Petugas Jaga:</span>
                                       <span className="font-semibold text-slate-700">{log.security_checkin_by || "-"}</span>
                                     </div>
-                                    <div className="mt-2 pt-1 border-t border-slate-50">
-                                      <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Catatan Petugas:</span>
-                                      <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg italic">
-                                        "{log.security_checkin_notes || "Tidak ada catatan."}"
-                                      </p>
-                                    </div>
+                                    {log.security_checkin_notes && (
+                                      <div className="mt-2 pt-1 border-t border-slate-100">
+                                        <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Catatan:</span>
+                                        <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg italic border border-slate-100">
+                                          "{log.security_checkin_notes}"
+                                        </p>
+                                      </div>
+                                    )}
                                   </>
                                 ) : (
-                                  <div className="py-4 text-center space-y-2">
-                                    <div className="text-slate-400 italic text-[11px]">Belum kembali (sedang jalan).</div>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOpenCheckin(log)}
-                                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
-                                    >
-                                      <Icon name="login" className="text-base" /> Konfirmasi Masuk Gate
-                                    </button>
+                                  <div className="py-2 text-center text-slate-400 italic text-[11px]">
+                                    Armada belum kembali (masih di luar).
                                   </div>
                                 )}
                               </div>
                             </div>
-
                           </div>
-                        </>
+
+                          {/* Single Return Action Button */}
+                          {!hasCheckin && log.security_checked_out_at && (
+                            <div className="pt-2">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenCheckin(log)}
+                                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                              >
+                                <Icon name="login" className="text-base" />
+                                <span>Konfirmasi Masuk Gate (Kembali)</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
 
                     </div>
