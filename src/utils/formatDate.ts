@@ -21,7 +21,7 @@ export function getStoredSystemConfig(): SystemConfigStorage {
   }
   return {
     timezone: "GMT +7 (Western Indonesia Time)",
-    dateFormat: "DD/MM/YYYY",
+    dateFormat: "DD-MM-YYYY",
     systemLanguage: "Bahasa Indonesia",
   };
 }
@@ -63,7 +63,7 @@ export function formatDate(
     if (isNaN(d.getTime())) return String(dateInput);
 
     const config = getStoredSystemConfig();
-    const fmt = customFormat || config.dateFormat || "DD/MM/YYYY";
+    const fmt = customFormat || config.dateFormat || "DD-MM-YYYY";
     const isEn = config.systemLanguage === "English";
     const monthNames = isEn ? MONTH_NAMES_EN : MONTH_NAMES_ID;
 
@@ -89,7 +89,10 @@ export function formatDate(
     const year = d.getFullYear();
     const monthName = monthNames[monthIndex] || month;
 
-    let formattedDate = `${day}/${month}/${year}`;
+    let formattedDate = `${day}-${month}-${year}`;
+    if (fmt === "DD/MM/YYYY") {
+      formattedDate = `${day}/${month}/${year}`;
+    }
     if (fmt === "YYYY-MM-DD") {
       formattedDate = `${year}-${month}-${day}`;
     } else if (fmt === "DD MMM YYYY") {

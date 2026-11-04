@@ -52,6 +52,68 @@ export default function CreateRequestPage({ onNavigate }: Props) {
     passengers_notes: string;
   }[]>([]);
   const [passengers, setPassengers] = useState<{ name: string; department_id: string | number; user_id?: number | null; is_pic?: boolean }[]>([]);
+  const [isLogisticsOnly, setIsLogisticsOnly] = useState(false);
+
+  const departureDate = departure ? departure.split('T')[0] : "";
+  const departureTime = departure && departure.includes('T') ? departure.split('T')[1].substring(0, 5) : "";
+
+  const returnDate = estReturn ? estReturn.split('T')[0] : "";
+  const returnTime = estReturn && estReturn.includes('T') ? estReturn.split('T')[1].substring(0, 5) : "";
+
+  const handleDepartureChange = (newDate: string, newTime: string) => {
+    if (!newDate && !newTime) {
+      setDeparture("");
+      return;
+    }
+    const d = newDate !== undefined ? newDate : departureDate;
+    const t = newTime !== undefined ? newTime : (departureTime || "08:00");
+    if (!d) {
+      setDeparture("");
+    } else {
+      setDeparture(`${d}T${t || "08:00"}:00`);
+    }
+  };
+
+  const handleReturnChange = (newDate: string, newTime: string) => {
+    if (!newDate && !newTime) {
+      setEstReturn("");
+      return;
+    }
+    const d = newDate !== undefined ? newDate : returnDate;
+    const t = newTime !== undefined ? newTime : (returnTime || "17:00");
+    if (!d) {
+      setEstReturn("");
+    } else {
+      setEstReturn(`${d}T${t || "17:00"}:00`);
+    }
+  };
+
+  const handleToggleLogisticsOnly = (checked: boolean) => {
+    setIsLogisticsOnly(checked);
+    if (checked) {
+      const userDeptId = (user as any)?.department_id || (departments.length > 0 ? departments[0].id : "");
+      setPassengers([{
+        name: "Tanpa Penumpang (Pengiriman Dokumen / Barang)",
+        department_id: userDeptId,
+        is_pic: true
+      }]);
+    } else {
+      setPassengers([]);
+    }
+  };
+
+  const formatDisplayDate24 = (isoStr: string) => {
+    if (!isoStr) return "-";
+    try {
+      const [dPart, tPart] = isoStr.split("T");
+      if (!dPart) return isoStr;
+      const [y, m, d] = dPart.split("-");
+      const timeClean = tPart ? tPart.substring(0, 5) : "00:00";
+      return `${d}-${m}-${y} • ${timeClean} WIB (24 Jam)`;
+    } catch {
+      return isoStr;
+    }
+  };
   const [suggestions, setSuggestions] = useState<{ id: number; name: string; email: string; department_id: string | number; department_name?: string }[]>([]);
   const [activePassengerIndex, setActivePassengerIndex] = useState<number | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -201,15 +263,25 @@ export default function CreateRequestPage({ onNavigate }: Props) {
     const now = new Date();
     const diffHours = (depDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-    const isGAUser = user?.role === "gahrd" || user?.role === "admin";
-    if (!isGAUser && diffHours < minLeadTimeHours) {
+    const userRole = (user?.role || "").toLowerCase();
+    const userEmail = (user?.email || "").toLowerCase();
+    const isPrivilegedUser = 
+      userRole === "gahrd" || 
+      userRole === "admin" || 
+      userRole === "coordinator" || 
+      userRole === "driver coordinator" || 
+      userEmail.includes("gateam") || 
+      userEmail.includes("melodi") || 
+      userEmail.includes("winaryo");
+
+    if (!isPrivilegedUser && diffHours < minLeadTimeHours) {
       const earliestAllowed = new Date(now.getTime() + minLeadTimeHours * 60 * 60 * 1000);
       const day = String(earliestAllowed.getDate()).padStart(2, '0');
       const month = String(earliestAllowed.getMonth() + 1).padStart(2, '0');
       const year = earliestAllowed.getFullYear();
       const hours = String(earliestAllowed.getHours()).padStart(2, '0');
       const minutes = String(earliestAllowed.getMinutes()).padStart(2, '0');
-      const formattedEarliest = `${day}/${month}/${year} ${hours}:${minutes} WIB`;
+      const formattedEarliest = `${day}-${month}-${year} ${hours}:${minutes} WIB`;
 
       const errMsg = `Waktu keberangkatan kurang dari 24 jam (keberangkatan tercepat yang diizinkan: ${formattedEarliest}). Silakan menghubungi GA KOORDINATOR (Bu Melodi) untuk pengajuan urgent.`;
       setFormError(errMsg);
@@ -270,7 +342,8 @@ export default function CreateRequestPage({ onNavigate }: Props) {
       return;
     }
 
-    const passengerNames = validPassengers.map(p => p.name.trim().toLowerCase());
+    const realPassengers = validPassengers.filter(p => !p.name.toLowerCase().includes("tanpa penumpang"));
+    const passengerNames = realPassengers.map(p => p.name.trim().toLowerCase());
     const hasDuplicateName = passengerNames.some((val, i) => passengerNames.indexOf(val) !== i);
     if (hasDuplicateName) {
       const errMsg = "Nama penumpang tidak boleh diduplikasi dalam satu pengajuan.";
@@ -445,6 +518,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                   options={purposeOptions}
                   placeholder="Pilih atau cari keperluan perjalanan..."
                   icon="info"
+                  required
                   customOptionLabel="Lainnya (Tulis Sendiri...)"
                 />
               </div>
@@ -488,26 +562,71 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                     </div>
                   </div>
                 </div>
-                <div data-guide="request-datetime" className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Waktu Keberangkatan <span className="text-red-500">*</span></label>
-                    <input type="datetime-local" lang="id-ID" value={departure} onChange={e => setDeparture(e.target.value)}
-                      className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all" />
+                <div data-guide="request-datetime" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Keberangkatan */}
+                  <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200">
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">
+                      Waktu Keberangkatan <span className="text-red-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-5 gap-2">
+                      <div className="col-span-3">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tanggal (DD-MM-YYYY)</label>
+                        <input
+                          type="date"
+                          value={departureDate}
+                          onChange={e => handleDepartureChange(e.target.value, departureTime)}
+                          className="w-full h-10 px-2.5 border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jam (24 Jam)</label>
+                        <input
+                          type="time"
+                          step="60"
+                          value={departureTime}
+                          onChange={e => handleDepartureChange(departureDate, e.target.value)}
+                          className="w-full h-10 px-2.5 border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all"
+                        />
+                      </div>
+                    </div>
                     {departure && (
-                      <div className="mt-1.5 text-[11px] font-semibold text-[#00236f] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100 flex items-center gap-1.5 animate-fadein">
-                        <Icon name="event" className="text-xs text-blue-600" />
-                        <span>Format Indonesia: <strong>{formatDate(departure, true)} WIB</strong></span>
+                      <div className="mt-2 text-[11px] font-semibold text-[#00236f] bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-100 flex items-center gap-1.5 animate-fadein">
+                        <Icon name="event" className="text-xs text-blue-600 shrink-0" />
+                        <span>Format: <strong>{formatDisplayDate24(departure)}</strong></span>
                       </div>
                     )}
                   </div>
-                  <div>
-                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Estimasi Waktu Kembali <span className="text-red-500">*</span></label>
-                    <input type="datetime-local" lang="id-ID" value={estReturn} onChange={e => setEstReturn(e.target.value)}
-                      className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all" />
+
+                  {/* Estimasi Kembali */}
+                  <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200">
+                    <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">
+                      Estimasi Waktu Kembali <span className="text-red-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-5 gap-2">
+                      <div className="col-span-3">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tanggal (DD-MM-YYYY)</label>
+                        <input
+                          type="date"
+                          value={returnDate}
+                          onChange={e => handleReturnChange(e.target.value, returnTime)}
+                          className="w-full h-10 px-2.5 border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jam (24 Jam)</label>
+                        <input
+                          type="time"
+                          step="60"
+                          value={returnTime}
+                          onChange={e => handleReturnChange(returnDate, e.target.value)}
+                          className="w-full h-10 px-2.5 border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all"
+                        />
+                      </div>
+                    </div>
                     {estReturn && (
-                      <div className="mt-1.5 text-[11px] font-semibold text-[#00236f] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100 flex items-center gap-1.5 animate-fadein">
-                        <Icon name="event" className="text-xs text-blue-600" />
-                        <span>Format Indonesia: <strong>{formatDate(estReturn, true)} WIB</strong></span>
+                      <div className="mt-2 text-[11px] font-semibold text-[#00236f] bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-100 flex items-center gap-1.5 animate-fadein">
+                        <Icon name="event" className="text-xs text-blue-600 shrink-0" />
+                        <span>Format: <strong>{formatDisplayDate24(estReturn)}</strong></span>
                       </div>
                     )}
                   </div>
@@ -619,14 +738,39 @@ export default function CreateRequestPage({ onNavigate }: Props) {
             {/* 3. Passengers */}
             <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[15px] font-bold text-[#0f172a]">Daftar Penumpang</h3>
-                <button
-                  onClick={() => setPassengers(p => [...p, { name: "", department_id: "" }])}
-                  disabled={passengers.length >= 12}
-                  className="flex items-center gap-1.5 text-[12px] font-bold text-[#00236f] hover:underline disabled:opacity-40"
-                >
-                  <Icon name="person_add" className="text-[15px]" /> Tambah Penumpang
-                </button>
+                <h3 className="text-[15px] font-bold text-[#0f172a]">
+                  Daftar Penumpang <span className="text-red-500">*</span>
+                </h3>
+                {!isLogisticsOnly && (
+                  <button
+                    onClick={() => setPassengers(p => [...p, { name: "", department_id: "" }])}
+                    disabled={passengers.length >= 12}
+                    className="flex items-center gap-1.5 text-[12px] font-bold text-[#00236f] hover:underline disabled:opacity-40 cursor-pointer"
+                  >
+                    <Icon name="person_add" className="text-[15px]" /> Tambah Penumpang
+                  </button>
+                )}
+              </div>
+
+              {/* Logistics / Documents Only Option */}
+              <div className="flex items-center justify-between p-3 mb-3 bg-amber-50/70 border border-amber-200 rounded-xl">
+                <div className="flex items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    id="isLogisticsOnly"
+                    checked={isLogisticsOnly}
+                    onChange={(e) => handleToggleLogisticsOnly(e.target.checked)}
+                    className="w-4 h-4 text-[#00236f] rounded border-gray-300 focus:ring-[#00236f] cursor-pointer"
+                  />
+                  <label htmlFor="isLogisticsOnly" className="text-[12.5px] font-bold text-amber-950 cursor-pointer select-none">
+                    📦 Pengiriman Dokumen / Barang Saja <span className="font-normal text-amber-800">(Tanpa Penumpang Orang)</span>
+                  </label>
+                </div>
+                {isLogisticsOnly && (
+                  <span className="text-[11px] bg-amber-200/80 text-amber-900 font-bold px-2 py-0.5 rounded-full">
+                    Logistik / Dokumen
+                  </span>
+                )}
               </div>
               <div className="space-y-2 min-h-[60px]">
                 {passengers.length === 0 ? (
@@ -848,13 +992,13 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                 <span className="font-semibold text-slate-800">{destinationPlace}</span>
               </div>
               <div className="flex justify-between border-b border-slate-200/60 pb-2">
-                <span className="font-bold text-slate-400">Keberangkatan (DD/MM/YYYY):</span>
+                <span className="font-bold text-slate-400">Keberangkatan (DD-MM-YYYY, 24 Jam):</span>
                 <span className="font-semibold text-slate-800">
                   {departure ? formatDateTime(departure) : "-"}
                 </span>
               </div>
               <div className="flex justify-between border-b border-slate-200/60 pb-2">
-                <span className="font-bold text-slate-400">Estimasi Kembali (DD/MM/YYYY):</span>
+                <span className="font-bold text-slate-400">Estimasi Kembali (DD-MM-YYYY, 24 Jam):</span>
                 <span className="font-semibold text-slate-800">
                   {estReturn ? formatDateTime(estReturn) : "-"}
                 </span>

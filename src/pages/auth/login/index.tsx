@@ -318,13 +318,13 @@ export default function LoginPage() {
 
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
 
-                  NIK (Nomor Induk Karyawan)
+                  NIK / Username / Email
 
                 </label>
 
                 <input
                   type="text"
-                  placeholder="Masukkan NIK Anda"
+                  placeholder="Masukkan NIK, Username, atau Email"
                   value={nik}
                   onChange={(e) => setNik(e.target.value)}
                   className="w-full h-14 rounded-2xl border border-slate-200 px-5 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all"

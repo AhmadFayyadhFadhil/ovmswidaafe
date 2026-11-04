@@ -845,7 +845,9 @@ export function RequestDetailModal({
               {/* Passengers */}
               <div>
                 <h4 className="text-[11px] font-extrabold tracking-wider text-slate-400 uppercase mb-2">
-                  Daftar Penumpang ({passengers.length > 0 ? passengers.length : (request.passengerCount || 1)} Orang)
+                  {passengers.some((p: any) => (p.name || '').toLowerCase().includes("tanpa penumpang"))
+                    ? "Daftar Muatan / Logistik (Pengiriman Dokumen / Barang)"
+                    : `Daftar Penumpang (${passengers.length > 0 ? passengers.length : (request.passengerCount || 1)} Orang)`}
                 </h4>
                 {passengers.length === 0 ? (
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-[13px]">
@@ -895,13 +897,17 @@ export function RequestDetailModal({
                                   {idx + 1}
                                 </span>
                                 <span className="font-bold text-slate-900 text-[13.5px]">{p.name}</span>
-                                {isPicPassenger && (
+                                {(p.name || '').toLowerCase().includes("tanpa penumpang") ? (
+                                  <span className="bg-purple-100 text-purple-900 border border-purple-300 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
+                                    📦 Pengiriman Dokumen / Barang Saja
+                                  </span>
+                                ) : isPicPassenger ? (
                                   <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
                                     👑 PIC Penumpang
                                   </span>
-                                )}
+                                ) : null}
                               </div>
-                              {(isPicPassenger || cleanPhone) && (
+                              {(isPicPassenger || cleanPhone) && !(p.name || '').toLowerCase().includes("tanpa penumpang") && (
                                 <a
                                   href={cleanPhone ? `https://wa.me/${cleanPhone}` : '#'}
                                   target="_blank"
