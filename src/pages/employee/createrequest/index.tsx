@@ -479,7 +479,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
       onNavigate={p => onNavigate?.(p)}
       topbarTitle="Buat Permohonan Armada"
       userName={user?.name || "Karyawan"}
-      userRole={user?.role === "approver" ? "Manager Approver" : "Karyawan"}
+      userRole={user?.is_driver_coordinator ? "Koordinator Driver" : (user?.role === "approver" ? "Manager Approver" : "Karyawan")}
       searchPlaceholder="Pencarian cepat..."
     >
       <div className="p-4 sm:p-6 animate-fadeup">
