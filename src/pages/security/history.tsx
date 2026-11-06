@@ -503,6 +503,12 @@ export default function SecurityHistoryPage() {
                                         {trip.security_checkout_notes && (
                                           <p className="italic bg-white p-1.5 rounded-md mt-1 border border-slate-200/60 text-slate-600">"{trip.security_checkout_notes}"</p>
                                         )}
+                                        {trip.additional_passengers && (
+                                          <div className="bg-amber-50/80 p-1.5 rounded-md mt-1 border border-amber-200/60 text-amber-900 text-[11px] font-semibold flex items-center gap-1">
+                                            <Icon name="person_add" className="text-xs text-amber-700" />
+                                            <span>+ {trip.additional_passengers}</span>
+                                          </div>
+                                        )}
                                       </div>
                                     ) : (
                                       <div className="text-slate-400 italic text-[11px]">Belum tercatat berangkat</div>
@@ -594,6 +600,16 @@ export default function SecurityHistoryPage() {
                                     <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Catatan:</span>
                                     <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg italic border border-slate-100">
                                       "{log.security_checkout_notes}"
+                                    </p>
+                                  </div>
+                                )}
+                                {log.additional_passengers && (
+                                  <div className="mt-2 pt-1 border-t border-slate-100">
+                                    <span className="text-[10px] font-bold text-amber-700 flex items-center gap-1 mb-0.5">
+                                      <Icon name="person_add" className="text-xs" /> Penumpang Tambahan (Hari-H):
+                                    </span>
+                                    <p className="text-xs font-semibold text-slate-700 bg-amber-50/70 p-2 rounded-lg border border-amber-200/60">
+                                      {log.additional_passengers}
                                     </p>
                                   </div>
                                 )}

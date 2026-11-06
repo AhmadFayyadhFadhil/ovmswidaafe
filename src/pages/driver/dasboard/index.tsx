@@ -1036,7 +1036,7 @@ export default function DriverDashboard() {
                         const isCheckedInBySecurity = Boolean(currentTrip.security_checked_in_at);
 
                         // Opsi B Flow 1: If security already scanned check-in at gate, driver MUST input KM Akhir to complete
-                        if (driverTripStatus === "on_going" && isCheckedInBySecurity && (!hasRecordedEndKm || isEditingEndKm)) {
+                        if (!currentTrip.is_external && driverTripStatus === "on_going" && isCheckedInBySecurity && (!hasRecordedEndKm || isEditingEndKm)) {
                           return (
                             <div className="bg-[#102447] border border-emerald-400/60 p-4 rounded-2xl flex flex-col items-center gap-2.5 w-full max-w-[280px] text-center shadow-lg animate-fadein">
                               <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">

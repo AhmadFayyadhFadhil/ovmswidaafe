@@ -42,6 +42,43 @@ export default function SecurityDashboard() {
   const [selectedSession, setSelectedSession] = useState<'morning' | 'afternoon' | null>(null);
   const [activeItineraryIndex, setActiveItineraryIndex] = useState<number>(0);
   const [odometerKm, setOdometerKm] = useState<string>("");
+  const [additionalPassengers, setAdditionalPassengers] = useState<string>("");
+  const [passengerSearchQuery, setPassengerSearchQuery] = useState<string>("");
+  const [passengerSuggestions, setPassengerSuggestions] = useState<Array<{ id: number; name: string; department_name?: string }>>([]);
+  const [isSearchingPassenger, setIsSearchingPassenger] = useState<boolean>(false);
+  const [showPassengerSuggestions, setShowPassengerSuggestions] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!passengerSearchQuery.trim() || passengerSearchQuery.trim().length < 2) {
+      setPassengerSuggestions([]);
+      setIsSearchingPassenger(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingPassenger(true);
+      try {
+        const res = await apiClient.get('/users-search', {
+          params: { search: passengerSearchQuery.trim(), per_page: 8 }
+        });
+        if (res.data && res.data.status === 'success') {
+          const list = (res.data.data || []).map((u: any) => ({
+            id: u.id,
+            name: u.name,
+            department_name: u.department_name || u.department?.name || "",
+          }));
+          setPassengerSuggestions(list);
+          setShowPassengerSuggestions(list.length > 0);
+        }
+      } catch (err) {
+        console.error("Failed to search users:", err);
+      } finally {
+        setIsSearchingPassenger(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [passengerSearchQuery]);
 
   const getActiveStartKm = (): number | null => {
     if (selectedTripId && scannedRequest?.operational_trips) {
@@ -70,12 +107,16 @@ export default function SecurityDashboard() {
     setSelectedItineraryId(null);
     setSelectedSession(null);
     setConfirmingType(type);
+    setPassengerSearchQuery("");
+    setShowPassengerSuggestions(false);
     if (type === "checkout") {
       const trip = scannedRequest?.operational_trips?.find((t: any) => t.id === tripId);
       const prefillKm = trip?.start_km || scannedRequest?.start_km || trip?.vehicle?.odometer || scannedRequest?.vehicle?.odometer || getActiveStartKm() || getActiveVehicleLastOdometer() || "";
       setOdometerKm(prefillKm ? String(prefillKm) : "");
+      setAdditionalPassengers(trip?.additional_passengers || scannedRequest?.additional_passengers || "");
     } else {
       setOdometerKm("");
+      setAdditionalPassengers("");
     }
     setShowNameModal(true);
   };
@@ -85,12 +126,16 @@ export default function SecurityDashboard() {
     setConfirmingType(type);
     setSelectedItineraryId(itId ?? null);
     setSelectedSession(session ?? null);
+    setPassengerSearchQuery("");
+    setShowPassengerSuggestions(false);
     if (type === "checkout") {
       const it = itId && scannedRequest?.itineraries?.find((i: any) => i.id === itId);
       const prefillKm = it?.start_km || scannedRequest?.start_km || scannedRequest?.vehicle?.odometer || getActiveStartKm() || getActiveVehicleLastOdometer() || "";
       setOdometerKm(prefillKm ? String(prefillKm) : "");
+      setAdditionalPassengers(it?.additional_passengers || scannedRequest?.additional_passengers || "");
     } else {
       setOdometerKm("");
+      setAdditionalPassengers("");
     }
     setShowNameModal(true);
   };
@@ -546,14 +591,16 @@ export default function SecurityDashboard() {
 
     let kmNum: number | undefined = undefined;
     if (confirmingType === "checkout") {
-      if (!odometerKm.trim()) {
-        alert("Kilometer Odometer wajib diisi!");
-        return;
-      }
-      kmNum = Number(odometerKm);
-      if (isNaN(kmNum) || kmNum < 0) {
-        alert("Masukkan angka kilometer yang valid!");
-        return;
+      if (!scannedRequest.is_external) {
+        if (!odometerKm.trim()) {
+          alert("Kilometer Odometer wajib diisi!");
+          return;
+        }
+        kmNum = Number(odometerKm);
+        if (isNaN(kmNum) || kmNum < 0) {
+          alert("Masukkan angka kilometer yang valid!");
+          return;
+        }
       }
     }
 
@@ -574,8 +621,9 @@ export default function SecurityDashboard() {
         security_name: guardName.trim(),
         type: confirmingType,
         notes: securityNotes,
+        additional_passengers: confirmingType === "checkout" ? (additionalPassengers.trim() || undefined) : undefined,
         scanned_at: scannedAtStr,
-        start_km: confirmingType === "checkout" ? kmNum : undefined,
+        start_km: (confirmingType === "checkout" && !scannedRequest.is_external) ? kmNum : undefined,
       };
 
       if (selectedTripId) {
@@ -595,6 +643,9 @@ export default function SecurityDashboard() {
         const reqId = scannedRequest.id;
         setSecurityNotes("");
         setOdometerKm("");
+        setAdditionalPassengers("");
+        setPassengerSearchQuery("");
+        setShowPassengerSuggestions(false);
         setConfirmingType(null);
         setCapturedPhoto(null);
 
@@ -1264,7 +1315,7 @@ export default function SecurityDashboard() {
                       </div>
                     </div>
 
-                    {(scannedRequest.start_km || scannedRequest.end_km) && (
+                    {(scannedRequest.start_km || scannedRequest.end_km) && !scannedRequest.is_external && (
                       <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-2">
                         <div className="text-[11px] font-extrabold text-[#00236f] uppercase tracking-wider flex items-center justify-between">
                           <span className="flex items-center gap-1.5">
@@ -1296,6 +1347,45 @@ export default function SecurityDashboard() {
                               {scannedRequest.total_km ? `${Number(scannedRequest.total_km).toLocaleString('id-ID')} km` : "-"}
                             </span>
                           </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {scannedRequest.is_external && (
+                      <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-2">
+                        <div className="text-[11px] font-extrabold text-amber-900 uppercase tracking-wider flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <Icon name="commute" className="text-sm text-amber-700" />
+                            Armada Sewa / Rental Eksternal
+                          </span>
+                          {scannedRequest.third_party_cost ? (
+                            <span className="text-[10px] bg-amber-600 text-white font-extrabold px-2 py-0.5 rounded-full">
+                              Rp {Number(scannedRequest.third_party_cost).toLocaleString('id-ID')}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="text-xs text-slate-700 space-y-1">
+                          {scannedRequest.external_driver_name && (
+                            <div><span className="text-slate-400">Driver Rental:</span> <span className="font-bold">{scannedRequest.external_driver_name}</span></div>
+                          )}
+                          {scannedRequest.external_license_plate && (
+                            <div><span className="text-slate-400">Plat Nomor:</span> <span className="font-bold">{scannedRequest.external_license_plate}</span></div>
+                          )}
+                          {scannedRequest.external_fleet_info && (
+                            <div><span className="text-slate-400">Armada:</span> <span className="font-semibold">{scannedRequest.external_fleet_info}</span></div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {scannedRequest.additional_passengers && (
+                      <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-1">
+                        <div className="text-[11px] font-extrabold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                          <Icon name="person_add" className="text-sm text-amber-700" />
+                          <span>Penumpang Tambahan (Hari-H)</span>
+                        </div>
+                        <div className="text-xs font-semibold text-slate-800">
+                          {scannedRequest.additional_passengers}
                         </div>
                       </div>
                     )}
@@ -1426,8 +1516,28 @@ export default function SecurityDashboard() {
                   </div>
                 </div>
 
-                {/* Kilometer Odometer Section (Hanya untuk Keluar Gate) */}
-                {confirmingType === 'checkout' && (
+                {/* Poin 9: External vehicle info vs Internal Odometer Section */}
+                {confirmingType === 'checkout' && scannedRequest?.is_external && (
+                  <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-2xl space-y-1.5 text-xs text-amber-900">
+                    <div className="font-bold flex items-center gap-1.5">
+                      <Icon name="commute" className="text-base text-amber-700" />
+                      <span>Kendaraan Sewa Eksternal (Pihak Ketiga)</span>
+                    </div>
+                    <p className="text-[11px] text-amber-800 leading-relaxed">
+                      Unit kendaraan pihak ketiga tidak memerlukan pencatatan KM Odometer pabrik.
+                    </p>
+                    {scannedRequest.third_party_cost ? (
+                      <div className="mt-1 pt-1 border-t border-amber-200/60 font-semibold text-[11.5px] text-slate-800 flex justify-between">
+                        <span>Biaya Sewa Rental:</span>
+                        <span className="font-extrabold text-blue-900">
+                          Rp {Number(scannedRequest.third_party_cost).toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+
+                {confirmingType === 'checkout' && !scannedRequest?.is_external && (
                   <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
@@ -1460,6 +1570,97 @@ export default function SecurityDashboard() {
                   </div>
                 )}
 
+                {/* Poin 4: Hybrid Catatan Penumpang Tambahan (Hari-H) */}
+                {confirmingType === 'checkout' && (
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
+                        <Icon name="person_add" className="text-sm text-amber-600" />
+                        <span>Catatan Penumpang Tambahan (Hari-H)</span>
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-semibold">(Opsional)</span>
+                    </div>
+
+                    {/* Autocomplete Helper */}
+                    <div className="relative">
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-400">
+                          <Icon name="search" className="text-sm" />
+                        </span>
+                        <input
+                          type="text"
+                          value={passengerSearchQuery}
+                          onChange={(e) => {
+                            setPassengerSearchQuery(e.target.value);
+                            setShowPassengerSuggestions(true);
+                          }}
+                          onFocus={() => {
+                            if (passengerSuggestions.length > 0) setShowPassengerSuggestions(true);
+                          }}
+                          placeholder="Cari karyawan internal untuk ditambah..."
+                          className="w-full pl-8 pr-7 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder:text-slate-400"
+                        />
+                        {isSearchingPassenger && (
+                          <span className="absolute inset-y-0 right-0 flex items-center pr-2.5">
+                            <div className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                          </span>
+                        )}
+                        {passengerSearchQuery && !isSearchingPassenger && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPassengerSearchQuery("");
+                              setShowPassengerSuggestions(false);
+                            }}
+                            className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                          >
+                            <Icon name="close" className="text-xs" />
+                          </button>
+                        )}
+                      </div>
+
+                      {showPassengerSuggestions && passengerSuggestions.length > 0 && (
+                        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-30 max-h-40 overflow-y-auto divide-y divide-slate-100 animate-fadein">
+                          {passengerSuggestions.map((u) => (
+                            <button
+                              key={u.id}
+                              type="button"
+                              onClick={() => {
+                                const addition = `${u.name}${u.department_name ? ` (${u.department_name})` : ''}`;
+                                setAdditionalPassengers((prev) => {
+                                  const trimmed = prev.trim();
+                                  if (!trimmed) return addition;
+                                  return `${trimmed}, ${addition}`;
+                                });
+                                setPassengerSearchQuery("");
+                                setShowPassengerSuggestions(false);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-amber-50/70 transition-colors flex items-center justify-between text-xs cursor-pointer"
+                            >
+                              <span className="font-bold text-slate-800">${u.name}</span>
+                              <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium">
+                                {u.department_name || "Internal"}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Free-text input / editable field */}
+                    <textarea
+                      rows={2}
+                      value={additionalPassengers}
+                      onChange={(e) => setAdditionalPassengers(e.target.value)}
+                      placeholder="Contoh: Budi (QC), Andi (Produksi), atau Tamu Vendor PT ABC"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder:text-slate-400"
+                    />
+                    <p className="text-[10px] text-slate-500 italic">
+                      *Bisa pilih dari pencarian di atas atau ketik langsung nama penumpang bebas.
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex gap-2.5 pt-2 text-xs sm:text-sm font-semibold">
                   <button
                     type="button"
@@ -1473,7 +1674,7 @@ export default function SecurityDashboard() {
                     disabled={
                       actionLoading || 
                       !guardName.trim() ||
-                      (confirmingType === 'checkout' && !odometerKm.trim())
+                      (confirmingType === 'checkout' && !scannedRequest?.is_external && !odometerKm.trim())
                     }
                     className={`flex-1 py-3 text-white rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                       confirmingType === 'checkout' 

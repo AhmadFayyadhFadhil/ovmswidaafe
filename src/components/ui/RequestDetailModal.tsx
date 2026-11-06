@@ -473,8 +473,8 @@ export function RequestDetailModal({
                     </div>
                   )}
 
-                  {/* Odometer Section if recorded */}
-                  {(startKm || endKm) && (
+                  {/* Odometer Section if recorded (internal fleet only) */}
+                  {(startKm || endKm) && !request.is_external && (
                     <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-2.5">
                       <div className="flex items-center justify-between border-b border-blue-200/70 pb-2">
                         <div className="text-[11px] font-extrabold text-[#00236f] uppercase tracking-wider flex items-center gap-1.5">
@@ -934,6 +934,19 @@ export function RequestDetailModal({
                     })()}
                   </div>
                 )}
+
+                {/* Poin 4: Catatan Penumpang Tambahan Hari-H di Pos Security */}
+                {(request.additional_passengers || request.additionalPassengers) && (
+                  <div className="mt-3 p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl space-y-1">
+                    <div className="text-[10.5px] font-extrabold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <Icon name="person_add" className="text-sm text-amber-700" />
+                      <span>Catatan Penumpang Tambahan (Hari-H / Pos Security)</span>
+                    </div>
+                    <p className="text-xs font-semibold text-amber-800 whitespace-pre-wrap pl-5">
+                      {request.additional_passengers || request.additionalPassengers}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -951,7 +964,7 @@ export function RequestDetailModal({
                     {getStageLabel(request.rawStatus, request.status)}
                   </span>
                 </div>
-                {(startKm || endKm) && (
+                {(startKm || endKm) && !request.is_external && (
                   <div className="pt-3 border-t border-slate-200/80">
                     <span className="block text-[10px] font-extrabold text-blue-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       <Icon name="speed" className="text-[14px] text-blue-600" /> Data Odometer Kendaraan
