@@ -7,7 +7,7 @@ import { assignmentService } from "@/services/modules/assignmentService";
 import { departmentService } from "@/services/modules/departmentService";
 import type { Department } from "@/services/modules/departmentService";
 import { apiClient } from "@/services/api/api";
-import { exportToExcel } from "@/utils/exportHelper";
+import { exportToExcel, exportReportToPDF } from "@/utils/exportHelper";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -484,23 +484,93 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
           <div className="flex gap-2.5 flex-shrink-0">
             <button 
               onClick={() => {
-                const headers = ["ID Request", "Nama Pemohon", "Departemen", "Armada / Kendaraan", "Pengemudi / Driver", "Tujuan Perjalanan", "Jadwal", "Prioritas", "Status"];
-                const rows = filteredList.map((r: any) => [
-                  `REQ-${r.id}`, 
-                  r.employee || "-", 
-                  r.department || "-", 
-                  r.vehicleModel || "Belum Ditugaskan", 
-                  r.driverName || "Belum Ditugaskan", 
-                  r.destination || "-", 
-                  `${r.date || "-"} ${r.time || ""}`, 
-                  r.priority || "NORMAL", 
-                  r.status || "PENDING"
-                ]);
-                exportToExcel("Laporan_Monitoring_Request_OVMS.xls", headers, rows);
+                const headers = ["ID Request", "Nama Pemohon", "Departemen", "Tipe Armada", "Armada / Kendaraan", "Pengemudi / Driver", "Vendor Sewa", "Biaya Sewa / Rental (Rp)", "Tujuan Perjalanan", "Jadwal", "Prioritas", "Status"];
+                const rows = filteredList.map((r: any) => {
+                  const isExt = !!r.is_external;
+                  const rentalCost = isExt 
+                    ? (Number(r.third_party_cost) || (Number(r.external_departure_cost || 0) + Number(r.external_return_cost || 0)) || 0) 
+                    : 0;
+                  const fleetTypeStr = isExt ? "Sewa Rental Eksternal" : "Armada Internal";
+                  const vehicleStr = isExt
+                    ? (r.external_license_plate ? `${r.external_provider || 'Sewa'} (${r.external_license_plate})` : (r.external_provider || 'Sewa Eksternal'))
+                    : (r.vehicleModel || "Belum Ditugaskan");
+                  const driverStr = isExt 
+                    ? (r.external_driver_name ? `${r.external_driver_name} (Sewa)` : "Sewa Eksternal")
+                    : (r.driverName || "Belum Ditugaskan");
+                  const vendorStr = isExt ? (r.external_provider || "Pihak Ketiga") : "-";
+
+                  return [
+                    `#REQ-${r.id}`, 
+                    r.employee || "-", 
+                    r.department || "-", 
+                    fleetTypeStr,
+                    vehicleStr, 
+                    driverStr, 
+                    vendorStr,
+                    isExt ? rentalCost : 0,
+                    r.destination || "-", 
+                    `${r.date || "-"} ${r.time || ""}`, 
+                    r.priority || "NORMAL", 
+                    r.status || "PENDING"
+                  ];
+                });
+                exportToExcel("Laporan_Monitoring_Request_OVMS.xlsx", headers, rows);
               }}
-              className="flex items-center gap-2 px-4 py-2.5 border border-[#e2e8f0] bg-white rounded-xl text-[13px] font-bold text-[#475569] hover:bg-[#f8fafc] shadow-sm cursor-pointer active:scale-95 transition-all"
+              className="flex items-center gap-2 px-3.5 py-2.5 border border-[#e2e8f0] bg-white rounded-xl text-[13px] font-bold text-[#475569] hover:bg-[#f8fafc] shadow-sm cursor-pointer active:scale-95 transition-all"
             >
               <Icon name="download" className="text-[17px]" />Ekspor Excel
+            </button>
+            <button
+              onClick={() => {
+                const pdfHeaders = ["No", "ID REQ", "Pemohon & Dept", "Tujuan", "Armada & Unit", "Driver", "Biaya Rental (Rp)", "Jadwal", "Status"];
+                const pdfRows = filteredList.map((r: any, idx: number) => {
+                  const isExt = !!r.is_external;
+                  const rentalCost = isExt 
+                    ? (Number(r.third_party_cost) || (Number(r.external_departure_cost || 0) + Number(r.external_return_cost || 0)) || 0) 
+                    : 0;
+                  const vehicleStr = isExt
+                    ? (r.external_license_plate ? `Sewa (${r.external_license_plate})` : "Sewa Eksternal")
+                    : (r.vehicleModel || "Belum Ditugaskan");
+                  const driverStr = isExt 
+                    ? (r.external_driver_name ? `${r.external_driver_name} (Sewa)` : "Sewa Eksternal")
+                    : (r.driverName || "Belum Ditugaskan");
+
+                  return [
+                    idx + 1,
+                    `#REQ-${r.id}`,
+                    `${r.employee || "-"} (${r.department || "-"})`,
+                    r.destination || "-",
+                    vehicleStr,
+                    driverStr,
+                    isExt && rentalCost > 0 ? `Rp ${rentalCost.toLocaleString('id-ID')}` : "-",
+                    `${r.date || "-"} ${r.time || ""}`.trim(),
+                    r.status || "PENDING"
+                  ];
+                });
+
+                const totalRentalCost = filteredList.reduce((acc: number, r: any) => {
+                  const cost = r.is_external 
+                    ? (Number(r.third_party_cost) || (Number(r.external_departure_cost || 0) + Number(r.external_return_cost || 0)) || 0) 
+                    : 0;
+                  return acc + cost;
+                }, 0);
+
+                const dateStr = new Date().toISOString().slice(0, 10);
+                exportReportToPDF({
+                  filename: `Laporan_Monitoring_Admin_${dateStr}.pdf`,
+                  title: "LAPORAN MONITORING PENGAJUAN KENDARAAN OPERASIONAL",
+                  statusLabel: statusFilter === 'All' ? 'Semua Status' : statusFilter,
+                  headers: pdfHeaders,
+                  rows: pdfRows,
+                  summaryMeta: {
+                    totalRequests: filteredList.length,
+                    totalRentalCost: totalRentalCost,
+                  }
+                });
+              }}
+              className="flex items-center gap-2 px-3.5 py-2.5 border border-blue-200 bg-blue-50 text-[#1e3a8a] rounded-xl text-[13px] font-bold hover:bg-blue-100 shadow-sm cursor-pointer active:scale-95 transition-all"
+            >
+              <Icon name="picture_as_pdf" className="text-[17px]" />Ekspor PDF
             </button>
             <button
               onClick={() => setIsModalOpen(true)}

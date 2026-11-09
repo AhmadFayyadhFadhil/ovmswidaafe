@@ -3,6 +3,148 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 /**
+ * EXPORT MULTI-ROW TABULAR REPORT TO PROFESSIONAL LANDSCAPE PDF USING jsPDF & AUTOTABLE
+ * Publication-grade layout with company banner, filter metadata box, clean striped rows, and page numbers.
+ */
+export interface ExportReportPDFOptions {
+  filename?: string;
+  title: string;
+  subtitle?: string;
+  periodLabel?: string;
+  departmentLabel?: string;
+  statusLabel?: string;
+  headers: string[];
+  rows: (string | number | boolean | null | undefined)[][];
+  summaryMeta?: {
+    totalRequests: number;
+    totalRentalCost?: number;
+    totalKm?: number;
+  };
+}
+
+export function exportReportToPDF(options: ExportReportPDFOptions) {
+  try {
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: "a4",
+    });
+
+    // Top Header Banner (Navy Blue #1E3A8A)
+    doc.setFillColor(30, 58, 138);
+    doc.rect(0, 0, 297, 24, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("PT. WIDATRA BHAKTI", 14, 10);
+
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "normal");
+    doc.text("OPERATIONAL VEHICLE MANAGEMENT SYSTEM (OVMS)", 14, 16);
+
+    doc.setFontSize(8);
+    doc.text(options.subtitle || "Laporan Rekapitulasi Operasional Kendaraan & Logistik", 14, 21);
+
+    // Decorative Accent Line (Gold Accent #EAB308)
+    doc.setFillColor(234, 179, 8);
+    doc.rect(0, 24, 297, 1.5, "F");
+
+    // Document Title
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(11.5);
+    doc.setFont("helvetica", "bold");
+    doc.text(options.title || "LAPORAN OPERASIONAL KENDARAAN", 14, 33);
+
+    // Filter & Summary Metadata Box
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(14, 36, 269, 13, 2, 2, "FD");
+
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    doc.setFont("helvetica", "normal");
+
+    const metaPeriod = `Periode: ${options.periodLabel || "Semua Waktu"}`;
+    const metaDept = `Departemen: ${options.departmentLabel || "Semua Departemen"}`;
+    const metaStatus = `Status: ${options.statusLabel || "Semua Status"}`;
+    const metaTotal = `Total: ${options.summaryMeta?.totalRequests ?? options.rows.length} Pengajuan`;
+    const metaCost = options.summaryMeta?.totalRentalCost !== undefined
+      ? `Total Biaya Rental: Rp ${Number(options.summaryMeta.totalRentalCost).toLocaleString("id-ID")}`
+      : "";
+    const metaKm = options.summaryMeta?.totalKm !== undefined && options.summaryMeta?.totalKm > 0
+      ? `Total Jarak Tempuh: ${Number(options.summaryMeta.totalKm).toLocaleString("id-ID")} KM`
+      : "";
+
+    const metaLine1 = [metaPeriod, metaDept, metaStatus].filter(Boolean).join("   |   ");
+    const metaLine2 = [metaTotal, metaCost, metaKm].filter(Boolean).join("   |   ");
+
+    doc.text(metaLine1, 18, 41);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 23, 42);
+    doc.text(metaLine2, 18, 46);
+
+    // Waktu Cetak on top right of metadata card
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Waktu Cetak: ${new Date().toLocaleString("id-ID")} WIB`, 280, 41, { align: "right" });
+
+    const cleanRows = options.rows.map((row) =>
+      row.map((cell) => (cell === null || cell === undefined ? "-" : String(cell)))
+    );
+
+    autoTable(doc, {
+      startY: 52,
+      head: [options.headers],
+      body: cleanRows,
+      theme: "striped",
+      headStyles: {
+        fillColor: [30, 58, 138],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 7.5,
+        halign: "left",
+        cellPadding: { top: 2.5, bottom: 2.5, left: 2, right: 2 },
+      },
+      bodyStyles: {
+        fontSize: 7,
+        textColor: [15, 23, 42],
+        cellPadding: { top: 2, bottom: 2, left: 2, right: 2 },
+        lineColor: [226, 232, 240],
+        lineWidth: 0.2,
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      margin: { left: 14, right: 14, bottom: 14 },
+      didDrawPage: (data) => {
+        const pageCount = (doc as any).internal.getNumberOfPages();
+        const currentPage = (data as any).pageNumber || pageCount;
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(148, 163, 184);
+        doc.text(
+          "Dokumen resmi ini diterbitkan otomatis oleh Sistem OVMS PT Widatra Bhakti. Hak Cipta Dilindungi.",
+          14,
+          204
+        );
+        doc.text(`Halaman ${currentPage} dari ${pageCount}`, 283, 204, { align: "right" });
+      },
+    });
+
+    const cleanFilename = options.filename?.endsWith(".pdf")
+      ? options.filename
+      : `${options.filename || "Laporan_Operasional_OVMS"}.pdf`;
+    doc.save(cleanFilename);
+  } catch (err) {
+    console.error("Gagal mendownload PDF laporan:", err);
+    alert("Gagal mendownload PDF laporan.");
+  }
+}
+
+/**
  * EXPORT HIGH-QUALITY NATIVE EXCEL (.xlsx) USING SHEETJS
  * Generates genuine native Excel workbooks with separate columns and auto-calculated column widths.
  */

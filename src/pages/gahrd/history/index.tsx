@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Layout, Icon } from '@/components/layout/RoleLayout';
 import { requestService } from '@/services/modules/requestService';
 import { RequestDetailModal } from '@/components/ui/RequestDetailModal';
-import { exportToExcel } from '@/utils/exportHelper';
+import { exportToExcel, exportReportToPDF } from '@/utils/exportHelper';
 
 function StatusBadge({ status }: { status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED' | 'ONGOING' | 'CANCELLED' }) {
   const cfg: Record<string, string> = {
@@ -119,6 +119,7 @@ function matchesDatePeriod(req: any, period: DatePeriod, customStart?: string, c
 export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [departmentFilter, setDepartmentFilter] = useState('ALL');
   const [datePeriod, setDatePeriod] = useState<DatePeriod>('ALL');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -160,6 +161,14 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
   const rejectedCount  = dateFilteredRequests.filter(r => r.status === 'REJECTED' || r.rawStatus === 'rejected').length;
   const totalCount     = dateFilteredRequests.length;
 
+  const departmentOptions = Array.from(
+    new Set(
+      rawRequests
+        .map((r) => (r.department || '').trim())
+        .filter((d) => Boolean(d) && d !== '-')
+    )
+  ).sort();
+
   const filtered = dateFilteredRequests.filter(req => {
     const s = search.toLowerCase().trim();
     const matchSearch =
@@ -173,6 +182,11 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
 
     if (!matchSearch) return false;
 
+    if (departmentFilter !== 'ALL') {
+      const reqDept = (req.department || '').toLowerCase().trim();
+      if (reqDept !== departmentFilter.toLowerCase().trim()) return false;
+    }
+
     if (statusFilter === 'ALL') return true;
     if (statusFilter === 'COMPLETED') return req.status === 'COMPLETED' || req.rawStatus === 'completed';
     if (statusFilter === 'PENDING') return req.status === 'PENDING' || ['submitted', 'approved_department', 'waiting_driver', 'assigned_by_ga'].includes(req.rawStatus || '');
@@ -181,6 +195,186 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
     if (statusFilter === 'ONGOING') return req.status === 'ONGOING' || req.rawStatus === 'on_going';
     return req.status === statusFilter;
   });
+
+  const totalRentalCost = filtered.reduce((acc, r) => {
+    const cost = r.is_external
+      ? (Number(r.third_party_cost) || (Number(r.external_departure_cost || 0) + Number(r.external_return_cost || 0)) || 0)
+      : 0;
+    return acc + cost;
+  }, 0);
+
+  const handleExportExcel = () => {
+    const headers = [
+      "No",
+      "ID Request",
+      "Jadwal Keberangkatan",
+      "Pemohon",
+      "Departemen",
+      "No. HP / WA",
+      "Tujuan",
+      "Keperluan",
+      "Daftar Penumpang",
+      "Jumlah Penumpang",
+      "Catatan Penumpang Tambahan (Hari-H)",
+      "Tipe Armada",
+      "Driver / Supir",
+      "Armada / Plat Kendaraan",
+      "Vendor / Penyedia Sewa",
+      "Biaya Sewa / Rental (Rp)",
+      "KM Keluar (Awal)",
+      "KM Masuk (Akhir)",
+      "Total Tempuh (KM)",
+      "Waktu Scan Berangkat",
+      "Waktu Scan Kembali",
+      "Status"
+    ];
+
+    const rows = filtered.map((r, index) => {
+      let passengerNames = "";
+      if (Array.isArray(r.passengers) && r.passengers.length > 0) {
+        passengerNames = r.passengers.map((p, i) => {
+          const name = typeof p === 'string' ? p : (p.name || p.employee_name || `Penumpang ${i+1}`);
+          const isPic = typeof p === 'object' && (p.is_pic === true || p.is_pic === 1 || p.is_pic === '1' || i === 0);
+          return `${name}${isPic ? ' (PIC)' : ''}`;
+        }).join(", ");
+      } else {
+        passengerNames = `${r.employee || 'Staff'} (PIC)`;
+      }
+
+      const isExt = !!r.is_external;
+      const rentalCost = isExt 
+        ? (Number(r.third_party_cost) || (Number(r.external_departure_cost || 0) + Number(r.external_return_cost || 0)) || 0) 
+        : 0;
+
+      const fleetTypeStr = isExt ? "Sewa Rental Eksternal" : "Armada Internal";
+      const vendorStr = isExt ? (r.external_provider || "Pihak Ketiga") : "-";
+
+      const driverStr = isExt 
+        ? (r.external_driver_name ? `${r.external_driver_name} (Sewa)` : "Sewa Eksternal")
+        : (r.driverName && r.driverName !== 'Not Assigned' ? r.driverName : 'Belum Ditugaskan');
+
+      const vehicleStr = isExt
+        ? (r.external_license_plate ? `${r.external_provider || 'Sewa'} (${r.external_license_plate})` : (r.external_provider || 'Sewa Eksternal'))
+        : (r.vehicleModel && r.vehicleModel !== 'Not Assigned' ? r.vehicleModel : '-');
+
+      const startKmVal = r.start_km ?? r.operational_trip?.start_km ?? (Array.isArray(r.operational_trips) && r.operational_trips[0]?.start_km) ?? (Array.isArray(r.itineraries) && r.itineraries[0]?.start_km);
+      const endKmVal = r.end_km ?? r.operational_trip?.end_km ?? (Array.isArray(r.operational_trips) && r.operational_trips[0]?.end_km) ?? (Array.isArray(r.itineraries) && r.itineraries[r.itineraries.length - 1]?.end_km);
+      const totalKmVal = r.total_km ?? r.operational_trip?.total_km ?? (Array.isArray(r.operational_trips) && r.operational_trips[0]?.total_km) ?? ((startKmVal && endKmVal) ? Math.max(0, Number(endKmVal) - Number(startKmVal)) : null);
+
+      const addPassengers = r.additional_passengers || r.additionalPassengers || "-";
+
+      return [
+        index + 1,
+        `#REQ-${r.id}`,
+        `${r.date} ${r.time || ''}`.trim(),
+        r.employee || "-",
+        r.department || "-",
+        r.userPhone || r.email || "-",
+        r.destination || "-",
+        r.purpose || "-",
+        passengerNames,
+        r.passengerCount || (Array.isArray(r.passengers) ? r.passengers.length : 1),
+        addPassengers,
+        fleetTypeStr,
+        driverStr,
+        vehicleStr,
+        vendorStr,
+        isExt ? rentalCost : 0,
+        startKmVal !== null && startKmVal !== undefined ? Number(startKmVal) : "-",
+        endKmVal !== null && endKmVal !== undefined ? Number(endKmVal) : "-",
+        totalKmVal !== null && totalKmVal !== undefined ? Number(totalKmVal) : "-",
+        r.security_checked_out_at ? r.security_checked_out_at : "-",
+        r.security_checked_in_at ? r.security_checked_in_at : "-",
+        r.status || r.rawStatus || "-"
+      ];
+    });
+
+    let periodSuffix = "Semua_Waktu";
+    if (datePeriod === 'TODAY') periodSuffix = "Hari_Ini";
+    else if (datePeriod === 'THIS_WEEK') periodSuffix = "Minggu_Ini";
+    else if (datePeriod === 'THIS_MONTH') periodSuffix = "Bulan_Ini";
+    else if (datePeriod === 'LAST_MONTH') periodSuffix = "Bulan_Lalu";
+    else if (datePeriod === 'CUSTOM') periodSuffix = `Rentang_${customStartDate || 'Awal'}_sd_${customEndDate || 'Akhir'}`;
+
+    const deptSuffix = departmentFilter === 'ALL' ? '' : `_Dept_${departmentFilter.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    exportToExcel(`Riwayat_Operasional_Armada_GA_${periodSuffix}${deptSuffix}_${dateStr}.xlsx`, headers, rows, "Riwayat Operasional");
+  };
+
+  const handleExportPDF = () => {
+    const pdfHeaders = [
+      "No",
+      "ID REQ",
+      "Jadwal",
+      "Pemohon & Dept",
+      "Tujuan",
+      "Armada & Unit",
+      "Driver",
+      "Vendor Sewa",
+      "Biaya Rental (Rp)",
+      "KM Tempuh",
+      "Status"
+    ];
+
+    const pdfRows = filtered.map((r, index) => {
+      const isExt = !!r.is_external;
+      const rentalCost = isExt 
+        ? (Number(r.third_party_cost) || (Number(r.external_departure_cost || 0) + Number(r.external_return_cost || 0)) || 0) 
+        : 0;
+
+      const fleetTypeStr = isExt
+        ? (r.external_license_plate ? `Sewa (${r.external_license_plate})` : "Sewa Eksternal")
+        : (r.vehicleModel && r.vehicleModel !== 'Not Assigned' ? r.vehicleModel : "-");
+
+      const driverStr = isExt 
+        ? (r.external_driver_name ? `${r.external_driver_name} (Sewa)` : "Sewa Eksternal")
+        : (r.driverName && r.driverName !== 'Not Assigned' ? r.driverName : '-');
+
+      const vendorStr = isExt ? (r.external_provider || "Pihak Ketiga") : "-";
+
+      const startKmVal = r.start_km ?? r.operational_trip?.start_km ?? (Array.isArray(r.operational_trips) && r.operational_trips[0]?.start_km) ?? (Array.isArray(r.itineraries) && r.itineraries[0]?.start_km);
+      const endKmVal = r.end_km ?? r.operational_trip?.end_km ?? (Array.isArray(r.operational_trips) && r.operational_trips[0]?.end_km) ?? (Array.isArray(r.itineraries) && r.itineraries[r.itineraries.length - 1]?.end_km);
+      const totalKmVal = r.total_km ?? r.operational_trip?.total_km ?? (Array.isArray(r.operational_trips) && r.operational_trips[0]?.total_km) ?? ((startKmVal && endKmVal) ? Math.max(0, Number(endKmVal) - Number(startKmVal)) : null);
+      const kmStr = totalKmVal !== null && totalKmVal !== undefined ? `${Number(totalKmVal)} km` : "-";
+
+      return [
+        index + 1,
+        `#REQ-${r.id}`,
+        `${r.date} ${r.time || ''}`.trim(),
+        `${r.employee || "-"} (${r.department || "-"})`,
+        r.destination || "-",
+        fleetTypeStr,
+        driverStr,
+        vendorStr,
+        isExt && rentalCost > 0 ? `Rp ${rentalCost.toLocaleString('id-ID')}` : "-",
+        kmStr,
+        r.status || r.rawStatus || "-"
+      ];
+    });
+
+    let periodLabel = "Semua Waktu";
+    if (datePeriod === 'TODAY') periodLabel = "Hari Ini";
+    else if (datePeriod === 'THIS_WEEK') periodLabel = "Minggu Ini";
+    else if (datePeriod === 'THIS_MONTH') periodLabel = "Bulan Ini";
+    else if (datePeriod === 'LAST_MONTH') periodLabel = "Bulan Lalu";
+    else if (datePeriod === 'CUSTOM') periodLabel = `${customStartDate || '...'} s/d ${customEndDate || '...'}`;
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    exportReportToPDF({
+      filename: `Laporan_Operasional_GA_${dateStr}.pdf`,
+      title: "REKAPITULASI RIWAYAT OPERASIONAL KENDARAAN",
+      periodLabel,
+      departmentLabel: departmentFilter === 'ALL' ? 'Semua Departemen' : departmentFilter,
+      statusLabel: statusFilter === 'ALL' ? 'Semua Status' : statusFilter,
+      headers: pdfHeaders,
+      rows: pdfRows,
+      summaryMeta: {
+        totalRequests: filtered.length,
+        totalRentalCost: totalRentalCost,
+      }
+    });
+  };
+
 
   return (
     <Layout
@@ -293,8 +487,8 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
         </div>
 
         {/* Stat cards header */}
-        <div className="flex items-center justify-between mb-3 px-1">
-          <div className="flex items-center gap-2 text-[12.5px] font-bold text-slate-600">
+        <div className="flex items-center justify-between mb-3 px-1 flex-wrap gap-2">
+          <div className="flex items-center gap-2 text-[12.5px] font-bold text-slate-600 flex-wrap">
             <span>Ringkasan Statistik</span>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-blue-100 text-blue-900 border border-blue-200 flex items-center gap-1">
               <Icon name="calendar_today" className="text-[12px]" />
@@ -305,6 +499,18 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
               {datePeriod === 'LAST_MONTH' && 'Bulan Lalu'}
               {datePeriod === 'CUSTOM' && (customStartDate || customEndDate ? `${customStartDate || '...'} s/d ${customEndDate || '...'}` : 'Rentang Kustom')}
             </span>
+            {departmentFilter !== 'ALL' && (
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-indigo-100 text-indigo-900 border border-indigo-200 flex items-center gap-1">
+                <Icon name="corporate_fare" className="text-[12px]" />
+                Dept: {departmentFilter}
+              </span>
+            )}
+            {totalRentalCost > 0 && (
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-900 border border-amber-200 flex items-center gap-1">
+                <Icon name="payments" className="text-[12px] text-amber-700" />
+                Total Sewa Rental: Rp {totalRentalCost.toLocaleString('id-ID')}
+              </span>
+            )}
           </div>
         </div>
 
@@ -472,6 +678,16 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
               />
             </div>
             <select
+              value={departmentFilter}
+              onChange={e => setDepartmentFilter(e.target.value)}
+              className="px-4 py-2 text-[13px] bg-[#f8fafc] border border-slate-200 rounded-xl text-[#475569] focus:outline-none cursor-pointer font-semibold"
+            >
+              <option value="ALL">Departemen: Semua ({totalCount})</option>
+              {departmentOptions.map(dept => (
+                <option key={dept} value={dept}>Dept: {dept}</option>
+              ))}
+            </select>
+            <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
               className="px-4 py-2 text-[13px] bg-[#f8fafc] border border-slate-200 rounded-xl text-[#475569] focus:outline-none cursor-pointer font-semibold"
@@ -485,8 +701,9 @@ export default function HistoryPage({ onNavigate }: { onNavigate: (p: string) =>
             </select>
             <button
               onClick={() => { 
-                setSearch(''); 
-                setStatusFilter('ALL'); 
+                setSearch('');
+                setStatusFilter('ALL');
+                setDepartmentFilter('ALL'); 
                 setDatePeriod('ALL');
                 setCustomStartDate('');
                 setCustomEndDate('');
