@@ -1,16 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuthContext } from "@/auth/authContext";
 import { apiClient } from "@/services/api/api";
 import { canAccessRoute } from "@/auth/roleGuard";
+import buildingHeroImg from "@/assets/images/widatra-building.jpg";
 
 export default function LoginPage() {
-
   const [nik, setNik] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [logoError, setLogoError] = useState(false);
+  const [heroImageError, setHeroImageError] = useState(false);
   const [stats, setStats] = useState({
     activeVehicles: 0,
     dailyRequests: 0,
@@ -18,7 +22,11 @@ export default function LoginPage() {
     systemName: "",
     companyName: "",
     companyLogo: "",
+    loginHeroImage: "",
   });
+
+  const navigate = useNavigate();
+  const { login } = useAuthContext();
 
   const getValidLogoUrl = (url: string | undefined | null) => {
     if (!url) return "";
@@ -39,27 +47,35 @@ export default function LoginPage() {
     return `${window.location.origin}/${url}`;
   };
 
-  const navigate = useNavigate();
-  const { login } = useAuthContext();
-
   useEffect(() => {
-    // 1. Load local cache for instant rendering
+    // 1. Check remembered NIK
+    const savedNik = localStorage.getItem("ovms_remembered_nik");
+    if (savedNik) {
+      setNik(savedNik);
+      setRememberMe(true);
+    }
+
+    // 2. Load local branding cache for instant rendering
     const cached = localStorage.getItem("ovms_branding_config");
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        setStats(prev => ({
+        setStats((prev) => ({
           ...prev,
           systemName: parsed.systemName || prev.systemName,
           companyName: parsed.companyName || prev.companyName,
           companyLogo: parsed.companyLogo || prev.companyLogo,
+          loginHeroImage: parsed.loginHeroImage || prev.loginHeroImage,
         }));
-      } catch (e) {}
+      } catch (e) {
+        // ignore parse error
+      }
     }
 
-    // 2. Fetch live public stats & branding from backend
-    apiClient.get("/public-stats")
-      .then(res => {
+    // 3. Fetch live public stats & branding from backend master
+    apiClient
+      .get("/public-stats")
+      .then((res) => {
         if (res.data?.status === "success" && res.data?.data) {
           const d = res.data.data;
           setStats({
@@ -67,19 +83,25 @@ export default function LoginPage() {
             dailyRequests: d.daily_requests ?? 0,
             activeDrivers: d.active_drivers ?? 0,
             systemName: d.system_name || "OVMS",
-            companyName: d.company_name || "Operational Vehicle Management",
+            companyName: d.company_name || "PT Widatra Bhakti",
             companyLogo: d.company_logo ?? "",
+            loginHeroImage: d.login_hero_image || d.loginHeroImage || "",
           });
           setLogoError(false);
+          setHeroImageError(false);
           // Sync branding cache
-          localStorage.setItem("ovms_branding_config", JSON.stringify({
-            systemName: d.system_name || "OVMS",
-            companyName: d.company_name || "Operational Vehicle Management",
-            companyLogo: d.company_logo ?? "",
-          }));
+          localStorage.setItem(
+            "ovms_branding_config",
+            JSON.stringify({
+              systemName: d.system_name || "OVMS",
+              companyName: d.company_name || "PT Widatra Bhakti",
+              companyLogo: d.company_logo ?? "",
+              loginHeroImage: d.login_hero_image || d.loginHeroImage || "",
+            })
+          );
         }
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("Failed to load public stats", err);
       });
   }, []);
@@ -91,6 +113,13 @@ export default function LoginPage() {
 
     try {
       const userRole = await login(nik.trim(), password);
+
+      // Handle remember me persistence
+      if (rememberMe) {
+        localStorage.setItem("ovms_remembered_nik", nik.trim());
+      } else {
+        localStorage.removeItem("ovms_remembered_nik");
+      }
 
       const dashboards: Record<string, string> = {
         employee: "/employee/dashboard",
@@ -121,309 +150,257 @@ export default function LoginPage() {
         window.location.href = defaultRoute;
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login gagal");
+      setError(err instanceof Error ? err.message : "Login gagal, silakan periksa NIK dan Password.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-
-    <div className="min-h-screen bg-[#f4f7fb] flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
-
-      {/* LEFT SIDE */}
-
-      <div className="hidden lg:flex flex-1 relative overflow-hidden bg-gradient-to-br from-[#0f172a] via-[#1e3a8a] to-[#2563eb] p-12">
-
-        {/* Blur Effects */}
-
-        <div className="absolute top-0 left-0 w-[400px] h-[400px] bg-blue-400/20 rounded-full blur-3xl" />
-
-        <div className="absolute bottom-0 right-0 w-[350px] h-[350px] bg-cyan-300/20 rounded-full blur-3xl" />
-
-        <div className="relative z-10 flex flex-col justify-between w-full">
-
-          {/* Logo */}
-
-          <div className="flex items-center gap-4">
-
+    <div className="h-screen w-full bg-[#f8fafc] lg:bg-white flex flex-col lg:flex-row overflow-hidden selection:bg-blue-100 selection:text-blue-900">
+      {/* LEFT COLUMN: AUTHENTICATION FORM */}
+      <div className="w-full lg:w-[45%] xl:w-[42%] 2xl:w-[40%] h-full flex flex-col justify-between p-6 sm:p-8 lg:p-10 xl:p-12 bg-white shadow-sm lg:shadow-none z-10 overflow-y-auto">
+        <div className="w-full max-w-[360px] mx-auto flex flex-col justify-between h-full py-1">
+          {/* Top Header: Master Company Logo (Mengikuti Master & Sejajar Rata Kiri dengan Form) */}
+          <div className="pt-1 pb-2 flex items-center min-h-[52px]">
             {stats.companyLogo && !logoError ? (
-              <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center p-2 shadow-sm overflow-hidden border border-white/20">
-                <img 
-                  src={getValidLogoUrl(stats.companyLogo)} 
-                  alt="Logo" 
-                  className="w-full h-full object-contain" 
-                  onError={() => setLogoError(true)}
-                />
-              </div>
+              <img
+                src={getValidLogoUrl(stats.companyLogo)}
+                alt={stats.companyName || "Logo Perusahaan"}
+                className="h-11 sm:h-12 w-auto max-w-[180px] object-contain object-left select-none"
+                onError={() => setLogoError(true)}
+              />
             ) : (
-              <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center border border-white/20">
-                <span className="text-2xl text-white">
-                  🚘
-                </span>
+              <div className="flex items-center gap-3 select-none">
+                {/* Fallback Official Otsuka Loops Symbol */}
+                <svg
+                  className="w-9 h-9 shrink-0"
+                  viewBox="0 0 100 100"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  {/* Left Blue Loop */}
+                  <path
+                    d="M42 16 C26 16 14 31 14 50 C14 69 26 84 42 84 C32 80 24 67 24 50 C24 33 32 20 42 16 Z"
+                    fill="#004B93"
+                  />
+                  <path
+                    d="M42 16 C48 16 53 22 55 31 C50 33 45 37 42 43 C39 33 40 22 42 16 Z"
+                    fill="#004B93"
+                  />
+                  <path
+                    d="M42 84 C48 84 53 78 55 69 C50 67 45 63 42 57 C39 67 40 78 42 84 Z"
+                    fill="#004B93"
+                  />
+                  {/* Right Red Loop */}
+                  <path
+                    d="M58 84 C74 84 86 69 86 50 C86 31 74 16 58 16 C68 20 76 33 76 50 C76 67 68 80 58 84 Z"
+                    fill="#E50012"
+                  />
+                  <path
+                    d="M58 16 C52 16 47 22 45 31 C50 33 55 37 58 43 C61 33 60 22 58 16 Z"
+                    fill="#E50012"
+                  />
+                  <path
+                    d="M58 84 C52 84 47 78 45 69 C50 67 55 63 58 57 C61 67 60 78 58 84 Z"
+                    fill="#E50012"
+                  />
+                </svg>
+                <div className="flex flex-col justify-center">
+                  <span className="font-extrabold text-[15px] sm:text-[16px] text-[#002f6c] tracking-tight leading-none">
+                    {stats.companyName || "PT WIDATRA BHAKTI"}
+                  </span>
+                  <span className="text-[10px] text-[#e50012] font-bold tracking-wider leading-none mt-1">
+                    Otsuka
+                  </span>
+                </div>
               </div>
             )}
-
-            <div>
-
-              <h1 className="text-3xl font-bold text-white">
-                {stats.systemName || "OVMS"}
-              </h1>
-
-              <p className="text-blue-100">
-                {stats.companyName || "Operational Vehicle Management"}
-              </p>
-
-            </div>
-
           </div>
 
-          {/* Hero Content */}
-
-          <div className="max-w-[520px]">
-
-            <h2 className="text-5xl leading-tight font-bold text-white mb-6">
-              Optimalkan Operasional Armada Perusahaan
-            </h2>
-
-            <p className="text-lg text-blue-100 leading-relaxed">
-              Kelola permohonan kendaraan, persetujuan,
-              penugasan driver, dan jadwal operasional
-              dalam satu platform terpadu.
-            </p>
-
-             {/* Stats */}
-
-            <div className="grid grid-cols-3 gap-4 mt-12">
-
-              <div className="bg-white/10 border border-white/10 backdrop-blur rounded-3xl p-5 hover:bg-white/20 hover:scale-105 transition-all duration-300 cursor-default">
-
-                <h3 className="text-3xl font-bold text-white">
-                  {stats.activeVehicles}
-                </h3>
-
-                <p className="text-sm text-blue-100 mt-1">
-                  Armada Aktif
-                </p>
-
-              </div>
-
-              <div className="bg-white/10 border border-white/10 backdrop-blur rounded-3xl p-5 hover:bg-white/20 hover:scale-105 transition-all duration-300 cursor-default">
-
-                <h3 className="text-3xl font-bold text-white">
-                  {stats.dailyRequests}
-                </h3>
-
-                <p className="text-sm text-blue-100 mt-1">
-                  Permohonan Harian
-                </p>
-
-              </div>
-
-              <div className="bg-white/10 border border-white/10 backdrop-blur rounded-3xl p-5 hover:bg-white/20 hover:scale-105 transition-all duration-300 cursor-default">
-
-                <h3 className="text-3xl font-bold text-white">
-                  {stats.activeDrivers}
-                </h3>
-
-                <p className="text-sm text-blue-100 mt-1">
-                  Driver Aktif
-                </p>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* Footer */}
-
-          <div className="text-sm text-blue-100">
-
-            © 2026 OVMS Enterprise System
-
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* RIGHT SIDE */}
-
-      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-12 my-auto">
-
-        <div className="w-full max-w-[480px]">
-
-          {/* Mobile Logo */}
-
-          <div className="lg:hidden flex items-center gap-3 mb-6">
-
-            {stats.companyLogo && !logoError ? (
-              <div className="w-11 h-11 rounded-2xl bg-white flex items-center justify-center p-1.5 shadow-sm border border-slate-200 overflow-hidden">
-                <img 
-                  src={getValidLogoUrl(stats.companyLogo)} 
-                  alt="Logo" 
-                  className="w-full h-full object-contain" 
-                  onError={() => setLogoError(true)}
-                />
-              </div>
-            ) : (
-              <div className="w-11 h-11 rounded-2xl bg-[#1e3a8a] flex items-center justify-center shadow-sm">
-                <span className="text-white text-lg">
-                  🚘
-                </span>
-              </div>
-            )}
-
-            <div>
-
-              <h1 className="text-xl font-bold text-slate-900 leading-tight">
-                {stats.systemName || "OVMS"}
-              </h1>
-
-              <p className="text-xs text-slate-500 font-medium">
-                {stats.companyName || "Operational Vehicle Management"}
-              </p>
-
-            </div>
-
-          </div>
-
-          {/* Login Card */}
-
-          <div className="bg-white rounded-[24px] sm:rounded-[32px] shadow-[0_20px_50px_rgba(15,23,42,0.08)] border border-slate-200/70 p-6 sm:p-8 lg:p-10">
-
-            <div className="mb-8">
-
-              <h2 className="text-3xl font-bold text-slate-900">
-                Selamat Datang Kembali
+          {/* Centered Form Area (Aligned with the logo above) */}
+          <div className="my-auto py-2 sm:py-3">
+            {/* Welcome Heading */}
+            <div className="mb-4 sm:mb-5">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight leading-tight">
+                Hallo
               </h2>
-
-              <p className="text-slate-500 mt-2">
-                Masuk untuk melanjutkan pengelolaan permohonan armada operasional.
+              <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-extrabold text-slate-900 tracking-tight leading-none mt-1">
+                Welcome Back
+              </h1>
+              <p className="text-xs text-slate-400 mt-1.5 font-normal">
+                Hey, welcome back to your special place
               </p>
-
             </div>
 
-            {/* FORM */}
-
-            <form
-              className="space-y-5"
-              onSubmit={handleLogin}
-            >
-
-              {/* Email */}
-
+            {/* Form */}
+            <form className="space-y-3" onSubmit={handleLogin}>
+              {/* NIK / Username / Email */}
               <div>
-
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-
-                  NIK / Username / Email
-
+                <label
+                  htmlFor="nik-input"
+                  className="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider"
+                >
+                  NIK
                 </label>
-
                 <input
+                  id="nik-input"
                   type="text"
-                  placeholder="Masukkan NIK, Username, atau Email"
+                  placeholder="Masukkan NIK Anda (16 digit)"
                   value={nik}
                   onChange={(e) => setNik(e.target.value)}
-                  className="w-full h-14 rounded-2xl border border-slate-200 px-5 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all"
+                  disabled={isLoading}
+                  required
+                  className="w-full h-[38px] px-3 text-xs sm:text-sm rounded-lg border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all disabled:bg-slate-50 disabled:opacity-60"
                 />
-
               </div>
 
               {/* Password */}
-
               <div>
-
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-
-                  Kata Sandi
-
+                <label
+                  htmlFor="password-input"
+                  className="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider"
+                >
+                  Password
                 </label>
+                <div className="relative">
+                  <input
+                    id="password-input"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    required
+                    className="w-full h-[38px] pl-3 pr-9 text-xs sm:text-sm rounded-lg border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all disabled:bg-slate-50 disabled:opacity-60"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors p-1"
+                    aria-label={showPassword ? "Sembunyikan password" : "Lihat password"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-3.5 h-3.5" />
+                    ) : (
+                      <Eye className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
 
-                <input
-                  type="password"
-                  placeholder="Masukkan kata sandi Anda"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                  className="w-full h-14 rounded-2xl border border-slate-200 px-5 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all disabled:opacity-50"
-                />
-
+                {/* Forgot Password Right Aligned */}
+                <div className="flex justify-end mt-1">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/forgot-password")}
+                    className="text-[11px] text-blue-600 hover:text-blue-700 font-medium hover:underline focus:outline-none cursor-pointer"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
               </div>
 
-              {/* Error Message */}
-
+              {/* Error Message Alert */}
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-                  {error}
+                <div className="p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 flex items-start gap-2">
+                  <span className="font-semibold shrink-0">Peringatan:</span>
+                  <span>{error}</span>
                 </div>
               )}
 
-              {/* Remember */}
-
-              <div className="flex items-center justify-between">
-
-                <label className="flex items-center gap-2 text-sm text-slate-600">
-
-                  <input type="checkbox" disabled={isLoading} />
-
-                  Ingat saya
-
-                </label>
-
-                <button
-                  type="button"
-                  onClick={() => navigate("/forgot-password")}
-                  className="text-sm font-semibold text-blue-700 hover:text-blue-800"
+              {/* Remember Me Checkbox */}
+              <div className="flex items-center gap-2 pt-0.5">
+                <input
+                  id="remember-me"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={isLoading}
+                  className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                />
+                <label
+                  htmlFor="remember-me"
+                  className="text-[11px] text-slate-500 cursor-pointer select-none"
                 >
-
-                  Lupa Kata Sandi?
-
-                </button>
-
+                  Remember me
+                </label>
               </div>
 
-              {/* LOGIN BUTTON */}
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-14 rounded-2xl bg-[#1e3a8a] hover:bg-[#1d4ed8] disabled:bg-slate-400 text-white font-semibold shadow-lg transition-all duration-300 hover:-translate-y-0.5 disabled:hover:translate-y-0 cursor-pointer"
-              >
-
-                {isLoading ? "Memproses Masuk..." : "Masuk"}
-
-              </button>
-
+              {/* Sign In Button */}
+              <div className="pt-1">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-[38px] rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-blue-400 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <>
+                      <svg
+                        className="animate-spin h-3.5 w-3.5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v8H4z"
+                        />
+                      </svg>
+                      <span>Signing In...</span>
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
+                </button>
+              </div>
             </form>
 
-            {/* Bottom */}
-
-            <div className="mt-8 text-center text-sm text-slate-500">
-
-              Belum punya akun?{" "}
-
+            {/* Help Support Link */}
+            <div className="mt-3 text-center text-[11px] text-slate-500">
+              Don't have an account?{" "}
               <button
                 type="button"
                 onClick={() => navigate("/register")}
-                className="font-semibold text-blue-700 hover:text-blue-800 cursor-pointer"
+                className="text-blue-600 hover:text-blue-700 font-semibold hover:underline cursor-pointer"
               >
-
-                Daftar
-
+                Report to IT Department
               </button>
-
             </div>
-
           </div>
 
+          {/* Footer Copyright */}
+          <div className="text-center text-[10px] text-slate-400 pt-2 pb-1">
+            © 2026 PT Widatra Bhakti. All rights reserved.
+          </div>
         </div>
-
       </div>
 
+      {/* RIGHT COLUMN: HERO BUILDING IMAGE (CMMS STYLE) */}
+      <div className="hidden lg:flex lg:w-[55%] xl:w-[58%] 2xl:w-[60%] h-full p-3 sm:p-4 lg:p-5 bg-[#f8fafc] items-center justify-center">
+        <div className="relative w-full h-full rounded-2xl xl:rounded-3xl overflow-hidden shadow-sm border border-slate-200/80 bg-slate-100">
+          <img
+            src={
+              stats.loginHeroImage && !heroImageError
+                ? getValidLogoUrl(stats.loginHeroImage)
+                : buildingHeroImg
+            }
+            alt="PT Widatra Bhakti Plant & Head Office"
+            className="w-full h-full object-cover object-center"
+            loading="eager"
+            onError={() => setHeroImageError(true)}
+          />
+        </div>
+      </div>
     </div>
-
   );
 }

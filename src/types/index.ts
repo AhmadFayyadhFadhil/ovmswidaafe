@@ -293,4 +293,5 @@ export interface SystemConfig {
   ipWhitelist: string;
   advancedEncryption: boolean;
   companyLogo?: string;
+  loginHeroImage?: string;
 }

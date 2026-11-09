@@ -73,6 +73,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
   const [resetDone,     setResetDone]     = useState(false);
   const [saving,        setSaving]        = useState(false);
   const [uploading,     setUploading]     = useState(false);
+  const [uploadingHero, setUploadingHero] = useState(false);
 
   // Cropper states
   const [cropModalOpen, setCropModalOpen] = useState(false);
@@ -84,6 +85,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
 
   // Hidden File Input Ref
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const heroInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch data settings from API (contains both settings and stats)
   const { data: apiData, loading, refetch, setData } = useApi(() => systemConfigService.get());
@@ -383,6 +385,54 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
     setCropModalOpen(true);
   };
 
+  const handleHeroChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Ukuran file maksimal 10MB");
+      return;
+    }
+    setUploadingHero(true);
+    try {
+      const res = await systemConfigService.uploadLoginHero(file);
+      if (res && res.data && res.data.hero_url) {
+        setFormData((prev: any) => (prev ? { ...prev, loginHeroImage: res.data.hero_url } : null));
+        const cached = localStorage.getItem("ovms_branding_config");
+        const branding = cached ? JSON.parse(cached) : {};
+        branding.loginHeroImage = res.data.hero_url;
+        localStorage.setItem("ovms_branding_config", JSON.stringify(branding));
+        window.dispatchEvent(new Event("branding-update"));
+      }
+    } catch (err: any) {
+      console.error("Failed to upload hero image", err);
+      alert("Gagal mengunggah foto login: " + (err.response?.data?.message || err.message));
+    } finally {
+      setUploadingHero(false);
+      if (heroInputRef.current) heroInputRef.current.value = "";
+    }
+  };
+
+  const handleResetHero = async () => {
+    if (!confirm("Kembalikan foto banner halaman login ke foto bawaan sistem (Gedung PT Widatra Bhakti)?")) return;
+    setUploadingHero(true);
+    try {
+      await systemConfigService.deleteLoginHero();
+      setFormData((prev: any) => (prev ? { ...prev, loginHeroImage: null } : null));
+      const cached = localStorage.getItem("ovms_branding_config");
+      if (cached) {
+        const branding = JSON.parse(cached);
+        delete branding.loginHeroImage;
+        localStorage.setItem("ovms_branding_config", JSON.stringify(branding));
+      }
+      window.dispatchEvent(new Event("branding-update"));
+    } catch (err: any) {
+      console.error("Failed to reset hero image", err);
+      alert("Gagal mereset foto banner: " + (err.response?.data?.message || err.message));
+    } finally {
+      setUploadingHero(false);
+    }
+  };
+
   const handleFlushCache = async () => {
     if (confirm("Apakah Anda yakin ingin menghapus semua cache aplikasi?")) {
       try {
@@ -605,6 +655,7 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
 
               {/* COMPANY INFO */}
               {activeSection === "Company Info" && (
+                <div className="space-y-6">
                 <SectionCard title="Informasi Perusahaan" subtitle="Kelola identitas dan detail kontak organisasi Anda.">
                   <div className="flex flex-col sm:flex-row gap-5">
                                          <div 
@@ -692,6 +743,119 @@ export default function SystemSettingsView({ onNavigate }: { onNavigate?: (p: st
                     </div>
                   </div>
                 </SectionCard>
+
+                {/* LOGIN HERO BANNER SETTING */}
+                <SectionCard
+                  title="Banner / Foto Halaman Login"
+                  subtitle="Foto lanskap gedung atau kantor operasional yang tampil pada sisi kanan layar masuk (Login)."
+                >
+                  <div className="flex flex-col lg:flex-row gap-6 items-start">
+                    {/* Preview Container */}
+                    <div className="relative w-full lg:w-[420px] aspect-[16/9] bg-slate-100 rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden group shadow-sm flex items-center justify-center">
+                      {uploadingHero && (
+                        <div className="absolute inset-0 bg-white/85 z-20 flex flex-col items-center justify-center gap-2">
+                          <div className="w-6 h-6 border-2 border-[#1e3a8a] border-t-transparent rounded-full animate-spin"></div>
+                          <span className="text-[12px] font-semibold text-slate-700">Mengunggah Foto...</span>
+                        </div>
+                      )}
+
+                      <img
+                        src={formData.loginHeroImage || "/images/widatra-building.jpg"}
+                        alt="Hero Login"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+
+                      {/* Status Badge */}
+                      <div className="absolute top-3 left-3 z-10">
+                        {formData.loginHeroImage ? (
+                          <span className="px-2.5 py-1 bg-emerald-600/90 text-white text-[11px] font-bold rounded-lg shadow backdrop-blur-sm flex items-center gap-1">
+                            <Icon name="check_circle" className="text-[13px]" /> Foto Kustom Aktif
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 bg-slate-900/75 text-white text-[11px] font-bold rounded-lg shadow backdrop-blur-sm flex items-center gap-1">
+                            <Icon name="domain" className="text-[13px]" /> Default Sistem (Widatra)
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Hover Overlay Controls */}
+                      <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => heroInputRef.current?.click()}
+                          className="px-3.5 py-2 rounded-xl bg-white text-slate-800 text-[12px] font-bold flex items-center gap-1.5 shadow-lg hover:bg-slate-50 transition-all cursor-pointer"
+                        >
+                          <Icon name="upload" className="text-[16px] text-[#1e3a8a]" /> Ganti Foto
+                        </button>
+                        {formData.loginHeroImage && (
+                          <button
+                            type="button"
+                            onClick={handleResetHero}
+                            className="px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-[12px] font-bold flex items-center gap-1.5 shadow-lg transition-all cursor-pointer"
+                            title="Reset ke Foto Bawaan"
+                          >
+                            <Icon name="restart_alt" className="text-[16px]" /> Reset
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Hidden File Input */}
+                    <input
+                      type="file"
+                      ref={heroInputRef}
+                      onChange={handleHeroChange}
+                      accept="image/png, image/jpeg, image/jpg, image/webp"
+                      className="hidden"
+                    />
+
+                    {/* Info and Actions */}
+                    <div className="flex-1 space-y-3.5">
+                      <div>
+                        <h4 className="text-[13.5px] font-bold text-slate-800">Pratinjau & Pengaturan Foto</h4>
+                        <p className="text-[12px] text-slate-500 mt-1 leading-relaxed">
+                          Foto ini tampil otomatis di sebelah kanan form login untuk semua pengguna (Pemohon, Driver, Satpam, dan Koordinator).
+                        </p>
+                      </div>
+
+                      <div className="p-3.5 bg-blue-50/70 border border-blue-100 rounded-xl space-y-1 text-[12px] text-slate-600">
+                        <div className="flex items-center gap-1.5 text-[#1e3a8a] font-bold">
+                          <Icon name="info" className="text-[16px]" />
+                          Panduan Unggah Foto
+                        </div>
+                        <ul className="list-disc list-inside space-y-0.5 text-slate-600 pl-1 text-[11.5px]">
+                          <li>Gunakan foto berorientasi lanskap (~16:9), rekomendasi 1024 x 576 px ke atas.</li>
+                          <li>Format file: JPG, PNG, atau WebP (maksimal 10 MB).</li>
+                          <li>Jika direset, sistem otomatis kembali memakai foto default gedung PT Widatra Bhakti.</li>
+                        </ul>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2.5 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => heroInputRef.current?.click()}
+                          disabled={uploadingHero}
+                          className="h-10 px-4 bg-[#1e3a8a] hover:bg-[#1e3a8a]/90 text-white text-[12.5px] font-bold rounded-xl flex items-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                        >
+                          <Icon name="photo_camera" className="text-[18px]" />
+                          {formData.loginHeroImage ? "Ganti Foto Banner" : "Unggah Foto Banner"}
+                        </button>
+                        {formData.loginHeroImage && (
+                          <button
+                            type="button"
+                            onClick={handleResetHero}
+                            disabled={uploadingHero}
+                            className="h-10 px-4 border border-slate-200 text-slate-600 hover:bg-red-50 hover:text-red-700 hover:border-red-200 text-[12.5px] font-bold rounded-xl flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                          >
+                            <Icon name="restart_alt" className="text-[18px]" />
+                            Kembalikan ke Default
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </SectionCard>
+                </div>
               )}
 
               {/* MASTER DATA KEPERLUAN */}

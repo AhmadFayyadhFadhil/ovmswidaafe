@@ -17,6 +17,16 @@ export const systemConfigService = {
     const res = await apiClient.post<ApiResponse<{ logo_url: string }>>('/system-config/logo', formData);
     return res.data;
   },
+  uploadLoginHero: async (file: File): Promise<ApiResponse<{ hero_url: string }>> => {
+    const formData = new FormData();
+    formData.append('hero', file);
+    const res = await apiClient.post<ApiResponse<{ hero_url: string }>>('/system-config/login-hero', formData);
+    return res.data;
+  },
+  deleteLoginHero: async (): Promise<ApiResponse<any>> => {
+    const res = await apiClient.delete<ApiResponse<any>>('/system-config/login-hero');
+    return res.data;
+  },
   getStats: async (): Promise<ApiResponse<any>> => {
     const res = await apiClient.get<ApiResponse<any>>('/system-config/stats');
     return res.data;
