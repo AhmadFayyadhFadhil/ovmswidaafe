@@ -1,0 +1,1 @@
+import{l as a}from"./index-DUslSQgm.js";var t={getAll:async()=>{const t=await a.get("/departments");return{data:(Array.isArray(t.data?.data)?t.data.data:[]).map(a=>({id:Number(a.id),name:a.name})),message:t.data?.message}}};export{t};

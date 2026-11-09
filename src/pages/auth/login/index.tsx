@@ -151,23 +151,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#f8fafc] lg:bg-white flex flex-col lg:flex-row overflow-x-hidden selection:bg-blue-100 selection:text-blue-900">
+    <div className="h-screen w-full bg-[#f8fafc] lg:bg-white flex flex-col lg:flex-row overflow-hidden selection:bg-blue-100 selection:text-blue-900">
       {/* LEFT COLUMN: AUTHENTICATION FORM */}
-      <div className="w-full lg:w-[48%] xl:w-[45%] flex flex-col justify-between p-6 sm:p-10 lg:p-12 xl:p-16 min-h-screen bg-white shadow-sm lg:shadow-none z-10">
+      <div className="w-full lg:w-[45%] xl:w-[42%] 2xl:w-[40%] h-full flex flex-col justify-between p-5 sm:p-7 lg:p-9 xl:p-12 bg-white shadow-sm lg:shadow-none z-10 overflow-y-auto">
         {/* Top Header: Official Company Logo */}
         <div className="flex items-center">
           {stats.companyLogo && !logoError ? (
             <img
               src={getValidLogoUrl(stats.companyLogo)}
               alt={stats.companyName || "PT Widatra Bhakti"}
-              className="h-10 max-w-[200px] object-contain"
+              className="h-8 sm:h-9 max-w-[140px] object-contain"
               onError={() => setLogoError(true)}
             />
           ) : (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               {/* Otsuka Interlocking Loops Symbol */}
               <svg
-                className="w-9 h-9 shrink-0"
+                className="w-8 h-8 shrink-0"
                 viewBox="0 0 100 100"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -192,10 +192,10 @@ export default function LoginPage() {
                 />
               </svg>
               <div>
-                <span className="block font-bold text-base text-[#002f6c] tracking-tight leading-none">
+                <span className="block font-bold text-sm sm:text-[15px] text-[#002f6c] tracking-tight leading-none">
                   PT WIDATRA BHAKTI
                 </span>
-                <span className="block text-[10px] text-[#e50012] font-semibold tracking-wider mt-0.5">
+                <span className="block text-[9px] text-[#e50012] font-semibold tracking-wider mt-0.5">
                   Otsuka
                 </span>
               </div>
@@ -203,28 +203,28 @@ export default function LoginPage() {
           )}
         </div>
 
-        {/* Centered Form Area */}
-        <div className="w-full max-w-[420px] mx-auto my-auto py-8 sm:py-10">
+        {/* Centered Form Area (Compact & Proportional) */}
+        <div className="w-full max-w-[360px] mx-auto my-auto py-2 sm:py-4">
           {/* Welcome Heading */}
-          <div className="mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+          <div className="mb-4 sm:mb-5">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight leading-tight">
               Hallo
             </h2>
-            <h1 className="text-4xl sm:text-[44px] font-extrabold text-slate-900 tracking-tight leading-tight mt-0.5">
+            <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-extrabold text-slate-900 tracking-tight leading-none mt-1">
               Welcome Back
             </h1>
-            <p className="text-sm text-slate-400 mt-2 font-normal">
+            <p className="text-xs text-slate-400 mt-1.5 font-normal">
               Hey, welcome back to your special place
             </p>
           </div>
 
           {/* Form */}
-          <form className="space-y-4" onSubmit={handleLogin}>
+          <form className="space-y-3" onSubmit={handleLogin}>
             {/* NIK / Username / Email */}
             <div>
               <label
                 htmlFor="nik-input"
-                className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide"
+                className="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider"
               >
                 NIK
               </label>
@@ -236,7 +236,7 @@ export default function LoginPage() {
                 onChange={(e) => setNik(e.target.value)}
                 disabled={isLoading}
                 required
-                className="w-full h-11 px-3.5 text-sm rounded-lg border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all disabled:bg-slate-50 disabled:opacity-60"
+                className="w-full h-[38px] px-3 text-xs sm:text-sm rounded-lg border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all disabled:bg-slate-50 disabled:opacity-60"
               />
             </div>
 
@@ -244,7 +244,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="password-input"
-                className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide"
+                className="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider"
               >
                 Password
               </label>
@@ -257,29 +257,29 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
                   required
-                  className="w-full h-11 pl-3.5 pr-10 text-sm rounded-lg border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all disabled:bg-slate-50 disabled:opacity-60"
+                  className="w-full h-[38px] pl-3 pr-9 text-xs sm:text-sm rounded-lg border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all disabled:bg-slate-50 disabled:opacity-60"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex={-1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors p-1"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors p-1"
                   aria-label={showPassword ? "Sembunyikan password" : "Lihat password"}
                 >
                   {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
+                    <EyeOff className="w-3.5 h-3.5" />
                   ) : (
-                    <Eye className="w-4 h-4" />
+                    <Eye className="w-3.5 h-3.5" />
                   )}
                 </button>
               </div>
 
               {/* Forgot Password Right Aligned */}
-              <div className="flex justify-end mt-1.5">
+              <div className="flex justify-end mt-1">
                 <button
                   type="button"
                   onClick={() => navigate("/forgot-password")}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline focus:outline-none cursor-pointer"
+                  className="text-[11px] text-blue-600 hover:text-blue-700 font-medium hover:underline focus:outline-none cursor-pointer"
                 >
                   Forgot Password?
                 </button>
@@ -288,41 +288,41 @@ export default function LoginPage() {
 
             {/* Error Message Alert */}
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 flex items-start gap-2">
+              <div className="p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 flex items-start gap-2">
                 <span className="font-semibold shrink-0">Peringatan:</span>
                 <span>{error}</span>
               </div>
             )}
 
             {/* Remember Me Checkbox */}
-            <div className="flex items-center gap-2 pt-1">
+            <div className="flex items-center gap-2 pt-0.5">
               <input
                 id="remember-me"
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
                 disabled={isLoading}
-                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
               />
               <label
                 htmlFor="remember-me"
-                className="text-xs text-slate-500 cursor-pointer select-none"
+                className="text-[11px] text-slate-500 cursor-pointer select-none"
               >
                 Remember me
               </label>
             </div>
 
             {/* Sign In Button */}
-            <div className="pt-2">
+            <div className="pt-1">
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-11 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-blue-400 text-white font-semibold text-sm shadow-sm transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                className="w-full h-[38px] rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-blue-400 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
                     <svg
-                      className="animate-spin h-4 w-4 text-white"
+                      className="animate-spin h-3.5 w-3.5 text-white"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -351,7 +351,7 @@ export default function LoginPage() {
           </form>
 
           {/* Help Support Link */}
-          <div className="mt-6 text-center text-xs text-slate-500">
+          <div className="mt-3 text-center text-[11px] text-slate-500">
             Don't have an account?{" "}
             <button
               type="button"
@@ -364,14 +364,14 @@ export default function LoginPage() {
         </div>
 
         {/* Footer Copyright */}
-        <div className="text-center text-[11px] text-slate-400 py-2">
+        <div className="text-center text-[10px] text-slate-400 py-1">
           © 2026 PT Widatra Bhakti. All rights reserved.
         </div>
       </div>
 
       {/* RIGHT COLUMN: HERO BUILDING IMAGE (CMMS STYLE) */}
-      <div className="hidden lg:flex lg:w-[52%] xl:w-[55%] p-4 lg:p-6 bg-[#f8fafc] items-center justify-center min-h-screen">
-        <div className="relative w-full h-[calc(100vh-48px)] max-h-[960px] rounded-2xl xl:rounded-3xl overflow-hidden shadow-sm border border-slate-200/80 bg-slate-100">
+      <div className="hidden lg:flex lg:w-[55%] xl:w-[58%] 2xl:w-[60%] h-full p-3 sm:p-4 lg:p-5 bg-[#f8fafc] items-center justify-center">
+        <div className="relative w-full h-full rounded-2xl xl:rounded-3xl overflow-hidden shadow-sm border border-slate-200/80 bg-slate-100">
           <img
             src={buildingHeroImg}
             alt="PT Widatra Bhakti Plant & Head Office"
