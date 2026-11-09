@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const [stats, setStats] = useState({
     activeVehicles: 0,
     dailyRequests: 0,
@@ -24,6 +25,25 @@ export default function LoginPage() {
 
   const navigate = useNavigate();
   const { login } = useAuthContext();
+
+  const getValidLogoUrl = (url: string | undefined | null) => {
+    if (!url) return "";
+    if (url.startsWith("data:")) return url;
+    const slashIdx = url.indexOf("/storage/");
+    if (slashIdx !== -1) {
+      return `${window.location.origin}${url.substring(slashIdx)}`;
+    }
+    if (url.startsWith("https://")) {
+      return url;
+    }
+    if (url.startsWith("http://")) {
+      return url.replace(/^http:\/\//i, "https://");
+    }
+    if (url.startsWith("/")) {
+      return `${window.location.origin}${url}`;
+    }
+    return `${window.location.origin}/${url}`;
+  };
 
   useEffect(() => {
     // 1. Check remembered NIK
@@ -49,7 +69,7 @@ export default function LoginPage() {
       }
     }
 
-    // 3. Fetch live public stats & branding from backend
+    // 3. Fetch live public stats & branding from backend master
     apiClient
       .get("/public-stats")
       .then((res) => {
@@ -60,15 +80,16 @@ export default function LoginPage() {
             dailyRequests: d.daily_requests ?? 0,
             activeDrivers: d.active_drivers ?? 0,
             systemName: d.system_name || "OVMS",
-            companyName: d.company_name || "Operational Vehicle Management",
+            companyName: d.company_name || "PT Widatra Bhakti",
             companyLogo: d.company_logo ?? "",
           });
+          setLogoError(false);
           // Sync branding cache
           localStorage.setItem(
             "ovms_branding_config",
             JSON.stringify({
               systemName: d.system_name || "OVMS",
-              companyName: d.company_name || "Operational Vehicle Management",
+              companyName: d.company_name || "PT Widatra Bhakti",
               companyLogo: d.company_logo ?? "",
             })
           );
@@ -134,52 +155,61 @@ export default function LoginPage() {
       {/* LEFT COLUMN: AUTHENTICATION FORM */}
       <div className="w-full lg:w-[45%] xl:w-[42%] 2xl:w-[40%] h-full flex flex-col justify-between p-6 sm:p-8 lg:p-10 xl:p-12 bg-white shadow-sm lg:shadow-none z-10 overflow-y-auto">
         <div className="w-full max-w-[360px] mx-auto flex flex-col justify-between h-full py-1">
-          {/* Top Header: Official PT Widatra Bhakti - Otsuka Logo (Aligned flush with the form) */}
-          <div className="pt-1 pb-3 flex items-center">
-            <div className="flex items-center gap-3 select-none">
-              {/* Otsuka Interlocking Loops Symbol (Crisp Vector) */}
-              <svg
-                className="w-10 h-10 shrink-0"
-                viewBox="0 0 100 100"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                {/* Left Blue Loop */}
-                <path
-                  d="M42 16 C26 16 14 31 14 50 C14 69 26 84 42 84 C32 80 24 67 24 50 C24 33 32 20 42 16 Z"
-                  fill="#004B93"
-                />
-                <path
-                  d="M42 16 C48 16 53 22 55 31 C50 33 45 37 42 43 C39 33 40 22 42 16 Z"
-                  fill="#004B93"
-                />
-                <path
-                  d="M42 84 C48 84 53 78 55 69 C50 67 45 63 42 57 C39 67 40 78 42 84 Z"
-                  fill="#004B93"
-                />
-                {/* Right Red Loop */}
-                <path
-                  d="M58 84 C74 84 86 69 86 50 C86 31 74 16 58 16 C68 20 76 33 76 50 C76 67 68 80 58 84 Z"
-                  fill="#E50012"
-                />
-                <path
-                  d="M58 16 C52 16 47 22 45 31 C50 33 55 37 58 43 C61 33 60 22 58 16 Z"
-                  fill="#E50012"
-                />
-                <path
-                  d="M58 84 C52 84 47 78 45 69 C50 67 55 63 58 57 C61 67 60 78 58 84 Z"
-                  fill="#E50012"
-                />
-              </svg>
-              <div className="flex flex-col justify-center">
-                <span className="font-extrabold text-[15px] sm:text-[16px] text-[#002f6c] tracking-tight leading-none">
-                  PT WIDATRA BHAKTI
-                </span>
-                <span className="text-[11px] text-[#e50012] font-bold tracking-wider leading-none mt-1">
-                  Otsuka
-                </span>
+          {/* Top Header: Master Company Logo (Mengikuti Master & Sejajar Rata Kiri dengan Form) */}
+          <div className="pt-1 pb-2 flex items-center min-h-[52px]">
+            {stats.companyLogo && !logoError ? (
+              <img
+                src={getValidLogoUrl(stats.companyLogo)}
+                alt={stats.companyName || "Logo Perusahaan"}
+                className="h-11 sm:h-12 w-auto max-w-[180px] object-contain object-left select-none"
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <div className="flex items-center gap-3 select-none">
+                {/* Fallback Official Otsuka Loops Symbol */}
+                <svg
+                  className="w-9 h-9 shrink-0"
+                  viewBox="0 0 100 100"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  {/* Left Blue Loop */}
+                  <path
+                    d="M42 16 C26 16 14 31 14 50 C14 69 26 84 42 84 C32 80 24 67 24 50 C24 33 32 20 42 16 Z"
+                    fill="#004B93"
+                  />
+                  <path
+                    d="M42 16 C48 16 53 22 55 31 C50 33 45 37 42 43 C39 33 40 22 42 16 Z"
+                    fill="#004B93"
+                  />
+                  <path
+                    d="M42 84 C48 84 53 78 55 69 C50 67 45 63 42 57 C39 67 40 78 42 84 Z"
+                    fill="#004B93"
+                  />
+                  {/* Right Red Loop */}
+                  <path
+                    d="M58 84 C74 84 86 69 86 50 C86 31 74 16 58 16 C68 20 76 33 76 50 C76 67 68 80 58 84 Z"
+                    fill="#E50012"
+                  />
+                  <path
+                    d="M58 16 C52 16 47 22 45 31 C50 33 55 37 58 43 C61 33 60 22 58 16 Z"
+                    fill="#E50012"
+                  />
+                  <path
+                    d="M58 84 C52 84 47 78 45 69 C50 67 55 63 58 57 C61 67 60 78 58 84 Z"
+                    fill="#E50012"
+                  />
+                </svg>
+                <div className="flex flex-col justify-center">
+                  <span className="font-extrabold text-[15px] sm:text-[16px] text-[#002f6c] tracking-tight leading-none">
+                    {stats.companyName || "PT WIDATRA BHAKTI"}
+                  </span>
+                  <span className="text-[10px] text-[#e50012] font-bold tracking-wider leading-none mt-1">
+                    Otsuka
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Centered Form Area (Aligned with the logo above) */}
