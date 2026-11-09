@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [logoError, setLogoError] = useState(false);
+  const [heroImageError, setHeroImageError] = useState(false);
   const [stats, setStats] = useState({
     activeVehicles: 0,
     dailyRequests: 0,
@@ -21,6 +22,7 @@ export default function LoginPage() {
     systemName: "",
     companyName: "",
     companyLogo: "",
+    loginHeroImage: "",
   });
 
   const navigate = useNavigate();
@@ -63,6 +65,7 @@ export default function LoginPage() {
           systemName: parsed.systemName || prev.systemName,
           companyName: parsed.companyName || prev.companyName,
           companyLogo: parsed.companyLogo || prev.companyLogo,
+          loginHeroImage: parsed.loginHeroImage || prev.loginHeroImage,
         }));
       } catch (e) {
         // ignore parse error
@@ -82,8 +85,10 @@ export default function LoginPage() {
             systemName: d.system_name || "OVMS",
             companyName: d.company_name || "PT Widatra Bhakti",
             companyLogo: d.company_logo ?? "",
+            loginHeroImage: d.login_hero_image || d.loginHeroImage || "",
           });
           setLogoError(false);
+          setHeroImageError(false);
           // Sync branding cache
           localStorage.setItem(
             "ovms_branding_config",
@@ -91,6 +96,7 @@ export default function LoginPage() {
               systemName: d.system_name || "OVMS",
               companyName: d.company_name || "PT Widatra Bhakti",
               companyLogo: d.company_logo ?? "",
+              loginHeroImage: d.login_hero_image || d.loginHeroImage || "",
             })
           );
         }
@@ -383,10 +389,15 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-[55%] xl:w-[58%] 2xl:w-[60%] h-full p-3 sm:p-4 lg:p-5 bg-[#f8fafc] items-center justify-center">
         <div className="relative w-full h-full rounded-2xl xl:rounded-3xl overflow-hidden shadow-sm border border-slate-200/80 bg-slate-100">
           <img
-            src={buildingHeroImg}
+            src={
+              stats.loginHeroImage && !heroImageError
+                ? getValidLogoUrl(stats.loginHeroImage)
+                : buildingHeroImg
+            }
             alt="PT Widatra Bhakti Plant & Head Office"
             className="w-full h-full object-cover object-center"
             loading="eager"
+            onError={() => setHeroImageError(true)}
           />
         </div>
       </div>
