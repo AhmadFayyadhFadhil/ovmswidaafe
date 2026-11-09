@@ -458,7 +458,7 @@ export default function MyRequestsPage() {
       activeNav="Permohonan Saya"
       topbarTitle="Permohonan Saya"
       userName={user?.name || "Karyawan"}
-      userRole={user?.role === "approver" ? "Manager Approver" : "Karyawan"}
+      userRole={user?.is_driver_coordinator ? "Koordinator Driver" : (user?.role === "approver" ? "Manager Approver" : "Karyawan")}
       searchPlaceholder="Pencarian cepat..."
       searchValue={search}
       onSearchChange={setSearch}

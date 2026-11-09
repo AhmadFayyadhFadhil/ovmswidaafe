@@ -195,6 +195,8 @@ export function Sidebar({
   // Driver Coordinator menu
   const driverCoordinatorMenu = [
     { icon: "dashboard", label: "Dashboard", path: "/driver/dashboard", guideKey: "driver-dashboard" },
+    { icon: "add_box", label: "Buat Permohonan", path: "/employee/createrequest", guideKey: "create-request" },
+    { icon: "list_alt", label: "Permohonan Saya", path: "/employee/myrequests", guideKey: "my-requests" },
     { icon: "assignment_turned_in", label: "Alokasi Armada", path: "/gahrd/requests", guideKey: "fleet-allocation" },
     { icon: "assignment", label: "Tugas Menyetir Saya", path: "/driver/dashboard?tab=assignments", guideKey: "driver-assignment" },
     { icon: "event", label: "Jadwal & Kalender", path: "/gahrd/calendar", guideKey: "driver-schedule" },

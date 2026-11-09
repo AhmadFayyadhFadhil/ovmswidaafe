@@ -6,10 +6,95 @@ import { requestService } from "@/services/modules/requestService";
 import { apiClient } from "@/services/api/api";
 
 type HistoryTab = "Semua" | "Sedang Jalan" | "Selesai";
+type SecurityDatePeriod = "TODAY" | "THIS_WEEK" | "THIS_MONTH" | "ALL" | "CUSTOM";
+
+function parseLogDate(val: any): Date | null {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  const s = String(val).trim();
+  if (!s) return null;
+  
+  const parsed = new Date(s.includes(" ") ? s.replace(" ", "T") : s);
+  if (!isNaN(parsed.getTime())) return parsed;
+
+  const months: Record<string, number> = {
+    januari: 0, jan: 0, februari: 1, feb: 1, maret: 2, mar: 2, april: 3, apr: 3,
+    mei: 4, may: 4, juni: 5, jun: 5, juli: 6, jul: 6, agustus: 7, aug: 7,
+    september: 8, sep: 8, oktober: 9, okt: 9, oct: 9, november: 10, nov: 10, desember: 11, des: 11, dec: 11
+  };
+  const parts = s.split(/\s+/);
+  if (parts.length >= 3) {
+    const day = parseInt(parts[0], 10);
+    const mStr = parts[1].toLowerCase();
+    const month = months[mStr] ?? -1;
+    const year = parseInt(parts[2], 10);
+    if (!isNaN(day) && month !== -1 && !isNaN(year)) {
+      return new Date(year, month, day);
+    }
+  }
+
+  return null;
+}
+
+function matchesSecurityDate(log: any, period: SecurityDatePeriod, customStart?: string, customEnd?: string): boolean {
+  if (period === "ALL") return true;
+
+  const checkoutDate = parseLogDate(log.security_checked_out_at);
+  const checkinDate = parseLogDate(log.security_checked_in_at);
+  const reqDate = parseLogDate(log.startTime || log.start_time || log.date);
+  const isOngoingOut = !!log.security_checked_out_at && !log.security_checked_in_at;
+
+  const dates: Date[] = [];
+  if (checkoutDate) dates.push(checkoutDate);
+  if (checkinDate) dates.push(checkinDate);
+  if (reqDate) dates.push(reqDate);
+
+  if (dates.length === 0) return true;
+
+  const now = new Date();
+
+  if (period === "TODAY") {
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    return (
+      dates.some((d) => d >= startOfToday && d <= endOfToday) ||
+      (isOngoingOut && (checkoutDate ? checkoutDate <= endOfToday : true))
+    );
+  }
+
+  if (period === "THIS_WEEK") {
+    const dayOfWeek = now.getDay();
+    const distanceToMonday = (dayOfWeek + 6) % 7;
+    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - distanceToMonday, 0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + 6, 23, 59, 59, 999);
+    return (
+      dates.some((d) => d >= startOfWeek && d <= endOfWeek) ||
+      (isOngoingOut && (checkoutDate ? checkoutDate <= endOfWeek : true))
+    );
+  }
+
+  if (period === "THIS_MONTH") {
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    return dates.some((d) => d >= startOfMonth && d <= endOfMonth);
+  }
+
+  if (period === "CUSTOM") {
+    if (!customStart && !customEnd) return true;
+    const start = customStart ? new Date(`${customStart}T00:00:00`) : new Date(0);
+    const end = customEnd ? new Date(`${customEnd}T23:59:59.999`) : new Date(8640000000000000);
+    return dates.some((d) => d >= start && d <= end);
+  }
+
+  return true;
+}
 
 export default function SecurityHistoryPage() {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<HistoryTab>("Semua");
+  const [datePeriod, setDatePeriod] = useState<SecurityDatePeriod>("TODAY");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [search, setSearch] = useState("");
   const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -65,6 +150,8 @@ export default function SecurityHistoryPage() {
     if (location.state && (location.state as any).autoExpandId) {
       const targetId = String((location.state as any).autoExpandId);
       setExpandedRequestId(targetId);
+      // Ensure target request is not hidden by date filter
+      setDatePeriod("ALL");
       if ((location.state as any).successMsg) {
         setToastMsg((location.state as any).successMsg);
       }
@@ -87,15 +174,20 @@ export default function SecurityHistoryPage() {
     return hasCheckout || hasCheckin;
   });
 
-  // Calculate statistics based on current database records
-  const totalScans = securityLogs.length;
-  const activeTrips = securityLogs.filter(
+  // Filter logs by date period (defaults to TODAY)
+  const dateFilteredLogs = securityLogs.filter((r) =>
+    matchesSecurityDate(r, datePeriod, customStartDate, customEndDate)
+  );
+
+  // Calculate statistics based on filtered logs for the selected date period
+  const totalScans = dateFilteredLogs.length;
+  const activeTrips = dateFilteredLogs.filter(
     (r) => !!r.security_checked_out_at && !r.security_checked_in_at
   ).length;
-  const completedTrips = securityLogs.filter((r) => !!r.security_checked_in_at).length;
+  const completedTrips = dateFilteredLogs.filter((r) => !!r.security_checked_in_at).length;
 
   // Filter based on search input and active tab
-  const filteredLogs = securityLogs.filter((r) => {
+  const filteredLogs = dateFilteredLogs.filter((r) => {
     const matchesSearch =
       r.id.toLowerCase().includes(search.toLowerCase()) ||
       r.destination.toLowerCase().includes(search.toLowerCase()) ||
@@ -234,6 +326,21 @@ export default function SecurityHistoryPage() {
           </div>
         )}
 
+        {/* Periode Indicator Badge */}
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+            <span>Ringkasan Gate:</span>
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-blue-100 text-blue-900 border border-blue-200 flex items-center gap-1">
+              <Icon name="calendar_today" className="text-xs" />
+              {datePeriod === "TODAY" && "Hari Ini"}
+              {datePeriod === "THIS_WEEK" && "Minggu Ini"}
+              {datePeriod === "THIS_MONTH" && "Bulan Ini"}
+              {datePeriod === "ALL" && "Semua Waktu"}
+              {datePeriod === "CUSTOM" && (customStartDate || customEndDate ? `${customStartDate || "..."} s/d ${customEndDate || "..."}` : "Rentang Kustom")}
+            </span>
+          </div>
+        </div>
+
         {/* Stats Cards - Compact 3-Column on Mobile */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4">
           <div className="bg-white border border-slate-100 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-xs flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-4 text-center sm:text-left">
@@ -269,7 +376,95 @@ export default function SecurityHistoryPage() {
 
         {/* Filters and Tabs */}
         <div className="bg-white rounded-2xl border border-slate-100 p-3 sm:p-4 shadow-xs space-y-3">
-          <div className="flex flex-col sm:flex-row gap-2.5">
+          {/* Baris 1: Filter Periode Tanggal (Default: Hari Ini) */}
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+              <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Icon name="date_range" className="text-[14px] text-blue-600" />
+                Periode Tanggal:
+              </span>
+              {datePeriod !== "TODAY" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDatePeriod("TODAY");
+                    setCustomStartDate("");
+                    setCustomEndDate("");
+                  }}
+                  className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  <Icon name="restart_alt" className="text-[13px]" />
+                  Kembali ke Hari Ini
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 text-[11px] sm:text-xs font-bold scrollbar-none">
+              {[
+                { key: "TODAY" as SecurityDatePeriod, label: "Hari Ini", icon: "today" },
+                { key: "THIS_WEEK" as SecurityDatePeriod, label: "Minggu Ini", icon: "date_range" },
+                { key: "THIS_MONTH" as SecurityDatePeriod, label: "Bulan Ini", icon: "calendar_month" },
+                { key: "ALL" as SecurityDatePeriod, label: "Semua Waktu", icon: "all_inclusive" },
+                { key: "CUSTOM" as SecurityDatePeriod, label: "Kustom", icon: "edit_calendar" },
+              ].map((tab) => {
+                const isActive = datePeriod === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setDatePeriod(tab.key)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer whitespace-nowrap ${
+                      isActive
+                        ? "bg-[#1e3a8a] text-white border-[#1e3a8a] shadow-xs"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    <Icon name={tab.icon} className="text-sm" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom Date Range Picker */}
+            {datePeriod === "CUSTOM" && (
+              <div className="mt-2.5 p-3 bg-blue-50/60 border border-blue-100 rounded-xl flex flex-wrap items-center gap-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-700">Dari:</span>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-700">Sampai:</span>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                {(customStartDate || customEndDate) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomStartDate("");
+                      setCustomEndDate("");
+                    }}
+                    className="text-[11px] font-bold text-slate-500 hover:text-rose-600 cursor-pointer"
+                  >
+                    Reset Tanggal
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Baris 2: Search Input & Tab Status */}
+          <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row gap-2.5">
             {/* Search Input */}
             <div className="relative flex-1">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
@@ -321,7 +516,21 @@ export default function SecurityHistoryPage() {
           {!loading && !error && filteredLogs.length === 0 && (
             <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center shadow-xs text-slate-400">
               <Icon name="search_off" className="text-4xl mb-2 text-slate-300" />
-              <p className="text-xs font-semibold">Tidak ada riwayat scan yang cocok.</p>
+              <p className="text-xs font-semibold">
+                {datePeriod === "TODAY"
+                  ? "Belum ada riwayat aktivitas scan keluar / masuk gate untuk hari ini."
+                  : "Tidak ada riwayat scan yang cocok dengan kriteria filter."}
+              </p>
+              {datePeriod === "TODAY" && securityLogs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setDatePeriod("ALL")}
+                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-[#1e3a8a] border border-blue-200 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors cursor-pointer"
+                >
+                  <Icon name="all_inclusive" className="text-sm" />
+                  Lihat Semua Riwayat ({securityLogs.length})
+                </button>
+              )}
             </div>
           )}
 
@@ -503,6 +712,12 @@ export default function SecurityHistoryPage() {
                                         {trip.security_checkout_notes && (
                                           <p className="italic bg-white p-1.5 rounded-md mt-1 border border-slate-200/60 text-slate-600">"{trip.security_checkout_notes}"</p>
                                         )}
+                                        {trip.additional_passengers && (
+                                          <div className="bg-amber-50/80 p-1.5 rounded-md mt-1 border border-amber-200/60 text-amber-900 text-[11px] font-semibold flex items-center gap-1">
+                                            <Icon name="person_add" className="text-xs text-amber-700" />
+                                            <span>+ {trip.additional_passengers}</span>
+                                          </div>
+                                        )}
                                       </div>
                                     ) : (
                                       <div className="text-slate-400 italic text-[11px]">Belum tercatat berangkat</div>
@@ -594,6 +809,16 @@ export default function SecurityHistoryPage() {
                                     <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Catatan:</span>
                                     <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg italic border border-slate-100">
                                       "{log.security_checkout_notes}"
+                                    </p>
+                                  </div>
+                                )}
+                                {log.additional_passengers && (
+                                  <div className="mt-2 pt-1 border-t border-slate-100">
+                                    <span className="text-[10px] font-bold text-amber-700 flex items-center gap-1 mb-0.5">
+                                      <Icon name="person_add" className="text-xs" /> Penumpang Tambahan (Hari-H):
+                                    </span>
+                                    <p className="text-xs font-semibold text-slate-700 bg-amber-50/70 p-2 rounded-lg border border-amber-200/60">
+                                      {log.additional_passengers}
                                     </p>
                                   </div>
                                 )}

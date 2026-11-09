@@ -53,6 +53,14 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Dashboard":
           navigate("/driver/dashboard");
           break;
+        case "Buat Permohonan":
+        case "Create Request":
+          navigate("/employee/createrequest");
+          break;
+        case "Permohonan Saya":
+        case "My Requests":
+          navigate("/employee/myrequests");
+          break;
         case "Alokasi Armada":
         case "Requests":
         case "Fleet Requests":

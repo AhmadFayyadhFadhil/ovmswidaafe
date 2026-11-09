@@ -1036,7 +1036,7 @@ export default function DriverDashboard() {
                         const isCheckedInBySecurity = Boolean(currentTrip.security_checked_in_at);
 
                         // Opsi B Flow 1: If security already scanned check-in at gate, driver MUST input KM Akhir to complete
-                        if (driverTripStatus === "on_going" && isCheckedInBySecurity && (!hasRecordedEndKm || isEditingEndKm)) {
+                        if (!currentTrip.is_external && driverTripStatus === "on_going" && isCheckedInBySecurity && (!hasRecordedEndKm || isEditingEndKm)) {
                           return (
                             <div className="bg-[#102447] border border-emerald-400/60 p-4 rounded-2xl flex flex-col items-center gap-2.5 w-full max-w-[280px] text-center shadow-lg animate-fadein">
                               <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
@@ -1426,13 +1426,27 @@ export default function DriverDashboard() {
                       Pengajuan kendaraan operasional dari karyawan yang telah disetujui departemen dan siap dialokasikan.
                     </p>
                   </div>
-                  <button
-                    onClick={() => navigate("/gahrd/requests")}
-                    className="text-[13px] font-bold text-[#1e3a8a] hover:underline flex items-center gap-1 cursor-pointer self-start sm:self-auto"
-                  >
-                    <span>Buka Halaman Alokasi</span>
-                    <Icon name="arrow_forward" className="text-[16px]" />
-                  </button>
+                  <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+                    <button
+                      onClick={() => navigate("/employee/createrequest")}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0f2a5e] hover:bg-[#1e3a8a] text-white rounded-xl text-[12px] font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
+                    >
+                      <Icon name="add" className="text-[16px]" /> Buat Permohonan
+                    </button>
+                    <button
+                      onClick={() => navigate("/employee/myrequests")}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-[12px] font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
+                    >
+                      <Icon name="list_alt" className="text-[16px]" /> Permohonan Saya
+                    </button>
+                    <button
+                      onClick={() => navigate("/gahrd/requests")}
+                      className="text-[12.5px] font-bold text-[#1e3a8a] hover:underline flex items-center gap-1 cursor-pointer ml-1"
+                    >
+                      <span>Buka Halaman Alokasi</span>
+                      <Icon name="arrow_forward" className="text-[15px]" />
+                    </button>
+                  </div>
                 </div>
 
                 {pendingAllocationRequests.length === 0 ? (
@@ -1719,6 +1733,8 @@ export default function DriverDashboard() {
       activeNav={activeNav}
       onNavigate={(nav) => {
         if (nav === "Dashboard") setSearchParams({});
+        else if (nav === "Buat Permohonan" || nav === "Create Request") navigate("/employee/createrequest");
+        else if (nav === "Permohonan Saya" || nav === "My Requests") navigate("/employee/myrequests");
         else if (nav === "My Vehicle" || nav === "Kendaraan Saya") setSearchParams({ tab: "vehicle" });
         else if (nav === "History" || nav === "Riwayat" || nav === "Riwayat Perjalanan" || nav === "My Schedule") setSearchParams({ tab: "schedule" });
         else if (nav === "Calendar" || nav === "Kalender" || nav === "Kalender Jadwal" || nav === "Jadwal & Kalender") setSearchParams({ tab: "calendar" });

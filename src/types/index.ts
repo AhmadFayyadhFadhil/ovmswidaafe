@@ -88,6 +88,8 @@ export interface FleetRequest {
   security_checkin_by?: string | null;
   security_checkout_notes?: string | null;
   security_checkin_notes?: string | null;
+  additional_passengers?: string | null;
+  additionalPassengers?: string | null;
   started_at?: string | null;
   completed_at?: string | null;
   qr_code_token?: string;
@@ -145,6 +147,7 @@ export interface RequestItinerary {
   afternoon_time?: string | null;
   afternoon_destination?: string | null;
   passengers_notes?: string | null;
+  additional_passengers?: string | null;
   driver_id?: number | string | null;
   driver_name?: string | null;
   vehicle_id?: number | string | null;
@@ -182,6 +185,7 @@ export interface OperationalTrip {
   security_checkin_by?: string | null;
   security_checkout_notes?: string | null;
   security_checkin_notes?: string | null;
+  additional_passengers?: string | null;
 }
 
 export interface ScheduleItem {

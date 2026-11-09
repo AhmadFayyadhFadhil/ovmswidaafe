@@ -36,6 +36,7 @@ export default defineConfig({
 
   build: {
     emptyOutDir: false,
+    minify: 'terser',
     target: ["es2015", "chrome50"],
     sourcemap: false,
     cssCodeSplit: true,

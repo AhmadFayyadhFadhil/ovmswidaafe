@@ -173,6 +173,8 @@ export function mapRequestFromBackend(r: any): FleetRequest {
     security_checkin_by: r.security_checkin_by || null,
     security_checkout_notes: r.security_checkout_notes || null,
     security_checkin_notes: r.security_checkin_notes || null,
+    additional_passengers: r.additional_passengers || null,
+    additionalPassengers: r.additional_passengers || null,
     started_at: r.started_at || null,
     completed_at: r.completed_at || null,
     external_fleet_info: r.external_fleet_info || '',

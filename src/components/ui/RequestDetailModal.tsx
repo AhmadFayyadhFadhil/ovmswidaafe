@@ -473,8 +473,8 @@ export function RequestDetailModal({
                     </div>
                   )}
 
-                  {/* Odometer Section if recorded */}
-                  {(startKm || endKm) && (
+                  {/* Odometer Section if recorded (internal fleet only) */}
+                  {(startKm || endKm) && !request.is_external && (
                     <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-2.5">
                       <div className="flex items-center justify-between border-b border-blue-200/70 pb-2">
                         <div className="text-[11px] font-extrabold text-[#00236f] uppercase tracking-wider flex items-center gap-1.5">
@@ -845,7 +845,9 @@ export function RequestDetailModal({
               {/* Passengers */}
               <div>
                 <h4 className="text-[11px] font-extrabold tracking-wider text-slate-400 uppercase mb-2">
-                  Daftar Penumpang ({passengers.length > 0 ? passengers.length : (request.passengerCount || 1)} Orang)
+                  {passengers.some((p: any) => (p.name || '').toLowerCase().includes("tanpa penumpang"))
+                    ? "Daftar Muatan / Logistik (Pengiriman Dokumen / Barang)"
+                    : `Daftar Penumpang (${passengers.length > 0 ? passengers.length : (request.passengerCount || 1)} Orang)`}
                 </h4>
                 {passengers.length === 0 ? (
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-[13px]">
@@ -895,13 +897,17 @@ export function RequestDetailModal({
                                   {idx + 1}
                                 </span>
                                 <span className="font-bold text-slate-900 text-[13.5px]">{p.name}</span>
-                                {isPicPassenger && (
+                                {(p.name || '').toLowerCase().includes("tanpa penumpang") ? (
+                                  <span className="bg-purple-100 text-purple-900 border border-purple-300 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
+                                    📦 Pengiriman Dokumen / Barang Saja
+                                  </span>
+                                ) : isPicPassenger ? (
                                   <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
                                     👑 PIC Penumpang
                                   </span>
-                                )}
+                                ) : null}
                               </div>
-                              {(isPicPassenger || cleanPhone) && (
+                              {(isPicPassenger || cleanPhone) && !(p.name || '').toLowerCase().includes("tanpa penumpang") && (
                                 <a
                                   href={cleanPhone ? `https://wa.me/${cleanPhone}` : '#'}
                                   target="_blank"
@@ -928,6 +934,19 @@ export function RequestDetailModal({
                     })()}
                   </div>
                 )}
+
+                {/* Poin 4: Catatan Penumpang Tambahan Hari-H di Pos Security */}
+                {(request.additional_passengers || request.additionalPassengers) && (
+                  <div className="mt-3 p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl space-y-1">
+                    <div className="text-[10.5px] font-extrabold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <Icon name="person_add" className="text-sm text-amber-700" />
+                      <span>Catatan Penumpang Tambahan (Hari-H / Pos Security)</span>
+                    </div>
+                    <p className="text-xs font-semibold text-amber-800 whitespace-pre-wrap pl-5">
+                      {request.additional_passengers || request.additionalPassengers}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -945,7 +964,7 @@ export function RequestDetailModal({
                     {getStageLabel(request.rawStatus, request.status)}
                   </span>
                 </div>
-                {(startKm || endKm) && (
+                {(startKm || endKm) && !request.is_external && (
                   <div className="pt-3 border-t border-slate-200/80">
                     <span className="block text-[10px] font-extrabold text-blue-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       <Icon name="speed" className="text-[14px] text-blue-600" /> Data Odometer Kendaraan
