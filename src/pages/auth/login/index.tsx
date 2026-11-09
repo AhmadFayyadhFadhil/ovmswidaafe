@@ -164,12 +164,17 @@ export default function LoginPage() {
           {/* Top Header: Master Company Logo (Mengikuti Master & Sejajar Rata Kiri dengan Form) */}
           <div className="pt-1 pb-2 flex items-center min-h-[52px]">
             {stats.companyLogo && !logoError ? (
-              <img
-                src={getValidLogoUrl(stats.companyLogo)}
-                alt={stats.companyName || "Logo Perusahaan"}
-                className="h-11 sm:h-12 w-auto max-w-[180px] object-contain object-left select-none"
-                onError={() => setLogoError(true)}
-              />
+              <div className="flex items-center gap-2.5 select-none">
+                <img
+                  src={getValidLogoUrl(stats.companyLogo)}
+                  alt="PT WIDATRA BHAKTI"
+                  className="h-9 sm:h-10 w-auto max-w-[100px] object-contain object-left"
+                  onError={() => setLogoError(true)}
+                />
+                <span className="font-extrabold text-[15px] sm:text-[16px] text-[#002f6c] tracking-tight leading-none uppercase">
+                  PT WIDATRA BHAKTI
+                </span>
+              </div>
             ) : (
               <div className="flex items-center gap-3 select-none">
                 {/* Fallback Official Otsuka Loops Symbol */}
