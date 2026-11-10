@@ -500,10 +500,11 @@ export function Sidebar({
           isOpen ? "translate-x-0 w-64" : "-translate-x-full lg:translate-x-0"
         } ${
           isCollapsed
-            ? "lg:w-0 lg:min-w-0 lg:max-w-0 lg:-ml-64 lg:border-r-0 lg:overflow-hidden lg:opacity-0 lg:pointer-events-none"
-            : "lg:w-64 lg:min-w-[16rem] lg:max-w-[16rem] lg:ml-0 lg:border-r lg:opacity-100"
+            ? "lg:w-0 lg:min-w-0 lg:max-w-0 lg:border-r-0 lg:overflow-hidden lg:opacity-0 lg:pointer-events-none"
+            : "lg:w-64 lg:min-w-[16rem] lg:max-w-[16rem] lg:border-r lg:opacity-100"
         }`}
       >
+        <div className="w-64 flex flex-col h-full shrink-0">
         {/* Brand */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#e2e8f0] h-[68px] flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
@@ -593,6 +594,7 @@ export function Sidebar({
             <Icon name="logout" className="text-[20px]" />
             <span className="text-[13px] font-medium">Keluar</span>
           </button>
+        </div>
         </div>
       </aside>
     </>
