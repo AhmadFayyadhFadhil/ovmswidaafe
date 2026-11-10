@@ -44,7 +44,8 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
     }
 
     if (page === "My Profile" || page === "Profil Saya" || page === "Profil") {
-      navigate(`/driver/profile`);
+      const currentRole = user?.role || "employee";
+      navigate(`/${currentRole}/profile`);
       return;
     }
 
@@ -93,6 +94,7 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "History":
           navigate("/driver/dashboard?tab=schedule");
           break;
+        case "Pusat Notifikasi":
         case "Notifikasi":
         case "Notifications":
           navigate("/driver/notifications");
@@ -118,10 +120,12 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "My Requests":
           navigate("/employee/myrequests");
           break;
+        case "Riwayat Permohonan":
         case "Riwayat":
         case "History":
           navigate("/employee/history");
           break;
+        case "Pusat Notifikasi":
         case "Notifikasi":
         case "Notifications":
           navigate("/employee/notifications");
@@ -136,6 +140,8 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Dashboard":
           navigate("/driver/dashboard");
           break;
+        case "Tugas Menyetir Saya":
+        case "Tugas Menyetir":
         case "Tugas Saya":
         case "My Tasks":
           navigate("/driver/dashboard?tab=assignments");
@@ -149,12 +155,14 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "My Vehicle":
           navigate("/driver/dashboard?tab=vehicle");
           break;
+        case "Riwayat Perjalanan":
         case "Riwayat":
         case "Jadwal":
         case "Schedule":
         case "History":
           navigate("/driver/dashboard?tab=schedule");
           break;
+        case "Pusat Notifikasi":
         case "Notifikasi":
         case "Notifications":
           navigate("/driver/notifications");
@@ -173,10 +181,20 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Pending Requests":
           navigate("/approver/requests");
           break;
+        case "Riwayat Persetujuan":
         case "Riwayat":
         case "History":
           navigate("/approver/history");
           break;
+        case "Buat Permohonan":
+        case "Create Request":
+          navigate("/employee/createrequest");
+          break;
+        case "Permohonan Saya":
+        case "My Requests":
+          navigate("/employee/myrequests");
+          break;
+        case "Pusat Notifikasi":
         case "Notifikasi":
         case "Notifications":
           navigate("/approver/notifications");
@@ -190,6 +208,23 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
       switch (page) {
         case "Dashboard":
           navigate("/gahrd/dashboard");
+          break;
+        case "Buat Permohonan":
+        case "Create Request":
+          navigate("/gahrd/createrequest");
+          break;
+        case "Permohonan Saya":
+        case "My Requests":
+          navigate("/gahrd/myrequests");
+          break;
+        case "Permohonan Urgent":
+        case "Urgent Request":
+          navigate("/gahrd/urgentrequest");
+          break;
+        case "Riwayat Permohonan":
+        case "Riwayat":
+        case "History":
+          navigate("/gahrd/history");
           break;
         case "Alokasi Armada":
         case "Requests":
@@ -209,10 +244,7 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Calendar":
           navigate("/gahrd/calendar");
           break;
-        case "Riwayat":
-        case "History":
-          navigate("/gahrd/history");
-          break;
+        case "Pusat Notifikasi":
         case "Notifikasi":
         case "Notifications":
           navigate("/gahrd/notifications");
@@ -241,6 +273,7 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         case "Scan History":
           navigate("/security/history");
           break;
+        case "Pusat Notifikasi":
         case "Notifikasi":
         case "Notifications":
           navigate("/security/notifications");
