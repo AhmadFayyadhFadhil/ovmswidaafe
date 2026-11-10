@@ -15,7 +15,8 @@ export function Topbar({
   onSearchChange,
   showSearch = false,
   onMenuClick,
-  onProfileClick
+  onProfileClick,
+  isSidebarCollapsed = false
 }: { 
   title: string; 
   userName?: string; 
@@ -27,6 +28,7 @@ export function Topbar({
   showSearch?: boolean;
   onMenuClick?: () => void;
   onProfileClick?: () => void;
+  isSidebarCollapsed?: boolean;
 }) {
   const navigate = useNavigate();
   const { user } = useAuthContext();
@@ -77,13 +79,16 @@ export function Topbar({
   };
   return (
     <header className="bg-white border-b border-[#e2e8f0] px-4 sm:px-8 h-[68px] flex items-center justify-between flex-shrink-0 shadow-sm">
-      <div className="flex items-center gap-3 sm:gap-6 min-w-0">
-        {/* Hamburger menu button for mobile */}
+      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+        {/* Toggle menu button (Desktop & Mobile) */}
         <button 
+          type="button"
           onClick={onMenuClick}
-          className="p-1.5 rounded-lg text-[#64748b] hover:bg-[#f1f5f9] hover:text-[#1e3a8a] lg:hidden transition-colors cursor-pointer flex-shrink-0"
+          className="p-2 rounded-xl text-[#64748b] hover:bg-[#f1f5f9] hover:text-[#1e3a8a] transition-all cursor-pointer flex-shrink-0 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20"
+          title={isSidebarCollapsed ? "Tampilkan Menu Sidebar (Ctrl + B)" : "Sembunyikan Menu Sidebar (Ctrl + B)"}
+          aria-label={isSidebarCollapsed ? "Tampilkan Menu Sidebar" : "Sembunyikan Menu Sidebar"}
         >
-          <Icon name="menu" className="text-[24px]" />
+          <Icon name={isSidebarCollapsed ? "menu" : "menu_open"} className="text-[22px] transition-transform duration-200" />
         </button>
 
         <h1 className="text-[16px] sm:text-[18px] font-bold text-[#0f172a] truncate">{title}</h1>

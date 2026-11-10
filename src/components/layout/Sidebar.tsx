@@ -50,12 +50,16 @@ export function Sidebar({
   activeNav, 
   onNavigate, 
   isOpen, 
-  onClose 
+  onClose,
+  isCollapsed = false,
+  onToggleCollapse
 }: { 
   activeNav: string; 
   onNavigate?: (p: string) => void; 
   isOpen?: boolean; 
   onClose?: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: (forceState?: boolean) => void;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -492,13 +496,17 @@ export function Sidebar({
 
       {/* Sidebar */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-[#e2e8f0] flex flex-col shrink-0 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-[#e2e8f0] flex flex-col shrink-0 transition-all duration-300 ease-in-out lg:static ${
+          isOpen ? "translate-x-0 w-64" : "-translate-x-full lg:translate-x-0"
+        } ${
+          isCollapsed
+            ? "lg:w-0 lg:min-w-0 lg:max-w-0 lg:-ml-64 lg:border-r-0 lg:overflow-hidden lg:opacity-0 lg:pointer-events-none"
+            : "lg:w-64 lg:min-w-[16rem] lg:max-w-[16rem] lg:ml-0 lg:border-r lg:opacity-100"
         }`}
       >
         {/* Brand */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#e2e8f0]">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#e2e8f0] h-[68px] flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
             {branding.companyLogo && !logoError ? (
               <div className="w-9 h-9 rounded-full bg-white shadow-xs border border-slate-100 flex items-center justify-center p-1 overflow-hidden shrink-0">
                 <img 
@@ -513,17 +521,31 @@ export function Sidebar({
                 <Icon name="commute" className="text-white text-[20px]" />
               </div>
             )}
-            <div>
-              <span className="font-bold text-[15px] tracking-tight text-[#0f172a] block">{branding.systemName || "OVMS"}</span>
-              <span className="text-[11px] text-[#64748b] block font-medium">{branding.companyName || "PT Widatra Bhakti"}</span>
+            <div className="min-w-0">
+              <span className="font-bold text-[14.5px] tracking-tight text-[#0f172a] block truncate">{branding.systemName || "OVMS"}</span>
+              <span className="text-[11px] text-[#64748b] block font-medium truncate">{branding.companyName || "PT Widatra Bhakti"}</span>
             </div>
           </div>
+          
+          {/* Close button for Mobile Drawer */}
           <button 
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors lg:hidden cursor-pointer"
-            aria-label="Close menu"
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors lg:hidden cursor-pointer shrink-0"
+            aria-label="Tutup menu"
           >
             <Icon name="close" className="text-xl" />
+          </button>
+
+          {/* Collapse button for Desktop */}
+          <button
+            type="button"
+            onClick={() => onToggleCollapse?.(true)}
+            className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-[#1e3a8a] transition-colors cursor-pointer shrink-0"
+            title="Sembunyikan Sidebar (Ctrl + B)"
+            aria-label="Sembunyikan Sidebar"
+          >
+            <Icon name="dock_to_left" className="text-[20px]" />
           </button>
         </div>
 
@@ -543,6 +565,8 @@ export function Sidebar({
             onClick={() => {
               onClose?.();
               const role = user?.role?.toLowerCase() || 'employee';
+              // Ensure sidebar is expanded on desktop during quick tour
+              onToggleCollapse?.(false);
               // Open all folders so all guide targets are visible in DOM
               const allOpen: Record<string, boolean> = {};
               currentNav.forEach(entry => {
