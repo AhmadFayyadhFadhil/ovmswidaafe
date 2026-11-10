@@ -28,8 +28,13 @@ export function canAccessRoute(user: AuthUser | null, route: string): GuardResul
       }
     });
   }
-  // Map 'ga' alias to 'gahrd'
-  if (allRoles.includes('ga') && !allRoles.includes('gahrd')) {
+  // Map 'ga' alias to 'gahrd' (including GA Team Backup account)
+  const isGAUser = allRoles.includes('ga') ||
+                   allRoles.includes('gahrd') ||
+                   allRoles.includes('ga team') ||
+                   allRoles.includes('ga_team') ||
+                   !!(user.email && user.email.toLowerCase().includes('gateam'));
+  if (isGAUser && !allRoles.includes('gahrd')) {
     allRoles.push('gahrd');
   }
   // If is_department_head is true, user also has approver capability!
@@ -132,6 +137,7 @@ export function getAllowedRoutes(user: AuthUser | null): string[] {
       '/admin/drivers',
       '/admin/requests',
       '/gahrd/requests/urgent',
+      '/gahrd/urgentrequest',
       '/admin/users',
       '/admin/vehicles',
       '/admin/audit',
@@ -175,6 +181,7 @@ export function getAllowedRoutes(user: AuthUser | null): string[] {
       '/gahrd/dashboard',
       '/gahrd/requests',
       '/gahrd/requests/urgent',
+      '/gahrd/urgentrequest',
       '/gahrd/history',
       '/gahrd/notifications',
       '/gahrd/driver',

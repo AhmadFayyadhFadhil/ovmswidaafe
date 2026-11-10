@@ -24,8 +24,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const lowerRoles = userRoles.map((r: string) => r.toLowerCase());
             const isDriverCoordinator = lowerRoles.includes("driver coordinator") || lowerRoles.includes("driver_coordinator") || lowerRoles.includes("coordinator");
 
+            const isGA = lowerRoles.includes("ga") ||
+                         lowerRoles.includes("gahrd") ||
+                         lowerRoles.includes("ga team") ||
+                         lowerRoles.includes("ga_team") ||
+                         !!(apiUser.email && apiUser.email.toLowerCase().includes("gateam"));
+
             if (lowerRoles.includes("admin")) role = "admin";
-            else if (lowerRoles.includes("ga")) role = "gahrd";
+            else if (isGA) role = "gahrd";
             else if (lowerRoles.includes("approver")) role = "approver";
             else if (lowerRoles.includes("driver")) role = "driver";
             else if (lowerRoles.includes("security")) role = "security";
@@ -128,8 +134,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const lowerRoles = userRoles.map((r: string) => r.toLowerCase());
           const isDriverCoordinator = lowerRoles.includes("driver coordinator") || lowerRoles.includes("driver_coordinator") || lowerRoles.includes("coordinator");
 
+          const isGA = lowerRoles.includes("ga") ||
+                       lowerRoles.includes("gahrd") ||
+                       lowerRoles.includes("ga team") ||
+                       lowerRoles.includes("ga_team") ||
+                       !!(apiUser.email && apiUser.email.toLowerCase().includes("gateam"));
+
           if (lowerRoles.includes("admin")) role = "admin";
-          else if (lowerRoles.includes("ga")) role = "gahrd";
+          else if (isGA) role = "gahrd";
           else if (lowerRoles.includes("approver")) role = "approver";
           else if (lowerRoles.includes("driver")) role = "driver";
           else if (lowerRoles.includes("security")) role = "security";
