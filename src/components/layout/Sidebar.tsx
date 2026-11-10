@@ -149,7 +149,9 @@ export function Sidebar({
   const isEmployee = user?.role === "employee";
   const isApprover = user?.role === "approver";
   const isDriver = user?.role === "driver" && !isDriverCoordinator;
-  const isGAHRD = user?.role === "gahrd";
+  const isGAHRD = user?.role === "gahrd" ||
+    user?.roles?.some(r => ["ga", "gahrd", "ga team", "ga_team"].includes(r.toLowerCase())) ||
+    !!(user?.email && user.email.toLowerCase().includes("gateam"));
   const isSecurity = user?.role === "security";
   const isAdmin = user?.role === "admin";
 
@@ -201,6 +203,10 @@ export function Sidebar({
         }
       }
       return false;
+    }
+
+    if (item.path === "/gahrd/urgentrequest" && (currentPath === "/gahrd/urgentrequest" || currentPath === "/gahrd/requests/urgent")) {
+      return true;
     }
 
     if (currentPath === item.path) {

@@ -80,6 +80,8 @@ function GAHRDDashboardWrapper() {
     'History': '/gahrd/history',
     'Notifications': '/gahrd/notifications',
     'Dashboard': '/gahrd/dashboard',
+    'Permohonan Urgent': '/gahrd/urgentrequest',
+    'Urgent Request': '/gahrd/urgentrequest',
   };
   return <GAHRDDashboard onNavigate={(p) => navigate(routeMap[p] || `/gahrd/${p.toLowerCase().replace(/ /g, '-')}`)} />;
 }
@@ -144,6 +146,7 @@ export default function AppRoutes() {
             <Route path="/gahrd/myrequests" element={<MyRequests />} />
             <Route path="/gahrd/requests" element={<GAHRDRequests />} />
             <Route path="/gahrd/requests/urgent" element={<CreateUrgentRequest />} />
+            <Route path="/gahrd/urgentrequest" element={<CreateUrgentRequest />} />
             <Route path="/gahrd/history" element={<GAHRDHistory onNavigate={(_p) => {}} />} />
             <Route path="/gahrd/notifications" element={<GAHRDNotifications onNavigate={(_p) => {}} />} />
             <Route path="/gahrd/driver" element={<GAHRDDrivers onNavigate={(_p) => {}} />} />
