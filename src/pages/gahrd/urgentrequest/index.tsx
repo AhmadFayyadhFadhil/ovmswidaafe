@@ -9,6 +9,7 @@ import { departmentService } from "@/services/modules/departmentService";
 import type { Department } from "@/services/modules/departmentService";
 import { driverService } from "@/services/modules/driverService";
 import { vehicleService } from "@/services/modules/vehicleService";
+import { TimeInput24 } from "@/components/ui/TimeInput24";
 
 export default function CreateUrgentRequestPage() {
   const navigate = useNavigate();
@@ -315,10 +316,11 @@ export default function CreateUrgentRequestPage() {
 
                 <div>
                   <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">Jam Keberangkatan <span className="text-red-500">*</span></label>
-                  <input
-                    type="time"
+                  <TimeInput24
                     value={departureTime}
-                    onChange={e => setDepartureTime(e.target.value)}
+                    onChange={v => setDepartureTime(v)}
+                    placeholder="--:--"
+                    align="left"
                     className="w-full h-10 px-3 border border-[#e2e8f0] rounded-xl text-[13px] text-[#0f172a] bg-[#f8fafc] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/20 font-bold"
                   />
                 </div>

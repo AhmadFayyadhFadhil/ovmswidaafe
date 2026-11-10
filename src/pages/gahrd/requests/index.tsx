@@ -9,6 +9,7 @@ import { gaTeamApproverService } from "@/services/modules/gaTeamApproverService"
 import { useAuthContext } from "@/auth/authContext";
 import { RequestDetailModal } from "@/components/ui/RequestDetailModal";
 import { GaTeamApproverMasterModal } from "@/components/ui/GaTeamApproverMasterModal";
+import { TimeInput24 } from "@/components/ui/TimeInput24";
 import { apiClient } from "@/services/api/api";
 
 const formatNumberIndonesian = (value: string | number) => {
@@ -1557,25 +1558,25 @@ export default function GAHRDRequestsPage() {
                           <div className="grid grid-cols-2 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
                             <div>
                               <label className="block text-[10.5px] font-bold text-slate-700 mb-1">Jam Sesi Pagi</label>
-                              <input
-                                type="time"
+                              <TimeInput24
                                 value={asg.morning_time || "08:00"}
-                                onChange={e => {
-                                  const val = e.target.value;
+                                onChange={val => {
                                   setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, morning_time: val } : item));
                                 }}
+                                placeholder="08:00"
+                                align="left"
                                 className="w-full h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-slate-50 focus:bg-white font-semibold text-slate-800 focus:outline-none"
                               />
                             </div>
                             <div>
                               <label className="block text-[10.5px] font-bold text-slate-700 mb-1">Jam Sesi Sore/Siang</label>
-                              <input
-                                type="time"
+                              <TimeInput24
                                 value={asg.afternoon_time || "14:00"}
-                                onChange={e => {
-                                  const val = e.target.value;
+                                onChange={val => {
                                   setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, afternoon_time: val } : item));
                                 }}
+                                placeholder="14:00"
+                                align="left"
                                 className="w-full h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-slate-50 focus:bg-white font-semibold text-slate-800 focus:outline-none"
                               />
                             </div>

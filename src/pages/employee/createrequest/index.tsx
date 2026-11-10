@@ -12,6 +12,7 @@ import type { Department } from "@/services/modules/departmentService";
 import { tripPurposeService } from "@/services/modules/tripPurposeService";
 import { destinationCityService } from "@/services/modules/destinationCityService";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
+import { TimeInput24 } from "@/components/ui/TimeInput24";
 import { formatDate, formatDateTime } from "@/utils/formatDate";
 
 interface Props { onNavigate?: (page: string) => void; }
@@ -54,19 +55,23 @@ export default function CreateRequestPage({ onNavigate }: Props) {
   const [passengers, setPassengers] = useState<{ name: string; department_id: string | number; user_id?: number | null; is_pic?: boolean }[]>([]);
   const [isLogisticsOnly, setIsLogisticsOnly] = useState(false);
 
+  const [customDepartureTime, setCustomDepartureTime] = useState("");
+  const [customReturnTime, setCustomReturnTime] = useState("");
+
   const departureDate = departure ? departure.split('T')[0] : "";
-  const departureTime = departure && departure.includes('T') ? departure.split('T')[1].substring(0, 5) : "";
+  const departureTime = departure && departure.includes('T') ? departure.split('T')[1].substring(0, 5) : customDepartureTime;
 
   const returnDate = estReturn ? estReturn.split('T')[0] : "";
-  const returnTime = estReturn && estReturn.includes('T') ? estReturn.split('T')[1].substring(0, 5) : "";
+  const returnTime = estReturn && estReturn.includes('T') ? estReturn.split('T')[1].substring(0, 5) : customReturnTime;
 
   const handleDepartureChange = (newDate: string, newTime: string) => {
+    if (newTime !== undefined) setCustomDepartureTime(newTime);
     if (!newDate && !newTime) {
       setDeparture("");
       return;
     }
     const d = newDate !== undefined ? newDate : departureDate;
-    const t = newTime !== undefined ? newTime : (departureTime || "08:00");
+    const t = newTime !== undefined ? newTime : (customDepartureTime || departureTime || "08:00");
     if (!d) {
       setDeparture("");
     } else {
@@ -75,12 +80,13 @@ export default function CreateRequestPage({ onNavigate }: Props) {
   };
 
   const handleReturnChange = (newDate: string, newTime: string) => {
+    if (newTime !== undefined) setCustomReturnTime(newTime);
     if (!newDate && !newTime) {
       setEstReturn("");
       return;
     }
     const d = newDate !== undefined ? newDate : returnDate;
-    const t = newTime !== undefined ? newTime : (returnTime || "17:00");
+    const t = newTime !== undefined ? newTime : (customReturnTime || returnTime || "17:00");
     if (!d) {
       setEstReturn("");
     } else {
@@ -580,11 +586,11 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                       </div>
                       <div className="col-span-2">
                         <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jam (24 Jam)</label>
-                        <input
-                          type="time"
-                          step="60"
+                        <TimeInput24
                           value={departureTime}
-                          onChange={e => handleDepartureChange(departureDate, e.target.value)}
+                          onChange={t => handleDepartureChange(departureDate, t)}
+                          placeholder="--:--"
+                          align="right"
                           className="w-full h-10 px-2.5 border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all"
                         />
                       </div>
@@ -614,11 +620,11 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                       </div>
                       <div className="col-span-2">
                         <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jam (24 Jam)</label>
-                        <input
-                          type="time"
-                          step="60"
+                        <TimeInput24
                           value={returnTime}
-                          onChange={e => handleReturnChange(returnDate, e.target.value)}
+                          onChange={t => handleReturnChange(returnDate, t)}
+                          placeholder="--:--"
+                          align="right"
                           className="w-full h-10 px-2.5 border border-[#e2e8f0] rounded-xl text-[12.5px] text-[#0f172a] bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#00236f]/20 transition-all"
                         />
                       </div>
@@ -680,13 +686,13 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                             Jadwal / Sesi 1
                           </div>
                           <div className="grid grid-cols-3 gap-2">
-                            <input
-                              type="time"
+                            <TimeInput24
                               value={it.morning_time}
-                              onChange={e => {
-                                const val = e.target.value;
+                              onChange={val => {
                                 setItineraries(prev => prev.map((item, i) => i === idx ? { ...item, morning_time: val } : item));
                               }}
+                              placeholder="08:00"
+                              align="left"
                               className="col-span-1 h-8 px-2 border border-slate-200 rounded-md text-[11.5px] bg-white text-slate-800 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
                             />
                             <input
@@ -707,13 +713,13 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                             Jadwal / Sesi 2
                           </div>
                           <div className="grid grid-cols-3 gap-2">
-                            <input
-                              type="time"
+                            <TimeInput24
                               value={it.afternoon_time}
-                              onChange={e => {
-                                const val = e.target.value;
+                              onChange={val => {
                                 setItineraries(prev => prev.map((item, i) => i === idx ? { ...item, afternoon_time: val } : item));
                               }}
+                              placeholder="16:00"
+                              align="left"
                               className="col-span-1 h-8 px-2 border border-slate-200 rounded-md text-[11.5px] bg-white text-slate-800 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
                             />
                             <input
