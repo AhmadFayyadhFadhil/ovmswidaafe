@@ -146,7 +146,6 @@ export function Sidebar({
   }, []);
 
   const isDriverCoordinator = !!(user?.is_driver_coordinator || user?.roles?.includes('driver coordinator') || user?.roles?.includes('driver_coordinator') || user?.roles?.includes('coordinator'));
-  const isEmployee = user?.role === "employee";
   const isApprover = user?.role === "approver";
   const isDriver = user?.role === "driver" && !isDriverCoordinator;
   const isGAHRD = user?.role === "gahrd" ||
