@@ -899,7 +899,7 @@ export function RequestDetailModal({
                                 <span className="font-bold text-slate-900 text-[13.5px]">{p.name}</span>
                                 {(p.name || '').toLowerCase().includes("tanpa penumpang") ? (
                                   <span className="bg-purple-100 text-purple-900 border border-purple-300 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
-                                    📦 Pengiriman Dokumen / Barang Saja
+                                    Pengiriman Dokumen / Barang Saja
                                   </span>
                                 ) : isPicPassenger ? (
                                   <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">

@@ -763,7 +763,7 @@ export default function CreateRequestPage({ onNavigate }: Props) {
                     className="w-4 h-4 text-[#00236f] rounded border-gray-300 focus:ring-[#00236f] cursor-pointer"
                   />
                   <label htmlFor="isLogisticsOnly" className="text-[12.5px] font-bold text-amber-950 cursor-pointer select-none">
-                    📦 Pengiriman Dokumen / Barang Saja <span className="font-normal text-amber-800">(Tanpa Penumpang Orang)</span>
+                    Pengiriman Dokumen / Barang Saja <span className="font-normal text-amber-800">(Tanpa Penumpang Orang)</span>
                   </label>
                 </div>
                 {isLogisticsOnly && (
