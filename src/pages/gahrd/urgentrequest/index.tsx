@@ -607,8 +607,9 @@ export default function CreateUrgentRequestPage() {
                       {drivers.map(d => {
                         const isExpired = d.simStatus === "expired";
                         let isTripPastSim = false;
-                        if (departureDate && d.simExpiryDate && d.simExpiryDate !== "-") {
-                          if (departureDate > d.simExpiryDate.substring(0, 10)) {
+                        const todayDateStr = getTodayDateStr();
+                        if (todayDateStr && d.simExpiryDate && d.simExpiryDate !== "-") {
+                          if (todayDateStr > d.simExpiryDate.substring(0, 10)) {
                             isTripPastSim = true;
                           }
                         }
