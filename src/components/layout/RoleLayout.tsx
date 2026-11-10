@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -12,7 +12,54 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
   { activeNav: string; onNavigate?: (p:string)=>void; topbarTitle: string; userName?: string; userRole?: string; searchPlaceholder?: string; searchValue?: string; onSearchChange?: (value: string) => void; children: ReactNode }) {
   const navigate = useNavigate();
   const { user, logout } = useAuthContext();
+  // Mobile drawer state
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Desktop collapsed state (persisted)
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("ovms_sidebar_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleSidebar = (forceState?: boolean) => {
+    if (window.innerWidth < 1024) {
+      if (typeof forceState === "boolean") {
+        setSidebarOpen(forceState);
+      } else {
+        setSidebarOpen(prev => !prev);
+      }
+    } else {
+      setIsCollapsed(prev => {
+        const next = typeof forceState === "boolean" ? forceState : !prev;
+        try {
+          localStorage.setItem("ovms_sidebar_collapsed", String(next));
+        } catch {}
+        setTimeout(() => {
+          window.dispatchEvent(new Event('resize'));
+        }, 320);
+        return next;
+      });
+    }
+  };
+
+  // Keyboard shortcut: Ctrl + B / Cmd + B to toggle sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName) || target?.isContentEditable) {
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        handleToggleSidebar();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const roleDisplayMap: Record<string, string> = {
     admin: "Administrator",
@@ -345,6 +392,8 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
         onNavigate={handleNavigate}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={handleToggleSidebar}
       />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Topbar 
@@ -356,7 +405,8 @@ export function Layout({ activeNav, onNavigate, topbarTitle, userName, userRole,
           searchValue={searchValue} 
           onSearchChange={onSearchChange} 
           showSearch={activeNav === "History" || window.location.pathname.includes('/history') || window.location.pathname.includes('/audit')}
-          onMenuClick={() => setSidebarOpen(true)}
+          onMenuClick={handleToggleSidebar}
+          isSidebarCollapsed={isCollapsed}
           onProfileClick={() => {
             const role = user?.role || "employee";
             navigate(`/${role}/profile`);
