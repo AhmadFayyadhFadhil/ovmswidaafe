@@ -228,13 +228,13 @@ export function mapRequestFromBackend(r: any): FleetRequest {
 
     // Split Drop & Pickup mapping:
     trip_mode: r.trip_mode || 'standby',
-    departure_start_km: r.departure_start_km ?? null,
-    departure_end_km: r.departure_end_km ?? null,
+    departure_start_km: r.departure_start_km ?? r.start_km ?? null,
+    departure_end_km: r.departure_end_km ?? ((r.departure_checked_in_at || (r.trip_mode === 'split_drop_pickup' && r.security_checked_in_at && !r.return_checked_out_at)) ? r.end_km : null),
     departure_total_km: r.departure_total_km ?? null,
-    departure_checked_out_at: r.departure_checked_out_at || null,
-    departure_checked_in_at: r.departure_checked_in_at || null,
-    departure_checkout_by: r.departure_checkout_by || null,
-    departure_checkin_by: r.departure_checkin_by || null,
+    departure_checked_out_at: r.departure_checked_out_at || (r.trip_mode === 'split_drop_pickup' ? r.security_checked_out_at : null),
+    departure_checked_in_at: r.departure_checked_in_at || (r.trip_mode === 'split_drop_pickup' && !r.return_checked_out_at ? r.security_checked_in_at : null),
+    departure_checkout_by: r.departure_checkout_by || (r.trip_mode === 'split_drop_pickup' ? r.security_checkout_by : null),
+    departure_checkin_by: r.departure_checkin_by || (r.trip_mode === 'split_drop_pickup' && !r.return_checked_out_at ? r.security_checkin_by : null),
 
     return_departure_time: r.return_departure_time || null,
     return_driver_id: r.return_driver_id || null,

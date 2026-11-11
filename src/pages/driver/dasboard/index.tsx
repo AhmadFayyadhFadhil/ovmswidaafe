@@ -1049,7 +1049,7 @@ export default function DriverDashboard() {
                                 <div className="text-[10.5px] text-amber-200/90 bg-amber-900/30 p-2 rounded-lg border border-amber-500/20 flex items-start gap-1.5">
                                   <Icon name="info" className="text-xs mt-0.5 text-amber-400 shrink-0" />
                                   <span>
-                                    Pastikan Anda dan kendaraan berstatus standby/free tidak bertabrakan dengan penugasan lain menjelang waktu penjemputan. Penugasan penjemputan ini bersifat fleksibel dan masih dapat disesuaikan oleh Koordinator Driver jika ada kendala operasional.
+                                    Pastikan Anda dan kendaraan berstatus standby/free tidak bertabrakan dengan penugasan lain menjelang waktu penjemputan. Penugasan penjemputan masih dapat disesuaikan oleh Koordinator Driver jika diperlukan.
                                   </span>
                                 </div>
                               </div>
@@ -1057,13 +1057,15 @@ export default function DriverDashboard() {
                               <div className="space-y-1">
                                 {currentTrip.departure_checked_in_at ? (
                                   <div>
-                                    Sesi Pengantaran telah selesai dan armada telah kembali ke pabrik (status kendaraan <strong>Tersedia</strong>). Sesi Penjemputan selanjutnya terjadwal
-                                    {currentTrip.return_departure_time ? ` pukul ${currentTrip.return_departure_time.split(" ")[1] || currentTrip.return_departure_time}` : ''} oleh <strong>{partnerDriverName || "Driver Jemput"}</strong>{partnerVehicleName ? ` (${partnerVehicleName})` : ''}.
-                                    {isDriverCoordinator && (
-                                      <span className="block mt-1 text-[10.5px] text-blue-300">
-                                        Klik <button type="button" onClick={() => handleViewDetail(String(currentTrip.id))} className="underline font-bold text-white cursor-pointer hover:text-blue-200">View Detail</button> untuk meninjau atau menyesuaikan alokasi penjemputan.
+                                    <div>
+                                      Sesi Pengantaran telah selesai dan armada telah kembali ke pabrik (status kendaraan <strong>Tersedia</strong>).
+                                    </div>
+                                    <div className="mt-1.5 text-[10.5px] text-blue-200 bg-blue-900/30 p-2 rounded-lg border border-blue-400/20 flex items-start gap-1.5">
+                                      <Icon name="info" className="text-xs mt-0.5 text-blue-400 shrink-0" />
+                                      <span>
+                                        Sesi penjemputan terjadwal oleh <strong>{partnerDriverName || "Driver Jemput"}</strong>{partnerVehicleName ? ` (${partnerVehicleName})` : ''}{currentTrip.return_departure_time ? ` pada pukul ${currentTrip.return_departure_time.split(" ")[1] || currentTrip.return_departure_time}` : ''}. Silakan klik <button type="button" onClick={() => handleViewDetail(String(currentTrip.id))} className="underline font-bold text-white cursor-pointer hover:text-blue-200">Lihat Detail</button> untuk meninjau atau edit jadwal.
                                       </span>
-                                    )}
+                                    </div>
                                   </div>
                                 ) : (
                                   <div>

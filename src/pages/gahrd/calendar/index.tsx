@@ -128,9 +128,9 @@ export default function GAHRDCalendarPage({ onNavigate }: { onNavigate?: (p: str
       }
 
       let s1Status = "Scheduled";
-      if (r.departure_checked_in_at || r.rawStatus === "completed") {
+      if (r.departure_checked_in_at || r.split_trip_stage === "waiting_pickup" || r.rawStatus === "completed") {
         s1Status = "Completed";
-      } else if (r.departure_checked_out_at || r.rawStatus === "on_going") {
+      } else if (r.departure_checked_out_at || r.split_trip_stage === "departure_ongoing") {
         s1Status = "On Going";
       }
 
@@ -175,7 +175,7 @@ export default function GAHRDCalendarPage({ onNavigate }: { onNavigate?: (p: str
       let s2Status = "Scheduled";
       if (r.return_checked_in_at || r.rawStatus === "completed") {
         s2Status = "Completed";
-      } else if (r.return_checked_out_at) {
+      } else if (r.return_checked_out_at || r.split_trip_stage === "return_ongoing") {
         s2Status = "On Going";
       }
 
@@ -203,10 +203,10 @@ export default function GAHRDCalendarPage({ onNavigate }: { onNavigate?: (p: str
       }
 
       let status = "Scheduled";
-      if (r.rawStatus === "on_going") {
-        status = "On Going";
-      } else if (r.rawStatus === "completed") {
+      if (r.rawStatus === "completed") {
         status = "Completed";
+      } else if (r.rawStatus === "on_going" && (r.security_checked_out_at || r.is_external)) {
+        status = "On Going";
       }
 
       allEvents.push({

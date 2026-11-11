@@ -67,19 +67,26 @@ function getRequestSteps(rawStatus: string, r?: any): StepState[] {
 
   // 5. Terjadwal / In Progress
   const isSplitWaitReturn = r?.trip_mode === "split_drop_pickup" && (Boolean(r?.departure_checked_in_at) || r?.split_trip_stage === "waiting_pickup") && !r?.return_checked_out_at;
-  const isSplitReturnOngoing = r?.trip_mode === "split_drop_pickup" && Boolean(r?.return_checked_out_at) && !r?.return_checked_in_at;
+  const isSplitReturnOngoing = r?.trip_mode === "split_drop_pickup" && (Boolean(r?.return_checked_out_at) || r?.split_trip_stage === "return_ongoing") && !r?.return_checked_in_at;
+  const isSplitDepartureOngoing = r?.trip_mode === "split_drop_pickup" && (Boolean(r?.departure_checked_out_at) || r?.split_trip_stage === "departure_ongoing") && !r?.departure_checked_in_at;
+
+  const isActuallyOnGoing = r?.trip_mode === "split_drop_pickup" 
+    ? (isSplitDepartureOngoing || isSplitReturnOngoing) 
+    : (rawStatus === "on_going");
 
   const step4Done = rawStatus === "completed";
   const step4Active = rawStatus === "driver_assigned" || rawStatus === "on_going";
-  const step4Color = isSplitWaitReturn ? "blue" : isSplitReturnOngoing ? "yellow" : rawStatus === "on_going" ? "yellow" : "blue";
+  const step4Color = isSplitWaitReturn ? "blue" : isActuallyOnGoing ? "yellow" : "blue";
   const step4Label = isSplitWaitReturn
     ? "Terjadwal Jemput"
     : isSplitReturnOngoing
     ? "Sedang Menjemput"
-    : rawStatus === "on_going"
+    : isSplitDepartureOngoing
+    ? "Sedang Mengantar"
+    : isActuallyOnGoing
     ? "Sedang Berjalan"
     : "Terjadwal";
-  const step4Icon = isSplitWaitReturn ? "schedule" : rawStatus === "on_going" ? "hourglass_empty" : "schedule";
+  const step4Icon = (isSplitWaitReturn || !isActuallyOnGoing) ? "schedule" : "hourglass_empty";
 
   // 6. Selesai
   const step5Done = rawStatus === "completed";
@@ -97,16 +104,34 @@ function getRequestSteps(rawStatus: string, r?: any): StepState[] {
 
 function getStatusConfig(rawStatus: string, r?: any) {
   if (r?.trip_mode === "split_drop_pickup") {
+    if (r.return_checked_in_at || r.split_trip_stage === "completed" || rawStatus === "completed") {
+      return {
+        label: "Selesai",
+        color: "bg-[#dcfce7] text-[#15803d] border border-[#bbf7d0]",
+      };
+    }
+    if (r.return_checked_out_at || r.split_trip_stage === "return_ongoing") {
+      return {
+        label: "Sedang Menjemput",
+        color: "bg-amber-50 text-amber-700 border border-amber-200",
+      };
+    }
     if ((r.departure_checked_in_at || r.split_trip_stage === "waiting_pickup") && !r.return_checked_out_at) {
       return {
         label: "Terjadwal Jemput",
         color: "bg-blue-50 text-blue-700 border border-blue-200",
       };
     }
-    if (r.return_checked_out_at && !r.return_checked_in_at) {
+    if (r.departure_checked_out_at || r.split_trip_stage === "departure_ongoing") {
       return {
-        label: "Sedang Menjemput",
+        label: "Sedang Mengantar",
         color: "bg-amber-50 text-amber-700 border border-amber-200",
+      };
+    }
+    if (rawStatus === "driver_assigned" || r.split_trip_stage === "scheduled" || (!r.departure_checked_out_at && rawStatus === "on_going")) {
+      return {
+        label: "Siap Jalan",
+        color: "bg-[#dcfce7] text-[#15803d]",
       };
     }
   }
@@ -602,6 +627,18 @@ export default function MyRequestsPage() {
                             return null;
                           })()}
                           {/* Split Trip Indicator */}
+                          {r.trip_mode === "split_drop_pickup" && !r.departure_checked_out_at && (r.rawStatus === "driver_assigned" || r.rawStatus === "on_going") && (
+                            <span className="text-[10px] font-bold text-blue-700 flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                              <Icon name="schedule" className="text-xs text-blue-600" />
+                              TERJADWAL (SIAP JALAN)
+                            </span>
+                          )}
+                          {r.trip_mode === "split_drop_pickup" && r.departure_checked_out_at && !r.departure_checked_in_at && (
+                            <span className="text-[10px] font-bold text-amber-700 flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                              SEDANG PENGANTARAN
+                            </span>
+                          )}
                           {r.trip_mode === "split_drop_pickup" && (Boolean(r.departure_checked_in_at) || r.split_trip_stage === "waiting_pickup") && !r.return_checked_out_at && (
                             <span className="text-[10px] font-bold text-blue-700 flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
                               <Icon name="schedule" className="text-xs text-blue-600" />
@@ -614,7 +651,7 @@ export default function MyRequestsPage() {
                               SEDANG PENJEMPUTAN
                             </span>
                           )}
-                          {r.rawStatus === "on_going" && r.trip_mode !== "split_drop_pickup" && (
+                          {r.trip_mode !== "split_drop_pickup" && r.rawStatus === "on_going" && r.security_checked_out_at && (
                             <span className="text-[10px] font-bold text-[#4059aa] flex items-center gap-1">
                               <span className="w-1.5 h-1.5 rounded-full bg-[#4059aa] animate-pulse" />
                               SEDANG BERJALAN
