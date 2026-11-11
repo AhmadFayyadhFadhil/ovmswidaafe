@@ -500,6 +500,26 @@ export default function DriverDashboard() {
       );
       if (asg && asg.status === "accepted") return true;
 
+      // Handle split trip session completion per driver:
+      if (r.trip_mode === 'split_drop_pickup') {
+        const isDeptDriver = String(r.driverId) === String(user?.id) || String(r.driver_id) === String(user?.id);
+        const isRetDriver = String(r.return_driver_id) === String(user?.id) || String(r.return_driver?.id) === String(user?.id);
+
+        if (isDeptDriver && !isRetDriver && r.departure_checked_in_at) {
+          // Departure driver finished Sesi 1
+          return false;
+        }
+        if (isRetDriver && r.return_checked_in_at) {
+          // Return driver finished Sesi 2
+          return false;
+        }
+        if (isDeptDriver && isRetDriver && r.return_checked_in_at) {
+          // Both sessions finished
+          return false;
+        }
+        return isDeptDriver || isRetDriver;
+      }
+
       // Match if user is assigned as primary driver or return driver on the request
       if (
         String(r.driverId) === String(user?.id) || 
@@ -514,7 +534,19 @@ export default function DriverDashboard() {
   );
   
   const historyTrips = rawRequests
-    .filter((r) => r.rawStatus === "completed" || r.rawStatus === "rejected" || r.rawStatus === "cancelled")
+    .filter((r) => {
+      if (r.rawStatus === "completed" || r.rawStatus === "rejected" || r.rawStatus === "cancelled") {
+        return true;
+      }
+      if (r.trip_mode === 'split_drop_pickup') {
+        const isDeptDriver = String(r.driverId) === String(user?.id) || String(r.driver_id) === String(user?.id);
+        const isRetDriver = String(r.return_driver_id) === String(user?.id) || String(r.return_driver?.id) === String(user?.id);
+        if (isDeptDriver && !isRetDriver && r.departure_checked_in_at) {
+          return true;
+        }
+      }
+      return false;
+    })
     .map(mapTripHistory);
 
   const mappedVehicles = rawVehicles.map(mapVehicle);
@@ -739,6 +771,24 @@ export default function DriverDashboard() {
             || currentTrip.itineraries.find((it: any) => String(it.driver_id) === String(user?.id));
         })();
 
+        const isSplitTrip = currentTrip?.trip_mode === 'split_drop_pickup';
+
+        const isReturnDriver = Boolean(
+          isSplitTrip &&
+          (String(currentTrip?.return_driver_id) === String(user?.id) || String(currentTrip?.return_driver?.id) === String(user?.id))
+        );
+
+        const isDepartureDriver = Boolean(
+          String(currentTrip?.driverId) === String(user?.id) ||
+          String(currentTrip?.driver_id) === String(user?.id)
+        );
+
+        const isReturnLeg = Boolean(
+          isSplitTrip &&
+          isReturnDriver &&
+          (!isDepartureDriver || Boolean(currentTrip.departure_checked_in_at))
+        );
+
         const driverTripStatus = (() => {
           if (!currentTrip) return null;
           if (activeItineraryForDriver) {
@@ -750,23 +800,38 @@ export default function DriverDashboard() {
               return 'driver_assigned';
             }
           }
+
+          if (isSplitTrip) {
+            if (isReturnLeg) {
+              if (currentTrip.return_checked_in_at) {
+                return 'completed';
+              } else if (currentTrip.return_checked_out_at) {
+                return 'on_going';
+              } else {
+                return 'driver_assigned';
+              }
+            } else {
+              if (currentTrip.departure_checked_in_at) {
+                return 'completed';
+              } else if (currentTrip.departure_checked_out_at) {
+                return 'on_going';
+              } else {
+                return 'driver_assigned';
+              }
+            }
+          }
+
           if (currentTrip.is_external) {
             return currentTrip.rawStatus;
           }
           const myTripDetails = currentTrip.operational_trips?.find(
-            (ot: any) => String(ot.driver?.id) === String(user?.id)
+            (ot: any) => String(ot.driver?.id) === String(user?.id) || String(ot.driver_id) === String(user?.id)
           );
           if (myTripDetails) {
             return myTripDetails.status;
           }
           return currentTrip.rawStatus;
         })();
-
-        const isReturnLeg = Boolean(
-          currentTrip?.trip_mode === 'split_drop_pickup' &&
-          (String(currentTrip.return_driver_id) === String(user?.id) || String(currentTrip.return_driver?.id) === String(user?.id)) &&
-          String(currentTrip.driverId) !== String(user?.id)
-        );
 
         const heroStatus = currentTrip ? getHeroStatusConfig(driverTripStatus || currentTrip.rawStatus) : null;
 
@@ -777,8 +842,10 @@ export default function DriverDashboard() {
             if (activeItineraryForDriver.afternoon_destination) dests.push(activeItineraryForDriver.afternoon_destination);
             return dests.join(" & ") || currentTrip.destination;
           }
-          if (isReturnLeg) {
-            return `Jemput: ${currentTrip?.destination || "Lokasi Penjemputan"}`;
+          if (isSplitTrip) {
+            return isReturnLeg 
+              ? `Jemput dari: ${currentTrip?.destination || "Lokasi Penjemputan"}`
+              : `Antar ke: ${currentTrip?.destination || "Lokasi Tujuan"}`;
           }
           return currentTrip?.destination || "";
         })();
@@ -791,12 +858,40 @@ export default function DriverDashboard() {
             return times.join(" & ") || currentTrip.time || "09:00";
           }
           if (isReturnLeg && currentTrip?.return_departure_time) {
-            return currentTrip.return_departure_time.includes(' ')
-              ? currentTrip.return_departure_time.split(' ')[1].substring(0, 5)
-              : currentTrip.return_departure_time.substring(11, 16);
+            const retTime = currentTrip.return_departure_time;
+            if (retTime.includes(' ')) {
+              const [dPart, tPart] = retTime.split(' ');
+              return `${dPart} ${tPart.substring(0, 5)}`;
+            } else if (retTime.includes('T')) {
+              const [dPart, tPart] = retTime.split('T');
+              return `${dPart} ${tPart.substring(0, 5)}`;
+            }
+            return retTime.substring(0, 5);
           }
           return currentTrip?.time || "09:00";
         })();
+
+        const assignedVehicleObj = isSplitTrip
+          ? (isReturnLeg
+              ? (currentTrip.return_vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.return_vehicle_id)) || currentTrip.vehicle)
+              : (currentTrip.vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.vehicleId || currentTrip.vehicle_id))))
+          : (currentTrip.vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.vehicleId || currentTrip.vehicle_id)));
+
+        const assignedVehicleName = assignedVehicleObj 
+          ? `${assignedVehicleObj.name || assignedVehicleObj.model || "Kendaraan"} (${assignedVehicleObj.plate_number || assignedVehicleObj.plate || "-"})`
+          : (currentTrip.vehicleModel || "Unassigned");
+
+        const partnerDriverName = isReturnLeg
+          ? (currentTrip.driver?.name || currentTrip.driver_name || null)
+          : (currentTrip.return_driver?.name || null);
+
+        const partnerVehicleObj = isReturnLeg
+          ? (currentTrip.vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.vehicleId || currentTrip.vehicle_id)))
+          : (currentTrip.return_vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.return_vehicle_id)));
+
+        const partnerVehicleName = partnerVehicleObj
+          ? `${partnerVehicleObj.name || partnerVehicleObj.model || "Kendaraan"} (${partnerVehicleObj.plate_number || partnerVehicleObj.plate || "-"})`
+          : null;
 
         return (
           <div data-guide="driver-dashboard-overview" className="p-4 sm:p-8 space-y-6">
@@ -866,9 +961,22 @@ export default function DriverDashboard() {
 
                 <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
                   <div className="space-y-4">
-                    <div className="inline-flex items-center gap-2 bg-[#1a2d4f] border border-[#2a4a7f] text-white text-[11px] font-bold px-3 py-1.5 rounded-full">
-                      <span className={`w-2 h-2 rounded-full ${heroStatus?.color}`} />
-                      {heroStatus?.label}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="inline-flex items-center gap-2 bg-[#1a2d4f] border border-[#2a4a7f] text-white text-[11px] font-bold px-3 py-1.5 rounded-full">
+                        <span className={`w-2 h-2 rounded-full ${heroStatus?.color}`} />
+                        {heroStatus?.label}
+                      </div>
+
+                      {isSplitTrip && (
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-wide border shadow-sm ${
+                          isReturnLeg 
+                            ? 'bg-amber-500/25 text-amber-300 border-amber-400/50' 
+                            : 'bg-blue-500/25 text-blue-300 border-blue-400/50'
+                        }`}>
+                          <Icon name={isReturnLeg ? "flight_land" : "flight_takeoff"} className="text-[13px]" />
+                          <span>{isReturnLeg ? "Sesi 2: Jemput" : "Sesi 1: Antar"}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -878,13 +986,13 @@ export default function DriverDashboard() {
                       </div>
                     </div>
 
-                    <div className="bg-[#1a2d4f]/60 border border-[#2a4a7f] rounded-xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-[#1a2d4f]/60 border border-[#2a4a7f] rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
                       <div>
                         <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1">
                           <Icon name="location_on" className="text-[14px]" />
                           Destination
                         </div>
-                        <div className="text-[14px] font-bold truncate max-w-[150px]" title={displayDestination}>
+                        <div className="text-[13px] font-bold truncate max-w-[150px]" title={displayDestination}>
                           {displayDestination}
                         </div>
                       </div>
@@ -893,16 +1001,54 @@ export default function DriverDashboard() {
                           <Icon name="schedule" className="text-[14px]" />
                           Departure
                         </div>
-                        <div className="text-[14px] font-bold">{displayTime}</div>
+                        <div className="text-[13px] font-bold truncate" title={displayTime}>{displayTime}</div>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1">
+                          <Icon name="directions_car" className="text-[14px]" />
+                          Armada Mobil
+                        </div>
+                        <div className="text-[13px] font-bold truncate max-w-[160px] text-blue-200" title={assignedVehicleName}>
+                          {assignedVehicleName}
+                        </div>
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1">
                           <Icon name="group" className="text-[14px]" />
                           Passengers
                         </div>
-                        <div className="text-[14px] font-bold">{currentTrip.passengerCount || 1} Person</div>
+                        <div className="text-[13px] font-bold">{currentTrip.passengerCount || 1} Person</div>
                       </div>
                     </div>
+
+                    {/* Multi-Trip Info Banner */}
+                    {isSplitTrip && (
+                      <div className={`rounded-xl p-3 border flex items-start gap-2.5 text-[11px] leading-relaxed animate-fadein ${
+                        isReturnLeg 
+                          ? 'bg-amber-950/40 border-amber-500/40 text-amber-200' 
+                          : 'bg-blue-950/40 border-blue-500/40 text-blue-200'
+                      }`}>
+                        <Icon name={isReturnLeg ? "flight_land" : "flight_takeoff"} className="text-[18px] shrink-0 mt-0.5 text-amber-400" />
+                        <div>
+                          <div className="font-bold uppercase tracking-wider text-[10px] mb-0.5 opacity-90">
+                            {isReturnLeg ? "Tugas: Sesi 2 - Penjemputan" : "Tugas: Sesi 1 - Pengantaran"}
+                          </div>
+                          <div>
+                            {isReturnLeg ? (
+                              <span>
+                                Anda ditugaskan untuk <strong>Sesi Penjemputan</strong> menggunakan kendaraan <strong>{assignedVehicleName}</strong>. 
+                                {partnerDriverName ? ` Sesi Pengantaran telah dilakukan oleh ${partnerDriverName}${partnerVehicleName ? ` (${partnerVehicleName})` : ''}.` : ''}
+                              </span>
+                            ) : (
+                              <span>
+                                Anda ditugaskan untuk <strong>Sesi Pengantaran</strong> menggunakan kendaraan <strong>{assignedVehicleName}</strong>. 
+                                {partnerDriverName ? ` Sesi Penjemputan selanjutnya akan dilakukan oleh ${partnerDriverName}${partnerVehicleName ? ` (${partnerVehicleName})` : ''}.` : ''}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-col items-start md:items-end justify-between h-full gap-4 flex-shrink-0">
                     <div className="flex items-center gap-2">
@@ -921,16 +1067,15 @@ export default function DriverDashboard() {
                     {(() => {
                       const recordedStartKm = 
                         (activeItineraryForDriver && activeItineraryForDriver.start_km) ??
-                        (isReturnLeg ? (currentTrip.return_start_km ?? currentTrip.return_vehicle?.odometer) : null) ??
-                        currentTrip.start_km ??
-                        currentTrip.operational_trip?.start_km ??
-                        (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id))?.start_km) ??
-                        null;
+                        (isSplitTrip
+                          ? (isReturnLeg ? currentTrip.return_start_km : (currentTrip.departure_start_km ?? currentTrip.start_km))
+                          : (currentTrip.start_km ?? currentTrip.operational_trip?.start_km ?? (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id) || String(ot.driver_id) === String(user?.id))?.start_km))
+                        ) ?? null;
 
                       const targetVehicleId = isReturnLeg
                         ? (currentTrip.return_vehicle_id || currentTrip.return_vehicle?.id)
                         : (currentTrip.vehicleId || currentTrip.vehicle?.id);
-                      const matchedVehicle = rawVehicles.find(v => String(v.id) === String(targetVehicleId));
+                      const matchedVehicle = rawVehicles.find(v => String(v.id) === String(targetVehicleId)) || assignedVehicleObj;
                       const lastOdometerNum = matchedVehicle?.odometer || null;
                       const hasRecordedStartKm = Boolean(recordedStartKm && Number(recordedStartKm) > 0);
                       const isTripInternal = !currentTrip.is_external;
@@ -1060,12 +1205,12 @@ export default function DriverDashboard() {
 
                         const recordedEndKm = 
                           (activeItineraryForDriver && activeItineraryForDriver.end_km) ??
-                          currentTrip.end_km ??
-                          currentTrip.operational_trip?.end_km ??
-                          (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id))?.end_km) ??
-                          null;
+                          (isSplitTrip
+                            ? (isReturnLeg ? currentTrip.return_end_km : (currentTrip.departure_end_km ?? currentTrip.end_km))
+                            : (currentTrip.end_km ?? currentTrip.operational_trip?.end_km ?? (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id) || String(ot.driver_id) === String(user?.id))?.end_km))
+                          ) ?? null;
                         const hasRecordedEndKm = Boolean(recordedEndKm && Number(recordedEndKm) > 0);
-                        const isCheckedInBySecurity = currentTrip.trip_mode === 'split_drop_pickup'
+                        const isCheckedInBySecurity = isSplitTrip
                           ? (isReturnLeg ? Boolean(currentTrip.return_checked_in_at) : Boolean(currentTrip.departure_checked_in_at))
                           : Boolean(currentTrip.security_checked_in_at);
 
@@ -1281,10 +1426,10 @@ export default function DriverDashboard() {
                     {(() => {
                       const recordedStartKm = 
                         (activeItineraryForDriver && activeItineraryForDriver.start_km) ??
-                        currentTrip.start_km ??
-                        currentTrip.operational_trip?.start_km ??
-                        (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id))?.start_km) ??
-                        null;
+                        (isSplitTrip
+                          ? (isReturnLeg ? currentTrip.return_start_km : (currentTrip.departure_start_km ?? currentTrip.start_km))
+                          : (currentTrip.start_km ?? currentTrip.operational_trip?.start_km ?? (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id) || String(ot.driver_id) === String(user?.id))?.start_km))
+                        ) ?? null;
                       const hasRecordedStartKm = Boolean(recordedStartKm && Number(recordedStartKm) > 0);
                       const isTripInternal = !currentTrip.is_external;
 
@@ -1307,7 +1452,11 @@ export default function DriverDashboard() {
                       }
 
                       if ((!isTripInternal || hasRecordedStartKm) && driverTripStatus === "on_going") {
-                        if (currentTrip.security_checked_in_at) {
+                        const isLegCheckedIn = isSplitTrip
+                          ? (isReturnLeg ? Boolean(currentTrip.return_checked_in_at) : Boolean(currentTrip.departure_checked_in_at))
+                          : Boolean(currentTrip.security_checked_in_at);
+
+                        if (isLegCheckedIn) {
                           return (
                             <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-[#102447] border border-emerald-500/50 px-3.5 py-2 rounded-xl max-w-xs">
                               <Icon name="check_circle" className="text-[15px] text-emerald-400 shrink-0" />
