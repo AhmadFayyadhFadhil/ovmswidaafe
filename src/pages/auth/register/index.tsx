@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/services/api/api";
 import { departmentService } from "@/services/modules/departmentService";
 import type { Department } from "@/services/modules/departmentService";
+import { Icon } from "@/components/ui/Icon";
 
 export default function RegisterPage() {
   const [nik, setNik] = useState("");
@@ -78,7 +79,7 @@ export default function RegisterPage() {
           {/* Logo */}
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center border border-white/20">
-              <span className="text-2xl text-white">🚘</span>
+              <Icon name="directions_car" className="text-2xl text-white" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-white">OVMS</h1>
@@ -109,7 +110,7 @@ export default function RegisterPage() {
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-6">
             <div className="w-11 h-11 rounded-2xl bg-[#1e3a8a] flex items-center justify-center shadow-sm">
-              <span className="text-white text-lg">🚘</span>
+              <Icon name="directions_car" className="text-white text-lg" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-900 leading-tight">OVMS</h1>
@@ -122,7 +123,7 @@ export default function RegisterPage() {
             {isSuccess ? (
               <div className="text-center py-4 space-y-4 animate-fadein">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600 text-3xl">
-                  ✓
+                  <Icon name="check" className="text-3xl" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-slate-900">Pendaftaran Berhasil!</h2>

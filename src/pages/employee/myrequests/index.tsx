@@ -19,7 +19,7 @@ interface StepState {
 const STEP_LABELS = ["Diajukan", "Kepala Dept", "Koor Driver", "Koor GA", "Terjadwal", "Selesai"];
 const STEP_ICONS  = ["send", "how_to_reg", "person_pin", "verified_user", "schedule", "flag"];
 
-function getRequestSteps(rawStatus: string): StepState[] {
+function getRequestSteps(rawStatus: string, r?: any): StepState[] {
   const isRejected = rawStatus === "rejected" || rawStatus === "cancelled";
   
   if (isRejected) {
@@ -66,11 +66,20 @@ function getRequestSteps(rawStatus: string): StepState[] {
   const step3Active = rawStatus === "assigned_by_ga" || rawStatus === "waiting_driver";
 
   // 5. Terjadwal / In Progress
+  const isSplitWaitReturn = r?.trip_mode === "split_drop_pickup" && r?.departure_checked_in_at && !r?.return_checked_out_at;
+  const isSplitReturnOngoing = r?.trip_mode === "split_drop_pickup" && r?.return_checked_out_at && !r?.return_checked_in_at;
+
   const step4Done = rawStatus === "completed";
   const step4Active = rawStatus === "driver_assigned" || rawStatus === "on_going";
-  const step4Color = rawStatus === "driver_assigned" ? "blue" : "yellow";
-  const step4Label = rawStatus === "on_going" ? "Sedang Berjalan" : "Terjadwal";
-  const step4Icon = rawStatus === "on_going" ? "hourglass_empty" : "schedule";
+  const step4Color = rawStatus === "driver_assigned" ? "blue" : isSplitWaitReturn ? "blue" : "yellow";
+  const step4Label = isSplitWaitReturn
+    ? "Menunggu Sesi 2"
+    : isSplitReturnOngoing
+    ? "Jemput (Sesi 2)"
+    : rawStatus === "on_going"
+    ? "Sedang Berjalan"
+    : "Terjadwal";
+  const step4Icon = isSplitWaitReturn ? "schedule" : rawStatus === "on_going" ? "hourglass_empty" : "schedule";
 
   // 6. Selesai
   const step5Done = rawStatus === "completed";
@@ -86,7 +95,22 @@ function getRequestSteps(rawStatus: string): StepState[] {
   ];
 }
 
-function getStatusConfig(rawStatus: string) {
+function getStatusConfig(rawStatus: string, r?: any) {
+  if (r?.trip_mode === "split_drop_pickup") {
+    if (r.departure_checked_in_at && !r.return_checked_out_at) {
+      return {
+        label: "Menunggu Penjemputan",
+        color: "bg-[#e0f2fe] text-[#0369a1] border border-[#bae6fd]",
+      };
+    }
+    if (r.return_checked_out_at && !r.return_checked_in_at) {
+      return {
+        label: "Penjemputan Berjalan",
+        color: "bg-[#fef9c3] text-[#854d0e] border border-[#fef08a]",
+      };
+    }
+  }
+
   switch (rawStatus) {
     case "submitted":
       return {
@@ -549,9 +573,9 @@ export default function MyRequestsPage() {
           <div className="space-y-3">
             {paginated.map(r => {
               const isExpanded = String(expanded) === String(r.id);
-              const steps = getRequestSteps(r.rawStatus);
+              const steps = getRequestSteps(r.rawStatus, r);
 
-              const sc = getStatusConfig(r.rawStatus);
+              const sc = getStatusConfig(r.rawStatus, r);
 
               return (
                 <div key={r.id}
@@ -580,7 +604,11 @@ export default function MyRequestsPage() {
                           {r.rawStatus === "on_going" && (
                             <span className="text-[10px] font-bold text-[#4059aa] flex items-center gap-1">
                               <span className="w-1.5 h-1.5 rounded-full bg-[#4059aa] animate-pulse" />
-                              SEDANG BERJALAN
+                              {r.trip_mode === "split_drop_pickup" && r.departure_checked_in_at && !r.return_checked_out_at
+                                ? "SESI 1 SELESAI • MENUNGGU PENJEMPUTAN"
+                                : r.trip_mode === "split_drop_pickup" && r.return_checked_out_at && !r.return_checked_in_at
+                                ? "SESI 2 • SEDANG PENJEMPUTAN"
+                                : "SEDANG BERJALAN"}
                             </span>
                           )}
                         </div>
@@ -768,8 +796,9 @@ export default function MyRequestsPage() {
                                   
                                   {/* Keberangkatan */}
                                   <div className="p-2.5 bg-white rounded-lg border border-blue-100/60 space-y-1.5">
-                                    <div className="font-bold text-blue-800 flex items-center gap-1 text-[11px] border-b border-blue-50 pb-1">
-                                      <span>🚙</span> Armada Keberangkatan
+                                    <div className="font-bold text-blue-800 flex items-center gap-1.5 text-[11px] border-b border-blue-50 pb-1">
+                                      <Icon name="directions_car" className="text-sm text-blue-700" />
+                                      <span>Armada Keberangkatan</span>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                       <div className="p-1.5 bg-slate-50/50 rounded border border-slate-100 space-y-0.5">
@@ -808,8 +837,9 @@ export default function MyRequestsPage() {
 
                                   {/* Penjemputan */}
                                   <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1.5">
-                                    <div className="font-bold text-slate-700 flex items-center gap-1 text-[11px] border-b border-slate-200 pb-1">
-                                      <span>🔄</span> Armada Penjemputan / Pulang
+                                    <div className="font-bold text-slate-700 flex items-center gap-1.5 text-[11px] border-b border-slate-200 pb-1">
+                                      <Icon name="sync" className="text-sm text-slate-600" />
+                                      <span>Armada Penjemputan / Pulang</span>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                       <div className="p-1.5 bg-white rounded border border-slate-100 space-y-0.5">
@@ -888,16 +918,92 @@ export default function MyRequestsPage() {
                                           </div>
                                         </div>
 
-                                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 ${
+                                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 flex items-center gap-1 ${
                                           it.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
                                           it.status === 'on_going' ? 'bg-amber-100 text-amber-800 animate-pulse' :
                                           'bg-slate-100 text-slate-600'
                                         }`}>
-                                          {it.status === 'completed' ? '✓ Selesai' : it.status === 'on_going' ? '⚡ Sedang Berjalan' : 'Terjadwal'}
+                                          {it.status === 'completed' ? (
+                                            <>
+                                              <Icon name="check" className="text-[11px]" />
+                                              <span>Selesai</span>
+                                            </>
+                                          ) : it.status === 'on_going' ? (
+                                            <>
+                                              <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span>
+                                              <span>Sedang Berjalan</span>
+                                            </>
+                                          ) : 'Terjadwal'}
                                         </span>
                                       </div>
                                     );
                                   })}
+                                </div>
+                              ) : r.trip_mode === "split_drop_pickup" ? (
+                                /* Case Split Drop & Pickup: Sesi 1 & Sesi 2 */
+                                <div className="space-y-2">
+                                  {/* Sesi 1: Antar */}
+                                  <div className="p-2.5 bg-blue-50/50 border border-blue-200/70 rounded-xl flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      <div className="w-8.5 h-8.5 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-extrabold shrink-0 shadow-sm">
+                                        {(r.driverName || "DA").split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[9.5px] font-bold uppercase bg-blue-100 text-blue-900 px-1.5 py-0.2 rounded">
+                                            Sesi 1: Antar
+                                          </span>
+                                          <span className="text-[12px] font-bold text-slate-800 truncate">{r.driverName || "Driver Belum Ditugaskan"}</span>
+                                        </div>
+                                        <div className="text-[10.5px] font-medium text-slate-600 truncate flex items-center gap-1 mt-0.5">
+                                          <Icon name="directions_car" className="text-xs text-blue-600" />
+                                          <span>{(r.vehicleModel || r.vehicleName || "Armada Antar").replace(/\s*\(\s*\)/g, '').trim()}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 ${
+                                      r.departure_checked_in_at ? 'bg-emerald-100 text-emerald-800' :
+                                      r.departure_checked_out_at ? 'bg-amber-100 text-amber-800 animate-pulse' :
+                                      'bg-slate-100 text-slate-600'
+                                    }`}>
+                                      {r.departure_checked_in_at ? 'Selesai Antar' : r.departure_checked_out_at ? 'Dalam Perjalanan' : 'Terjadwal'}
+                                    </span>
+                                  </div>
+
+                                  {/* Sesi 2: Jemput */}
+                                  <div className="p-2.5 bg-amber-50/40 border border-amber-200/70 rounded-xl flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      <div className="w-8.5 h-8.5 rounded-full bg-amber-700 text-white flex items-center justify-center text-xs font-extrabold shrink-0 shadow-sm">
+                                        {((r.returnDriver?.name || r.return_driver_name) || "DJ").split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[9.5px] font-bold uppercase bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded">
+                                            Sesi 2: Jemput
+                                          </span>
+                                          <span className="text-[12px] font-bold text-slate-800 truncate">
+                                            {r.returnDriver?.name || r.return_driver_name || "Driver Jemput Belum Ditugaskan"}
+                                          </span>
+                                        </div>
+                                        <div className="text-[10.5px] font-medium text-slate-600 truncate flex items-center gap-1 mt-0.5">
+                                          <Icon name="directions_car" className="text-xs text-amber-600" />
+                                          <span>{(r.returnVehiclePlate ? `${r.returnVehicleName || 'Armada'} (${r.returnVehiclePlate})` : (r.return_vehicle_name || "Armada Jemput")).replace(/\s*\(\s*\)/g, '').trim()}</span>
+                                          {r.return_departure_time && (
+                                            <span className="text-slate-400 font-mono text-[10px]">
+                                              • {r.return_departure_time.split(" ")[1] || r.return_departure_time}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 ${
+                                      r.return_checked_in_at ? 'bg-emerald-100 text-emerald-800' :
+                                      r.return_checked_out_at ? 'bg-amber-100 text-amber-800 animate-pulse' :
+                                      'bg-slate-100 text-slate-600'
+                                    }`}>
+                                      {r.return_checked_in_at ? 'Selesai Jemput' : r.return_checked_out_at ? 'Dalam Penjemputan' : 'Menunggu'}
+                                    </span>
+                                  </div>
                                 </div>
                               ) : (
                                 /* Case Normal: Single-Day Driver Info Card(s) */

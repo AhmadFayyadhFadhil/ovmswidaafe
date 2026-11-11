@@ -105,8 +105,9 @@ export function RequestDetailModal({
   const getApprovalRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
       dept_head: "Dep Head",
-      hrd_head: "GA & HRD Head",
-      ga_head: "GA Head",
+      hrd_head: "GA & HRD",
+      ga_head: "GA & HRD",
+      ga_coordinator: "GA & HRD",
       ga_team: "GA Team Backup",
       "GA Team Backup": "GA Team Backup",
     };
@@ -537,8 +538,9 @@ export function RequestDetailModal({
                           return (
                           <div key={it.id || idx} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-[12px]">
                             <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
-                              <span className="font-extrabold text-[#00236f] flex items-center gap-1">
-                                📅 Hari ke-{idx + 1}: {it.date ? new Date(it.date).toLocaleDateString("id-ID", { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' }) : `Hari ${idx+1}`}
+                              <span className="font-extrabold text-[#00236f] flex items-center gap-1.5">
+                                <Icon name="calendar_today" className="text-xs text-[#00236f]" />
+                                <span>Hari ke-{idx + 1}: {it.date ? new Date(it.date).toLocaleDateString("id-ID", { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' }) : `Hari ${idx+1}`}</span>
                               </span>
                               {it.is_overtime && (
                                 <span className="text-[10px] bg-red-600 text-white font-extrabold px-2 py-0.5 rounded-full uppercase flex items-center gap-1">
@@ -654,8 +656,9 @@ export function RequestDetailModal({
                               <div className="space-y-3">
                                 {/* Keberangkatan */}
                                 <div className="p-3 bg-white border border-blue-100 rounded-xl space-y-2">
-                                  <div className="font-extrabold text-blue-900 text-[12px] border-b border-blue-50 pb-1 flex items-center gap-1">
-                                    <span>🚙</span> Keberangkatan
+                                  <div className="font-extrabold text-blue-900 text-[12px] border-b border-blue-50 pb-1 flex items-center gap-1.5">
+                                    <Icon name="directions_car" className="text-sm text-blue-700" />
+                                    <span>Keberangkatan</span>
                                   </div>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
                                     <div className="p-2.5 bg-slate-50/50 border border-slate-100 rounded-lg space-y-1">
@@ -693,8 +696,9 @@ export function RequestDetailModal({
                                 
                                 {/* Penjemputan / Pulang */}
                                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                                  <div className="font-extrabold text-slate-700 text-[12px] border-b border-slate-200 pb-1 flex items-center gap-1">
-                                    <span>🔄</span> Penjemputan / Pulang
+                                  <div className="font-extrabold text-slate-700 text-[12px] border-b border-slate-200 pb-1 flex items-center gap-1.5">
+                                    <Icon name="sync" className="text-sm text-slate-600" />
+                                    <span>Penjemputan / Pulang</span>
                                   </div>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
                                     <div className="p-2.5 bg-white border border-slate-100 rounded-lg space-y-1">
@@ -719,7 +723,7 @@ export function RequestDetailModal({
                                           {request.external_return_driver_name_2 && <div>Driver: {request.external_return_driver_name_2}</div>}
                                           {request.external_return_license_plate_2 && <div>Plat: {request.external_return_license_plate_2}</div>}
                                           {request.external_return_fleet_info_2 && <div className="text-slate-500 font-medium">Detail: {request.external_return_fleet_info_2}</div>}
-                                          {!request.external_return_driver_name_2 && !request.external_return_license_plate_2 && !request.external_return_fleet_info_2 && <div className="text-slate-400 italic">Belum ditugaskan.</div>}
+                                          {!request.external_return_driver_name_2 && !request.external_license_plate_2 && !request.external_return_fleet_info_2 && <div className="text-slate-400 italic">Belum ditugaskan.</div>}
                                         </div>
                                         {request.external_return_photo_url_2 && (
                                           <a href={request.external_return_photo_url_2} target="_blank" rel="noreferrer" className="text-[10px] text-slate-600 hover:underline font-bold inline-flex items-center gap-1 mt-0.5">
@@ -740,85 +744,144 @@ export function RequestDetailModal({
                           </div>
                         ) : isSplitTrip ? (
                           <div className="space-y-3 mt-1">
-                            {/* Sesi 1: Antar */}
-                            <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-2.5">
-                              <div className="flex items-center justify-between pb-2 border-b border-blue-200/50">
-                                <span className="text-xs font-black text-blue-900 flex items-center gap-1.5">
-                                  <span>🛫</span> Sesi 1: Antar (Keberangkatan)
-                                </span>
-                                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
-                                  {request.departure_checked_in_at ? "Selesai (Kembali)" : (request.departure_checked_out_at ? "On Trip" : "Menunggu")}
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div>
-                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Driver Antar</span>
-                                  <span className="font-extrabold text-slate-800">{request.driverName || "Belum Ditugaskan"}</span>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Kendaraan</span>
-                                  <span className="font-extrabold text-slate-800">{request.vehicleModel || "Belum Dipilih"}</span>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Keluar Gate</span>
-                                  <span className="font-semibold text-slate-700">{formatScanTime(request.departure_checked_out_at) || "-"}</span>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Masuk Kembali</span>
-                                  <span className="font-semibold text-slate-700">{formatScanTime(request.departure_checked_in_at) || "-"}</span>
-                                </div>
-                              </div>
-                              {request.departure_total_km !== null && request.departure_total_km !== undefined && (
-                                <div className="text-[11px] font-bold text-blue-800 bg-white/80 px-2.5 py-1 rounded-lg border border-blue-100 flex justify-between">
-                                  <span>Odometer Sesi Antar:</span>
-                                  <span>{request.departure_start_km ?? 0} KM ➔ {request.departure_end_km ?? 0} KM ({request.departure_total_km} KM)</span>
-                                </div>
-                              )}
-                            </div>
+                            {(() => {
+                              const depOut = request.departure_checked_out_at || (isSplitTrip ? request.security_checked_out_at : null);
+                              const depIn = request.departure_checked_in_at || (isSplitTrip && request.departure_checked_out_at ? request.security_checked_in_at : null);
+                              const isDepDone = Boolean(depIn);
+                              const isDepOngoing = Boolean(depOut && !depIn);
 
-                            {/* Sesi 2: Jemput */}
-                            <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-2.5">
-                              <div className="flex items-center justify-between pb-2 border-b border-amber-200/50">
-                                <span className="text-xs font-black text-amber-900 flex items-center gap-1.5">
-                                  <span>🛬</span> Sesi 2: Jemput (Penjemputan)
-                                </span>
-                                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                                  {request.return_checked_in_at ? "Selesai" : (request.return_checked_out_at ? "On Trip Jemput" : "Menunggu")}
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div>
-                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Driver Jemput</span>
-                                  <span className="font-extrabold text-slate-800">{request.return_driver?.name || request.driverName || "Belum Ditugaskan"}</span>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Kendaraan Jemput</span>
-                                  <span className="font-extrabold text-slate-800">
-                                    {request.return_vehicle ? `${request.return_vehicle.name} (${request.return_vehicle.plate_number})` : request.vehicleModel}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Rencana Berangkat Jemput</span>
-                                  <span className="font-semibold text-slate-700">{formatScanTime(request.return_departure_time) || "-"}</span>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Keluar Gate Jemput</span>
-                                  <span className="font-semibold text-slate-700">{formatScanTime(request.return_checked_out_at) || "-"}</span>
-                                </div>
-                              </div>
-                              {request.return_total_km !== null && request.return_total_km !== undefined && (
-                                <div className="text-[11px] font-bold text-amber-800 bg-white/80 px-2.5 py-1 rounded-lg border border-amber-100 flex justify-between">
-                                  <span>Odometer Sesi Jemput:</span>
-                                  <span>{request.return_start_km ?? 0} KM ➔ {request.return_end_km ?? 0} KM ({request.return_total_km} KM)</span>
-                                </div>
-                              )}
-                              {request.return_reassigned_at && (
-                                <div className="text-[10px] text-amber-800 bg-amber-100/80 p-2 rounded-xl border border-amber-300/80 flex items-center gap-1.5">
-                                  <span>🔄</span>
-                                  <span>Supir penjemputan disesuaikan oleh <strong>{request.return_reassigned_by_name || 'Koordinator'}</strong> ({formatScanTime(request.return_reassigned_at)})</span>
-                                </div>
-                              )}
-                            </div>
+                              const retOut = request.return_checked_out_at;
+                              const retIn = request.return_checked_in_at;
+                              const isRetDone = Boolean(retIn);
+                              const isRetOngoing = Boolean(retOut && !retIn);
+
+                              return (
+                                <>
+                                  {/* Sesi 1: Antar */}
+                                  <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-2.5 shadow-2xs">
+                                    <div className="flex items-center justify-between pb-2 border-b border-blue-200/50">
+                                      <span className="text-xs font-black text-blue-900 flex items-center gap-1.5">
+                                        <Icon name="flight_takeoff" className="text-[15px] text-blue-600" />
+                                        <span>Sesi 1: Antar (Keberangkatan)</span>
+                                      </span>
+                                      <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                                        isDepDone 
+                                          ? "bg-emerald-100 text-emerald-800 border-emerald-200" 
+                                          : isDepOngoing 
+                                            ? "bg-blue-100 text-blue-800 border-blue-200 animate-pulse" 
+                                            : "bg-slate-100 text-slate-700 border-slate-200"
+                                      }`}>
+                                        {isDepDone ? "Selesai (Kembali ke Pabrik)" : isDepOngoing ? "Sedang Mengantar" : "Menunggu Keberangkatan"}
+                                      </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                      <div>
+                                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Driver Antar</span>
+                                        <span className="font-extrabold text-slate-800">{request.driverName || "Belum Ditugaskan"}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Kendaraan</span>
+                                        <span className="font-extrabold text-slate-800">{request.vehicleModel || "Belum Dipilih"}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Keluar Gate</span>
+                                        <span className="font-semibold text-slate-700">{formatScanTime(depOut) || "-"}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Masuk Kembali</span>
+                                        <span className="font-semibold text-slate-700">{formatScanTime(depIn) || "-"}</span>
+                                      </div>
+                                    </div>
+                                    {request.departure_total_km !== null && request.departure_total_km !== undefined && (
+                                      <div className="text-[11px] font-bold text-blue-800 bg-white/90 px-2.5 py-1.5 rounded-xl border border-blue-200 flex items-center justify-between">
+                                        <span className="flex items-center gap-1">
+                                          <Icon name="speed" className="text-xs text-blue-600" />
+                                          <span>Odometer Sesi Antar:</span>
+                                        </span>
+                                        <span className="font-mono">{request.departure_start_km ?? 0} KM ➔ {request.departure_end_km ?? 0} KM ({request.departure_total_km} KM)</span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Sesi 2: Jemput */}
+                                  <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-2.5 shadow-2xs">
+                                    <div className="flex items-center justify-between pb-2 border-b border-amber-200/50">
+                                      <span className="text-xs font-black text-amber-900 flex items-center gap-1.5">
+                                        <Icon name="flight_land" className="text-[15px] text-amber-600" />
+                                        <span>Sesi 2: Jemput (Penjemputan)</span>
+                                      </span>
+                                      <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                                        isRetDone 
+                                          ? "bg-emerald-100 text-emerald-800 border-emerald-200" 
+                                          : isRetOngoing 
+                                            ? "bg-amber-100 text-amber-800 border-amber-200 animate-pulse" 
+                                            : isDepDone
+                                              ? "bg-blue-100 text-blue-800 border-blue-200"
+                                              : "bg-slate-100 text-slate-600 border-slate-200"
+                                      }`}>
+                                        {isRetDone ? "Selesai Sempurna" : isRetOngoing ? "Sedang Menjemput" : isDepDone ? "Siap Dijemput" : "Menunggu Sesi Antar"}
+                                      </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                      <div>
+                                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Driver Jemput</span>
+                                        <span className="font-extrabold text-slate-800">{request.return_driver?.name || request.driverName || "Belum Ditugaskan"}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Kendaraan Jemput</span>
+                                        <span className="font-extrabold text-slate-800">
+                                          {request.return_vehicle ? `${request.return_vehicle.name} (${request.return_vehicle.plate_number})` : request.vehicleModel}
+                                        </span>
+                                      </div>
+                                      <div>
+                                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Rencana Berangkat Jemput</span>
+                                        <span className="font-semibold text-slate-700">{formatScanTime(request.return_departure_time) || "-"}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Keluar Gate Jemput</span>
+                                        <span className="font-semibold text-slate-700">{formatScanTime(retOut) || "-"}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Masuk Gate Selesai</span>
+                                        <span className="font-semibold text-slate-700">{formatScanTime(retIn) || "-"}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Status Penjemputan</span>
+                                        <span className="font-semibold text-slate-700">{isRetDone ? "Kembali Lengkap" : isRetOngoing ? "Di Perjalanan" : "Standby"}</span>
+                                      </div>
+                                    </div>
+                                    {request.return_total_km !== null && request.return_total_km !== undefined && (
+                                      <div className="text-[11px] font-bold text-amber-900 bg-white/90 px-2.5 py-1.5 rounded-xl border border-amber-200 flex items-center justify-between">
+                                        <span className="flex items-center gap-1">
+                                          <Icon name="speed" className="text-xs text-amber-600" />
+                                          <span>Odometer Sesi Jemput:</span>
+                                        </span>
+                                        <span className="font-mono">{request.return_start_km ?? 0} KM ➔ {request.return_end_km ?? 0} KM ({request.return_total_km} KM)</span>
+                                      </div>
+                                    )}
+                                    {request.return_reassigned_at && (
+                                      <div className="text-[10px] text-amber-800 bg-amber-100/80 p-2 rounded-xl border border-amber-300/80 flex items-center gap-1.5">
+                                        <Icon name="sync" className="text-xs text-amber-700" />
+                                        <span>Supir penjemputan disesuaikan oleh <strong>{request.return_reassigned_by_name || 'Koordinator'}</strong> ({formatScanTime(request.return_reassigned_at)})</span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Combined Total KM Box */}
+                                  {((request.departure_total_km !== null && request.departure_total_km !== undefined) || (request.return_total_km !== null && request.return_total_km !== undefined) || request.total_km) && (
+                                    <div className="p-3 bg-slate-900 text-white rounded-2xl flex items-center justify-between text-xs font-bold shadow-xs">
+                                      <span className="flex items-center gap-1.5">
+                                        <Icon name="straighten" className="text-sm text-blue-300" />
+                                        <span>Total Akumulasi Tempuh (Sesi 1 + Sesi 2):</span>
+                                      </span>
+                                      <span className="font-mono text-sm font-extrabold text-amber-300">
+                                        {request.total_km ? `${request.total_km} KM` : `${((request.departure_total_km || 0) + (request.return_total_km || 0))} KM`}
+                                      </span>
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                         ) : (
                           <div className="space-y-2 mt-1">
@@ -867,7 +930,7 @@ export function RequestDetailModal({
                                     {/* Vehicle Info Row */}
                                     <div className="flex items-center gap-2.5 px-3 py-2 bg-white border border-slate-200/60 rounded-xl text-xs">
                                       <span className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600 shrink-0 text-sm">
-                                        🚘
+                                        <Icon name="directions_car" className="text-sm text-slate-700" />
                                       </span>
                                       <div className="min-w-0 flex-1">
                                         <div className="text-[9.5px] text-slate-400 font-bold uppercase tracking-wider">Armada / Kendaraan</div>
@@ -947,7 +1010,8 @@ export function RequestDetailModal({
                         </span>
                         <span className="font-bold text-slate-900 text-[13.5px]">{request.employee || 'Pemohon'}</span>
                         <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
-                          👑 PIC Penumpang (Pemohon Sendiri)
+                          <Icon name="stars" className="text-xs text-amber-600" />
+                          <span>PIC Penumpang (Pemohon Sendiri)</span>
                         </span>
                       </div>
                       {(request.userPhone || request.phone) && (
@@ -992,7 +1056,8 @@ export function RequestDetailModal({
                                   </span>
                                 ) : isPicPassenger ? (
                                   <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
-                                    👑 PIC Penumpang
+                                    <Icon name="stars" className="text-xs text-amber-600" />
+                                    <span>PIC Penumpang</span>
                                   </span>
                                 ) : null}
                               </div>
@@ -1126,8 +1191,9 @@ export function RequestDetailModal({
                         <p className="text-[11px] text-amber-800 mt-1.5 leading-relaxed font-medium">
                           {request.pending_previous_trip?.message}
                         </p>
-                        <div className="mt-3 px-3 py-1.5 bg-amber-100/90 border border-amber-300 text-amber-900 rounded-lg text-[10.5px] font-bold">
-                          🔒 Form KM Awal akan aktif setelah perjalanan sebelumnya selesai.
+                        <div className="mt-3 px-3 py-1.5 bg-amber-100/90 border border-amber-300 text-amber-900 rounded-lg text-[10.5px] font-bold flex items-center justify-center gap-1.5">
+                          <Icon name="lock" className="text-[13px]" />
+                          <span>Form KM Awal akan aktif setelah perjalanan sebelumnya selesai.</span>
                         </div>
                       </div>
                     );
@@ -1392,12 +1458,22 @@ export function RequestDetailModal({
                             <div key={it.id || idx} className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
                               <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
                                 <span className="font-extrabold text-[#00236f] text-[12px]">{dayLabel}</span>
-                                <span className={`text-[9.5px] font-black px-2 py-0.5 rounded-full uppercase ${
+                                <span className={`text-[9.5px] font-black px-2 py-0.5 rounded-full uppercase flex items-center gap-1 ${
                                   isDone ? 'bg-emerald-100 text-emerald-800' :
                                   isOngoing ? 'bg-amber-100 text-amber-800 animate-pulse' :
                                   'bg-slate-100 text-slate-600'
                                 }`}>
-                                  {isDone ? '✓ Selesai' : isOngoing ? '⚡ Sedang Berjalan' : 'Terjadwal'}
+                                  {isDone ? (
+                                    <>
+                                      <Icon name="check" className="text-[11px]" />
+                                      <span>Selesai</span>
+                                    </>
+                                  ) : isOngoing ? (
+                                    <>
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span>
+                                      <span>Sedang Berjalan</span>
+                                    </>
+                                  ) : 'Terjadwal'}
                                 </span>
                               </div>
                               
@@ -1406,9 +1482,9 @@ export function RequestDetailModal({
                                   logs.map((log: any, li: number) => (
                                     <div key={li} className="p-2 bg-slate-50/80 border border-slate-100 rounded-lg space-y-0.5">
                                       <div className="flex justify-between items-start gap-2">
-                                        <div className={`font-bold text-[11.5px] flex items-center gap-1 ${log.type === 'checkout' ? 'text-amber-700' : 'text-emerald-700'}`}>
-                                          <span>{log.type === 'checkout' ? '🛫' : '🛬'}</span>
-                                          {log.title}
+                                        <div className={`font-bold text-[11.5px] flex items-center gap-1.5 ${log.type === 'checkout' ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                          <Icon name={log.type === 'checkout' ? 'output' : 'input'} className="text-[13px]" />
+                                          <span>{log.title}</span>
                                         </div>
                                         <span className="text-[10px] text-slate-500 font-bold font-mono whitespace-nowrap shrink-0">
                                           {formatScanTime(log.time)}
@@ -1452,6 +1528,195 @@ export function RequestDetailModal({
                   );
                 }
 
+                if (isSplitTrip) {
+                  const s1CheckoutTime = request.departure_checked_out_at || request.security_checked_out_at;
+                  const s1CheckinTime = request.departure_checked_in_at || (request.return_checked_out_at ? null : request.security_checked_in_at);
+                  const s2CheckoutTime = request.return_checked_out_at;
+                  const s2CheckinTime = request.return_checked_in_at;
+
+                  if (!s1CheckoutTime && !s1CheckinTime && !s2CheckoutTime && !s2CheckinTime) return null;
+
+                  const s1StartKm = request.departure_start_km || request.start_km;
+                  const s1EndKm = request.departure_end_km || (s1CheckinTime ? request.end_km : null);
+                  const s1Diff = (s1StartKm && s1EndKm) ? Number(s1EndKm) - Number(s1StartKm) : null;
+
+                  const s2StartKm = request.return_start_km;
+                  const s2EndKm = request.return_end_km;
+                  const s2Diff = (s2StartKm && s2EndKm) ? Number(s2EndKm) - Number(s2StartKm) : null;
+
+                  const totalSplitKm = (s1Diff && s1Diff > 0 ? s1Diff : 0) + (s2Diff && s2Diff > 0 ? s2Diff : 0);
+
+                  return (
+                    <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <Icon name="verified" className="text-sm text-emerald-600" />
+                          Log Keamanan Security (Split Trip)
+                        </span>
+                        {totalSplitKm > 0 && (
+                          <span className="text-blue-800 font-extrabold font-mono text-[11px] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                            Total: {totalSplitKm.toLocaleString('id-ID')} km
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Sesi 1 Log */}
+                      <div className="bg-white p-3 rounded-xl border border-blue-100 shadow-2xs space-y-2">
+                        <div className="flex items-center justify-between border-b border-blue-50 pb-1.5">
+                          <span className="font-extrabold text-blue-900 text-[12px] flex items-center gap-1.5">
+                            <Icon name="flight_takeoff" className="text-blue-700 text-sm" />
+                            <span>Sesi 1: Antar (Keberangkatan)</span>
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            s1CheckinTime ? 'bg-emerald-100 text-emerald-800' :
+                            s1CheckoutTime ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {s1CheckinTime ? 'Selesai Kembali' : s1CheckoutTime ? 'Dalam Perjalanan' : 'Menunggu'}
+                          </span>
+                        </div>
+
+                        {s1CheckoutTime ? (
+                          <div className="space-y-1.5 text-xs">
+                            <div className="flex justify-between items-start gap-2">
+                              <span className="font-bold text-amber-800 flex items-center gap-1 text-[11.5px]">
+                                <Icon name="output" className="text-[13px] text-amber-700" />
+                                <span>Scan Keluar Gate:</span>
+                              </span>
+                              <span className="text-[10.5px] text-slate-400 font-bold font-mono">
+                                {formatScanTime(s1CheckoutTime)}
+                              </span>
+                            </div>
+                            <div className="text-slate-600 text-[11px]">
+                              Petugas: <span className="font-bold text-slate-800">{request.departure_checkout_by || request.security_checkout_by || "Security Pos Gerbang"}</span>
+                            </div>
+                            {s1StartKm && (
+                              <div className="flex justify-between items-center text-[11px] pt-1 border-t border-slate-50">
+                                <span className="text-slate-600">KM Keluar:</span>
+                                <span className="font-extrabold font-mono text-amber-950 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                  {Number(s1StartKm).toLocaleString('id-ID')} km
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-slate-400 italic">Belum checkout keluar gerbang.</div>
+                        )}
+
+                        {s1CheckinTime && (
+                          <div className="mt-2 pt-2 border-t border-slate-100 space-y-1.5 text-xs">
+                            <div className="flex justify-between items-start gap-2">
+                              <span className="font-bold text-emerald-800 flex items-center gap-1 text-[11.5px]">
+                                <Icon name="input" className="text-[13px] text-emerald-700" />
+                                <span>Scan Masuk Kembali (Gate):</span>
+                              </span>
+                              <span className="text-[10.5px] text-slate-400 font-bold font-mono">
+                                {formatScanTime(s1CheckinTime)}
+                              </span>
+                            </div>
+                            <div className="text-slate-600 text-[11px]">
+                              Petugas: <span className="font-bold text-slate-800">{request.departure_checkin_by || request.security_checkin_by || "Security Pos Gerbang"}</span>
+                            </div>
+                            {s1EndKm && (
+                              <div className="flex justify-between items-center text-[11px] pt-1 border-t border-slate-50">
+                                <span className="text-slate-600">KM Masuk:</span>
+                                <span className="font-extrabold font-mono text-emerald-950 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                  {Number(s1EndKm).toLocaleString('id-ID')} km
+                                </span>
+                              </div>
+                            )}
+                            {s1Diff !== null && s1Diff > 0 && (
+                              <div className="flex justify-between items-center text-[11px] text-blue-900 font-bold">
+                                <span>Jarak Tempuh Sesi 1:</span>
+                                <span className="font-mono bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-blue-800">
+                                  {s1Diff.toLocaleString('id-ID')} km
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Sesi 2 Log */}
+                      <div className="bg-white p-3 rounded-xl border border-amber-100 shadow-2xs space-y-2">
+                        <div className="flex items-center justify-between border-b border-amber-50 pb-1.5">
+                          <span className="font-extrabold text-amber-900 text-[12px] flex items-center gap-1.5">
+                            <Icon name="flight_land" className="text-amber-700 text-sm" />
+                            <span>Sesi 2: Jemput (Penjemputan)</span>
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            s2CheckinTime ? 'bg-emerald-100 text-emerald-800' :
+                            s2CheckoutTime ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {s2CheckinTime ? 'Selesai Kembali' : s2CheckoutTime ? 'Dalam Penjemputan' : 'Menunggu Jadwal'}
+                          </span>
+                        </div>
+
+                        {s2CheckoutTime ? (
+                          <div className="space-y-1.5 text-xs">
+                            <div className="flex justify-between items-start gap-2">
+                              <span className="font-bold text-amber-800 flex items-center gap-1 text-[11.5px]">
+                                <Icon name="output" className="text-[13px] text-amber-700" />
+                                <span>Scan Berangkat Jemput (Gate):</span>
+                              </span>
+                              <span className="text-[10.5px] text-slate-400 font-bold font-mono">
+                                {formatScanTime(s2CheckoutTime)}
+                              </span>
+                            </div>
+                            <div className="text-slate-600 text-[11px]">
+                              Petugas: <span className="font-bold text-slate-800">{request.return_checkout_by || "Security Pos Gerbang"}</span>
+                            </div>
+                            {s2StartKm && (
+                              <div className="flex justify-between items-center text-[11px] pt-1 border-t border-slate-50">
+                                <span className="text-slate-600">KM Keluar Jemput:</span>
+                                <span className="font-extrabold font-mono text-amber-950 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                  {Number(s2StartKm).toLocaleString('id-ID')} km
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-slate-500 italic">
+                            {request.return_departure_time ? `Rencana jemput: ${request.return_departure_time}` : 'Menunggu driver jemput berangkat.'}
+                          </div>
+                        )}
+
+                        {s2CheckinTime && (
+                          <div className="mt-2 pt-2 border-t border-slate-100 space-y-1.5 text-xs">
+                            <div className="flex justify-between items-start gap-2">
+                              <span className="font-bold text-emerald-800 flex items-center gap-1 text-[11.5px]">
+                                <Icon name="input" className="text-[13px] text-emerald-700" />
+                                <span>Scan Masuk Kembali Selesai (Gate):</span>
+                              </span>
+                              <span className="text-[10.5px] text-slate-400 font-bold font-mono">
+                                {formatScanTime(s2CheckinTime)}
+                              </span>
+                            </div>
+                            <div className="text-slate-600 text-[11px]">
+                              Petugas: <span className="font-bold text-slate-800">{request.return_checkin_by || "Security Pos Gerbang"}</span>
+                            </div>
+                            {s2EndKm && (
+                              <div className="flex justify-between items-center text-[11px] pt-1 border-t border-slate-50">
+                                <span className="text-slate-600">KM Masuk Akhir:</span>
+                                <span className="font-extrabold font-mono text-emerald-950 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                  {Number(s2EndKm).toLocaleString('id-ID')} km
+                                </span>
+                              </div>
+                            )}
+                            {s2Diff !== null && s2Diff > 0 && (
+                              <div className="flex justify-between items-center text-[11px] text-blue-900 font-bold">
+                                <span>Jarak Tempuh Sesi 2:</span>
+                                <span className="font-mono bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-blue-800">
+                                  {s2Diff.toLocaleString('id-ID')} km
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
                 const isCompleted = request.rawStatus === 'completed' || request.status === 'completed';
                 const hasSecurityCheckin = Boolean(request.security_checked_in_at);
 
@@ -1475,8 +1740,9 @@ export function RequestDetailModal({
                       {request.security_checked_out_at && (
                         <div className="bg-white p-2.5 border border-slate-100 rounded-xl shadow-2xs">
                           <div className="flex justify-between items-start gap-2">
-                            <div className="font-extrabold text-amber-800 text-[12px] flex items-center gap-1">
-                              <span>🛫</span> Scan Berangkat (Checkout)
+                            <div className="font-extrabold text-amber-800 text-[12px] flex items-center gap-1.5">
+                              <Icon name="output" className="text-[13px] text-amber-700" />
+                              <span>Scan Berangkat (Checkout)</span>
                             </div>
                             <span className="text-[10.5px] text-slate-400 font-bold font-mono whitespace-nowrap flex-shrink-0">
                               {formatScanTime(request.security_checked_out_at)}
@@ -1505,10 +1771,10 @@ export function RequestDetailModal({
                           isSelfCompleted ? 'bg-emerald-50/60 border-emerald-200' : 'bg-white border-slate-100'
                         }`}>
                           <div className="flex justify-between items-start gap-2">
-                            <div className={`font-extrabold text-[12px] flex items-center gap-1 ${
+                            <div className={`font-extrabold text-[12px] flex items-center gap-1.5 ${
                               isSelfCompleted ? 'text-emerald-900' : 'text-emerald-700'
                             }`}>
-                              <span>{isSelfCompleted ? '🏁' : '🛬'}</span>
+                              <Icon name={isSelfCompleted ? "flag" : "input"} className="text-[13px]" />
                               <span>{isSelfCompleted ? 'Penyelesaian Perjalanan (Checkin / Drop-Off)' : 'Scan Kembali (Checkin)'}</span>
                             </div>
                             <span className="text-[10.5px] text-slate-400 font-bold font-mono whitespace-nowrap flex-shrink-0">

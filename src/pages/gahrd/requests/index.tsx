@@ -2142,7 +2142,10 @@ export default function GAHRDRequestsPage() {
                           ) : (
                             <div className="space-y-4">
                               <div className="p-3 bg-white rounded-xl border border-blue-100 space-y-2">
-                                <div className="text-[11.5px] font-bold text-blue-800">🚙 Armada Keberangkatan Mobil 2</div>
+                                <div className="text-[11.5px] font-bold text-blue-800 flex items-center gap-1.5">
+                                  <Icon name="directions_car" className="text-sm text-blue-700" />
+                                  <span>Armada Keberangkatan Mobil 2</span>
+                                </div>
                                 <div>
                                   <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Biaya Berangkat Mobil 2 (Rp)</label>
                                   <input
@@ -2211,7 +2214,10 @@ export default function GAHRDRequestsPage() {
                               </div>
 
                               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                                <div className="text-[11.5px] font-bold text-slate-700">🔄 Armada Penjemputan Mobil 2</div>
+                                <div className="text-[11.5px] font-bold text-slate-700 flex items-center gap-1.5">
+                                  <Icon name="sync" className="text-sm text-slate-600" />
+                                  <span>Armada Penjemputan Mobil 2</span>
+                                </div>
                                 <div>
                                   <label className="block text-[10.5px] font-semibold text-slate-500 mb-0.5">Biaya Penjemputan Mobil 2 (Rp)</label>
                                   <input
@@ -2327,7 +2333,7 @@ export default function GAHRDRequestsPage() {
                                 : "bg-white/60 border-slate-200 text-slate-600 hover:bg-white"
                             }`}
                           >
-                            <span className="text-base mt-0.5">🔄</span>
+                            <Icon name="swap_horiz" className="text-base text-blue-700 mt-0.5 shrink-0" />
                             <div>
                               <div className="font-extrabold text-[12px]">Antar & Jemput Terpisah</div>
                               <div className="text-[10px] text-slate-400 font-normal">Supir & mobil kembali ke pabrik (bebas tugas siang)</div>
@@ -2338,8 +2344,17 @@ export default function GAHRDRequestsPage() {
 
                       {/* Set 1 & 2: Driver & Vehicle */}
                       <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-3">
-                        <div className="text-[12px] font-bold text-slate-800 flex justify-between">
-                          <span>{assignTripMode === "split_drop_pickup" ? "🛫 Sesi 1: Antar (Keberangkatan)" : "Kendaraan & Driver Utama"}</span>
+                        <div className="text-[12px] font-bold text-slate-800 flex justify-between items-center">
+                          <span className="flex items-center gap-1.5">
+                            {assignTripMode === "split_drop_pickup" ? (
+                              <>
+                                <Icon name="flight_takeoff" className="text-sm text-blue-700" />
+                                <span>Sesi 1: Antar (Keberangkatan)</span>
+                              </>
+                            ) : (
+                              <span>Kendaraan & Driver Utama</span>
+                            )}
+                          </span>
                           {selectedRequest?.passengerCount > 6 && (
                             <span className="text-[10px] text-blue-700 font-semibold bg-blue-50 px-2 py-0.5 rounded">
                               Penumpang: {selectedRequest?.passengerCount} (Bisa 2 Kendaraan)
@@ -2481,7 +2496,8 @@ export default function GAHRDRequestsPage() {
                         <div className="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-3">
                           <div className="flex items-center justify-between pb-1.5 border-b border-amber-200/50">
                             <span className="text-[12px] font-bold text-amber-900 flex items-center gap-1.5">
-                              <span>🛬</span> Sesi 2: Jemput (Penjemputan)
+                              <Icon name="flight_land" className="text-sm text-amber-700" />
+                              <span>Sesi 2: Jemput (Penjemputan)</span>
                             </span>
                             <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
                               Dapat diubah kembali sebelum jemput keluar gate
@@ -2967,7 +2983,7 @@ export default function GAHRDRequestsPage() {
           <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden border border-[#e2e8f0] shadow-2xl flex flex-col">
             <div className="px-6 py-4 border-b border-[#f1f5f9] flex justify-between items-center bg-[#f8fafc]">
               <div className="flex items-center gap-2">
-                <span className="text-lg">🔄</span>
+                <Icon name="sync" className="text-lg text-blue-700" />
                 <h3 className="text-[15px] font-bold text-[#0f172a]">
                   Ubah Supir Jemput #{reassignTargetRequest.id}
                 </h3>

@@ -118,6 +118,80 @@ export default function GAHRDCalendarPage({ onNavigate }: { onNavigate?: (p: str
           sessionDetails: sessionInfo,
         });
       });
+    } else if (r.trip_mode === "split_drop_pickup") {
+      // 1. Sesi 1: Antar (Keberangkatan)
+      let depDateStr = "";
+      if (r.startTime) {
+        depDateStr = r.startTime.includes("T") ? r.startTime.split("T")[0] : r.startTime.split(" ")[0];
+      } else if (r.date) {
+        depDateStr = r.date;
+      }
+
+      let s1Status = "Scheduled";
+      if (r.departure_checked_in_at || r.rawStatus === "completed") {
+        s1Status = "Completed";
+      } else if (r.departure_checked_out_at || r.rawStatus === "on_going") {
+        s1Status = "On Going";
+      }
+
+      const depDriverName = r.driverName || (r.is_external ? `Pihak Ke-3 (${r.external_driver_name || "Sewa"})` : "Driver Antar");
+      const depVehicle = r.vehiclePlate ? `${r.vehicleName || 'Armada'} (${r.vehiclePlate})` : (r.vehicleName || "Armada Antar");
+
+      allEvents.push({
+        id: String(r.id),
+        tripId: `#REQ-${r.id} (Sesi 1: Antar)`,
+        title: `Antar ke ${r.destination}`,
+        datetime: r.startTime ? r.startTime.substring(0, 16).replace("T", " ") : `${r.date} ${r.time || '08:00'}`,
+        dateStr: depDateStr,
+        route: `${r.destination} - Sesi 1 (Antar)`,
+        passenger: r.employee || "Staff",
+        status: s1Status,
+        driverName: depDriverName,
+        driverId: r.driverId ? String(r.driverId) : undefined,
+        sessionDetails: `Armada: ${depVehicle} | Sopir Antar`,
+      });
+
+      // 2. Sesi 2: Jemput (Penjemputan)
+      const retDriverId = r.return_driver_id ? String(r.return_driver_id) : undefined;
+      const retDriverName = r.returnDriver?.name || r.return_driver_name || r.return_driver?.user?.name || (r.is_external ? `Pihak Ke-3 (${r.external_return_driver_name_2 || "Sewa"})` : "Driver Jemput");
+      const retVehicle = r.returnVehiclePlate ? `${r.returnVehicleName || 'Armada'} (${r.returnVehiclePlate})` : (r.return_vehicle_name || "Armada Jemput");
+
+      let retDateStr = depDateStr;
+      let retTimeStr = "16:00";
+      if (r.return_departure_time) {
+        const parts = r.return_departure_time.split(" ");
+        if (parts.length === 2 && parts[0].includes("-")) {
+          retDateStr = parts[0];
+          retTimeStr = parts[1].substring(0, 5);
+        } else if (r.return_departure_time.includes(":")) {
+          retTimeStr = r.return_departure_time.substring(0, 5);
+        }
+      } else if (r.endTime) {
+        retDateStr = r.endTime.includes("T") ? r.endTime.split("T")[0] : r.endTime.split(" ")[0];
+        const timePart = r.endTime.includes("T") ? r.endTime.split("T")[1] : r.endTime.split(" ")[1];
+        if (timePart) retTimeStr = timePart.substring(0, 5);
+      }
+
+      let s2Status = "Scheduled";
+      if (r.return_checked_in_at || r.rawStatus === "completed") {
+        s2Status = "Completed";
+      } else if (r.return_checked_out_at) {
+        s2Status = "On Going";
+      }
+
+      allEvents.push({
+        id: String(r.id),
+        tripId: `#REQ-${r.id} (Sesi 2: Jemput)`,
+        title: `Jemput dari ${r.destination}`,
+        datetime: `${retDateStr} ${retTimeStr}`,
+        dateStr: retDateStr,
+        route: `${r.destination} - Sesi 2 (Jemput)`,
+        passenger: r.employee || "Staff",
+        status: s2Status,
+        driverName: retDriverName,
+        driverId: retDriverId,
+        sessionDetails: `Armada: ${retVehicle} | Sopir Jemput`,
+      });
     } else {
       if (!r.driverId && !r.is_external) return;
 

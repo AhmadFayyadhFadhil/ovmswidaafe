@@ -1096,8 +1096,9 @@ export default function DriverDashboard() {
                                   {currentTrip.pending_previous_trip?.message}
                                 </p>
                               </div>
-                              <div className="text-[10.5px] text-amber-200 bg-amber-950/60 px-2.5 py-1.5 rounded-lg border border-amber-500/30 font-semibold">
-                                🔒 Form KM Awal akan aktif setelah perjalanan sebelumnya selesai.
+                              <div className="text-[10.5px] text-amber-200 bg-amber-950/60 px-2.5 py-1.5 rounded-lg border border-amber-500/30 font-semibold flex items-center gap-1.5">
+                                <Icon name="lock" className="text-[13px] text-amber-300" />
+                                <span>Form KM Awal akan aktif setelah perjalanan sebelumnya selesai.</span>
                               </div>
                             </div>
                           );

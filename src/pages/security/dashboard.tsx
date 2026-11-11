@@ -1042,7 +1042,11 @@ export default function SecurityDashboard() {
                                       }`}
                                     >
                                       <span>Hari {idx + 1} ({it.date})</span>
-                                      {isDone ? <span className="text-emerald-600 font-black">✓</span> : isOngoing ? <span className="text-amber-600 font-black">⚡</span> : null}
+                                      {isDone ? (
+                                        <Icon name="check" className="text-emerald-600 text-xs font-black" />
+                                      ) : isOngoing ? (
+                                        <Icon name="bolt" className="text-amber-600 text-xs font-black animate-pulse" />
+                                      ) : null}
                                     </button>
                                   );
                                 })}
@@ -1052,7 +1056,8 @@ export default function SecurityDashboard() {
                               <div className="p-3.5 sm:p-4 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-3 shadow-xs">
                                 <div className="flex items-center justify-between border-b border-blue-200 pb-2">
                                   <span className="font-extrabold text-[#00236f] text-xs sm:text-sm flex items-center gap-1.5">
-                                    <span>📅</span> Schedule Hari ke-{activeItineraryIndex + 1} ({currentItinerary.date})
+                                    <Icon name="calendar_today" className="text-xs text-blue-700" />
+                                    <span>Schedule Hari ke-{activeItineraryIndex + 1} ({currentItinerary.date})</span>
                                   </span>
                                   {currentItinerary.is_overtime && (
                                     <span className="text-[9px] bg-red-600 text-white font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
@@ -1066,8 +1071,9 @@ export default function SecurityDashboard() {
                                   {/* Sesi 1 (Pagi) */}
                                   <div className="bg-white p-3 rounded-xl border border-blue-100/80 shadow-2xs space-y-2">
                                     <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                                        <span>🌅</span> Sesi 1 (Pagi)
+                                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                        <Icon name="wb_sunny" className="text-amber-500 text-xs" />
+                                        <span>Sesi 1 (Pagi)</span>
                                       </div>
                                       <span className={`text-[9.5px] font-extrabold px-2 py-0.5 rounded-md ${
                                         morningCompleted ? 'bg-emerald-100 text-emerald-800' :
@@ -1086,7 +1092,7 @@ export default function SecurityDashboard() {
                                         isPreviousDayPending ? (
                                           <div className="p-2 bg-slate-100 border border-slate-200 text-slate-500 rounded-xl text-center text-[11px] font-bold flex items-center justify-center gap-1.5">
                                             <Icon name="lock" className="text-sm text-slate-400" />
-                                            <span>⚠️ Perjalanan Hari Sebelumnya Belum Selesai</span>
+                                            <span>Perjalanan Hari Sebelumnya Belum Selesai</span>
                                           </div>
                                         ) : (
                                           <button
@@ -1123,8 +1129,9 @@ export default function SecurityDashboard() {
                                   {/* Sesi 2 (Sore) */}
                                   <div className="bg-white p-3 rounded-xl border border-blue-100/80 shadow-2xs space-y-2">
                                     <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                                        <span>🌇</span> Sesi 2 (Sore)
+                                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                        <Icon name="wb_twilight" className="text-indigo-500 text-xs" />
+                                        <span>Sesi 2 (Sore)</span>
                                       </div>
                                       {hasAfternoon ? (
                                         <span className={`text-[9.5px] font-extrabold px-2 py-0.5 rounded-md ${
@@ -1149,8 +1156,8 @@ export default function SecurityDashboard() {
                                             <Icon name="lock" className="text-sm text-slate-400" />
                                             <span>
                                               {isPreviousDayPending 
-                                                ? "⚠️ Perjalanan Hari Sebelumnya Belum Selesai" 
-                                                : "⚠️ Sesi 1 (Pagi) Harus Selesai Terlebih Dahulu"}
+                                                ? "Perjalanan Hari Sebelumnya Belum Selesai" 
+                                                : "Sesi 1 (Pagi) Harus Selesai Terlebih Dahulu"}
                                             </span>
                                           </div>
                                         ) : (
@@ -1191,7 +1198,7 @@ export default function SecurityDashboard() {
 
                                 {/* Armada Info */}
                                 <div className="bg-white p-3 rounded-xl border border-blue-100/80 text-[11.5px] font-semibold text-slate-700 flex items-center gap-2">
-                                  <span className="text-base">🚘</span>
+                                  <Icon name="directions_car" className="text-base text-blue-700" />
                                   <div>
                                     {currentItinerary.is_external ? (
                                       <span className="text-purple-700 font-bold">Armada Pihak Ke-3: {currentItinerary.external_driver_name || "Driver Sewa"}{currentItinerary.external_license_plate ? ` (${currentItinerary.external_license_plate})` : ""}</span>
@@ -1220,8 +1227,9 @@ export default function SecurityDashboard() {
                                   <div key={trip.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 space-y-3">
                                     <div className="flex justify-between items-start">
                                       <div>
-                                        <div className="font-bold text-slate-800 text-xs flex items-center gap-1">
-                                          <span>🚙</span> {trip.vehicle?.name || "Kendaraan"} ({trip.vehicle?.plate_number || ""})
+                                        <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                                          <Icon name="directions_car" className="text-sm text-blue-700" />
+                                          <span>{trip.vehicle?.name || "Kendaraan"} ({trip.vehicle?.plate_number || ""})</span>
                                         </div>
                                         <div className="text-[11px] text-slate-500 font-medium mt-0.5">
                                           Driver: {trip.driver?.name || "Driver"}

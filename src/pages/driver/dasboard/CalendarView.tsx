@@ -233,7 +233,7 @@ export default function CalendarView({ events, onViewDetail }: CalendarViewProps
                 <p className="text-[11px] mt-0.5">Jadwal Anda kosong pada hari ini.</p>
               </div>
             ) : (
-              selectedDateEvents.map((ev) => {
+              selectedDateEvents.map((ev, evIdx) => {
                 const statusLower = ev.status.toLowerCase();
                 const badgeClass = statusLower.includes("complete")
                   ? "bg-[#dcfce7] text-[#15803d] border-[#bbf7d0]"
@@ -254,7 +254,7 @@ export default function CalendarView({ events, onViewDetail }: CalendarViewProps
                   : "Terjadwal";
 
                 return (
-                  <div key={ev.id} className="p-3.5 bg-slate-50 border border-slate-200/60 rounded-xl flex flex-col gap-2 hover:border-slate-300 transition-colors">
+                  <div key={`${ev.tripId}_${ev.id}_${evIdx}`} className="p-3.5 bg-slate-50 border border-slate-200/60 rounded-xl flex flex-col gap-2 hover:border-slate-300 transition-colors">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[12.5px] font-extrabold text-[#1e3a8a]">{ev.tripId}</span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeClass}`}>
@@ -267,8 +267,9 @@ export default function CalendarView({ events, onViewDetail }: CalendarViewProps
                     <div className="flex flex-col gap-0.5 text-[11px] text-[#64748b] mt-1">
                       <div>Waktu: <span className="font-semibold text-slate-700">{ev.datetime}</span></div>
                       {ev.sessionDetails && (
-                        <div className="text-[10.5px] text-blue-900 bg-blue-50/70 p-1.5 rounded-md border border-blue-100 font-semibold my-1">
-                          📌 {ev.sessionDetails}
+                        <div className="text-[10.5px] text-blue-900 bg-blue-50/70 p-1.5 rounded-md border border-blue-100 font-semibold my-1 flex items-center gap-1.5">
+                          <Icon name="info" className="text-[13px] text-blue-700 shrink-0" />
+                          <span>{ev.sessionDetails}</span>
                         </div>
                       )}
                       <div>Pemohon: <span className="font-semibold text-slate-700">{ev.passenger}</span></div>
