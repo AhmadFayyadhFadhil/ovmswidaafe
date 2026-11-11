@@ -50,10 +50,17 @@ export function RequestDetailModal({
 
   if (!isOpen || !request) return null;
 
-  const rawStartKm = request.start_km ?? request.operational_trip?.start_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.start_km) ?? (Array.isArray(request.itineraries) && request.itineraries[0]?.start_km);
+  const isSplitTrip = request.trip_mode === 'split_drop_pickup';
+  const rawStartKm = isSplitTrip
+    ? (request.departure_start_km ?? request.start_km)
+    : (request.start_km ?? request.operational_trip?.start_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.start_km) ?? (Array.isArray(request.itineraries) && request.itineraries[0]?.start_km));
   const startKm = localStartKm ?? rawStartKm;
-  const endKm = request.end_km ?? request.operational_trip?.end_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.end_km) ?? (Array.isArray(request.itineraries) && request.itineraries[request.itineraries.length - 1]?.end_km);
-  const totalKm = request.total_km ?? request.operational_trip?.total_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.total_km) ?? ((startKm && endKm) ? Math.max(0, Number(endKm) - Number(startKm)) : null);
+  const endKm = isSplitTrip
+    ? (request.return_end_km ?? request.end_km)
+    : (request.end_km ?? request.operational_trip?.end_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.end_km) ?? (Array.isArray(request.itineraries) && request.itineraries[request.itineraries.length - 1]?.end_km));
+  const totalKm = isSplitTrip
+    ? (((request.departure_total_km ?? 0) + (request.return_total_km ?? 0)) || request.total_km)
+    : (request.total_km ?? request.operational_trip?.total_km ?? (Array.isArray(request.operational_trips) && request.operational_trips[0]?.total_km) ?? ((startKm && endKm) ? Math.max(0, Number(endKm) - Number(startKm)) : null));
 
   const isTripInternal = !request.is_external;
   const isKmRecorded = Boolean(startKm && Number(startKm) > 0);
@@ -729,6 +736,88 @@ export function RequestDetailModal({
                             <div className="text-[11px] font-extrabold text-blue-900 border-t border-slate-100 pt-2 flex justify-between">
                               <span>Total Biaya Sewa:</span>
                               <span>Rp {(Number(request.third_party_cost || 0) + Number(request.third_party_cost_2 || 0)).toLocaleString('id-ID')}</span>
+                            </div>
+                          </div>
+                        ) : isSplitTrip ? (
+                          <div className="space-y-3 mt-1">
+                            {/* Sesi 1: Antar */}
+                            <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-2.5">
+                              <div className="flex items-center justify-between pb-2 border-b border-blue-200/50">
+                                <span className="text-xs font-black text-blue-900 flex items-center gap-1.5">
+                                  <span>🛫</span> Sesi 1: Antar (Keberangkatan)
+                                </span>
+                                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                                  {request.departure_checked_in_at ? "Selesai (Kembali)" : (request.departure_checked_out_at ? "On Trip" : "Menunggu")}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Driver Antar</span>
+                                  <span className="font-extrabold text-slate-800">{request.driverName || "Belum Ditugaskan"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Kendaraan</span>
+                                  <span className="font-extrabold text-slate-800">{request.vehicleModel || "Belum Dipilih"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Keluar Gate</span>
+                                  <span className="font-semibold text-slate-700">{formatScanTime(request.departure_checked_out_at) || "-"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Masuk Kembali</span>
+                                  <span className="font-semibold text-slate-700">{formatScanTime(request.departure_checked_in_at) || "-"}</span>
+                                </div>
+                              </div>
+                              {request.departure_total_km !== null && request.departure_total_km !== undefined && (
+                                <div className="text-[11px] font-bold text-blue-800 bg-white/80 px-2.5 py-1 rounded-lg border border-blue-100 flex justify-between">
+                                  <span>Odometer Sesi Antar:</span>
+                                  <span>{request.departure_start_km ?? 0} KM ➔ {request.departure_end_km ?? 0} KM ({request.departure_total_km} KM)</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Sesi 2: Jemput */}
+                            <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-2.5">
+                              <div className="flex items-center justify-between pb-2 border-b border-amber-200/50">
+                                <span className="text-xs font-black text-amber-900 flex items-center gap-1.5">
+                                  <span>🛬</span> Sesi 2: Jemput (Penjemputan)
+                                </span>
+                                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                  {request.return_checked_in_at ? "Selesai" : (request.return_checked_out_at ? "On Trip Jemput" : "Menunggu")}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Driver Jemput</span>
+                                  <span className="font-extrabold text-slate-800">{request.return_driver?.name || request.driverName || "Belum Ditugaskan"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Kendaraan Jemput</span>
+                                  <span className="font-extrabold text-slate-800">
+                                    {request.return_vehicle ? `${request.return_vehicle.name} (${request.return_vehicle.plate_number})` : request.vehicleModel}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Rencana Berangkat Jemput</span>
+                                  <span className="font-semibold text-slate-700">{formatScanTime(request.return_departure_time) || "-"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Keluar Gate Jemput</span>
+                                  <span className="font-semibold text-slate-700">{formatScanTime(request.return_checked_out_at) || "-"}</span>
+                                </div>
+                              </div>
+                              {request.return_total_km !== null && request.return_total_km !== undefined && (
+                                <div className="text-[11px] font-bold text-amber-800 bg-white/80 px-2.5 py-1 rounded-lg border border-amber-100 flex justify-between">
+                                  <span>Odometer Sesi Jemput:</span>
+                                  <span>{request.return_start_km ?? 0} KM ➔ {request.return_end_km ?? 0} KM ({request.return_total_km} KM)</span>
+                                </div>
+                              )}
+                              {request.return_reassigned_at && (
+                                <div className="text-[10px] text-amber-800 bg-amber-100/80 p-2 rounded-xl border border-amber-300/80 flex items-center gap-1.5">
+                                  <span>🔄</span>
+                                  <span>Supir penjemputan disesuaikan oleh <strong>{request.return_reassigned_by_name || 'Koordinator'}</strong> ({formatScanTime(request.return_reassigned_at)})</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         ) : (

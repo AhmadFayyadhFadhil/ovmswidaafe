@@ -142,6 +142,22 @@ export default function GAHRDRequestsPage() {
   const [externalReturnPhoto2, setExternalReturnPhoto2] = useState<File | null>(null);
   const [thirdPartyCost2, setThirdPartyCost2] = useState("0");
 
+  // Split Drop & Pickup (Antar & Jemput Terpisah) States:
+  const [assignTripMode, setAssignTripMode] = useState<"standby" | "split_drop_pickup">("standby");
+  const [returnDriverId, setReturnDriverId] = useState("");
+  const [returnVehicleId, setReturnVehicleId] = useState("");
+  const [returnDepartureTime, setReturnDepartureTime] = useState("");
+  const [returnNotes, setReturnNotes] = useState("");
+
+  // Re-assign Return Driver Quick Modal States:
+  const [isReassignReturnModalOpen, setIsReassignReturnModalOpen] = useState(false);
+  const [reassignTargetRequest, setReassignTargetRequest] = useState<any | null>(null);
+  const [reassignDriverId, setReassignDriverId] = useState("");
+  const [reassignVehicleId, setReassignVehicleId] = useState("");
+  const [reassignNotes, setReassignNotes] = useState("");
+  const [reassignLoading, setReassignLoading] = useState(false);
+  const [reassignError, setReassignError] = useState("");
+
   const [assignError, setAssignError] = useState("");
   const [cancelConfirmRequestId, setCancelConfirmRequestId] = useState<string | null>(null);
   const [deleteConfirmRequestId, setDeleteConfirmRequestId] = useState<string | null>(null);
@@ -397,6 +413,20 @@ export default function GAHRDRequestsPage() {
     setExternalReturnPhoto2(null);
     setThirdPartyCost2(req.third_party_cost_2 ? formatNumberIndonesian(String(Math.round(Number(req.third_party_cost_2)))) : "0");
 
+    // Prefill split drop & pickup states:
+    setAssignTripMode(req.trip_mode === "split_drop_pickup" ? "split_drop_pickup" : "standby");
+    setReturnDriverId(req.return_driver_id ? String(req.return_driver_id) : (req.driver?.id ? String(req.driver.id) : ""));
+    setReturnVehicleId(req.return_vehicle_id ? String(req.return_vehicle_id) : (req.vehicle?.id ? String(req.vehicle.id) : ""));
+    if (req.return_departure_time) {
+      const match = String(req.return_departure_time).match(/(\d{2}:\d{2})/);
+      setReturnDepartureTime(match ? match[1] : "16:00");
+    } else if (req.endTime) {
+      setReturnDepartureTime(req.endTime);
+    } else {
+      setReturnDepartureTime("16:00");
+    }
+    setReturnNotes(req.return_notes || "");
+
     setAssignError("");
     setIsAssignModalOpen(true);
 
@@ -575,7 +605,18 @@ export default function GAHRDRequestsPage() {
           notes: assignNotes || undefined,
           driver_id: selectedDriverId,
           vehicle_id: selectedVehicleId,
+          trip_mode: assignTripMode,
         };
+
+        if (assignTripMode === 'split_drop_pickup') {
+          payload.return_driver_id = returnDriverId ? Number(returnDriverId) : Number(selectedDriverId);
+          payload.return_vehicle_id = returnVehicleId ? Number(returnVehicleId) : Number(selectedVehicleId);
+          if (returnDepartureTime) {
+            const baseDate = (assignEndTime || assignStartTime || selectedRequest.start_time || new Date().toISOString()).substring(0, 10);
+            payload.return_departure_time = `${baseDate} ${returnDepartureTime}:00`;
+          }
+          payload.return_notes = returnNotes || undefined;
+        }
 
         if (selectedDriverId2 && selectedVehicleId2) {
           if (selectedDriverId === selectedDriverId2) {
@@ -616,6 +657,42 @@ export default function GAHRDRequestsPage() {
       setAssignError(serverMsg ? `Error Server: ${serverMsg}` : "Gagal menugaskan driver.");
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleOpenReassignReturnModal = (req: any) => {
+    setReassignTargetRequest(req);
+    setReassignDriverId(req.return_driver_id ? String(req.return_driver_id) : (req.driver?.id ? String(req.driver.id) : ""));
+    setReassignVehicleId(req.return_vehicle_id ? String(req.return_vehicle_id) : (req.vehicle?.id ? String(req.vehicle.id) : ""));
+    setReassignNotes(req.return_notes || "");
+    setReassignError("");
+    setIsReassignReturnModalOpen(true);
+  };
+
+  const handleReassignReturnSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reassignTargetRequest || !reassignDriverId) {
+      setReassignError("Pilih supir untuk sesi penjemputan.");
+      return;
+    }
+
+    setReassignLoading(true);
+    setReassignError("");
+    try {
+      await requestService.reassignReturnDriver(reassignTargetRequest.id, {
+        return_driver_id: Number(reassignDriverId),
+        return_vehicle_id: reassignVehicleId ? Number(reassignVehicleId) : undefined,
+        notes: reassignNotes || undefined,
+      });
+
+      setIsReassignReturnModalOpen(false);
+      showToast("Supir & armada penjemputan berhasil diperbarui!");
+      await fetchData();
+    } catch (err: any) {
+      console.error("Reassign return error:", err);
+      setReassignError(err.response?.data?.message || "Gagal mengubah supir penjemputan.");
+    } finally {
+      setReassignLoading(false);
     }
   };
 
@@ -1265,6 +1342,21 @@ export default function GAHRDRequestsPage() {
                         >
                           <Icon name="edit" className="text-[16px]" />
                           {isAllocatedByCoordinator ? "Ubah Alokasi" : "Edit Penugasan"}
+                        </button>
+                      )}
+
+                      {req.trip_mode === 'split_drop_pickup' && !req.return_checked_out_at && req.status !== 'CANCELLED' && req.status !== 'REJECTED' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenReassignReturnModal(req);
+                          }}
+                          disabled={actionLoading}
+                          className="px-4 h-9 bg-amber-500 hover:bg-amber-600 text-white text-[12px] font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                          title="Ganti Supir & Armada untuk Sesi Penjemputan"
+                        >
+                          <Icon name="sync" className="text-[15px]" />
+                          Ubah Supir Jemput
                         </button>
                       )}
 
@@ -2200,10 +2292,54 @@ export default function GAHRDRequestsPage() {
                   ) : (
                     /* Internal Fleet Fields */
                     <div className="space-y-4">
+                      {/* Pilihan Mode Operasional: Standby vs Antar & Jemput Terpisah */}
+                      <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-2">
+                        <label className="block text-[11px] font-extrabold text-blue-900 uppercase tracking-wide">
+                          Mode Operasional Driver & Kendaraan
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setAssignTripMode("standby")}
+                            className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border text-left flex items-start gap-2.5 ${
+                              assignTripMode === "standby"
+                                ? "bg-white border-blue-600 text-blue-900 shadow-xs ring-2 ring-blue-500/20"
+                                : "bg-white/60 border-slate-200 text-slate-600 hover:bg-white"
+                            }`}
+                          >
+                            <span className="text-base mt-0.5">⏳</span>
+                            <div>
+                              <div className="font-extrabold text-[12px]">Standby Seharian</div>
+                              <div className="text-[10px] text-slate-400 font-normal">Supir menunggu pemohon di lokasi tujuan</div>
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAssignTripMode("split_drop_pickup");
+                              if (!returnDriverId && selectedDriverId) setReturnDriverId(selectedDriverId);
+                              if (!returnVehicleId && selectedVehicleId) setReturnVehicleId(selectedVehicleId);
+                            }}
+                            className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border text-left flex items-start gap-2.5 ${
+                              assignTripMode === "split_drop_pickup"
+                                ? "bg-white border-blue-600 text-blue-900 shadow-xs ring-2 ring-blue-500/20"
+                                : "bg-white/60 border-slate-200 text-slate-600 hover:bg-white"
+                            }`}
+                          >
+                            <span className="text-base mt-0.5">🔄</span>
+                            <div>
+                              <div className="font-extrabold text-[12px]">Antar & Jemput Terpisah</div>
+                              <div className="text-[10px] text-slate-400 font-normal">Supir & mobil kembali ke pabrik (bebas tugas siang)</div>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+
                       {/* Set 1 & 2: Driver & Vehicle */}
                       <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-3">
                         <div className="text-[12px] font-bold text-slate-800 flex justify-between">
-                          <span>Kendaraan & Driver Utama</span>
+                          <span>{assignTripMode === "split_drop_pickup" ? "🛫 Sesi 1: Antar (Keberangkatan)" : "Kendaraan & Driver Utama"}</span>
                           {selectedRequest?.passengerCount > 6 && (
                             <span className="text-[10px] text-blue-700 font-semibold bg-blue-50 px-2 py-0.5 rounded">
                               Penumpang: {selectedRequest?.passengerCount} (Bisa 2 Kendaraan)
@@ -2336,6 +2472,76 @@ export default function GAHRDRequestsPage() {
                                 return null;
                               })()}
                             </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sesi 2 (Penjemputan) khusus Antar & Jemput Terpisah */}
+                      {assignTripMode === "split_drop_pickup" && (
+                        <div className="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-3">
+                          <div className="flex items-center justify-between pb-1.5 border-b border-amber-200/50">
+                            <span className="text-[12px] font-bold text-amber-900 flex items-center gap-1.5">
+                              <span>🛬</span> Sesi 2: Jemput (Penjemputan)
+                            </span>
+                            <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
+                              Dapat diubah kembali sebelum jemput keluar gate
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-bold text-amber-900 mb-1">Jam Berangkat Jemput</label>
+                              <input
+                                type="text"
+                                placeholder="15:30"
+                                value={returnDepartureTime}
+                                onChange={(e) => setReturnDepartureTime(e.target.value)}
+                                className="w-full h-10 px-2.5 border border-amber-200 rounded-xl text-[12.5px] bg-white focus:outline-none"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[11px] font-bold text-amber-900 mb-1">Driver Jemput</label>
+                              <select
+                                value={returnDriverId}
+                                onChange={(e) => setReturnDriverId(e.target.value)}
+                                className="w-full h-10 px-2 border border-amber-200 rounded-xl text-[12.5px] bg-white focus:outline-none"
+                              >
+                                <option value="">-- Sama dengan Driver Antar --</option>
+                                {availableDrivers.map((d) => (
+                                  <option key={d.id} value={d.id}>
+                                    {d.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-[11px] font-bold text-amber-900 mb-1">Mobil Jemput</label>
+                              <select
+                                value={returnVehicleId}
+                                onChange={(e) => setReturnVehicleId(e.target.value)}
+                                className="w-full h-10 px-2 border border-amber-200 rounded-xl text-[12.5px] bg-white focus:outline-none"
+                              >
+                                <option value="">-- Sama dengan Mobil Antar --</option>
+                                {(availableVehicles && availableVehicles.length > 0 ? availableVehicles : vehicles).map((v) => (
+                                  <option key={v.id} value={v.id}>
+                                    {v.model || v.name} ({v.plate || v.plate_number})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-amber-900 mb-1">Catatan Penjemputan (Opsional)</label>
+                            <input
+                              type="text"
+                              placeholder="Misal: Jemput di lobi gedung B, kontak pemohon..."
+                              value={returnNotes}
+                              onChange={(e) => setReturnNotes(e.target.value)}
+                              className="w-full h-9 px-2.5 border border-amber-200 rounded-xl text-[12px] bg-white focus:outline-none"
+                            />
                           </div>
                         </div>
                       )}
@@ -2751,6 +2957,121 @@ export default function GAHRDRequestsPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Modal: Ubah Supir & Kendaraan Sesi Penjemputan */}
+      {isReassignReturnModalOpen && reassignTargetRequest && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto animate-fadein">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden border border-[#e2e8f0] shadow-2xl flex flex-col">
+            <div className="px-6 py-4 border-b border-[#f1f5f9] flex justify-between items-center bg-[#f8fafc]">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🔄</span>
+                <h3 className="text-[15px] font-bold text-[#0f172a]">
+                  Ubah Supir Jemput #{reassignTargetRequest.id}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsReassignReturnModalOpen(false)}
+                className="text-[#94a3b8] hover:text-[#64748b] cursor-pointer"
+              >
+                <Icon name="close" className="text-[20px]" />
+              </button>
+            </div>
+
+            <form onSubmit={handleReassignReturnSubmit} className="p-6 space-y-4">
+              {reassignError && (
+                <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded-xl text-[12px] font-semibold flex items-center gap-2">
+                  <Icon name="error" className="text-[16px]" />
+                  {reassignError}
+                </div>
+              )}
+
+              <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl space-y-1.5 text-xs text-amber-900">
+                <div className="font-extrabold text-[12.5px]">{reassignTargetRequest.employee} ({reassignTargetRequest.department})</div>
+                <div>Tujuan: <strong>{reassignTargetRequest.destination}</strong></div>
+                <div>Rencana Jemput: <strong>{reassignTargetRequest.return_departure_time || reassignTargetRequest.endTime || "Sore"}</strong></div>
+                <div>Supir Saat Ini: <strong>{reassignTargetRequest.return_driver?.name || reassignTargetRequest.driverName}</strong></div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  Pilih Supir Penjemputan Baru <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={reassignDriverId}
+                  onChange={(e) => setReassignDriverId(e.target.value)}
+                  className="w-full h-10 px-3 border border-slate-200 rounded-xl text-[12.5px] bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                >
+                  <option value="">-- Pilih Supir Baru --</option>
+                  {(availableDrivers && availableDrivers.length > 0 ? availableDrivers : drivers).map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} {d.status === "ON TRIP" ? "(On Trip)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  Pilih Kendaraan Penjemputan (Opsional)
+                </label>
+                <select
+                  value={reassignVehicleId}
+                  onChange={(e) => setReassignVehicleId(e.target.value)}
+                  className="w-full h-10 px-3 border border-slate-200 rounded-xl text-[12.5px] bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                >
+                  <option value="">-- Pertahankan Mobil Saat Ini --</option>
+                  {(availableVehicles && availableVehicles.length > 0 ? availableVehicles : vehicles).map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.model || v.name} ({v.plate || v.plate_number})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  Alasan / Catatan Perubahan
+                </label>
+                <input
+                  type="text"
+                  placeholder="Misal: Supir pagi berhalangan jemput, digantikan Pak Bambang"
+                  value={reassignNotes}
+                  onChange={(e) => setReassignNotes(e.target.value)}
+                  className="w-full h-10 px-3 border border-slate-200 rounded-xl text-[12.5px] bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsReassignReturnModalOpen(false)}
+                  className="h-10 px-4 border border-slate-200 hover:bg-slate-50 rounded-xl text-[12px] font-bold text-slate-600 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={reassignLoading}
+                  className="h-10 px-5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-[12px] font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  {reassignLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="check" className="text-[16px]" />
+                      <span>Simpan Supir Jemput</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

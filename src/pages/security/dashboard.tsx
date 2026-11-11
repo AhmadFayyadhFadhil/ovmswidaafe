@@ -129,10 +129,19 @@ export default function SecurityDashboard() {
     setPassengerSearchQuery("");
     setShowPassengerSuggestions(false);
     if (type === "checkout") {
-      const it = itId && scannedRequest?.itineraries?.find((i: any) => i.id === itId);
-      const prefillKm = it?.start_km || scannedRequest?.start_km || scannedRequest?.vehicle?.odometer || getActiveStartKm() || getActiveVehicleLastOdometer() || "";
-      setOdometerKm(prefillKm ? String(prefillKm) : "");
-      setAdditionalPassengers(it?.additional_passengers || scannedRequest?.additional_passengers || "");
+      let prefillKm = "";
+      if (scannedRequest?.trip_mode === "split_drop_pickup") {
+        if (scannedRequest?.departure_checked_in_at) {
+          prefillKm = String(scannedRequest?.return_vehicle?.odometer || scannedRequest?.return_start_km || "");
+        } else {
+          prefillKm = String(scannedRequest?.departure_start_km || scannedRequest?.vehicle?.odometer || getActiveStartKm() || getActiveVehicleLastOdometer() || "");
+        }
+      } else {
+        const it = itId && scannedRequest?.itineraries?.find((i: any) => i.id === itId);
+        prefillKm = String(it?.start_km || scannedRequest?.start_km || scannedRequest?.vehicle?.odometer || getActiveStartKm() || getActiveVehicleLastOdometer() || "");
+      }
+      setOdometerKm(prefillKm);
+      setAdditionalPassengers(scannedRequest?.additional_passengers || "");
     } else {
       setOdometerKm("");
       setAdditionalPassengers("");
@@ -1279,25 +1288,75 @@ export default function SecurityDashboard() {
                             ) : (
                               !scannedRequest.is_external && (
                                 <div className="pt-1">
-                                  {!scannedRequest.security_checked_out_at ? (
-                                    <button
-                                      onClick={() => handleConfirmScanClick("checkout")}
-                                      className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
-                                    >
-                                      <Icon name="done_all" className="text-base" />
-                                      Konfirmasi Keluar Gate
-                                    </button>
-                                  ) : !scannedRequest.security_checked_in_at ? (
-                                    <button
-                                      onClick={() => handleConfirmScanClick("checkin")}
-                                      className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
-                                    >
-                                      <Icon name="done_all" className="text-base" />
-                                      Konfirmasi Masuk Gate
-                                    </button>
+                                  {scannedRequest.trip_mode === 'split_drop_pickup' ? (
+                                    <div className="space-y-2">
+                                      {!scannedRequest.departure_checked_out_at ? (
+                                        <button
+                                          onClick={() => handleConfirmScanClick("checkout")}
+                                          className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                        >
+                                          <Icon name="done_all" className="text-base" />
+                                          Konfirmasi Keluar Gate - Sesi Antar
+                                        </button>
+                                      ) : !scannedRequest.departure_checked_in_at ? (
+                                        <button
+                                          onClick={() => handleConfirmScanClick("checkin")}
+                                          className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                        >
+                                          <Icon name="done_all" className="text-base" />
+                                          Konfirmasi Masuk Gate - Sesi Antar (Kembali ke Pabrik)
+                                        </button>
+                                      ) : !scannedRequest.return_checked_out_at ? (
+                                        <div className="space-y-1.5">
+                                          <div className="text-[11px] font-bold text-amber-800 bg-amber-50 p-2 rounded-xl border border-amber-200 text-left">
+                                            <div>Driver Jemput: <strong>{scannedRequest.return_driver?.name || scannedRequest.driverName}</strong></div>
+                                            <div>Mobil Jemput: <strong>{scannedRequest.return_vehicle?.name ? `${scannedRequest.return_vehicle.name} (${scannedRequest.return_vehicle.plate_number})` : scannedRequest.vehicleModel}</strong></div>
+                                          </div>
+                                          <button
+                                            onClick={() => handleConfirmScanClick("checkout")}
+                                            className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                          >
+                                            <Icon name="done_all" className="text-base" />
+                                            Konfirmasi Keluar Gate - Sesi Jemput
+                                          </button>
+                                        </div>
+                                      ) : !scannedRequest.return_checked_in_at ? (
+                                        <button
+                                          onClick={() => handleConfirmScanClick("checkin")}
+                                          className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                        >
+                                          <Icon name="done_all" className="text-base" />
+                                          Konfirmasi Masuk Gate - Sesi Jemput (Selesai)
+                                        </button>
+                                      ) : (
+                                        <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl text-center text-xs font-bold border border-emerald-200">
+                                          Seluruh Rangkaian Perjalanan (Antar & Jemput) Telah Selesai
+                                        </div>
+                                      )}
+                                    </div>
                                   ) : (
-                                    <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl text-center text-xs font-bold border border-emerald-200">
-                                      Perjalanan Ini Telah Selesai (Completed)
+                                    <div>
+                                      {!scannedRequest.security_checked_out_at ? (
+                                        <button
+                                          onClick={() => handleConfirmScanClick("checkout")}
+                                          className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                        >
+                                          <Icon name="done_all" className="text-base" />
+                                          Konfirmasi Keluar Gate
+                                        </button>
+                                      ) : !scannedRequest.security_checked_in_at ? (
+                                        <button
+                                          onClick={() => handleConfirmScanClick("checkin")}
+                                          className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                        >
+                                          <Icon name="done_all" className="text-base" />
+                                          Konfirmasi Masuk Gate
+                                        </button>
+                                      ) : (
+                                        <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl text-center text-xs font-bold border border-emerald-200">
+                                          Perjalanan Ini Telah Selesai (Completed)
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>

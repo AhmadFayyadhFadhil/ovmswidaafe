@@ -137,6 +137,34 @@ export interface FleetRequest {
     other_driver_name?: string;
     message?: string;
   } | null;
+
+  // Split Drop & Pickup (Antar & Jemput Terpisah):
+  trip_mode?: "standby" | "split_drop_pickup";
+  departure_start_km?: number | null;
+  departure_end_km?: number | null;
+  departure_total_km?: number | null;
+  departure_checked_out_at?: string | null;
+  departure_checked_in_at?: string | null;
+  departure_checkout_by?: string | null;
+  departure_checkin_by?: string | null;
+
+  return_departure_time?: string | null;
+  return_driver_id?: number | null;
+  return_driver?: { id: number; name: string; email?: string; phone?: string } | null;
+  return_vehicle_id?: number | null;
+  return_vehicle?: { id: number; name: string; plate_number?: string; type?: string; odometer?: number } | null;
+  return_start_km?: number | null;
+  return_end_km?: number | null;
+  return_total_km?: number | null;
+  return_checked_out_at?: string | null;
+  return_checked_in_at?: string | null;
+  return_checkout_by?: string | null;
+  return_checkin_by?: string | null;
+  return_reassigned_at?: string | null;
+  return_reassigned_by?: number | null;
+  return_reassigned_by_name?: string | null;
+  return_notes?: string | null;
+  active_leg_stage?: 'departure_ready' | 'departure_ongoing' | 'return_ready' | 'return_ongoing' | 'all_completed' | null;
 }
 
 export interface RequestItinerary {

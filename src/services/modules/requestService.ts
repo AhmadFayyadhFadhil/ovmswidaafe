@@ -225,6 +225,34 @@ export function mapRequestFromBackend(r: any): FleetRequest {
         : `Disetujui oleh GA Coordinator (${r.ga_approved_by_name || r.ga_approved_name || 'Melodi Bella Astria'})`
     ),
     pending_previous_trip: r.pending_previous_trip || null,
+
+    // Split Drop & Pickup mapping:
+    trip_mode: r.trip_mode || 'standby',
+    departure_start_km: r.departure_start_km ?? null,
+    departure_end_km: r.departure_end_km ?? null,
+    departure_total_km: r.departure_total_km ?? null,
+    departure_checked_out_at: r.departure_checked_out_at || null,
+    departure_checked_in_at: r.departure_checked_in_at || null,
+    departure_checkout_by: r.departure_checkout_by || null,
+    departure_checkin_by: r.departure_checkin_by || null,
+
+    return_departure_time: r.return_departure_time || null,
+    return_driver_id: r.return_driver_id || null,
+    return_driver: r.return_driver || null,
+    return_vehicle_id: r.return_vehicle_id || null,
+    return_vehicle: r.return_vehicle || null,
+    return_start_km: r.return_start_km ?? null,
+    return_end_km: r.return_end_km ?? null,
+    return_total_km: r.return_total_km ?? null,
+    return_checked_out_at: r.return_checked_out_at || null,
+    return_checked_in_at: r.return_checked_in_at || null,
+    return_checkout_by: r.return_checkout_by || null,
+    return_checkin_by: r.return_checkin_by || null,
+    return_reassigned_at: r.return_reassigned_at || null,
+    return_reassigned_by: r.return_reassigned_by || null,
+    return_reassigned_by_name: r.return_reassigned_by_name || null,
+    return_notes: r.return_notes || null,
+    active_leg_stage: r.active_leg_stage || null,
   } as any;
 }
 
@@ -452,6 +480,14 @@ export const requestService = {
   rateDriver: async (id: string | number, ratingData: { rating: number; rating_notes?: string }): Promise<ApiResponse<FleetRequest>> => {
     requestCache = null;
     const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/rate-driver`, ratingData);
+    return {
+      data: mapRequestFromBackend(res.data?.data),
+      message: res.data?.message
+    };
+  },
+  reassignReturnDriver: async (id: string | number, payload: { return_driver_id: number; return_vehicle_id?: number; notes?: string }): Promise<ApiResponse<FleetRequest>> => {
+    requestCache = null;
+    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/reassign-return-driver`, payload);
     return {
       data: mapRequestFromBackend(res.data?.data),
       message: res.data?.message
