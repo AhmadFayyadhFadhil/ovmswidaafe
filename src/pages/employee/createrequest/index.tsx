@@ -271,11 +271,20 @@ export default function CreateRequestPage({ onNavigate }: Props) {
 
     const userRole = (user?.role || "").toLowerCase();
     const userEmail = (user?.email || "").toLowerCase();
+    const userRoles = Array.isArray(user?.roles) ? user.roles.map(r => String(r).toLowerCase()) : [];
     const isPrivilegedUser = 
       userRole === "gahrd" || 
+      userRole === "ga" || 
       userRole === "admin" || 
+      userRole === "administrator" || 
       userRole === "coordinator" || 
       userRole === "driver coordinator" || 
+      userRoles.includes("admin") ||
+      userRoles.includes("administrator") ||
+      userRoles.includes("ga") ||
+      userRoles.includes("gahrd") ||
+      userRoles.includes("coordinator") ||
+      userRoles.includes("driver coordinator") ||
       userEmail.includes("gateam") || 
       userEmail.includes("melodi") || 
       userEmail.includes("winaryo");

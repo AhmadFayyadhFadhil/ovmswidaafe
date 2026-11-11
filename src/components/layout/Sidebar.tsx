@@ -152,7 +152,7 @@ export function Sidebar({
     user?.roles?.some(r => ["ga", "gahrd", "ga team", "ga_team"].includes(r.toLowerCase())) ||
     !!(user?.email && user.email.toLowerCase().includes("gateam"));
   const isSecurity = user?.role === "security";
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role?.toLowerCase() === "admin" || user?.roles?.some(r => r.toLowerCase() === "admin");
 
   const go = (label: string, path: string) => {
     onNavigate?.(label);
@@ -226,14 +226,28 @@ export function Sidebar({
 
   // --- MENU CONFIGURATIONS PER ROLE ---
 
-  // 1. Administrator
+  // 1. Administrator (Super-User All-in-One)
   const adminNav: NavItemOrFolder[] = [
     navItem("dashboard", "Dashboard", "/admin/dashboard", "admin-dashboard"),
-    navFolder("admin_ops", "Operasional Armada", "directions_car", [
+    navFolder("admin_requests", "Permohonan", "description", [
+      { icon: "add_box", label: "Buat Permohonan", path: "/employee/createrequest", guideKey: "create-request" },
+      { icon: "list_alt", label: "Permohonan Saya", path: "/employee/myrequests", guideKey: "my-requests" },
+      { icon: "warning", label: "Permohonan Urgent", path: "/gahrd/urgentrequest", guideKey: "urgent-request" },
+      { icon: "history", label: "Riwayat Permohonan", path: "/employee/history", guideKey: "employee-history" },
+    ]),
+    navFolder("admin_approvals", "Persetujuan", "fact_check", [
+      { icon: "list_alt", label: "Menunggu Persetujuan", path: "/approver/requests", guideKey: "pending-requests" },
+      { icon: "history", label: "Riwayat Persetujuan", path: "/approver/history", guideKey: "approval-history" },
+    ]),
+    navFolder("admin_ops", "Operasional & Alokasi", "directions_car", [
+      { icon: "assignment_turned_in", label: "Alokasi Armada", path: "/gahrd/requests", guideKey: "fleet-allocation" },
+      { icon: "monitor_heart", label: "Monitoring Permohonan", path: "/admin/requests", guideKey: "reports" },
+      { icon: "event", label: "Kalender Operasional", path: "/gahrd/calendar", guideKey: "operational-calendar" },
+      { icon: "calendar_month", label: "Jadwal Kendaraan", path: "/admin/schedules", guideKey: "vehicle-schedules" },
       { icon: "directions_car", label: "Manajemen Kendaraan", path: "/admin/vehicles", guideKey: "vehicle-assignment" },
       { icon: "person", label: "Manajemen Driver", path: "/admin/drivers", guideKey: "driver-assignment" },
-      { icon: "monitor_heart", label: "Monitoring Permohonan", path: "/admin/requests", guideKey: "reports" },
-      { icon: "calendar_month", label: "Jadwal Kendaraan", path: "/admin/schedules", guideKey: "reports" },
+      { icon: "badge", label: "Ketersediaan Driver", path: "/gahrd/driver", guideKey: "driver-availability" },
+      { icon: "qr_code_scanner", label: "Pemeriksaan Gerbang", path: "/security/history", guideKey: "security-gate" },
     ]),
     navFolder("admin_users", "Administrasi & Pengguna", "manage_accounts", [
       { icon: "group", label: "Manajemen Pengguna", path: "/admin/users", guideKey: "user-management" },
