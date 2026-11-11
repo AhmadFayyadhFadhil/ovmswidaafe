@@ -357,9 +357,9 @@ export default function Driver({ onNavigate }: { onNavigate?: (p: string) => voi
               className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#b45309] focus:outline-none flex-shrink-0 cursor-pointer shadow-2xs"
             >
               <option value="All">Masa Berlaku SIM: Semua</option>
-              <option value="valid">🟢 SIM Masih Berlaku</option>
-              <option value="expiring_soon">🟡 Peringatan H-30 (Segera Habis)</option>
-              <option value="expired">🔴 SIM Kadaluarsa (Expired)</option>
+              <option value="valid">SIM Masih Berlaku</option>
+              <option value="expiring_soon">Peringatan H-30 (Segera Habis)</option>
+              <option value="expired">SIM Kadaluarsa (Expired)</option>
             </select>
             <button
               onClick={() => { setSearch(""); setStatusFilter("All"); setSimTypeFilter("All"); setSimStatusFilter("All"); setCurrentPage(1); }}

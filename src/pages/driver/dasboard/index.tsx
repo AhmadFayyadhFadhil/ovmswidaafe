@@ -973,7 +973,7 @@ export default function DriverDashboard() {
                             ? 'bg-amber-500/25 text-amber-300 border-amber-400/50' 
                             : 'bg-blue-500/25 text-blue-300 border-blue-400/50'
                         }`}>
-                          <Icon name={isReturnLeg ? "flight_land" : "flight_takeoff"} className="text-[13px]" />
+                          <Icon name={isReturnLeg ? "sync" : "directions_car"} className="text-[14px]" />
                           <span>{isReturnLeg ? "Sesi 2: Jemput" : "Sesi 1: Antar"}</span>
                         </div>
                       )}
@@ -1028,22 +1028,50 @@ export default function DriverDashboard() {
                           ? 'bg-amber-950/40 border-amber-500/40 text-amber-200' 
                           : 'bg-blue-950/40 border-blue-500/40 text-blue-200'
                       }`}>
-                        <Icon name={isReturnLeg ? "flight_land" : "flight_takeoff"} className="text-[18px] shrink-0 mt-0.5 text-amber-400" />
-                        <div>
-                          <div className="font-bold uppercase tracking-wider text-[10px] mb-0.5 opacity-90">
-                            {isReturnLeg ? "Tugas: Sesi 2 - Penjemputan" : "Tugas: Sesi 1 - Pengantaran"}
+                        <Icon name={isReturnLeg ? "sync" : "directions_car"} className={`text-[18px] shrink-0 mt-0.5 ${isReturnLeg ? 'text-amber-400' : 'text-blue-400'}`} />
+                        <div className="flex-1">
+                          <div className="font-bold uppercase tracking-wider text-[10px] mb-0.5 opacity-90 flex items-center justify-between">
+                            <span>{isReturnLeg ? "Tugas: Sesi 2 - Penjemputan" : "Tugas: Sesi 1 - Pengantaran"}</span>
+                            {isDepartureDriver && currentTrip.departure_checked_in_at && (
+                              <span className="text-[9.5px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2 py-0.5 rounded-full font-bold">
+                                Sesi Antar Selesai (Kembali ke Pabrik)
+                              </span>
+                            )}
                           </div>
                           <div>
                             {isReturnLeg ? (
-                              <span>
-                                Anda ditugaskan untuk <strong>Sesi Penjemputan</strong> menggunakan kendaraan <strong>{assignedVehicleName}</strong>. 
-                                {partnerDriverName ? ` Sesi Pengantaran telah dilakukan oleh ${partnerDriverName}${partnerVehicleName ? ` (${partnerVehicleName})` : ''}.` : ''}
-                              </span>
+                              <div className="space-y-1.5">
+                                <div>
+                                  Anda ditugaskan untuk <strong>Sesi Penjemputan</strong> menggunakan kendaraan <strong>{assignedVehicleName}</strong>
+                                  {currentTrip.return_departure_time ? ` pada pukul ${currentTrip.return_departure_time.split(" ")[1] || currentTrip.return_departure_time}` : ''}.
+                                  {partnerDriverName ? ` Sesi Pengantaran telah diselesaikan oleh ${partnerDriverName}${partnerVehicleName ? ` (${partnerVehicleName})` : ''}.` : ''}
+                                </div>
+                                <div className="text-[10.5px] text-amber-200/90 bg-amber-900/30 p-2 rounded-lg border border-amber-500/20 flex items-start gap-1.5">
+                                  <Icon name="info" className="text-xs mt-0.5 text-amber-400 shrink-0" />
+                                  <span>
+                                    Pastikan Anda dan kendaraan berstatus standby/free tidak bertabrakan dengan penugasan lain menjelang waktu penjemputan. Penugasan penjemputan ini bersifat fleksibel dan masih dapat disesuaikan oleh Koordinator Driver jika ada kendala operasional.
+                                  </span>
+                                </div>
+                              </div>
                             ) : (
-                              <span>
-                                Anda ditugaskan untuk <strong>Sesi Pengantaran</strong> menggunakan kendaraan <strong>{assignedVehicleName}</strong>. 
-                                {partnerDriverName ? ` Sesi Penjemputan selanjutnya akan dilakukan oleh ${partnerDriverName}${partnerVehicleName ? ` (${partnerVehicleName})` : ''}.` : ''}
-                              </span>
+                              <div className="space-y-1">
+                                {currentTrip.departure_checked_in_at ? (
+                                  <div>
+                                    Sesi Pengantaran telah selesai dan armada telah kembali ke pabrik (status kendaraan <strong>Tersedia</strong>). Sesi Penjemputan selanjutnya terjadwal
+                                    {currentTrip.return_departure_time ? ` pukul ${currentTrip.return_departure_time.split(" ")[1] || currentTrip.return_departure_time}` : ''} oleh <strong>{partnerDriverName || "Driver Jemput"}</strong>{partnerVehicleName ? ` (${partnerVehicleName})` : ''}.
+                                    {isDriverCoordinator && (
+                                      <span className="block mt-1 text-[10.5px] text-blue-300">
+                                        Klik <button type="button" onClick={() => handleViewDetail(String(currentTrip.id))} className="underline font-bold text-white cursor-pointer hover:text-blue-200">View Detail</button> untuk meninjau atau menyesuaikan alokasi penjemputan.
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div>
+                                    Anda ditugaskan untuk <strong>Sesi Pengantaran</strong> menggunakan kendaraan <strong>{assignedVehicleName}</strong>. 
+                                    {partnerDriverName ? ` Sesi Penjemputan selanjutnya akan dilakukan oleh ${partnerDriverName}${partnerVehicleName ? ` (${partnerVehicleName})` : ''}.` : ''}
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>

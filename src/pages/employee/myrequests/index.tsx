@@ -66,16 +66,16 @@ function getRequestSteps(rawStatus: string, r?: any): StepState[] {
   const step3Active = rawStatus === "assigned_by_ga" || rawStatus === "waiting_driver";
 
   // 5. Terjadwal / In Progress
-  const isSplitWaitReturn = r?.trip_mode === "split_drop_pickup" && r?.departure_checked_in_at && !r?.return_checked_out_at;
-  const isSplitReturnOngoing = r?.trip_mode === "split_drop_pickup" && r?.return_checked_out_at && !r?.return_checked_in_at;
+  const isSplitWaitReturn = r?.trip_mode === "split_drop_pickup" && (Boolean(r?.departure_checked_in_at) || r?.split_trip_stage === "waiting_pickup") && !r?.return_checked_out_at;
+  const isSplitReturnOngoing = r?.trip_mode === "split_drop_pickup" && Boolean(r?.return_checked_out_at) && !r?.return_checked_in_at;
 
   const step4Done = rawStatus === "completed";
   const step4Active = rawStatus === "driver_assigned" || rawStatus === "on_going";
-  const step4Color = rawStatus === "driver_assigned" ? "blue" : isSplitWaitReturn ? "blue" : "yellow";
+  const step4Color = isSplitWaitReturn ? "blue" : isSplitReturnOngoing ? "yellow" : rawStatus === "on_going" ? "yellow" : "blue";
   const step4Label = isSplitWaitReturn
-    ? "Menunggu Sesi 2"
+    ? "Terjadwal Jemput"
     : isSplitReturnOngoing
-    ? "Jemput (Sesi 2)"
+    ? "Sedang Menjemput"
     : rawStatus === "on_going"
     ? "Sedang Berjalan"
     : "Terjadwal";
@@ -97,16 +97,16 @@ function getRequestSteps(rawStatus: string, r?: any): StepState[] {
 
 function getStatusConfig(rawStatus: string, r?: any) {
   if (r?.trip_mode === "split_drop_pickup") {
-    if (r.departure_checked_in_at && !r.return_checked_out_at) {
+    if ((r.departure_checked_in_at || r.split_trip_stage === "waiting_pickup") && !r.return_checked_out_at) {
       return {
-        label: "Menunggu Penjemputan",
-        color: "bg-[#e0f2fe] text-[#0369a1] border border-[#bae6fd]",
+        label: "Terjadwal Jemput",
+        color: "bg-blue-50 text-blue-700 border border-blue-200",
       };
     }
     if (r.return_checked_out_at && !r.return_checked_in_at) {
       return {
-        label: "Penjemputan Berjalan",
-        color: "bg-[#fef9c3] text-[#854d0e] border border-[#fef08a]",
+        label: "Sedang Menjemput",
+        color: "bg-amber-50 text-amber-700 border border-amber-200",
       };
     }
   }
@@ -601,14 +601,23 @@ export default function MyRequestsPage() {
                             }
                             return null;
                           })()}
-                          {r.rawStatus === "on_going" && (
+                          {/* Split Trip Indicator */}
+                          {r.trip_mode === "split_drop_pickup" && (Boolean(r.departure_checked_in_at) || r.split_trip_stage === "waiting_pickup") && !r.return_checked_out_at && (
+                            <span className="text-[10px] font-bold text-blue-700 flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                              <Icon name="schedule" className="text-xs text-blue-600" />
+                              TERJADWAL JEMPUT
+                            </span>
+                          )}
+                          {r.trip_mode === "split_drop_pickup" && Boolean(r.return_checked_out_at) && !r.return_checked_in_at && (
+                            <span className="text-[10px] font-bold text-amber-700 flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                              SEDANG PENJEMPUTAN
+                            </span>
+                          )}
+                          {r.rawStatus === "on_going" && r.trip_mode !== "split_drop_pickup" && (
                             <span className="text-[10px] font-bold text-[#4059aa] flex items-center gap-1">
                               <span className="w-1.5 h-1.5 rounded-full bg-[#4059aa] animate-pulse" />
-                              {r.trip_mode === "split_drop_pickup" && r.departure_checked_in_at && !r.return_checked_out_at
-                                ? "SESI 1 SELESAI • MENUNGGU PENJEMPUTAN"
-                                : r.trip_mode === "split_drop_pickup" && r.return_checked_out_at && !r.return_checked_in_at
-                                ? "SESI 2 • SEDANG PENJEMPUTAN"
-                                : "SEDANG BERJALAN"}
+                              SEDANG BERJALAN
                             </span>
                           )}
                         </div>
@@ -966,7 +975,7 @@ export default function MyRequestsPage() {
                                       r.departure_checked_out_at ? 'bg-amber-100 text-amber-800 animate-pulse' :
                                       'bg-slate-100 text-slate-600'
                                     }`}>
-                                      {r.departure_checked_in_at ? 'Selesai Antar' : r.departure_checked_out_at ? 'Dalam Perjalanan' : 'Terjadwal'}
+                                      {r.departure_checked_in_at ? 'Selesai Antar (Kembali ke Pabrik)' : r.departure_checked_out_at ? 'Dalam Perjalanan' : 'Terjadwal'}
                                     </span>
                                   </div>
 
@@ -999,9 +1008,10 @@ export default function MyRequestsPage() {
                                     <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 ${
                                       r.return_checked_in_at ? 'bg-emerald-100 text-emerald-800' :
                                       r.return_checked_out_at ? 'bg-amber-100 text-amber-800 animate-pulse' :
+                                      r.departure_checked_in_at ? 'bg-blue-100 text-blue-800' :
                                       'bg-slate-100 text-slate-600'
                                     }`}>
-                                      {r.return_checked_in_at ? 'Selesai Jemput' : r.return_checked_out_at ? 'Dalam Penjemputan' : 'Menunggu'}
+                                      {r.return_checked_in_at ? 'Selesai Jemput' : r.return_checked_out_at ? 'Dalam Penjemputan' : r.departure_checked_in_at ? 'Terjadwal Jemput' : 'Menunggu Sesi Antar'}
                                     </span>
                                   </div>
                                 </div>

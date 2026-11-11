@@ -253,6 +253,8 @@ export function mapRequestFromBackend(r: any): FleetRequest {
     return_reassigned_by_name: r.return_reassigned_by_name || null,
     return_notes: r.return_notes || null,
     active_leg_stage: r.active_leg_stage || null,
+    split_trip_stage: r.split_trip_stage || null,
+    split_trip_status_label: r.split_trip_status_label || null,
   } as any;
 }
 

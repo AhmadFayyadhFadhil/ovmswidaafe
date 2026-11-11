@@ -165,6 +165,8 @@ export interface FleetRequest {
   return_reassigned_by_name?: string | null;
   return_notes?: string | null;
   active_leg_stage?: 'departure_ready' | 'departure_ongoing' | 'return_ready' | 'return_ongoing' | 'all_completed' | null;
+  split_trip_stage?: 'scheduled' | 'departure_ongoing' | 'waiting_pickup' | 'return_ongoing' | 'completed' | null;
+  split_trip_status_label?: string | null;
 }
 
 export interface RequestItinerary {

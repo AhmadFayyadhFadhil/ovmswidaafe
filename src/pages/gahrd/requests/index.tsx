@@ -2348,7 +2348,7 @@ export default function GAHRDRequestsPage() {
                           <span className="flex items-center gap-1.5">
                             {assignTripMode === "split_drop_pickup" ? (
                               <>
-                                <Icon name="flight_takeoff" className="text-sm text-blue-700" />
+                                <Icon name="directions_car" className="text-sm text-blue-700" />
                                 <span>Sesi 1: Antar (Keberangkatan)</span>
                               </>
                             ) : (
@@ -2496,7 +2496,7 @@ export default function GAHRDRequestsPage() {
                         <div className="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-3">
                           <div className="flex items-center justify-between pb-1.5 border-b border-amber-200/50">
                             <span className="text-[12px] font-bold text-amber-900 flex items-center gap-1.5">
-                              <Icon name="flight_land" className="text-sm text-amber-700" />
+                              <Icon name="sync" className="text-sm text-amber-700" />
                               <span>Sesi 2: Jemput (Penjemputan)</span>
                             </span>
                             <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">

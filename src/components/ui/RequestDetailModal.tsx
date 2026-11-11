@@ -746,7 +746,7 @@ export function RequestDetailModal({
                           <div className="space-y-3 mt-1">
                             {(() => {
                               const depOut = request.departure_checked_out_at || (isSplitTrip ? request.security_checked_out_at : null);
-                              const depIn = request.departure_checked_in_at || (isSplitTrip && request.departure_checked_out_at ? request.security_checked_in_at : null);
+                              const depIn = request.departure_checked_in_at || (isSplitTrip ? (request.return_checked_out_at ? null : request.security_checked_in_at) : null);
                               const isDepDone = Boolean(depIn);
                               const isDepOngoing = Boolean(depOut && !depIn);
 
@@ -761,7 +761,7 @@ export function RequestDetailModal({
                                   <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-2.5 shadow-2xs">
                                     <div className="flex items-center justify-between pb-2 border-b border-blue-200/50">
                                       <span className="text-xs font-black text-blue-900 flex items-center gap-1.5">
-                                        <Icon name="flight_takeoff" className="text-[15px] text-blue-600" />
+                                        <Icon name="directions_car" className="text-[15px] text-blue-600" />
                                         <span>Sesi 1: Antar (Keberangkatan)</span>
                                       </span>
                                       <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
@@ -771,7 +771,7 @@ export function RequestDetailModal({
                                             ? "bg-blue-100 text-blue-800 border-blue-200 animate-pulse" 
                                             : "bg-slate-100 text-slate-700 border-slate-200"
                                       }`}>
-                                        {isDepDone ? "Selesai (Kembali ke Pabrik)" : isDepOngoing ? "Sedang Mengantar" : "Menunggu Keberangkatan"}
+                                        {isDepDone ? "Selesai (Kembali ke Pabrik / Tersedia)" : isDepOngoing ? "Sedang Mengantar" : "Menunggu Keberangkatan"}
                                       </span>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 text-xs">
@@ -807,7 +807,7 @@ export function RequestDetailModal({
                                   <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-2.5 shadow-2xs">
                                     <div className="flex items-center justify-between pb-2 border-b border-amber-200/50">
                                       <span className="text-xs font-black text-amber-900 flex items-center gap-1.5">
-                                        <Icon name="flight_land" className="text-[15px] text-amber-600" />
+                                        <Icon name="sync" className="text-[15px] text-amber-600" />
                                         <span>Sesi 2: Jemput (Penjemputan)</span>
                                       </span>
                                       <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
@@ -819,7 +819,7 @@ export function RequestDetailModal({
                                               ? "bg-blue-100 text-blue-800 border-blue-200"
                                               : "bg-slate-100 text-slate-600 border-slate-200"
                                       }`}>
-                                        {isRetDone ? "Selesai Sempurna" : isRetOngoing ? "Sedang Menjemput" : isDepDone ? "Siap Dijemput" : "Menunggu Sesi Antar"}
+                                        {isRetDone ? "Selesai Sempurna" : isRetOngoing ? "Sedang Menjemput" : isDepDone ? "Terjadwal Jemput" : "Menunggu Sesi Antar"}
                                       </span>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 text-xs">
@@ -1564,7 +1564,7 @@ export function RequestDetailModal({
                       <div className="bg-white p-3 rounded-xl border border-blue-100 shadow-2xs space-y-2">
                         <div className="flex items-center justify-between border-b border-blue-50 pb-1.5">
                           <span className="font-extrabold text-blue-900 text-[12px] flex items-center gap-1.5">
-                            <Icon name="flight_takeoff" className="text-blue-700 text-sm" />
+                            <Icon name="directions_car" className="text-blue-700 text-sm" />
                             <span>Sesi 1: Antar (Keberangkatan)</span>
                           </span>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -1640,7 +1640,7 @@ export function RequestDetailModal({
                       <div className="bg-white p-3 rounded-xl border border-amber-100 shadow-2xs space-y-2">
                         <div className="flex items-center justify-between border-b border-amber-50 pb-1.5">
                           <span className="font-extrabold text-amber-900 text-[12px] flex items-center gap-1.5">
-                            <Icon name="flight_land" className="text-amber-700 text-sm" />
+                            <Icon name="sync" className="text-amber-700 text-sm" />
                             <span>Sesi 2: Jemput (Penjemputan)</span>
                           </span>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
