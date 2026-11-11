@@ -498,7 +498,18 @@ export default function DriverDashboard() {
       const asg = rawAssignments.find(
         (a) => String(a.request?.id) === String(r.id) && String(a.driver?.id) === String(user?.id)
       );
-      return asg && asg.status === "accepted";
+      if (asg && asg.status === "accepted") return true;
+
+      // Match if user is assigned as primary driver or return driver on the request
+      if (
+        String(r.driverId) === String(user?.id) || 
+        String(r.return_driver_id) === String(user?.id) || 
+        String(r.return_driver?.id) === String(user?.id)
+      ) {
+        return true;
+      }
+
+      return false;
     }
   );
   
@@ -546,7 +557,10 @@ export default function DriverDashboard() {
         });
       });
     } else {
-      const isMyTrip = String(r.driverId) === String(user?.id);
+      const isMyTrip = 
+        String(r.driverId) === String(user?.id) || 
+        String(r.return_driver_id) === String(user?.id) || 
+        String(r.return_driver?.id) === String(user?.id);
       if (!isMyTrip) return;
 
       let dateStr = "";
@@ -748,6 +762,12 @@ export default function DriverDashboard() {
           return currentTrip.rawStatus;
         })();
 
+        const isReturnLeg = Boolean(
+          currentTrip?.trip_mode === 'split_drop_pickup' &&
+          (String(currentTrip.return_driver_id) === String(user?.id) || String(currentTrip.return_driver?.id) === String(user?.id)) &&
+          String(currentTrip.driverId) !== String(user?.id)
+        );
+
         const heroStatus = currentTrip ? getHeroStatusConfig(driverTripStatus || currentTrip.rawStatus) : null;
 
         const displayDestination = (() => {
@@ -756,6 +776,9 @@ export default function DriverDashboard() {
             if (activeItineraryForDriver.morning_destination) dests.push(activeItineraryForDriver.morning_destination);
             if (activeItineraryForDriver.afternoon_destination) dests.push(activeItineraryForDriver.afternoon_destination);
             return dests.join(" & ") || currentTrip.destination;
+          }
+          if (isReturnLeg) {
+            return `Jemput: ${currentTrip?.destination || "Lokasi Penjemputan"}`;
           }
           return currentTrip?.destination || "";
         })();
@@ -766,6 +789,11 @@ export default function DriverDashboard() {
             if (activeItineraryForDriver.morning_destination) times.push(activeItineraryForDriver.morning_time || "08:00");
             if (activeItineraryForDriver.afternoon_destination) times.push(activeItineraryForDriver.afternoon_time || "16:00");
             return times.join(" & ") || currentTrip.time || "09:00";
+          }
+          if (isReturnLeg && currentTrip?.return_departure_time) {
+            return currentTrip.return_departure_time.includes(' ')
+              ? currentTrip.return_departure_time.split(' ')[1].substring(0, 5)
+              : currentTrip.return_departure_time.substring(11, 16);
           }
           return currentTrip?.time || "09:00";
         })();
@@ -893,12 +921,16 @@ export default function DriverDashboard() {
                     {(() => {
                       const recordedStartKm = 
                         (activeItineraryForDriver && activeItineraryForDriver.start_km) ??
+                        (isReturnLeg ? (currentTrip.return_start_km ?? currentTrip.return_vehicle?.odometer) : null) ??
                         currentTrip.start_km ??
                         currentTrip.operational_trip?.start_km ??
                         (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id))?.start_km) ??
                         null;
 
-                      const matchedVehicle = rawVehicles.find(v => String(v.id) === String(currentTrip.vehicleId || currentTrip.vehicle?.id));
+                      const targetVehicleId = isReturnLeg
+                        ? (currentTrip.return_vehicle_id || currentTrip.return_vehicle?.id)
+                        : (currentTrip.vehicleId || currentTrip.vehicle?.id);
+                      const matchedVehicle = rawVehicles.find(v => String(v.id) === String(targetVehicleId));
                       const lastOdometerNum = matchedVehicle?.odometer || null;
                       const hasRecordedStartKm = Boolean(recordedStartKm && Number(recordedStartKm) > 0);
                       const isTripInternal = !currentTrip.is_external;
@@ -1033,7 +1065,9 @@ export default function DriverDashboard() {
                           (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id))?.end_km) ??
                           null;
                         const hasRecordedEndKm = Boolean(recordedEndKm && Number(recordedEndKm) > 0);
-                        const isCheckedInBySecurity = Boolean(currentTrip.security_checked_in_at);
+                        const isCheckedInBySecurity = currentTrip.trip_mode === 'split_drop_pickup'
+                          ? (isReturnLeg ? Boolean(currentTrip.return_checked_in_at) : Boolean(currentTrip.departure_checked_in_at))
+                          : Boolean(currentTrip.security_checked_in_at);
 
                         // Opsi B Flow 1: If security already scanned check-in at gate, driver MUST input KM Akhir to complete
                         if (!currentTrip.is_external && driverTripStatus === "on_going" && isCheckedInBySecurity && (!hasRecordedEndKm || isEditingEndKm)) {
