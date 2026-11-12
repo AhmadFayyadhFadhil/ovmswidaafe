@@ -3,6 +3,7 @@ import { Layout } from '@/components/layout/RoleLayout';
 import { useApi } from '@/hooks/useApi';
 import { requestService } from '@/services/modules/requestService';
 import { RequestDetailModal } from '@/components/ui/RequestDetailModal';
+import { Icon } from '@/components/ui/Icon';
 import type { FleetRequest } from '@/types';
 import { useAuthContext } from "@/auth/authContext";
 
@@ -24,6 +25,7 @@ interface HistoryItem {
   ratingNotes?: string | null;
   driverName?: string;
   rawRequest?: any;
+  isAdminApproved?: boolean;
 }
 
 // ── Icons ────────────────────────────────────────────────────────────────────
@@ -111,6 +113,11 @@ function HistoryRow({ item, onViewDetail, onRateClick }: { item: HistoryItem; on
             <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-md whitespace-nowrap ${pri.cls}`}>
               {pri.label}
             </span>
+            {item.isAdminApproved && (
+              <span className="text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-md whitespace-nowrap bg-blue-100 text-blue-800 border border-blue-200">
+                Disetujui Admin
+              </span>
+            )}
           </div>
           <div className="text-[13px] sm:text-[15px] font-bold text-[#0f172a] truncate">{item.title}</div>
           <div className="text-[10.5px] sm:text-[12px] text-[#94a3b8] truncate mt-0.5">
@@ -188,6 +195,7 @@ type TabFilter = 'All History' | 'Completed' | 'Rejected' | 'Cancelled';
 
 export default function EmployeeHistoryPage() {
   const { user } = useAuthContext();
+  const [scopeFilter, setScopeFilter] = useState<'my' | 'all'>('my');
   const [tab, setTab] = useState<TabFilter>('All History');
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -245,16 +253,42 @@ export default function EmployeeHistoryPage() {
 
   const requestsList = fetchedRequests || [];
 
-  // Filter completed, rejected, and cancelled requests for the logged-in employee
+  const isMyRequest = (r: any) => {
+    if (!user) return false;
+    return Boolean(
+      String(r.userId) === String(user.id) ||
+      String(r.user_id) === String(user.id) ||
+      String(r.requestedById) === String(user.id) ||
+      String(r.requested_by_id) === String(user.id) ||
+      (r.employee && user.name && String(r.employee).trim().toLowerCase() === String(user.name).trim().toLowerCase())
+    );
+  };
+
+  // Filter completed, rejected, and cancelled requests
   const historyItems: HistoryItem[] = requestsList
-    .filter(r => ["completed", "rejected", "cancelled"].includes(r.rawStatus || ""))
+    .filter(r => {
+      if (!["completed", "rejected", "cancelled"].includes(r.rawStatus || "")) {
+        return false;
+      }
+      if (scopeFilter === 'my') {
+        return isMyRequest(r);
+      }
+      return true;
+    })
     .map(r => {
       const isCompleted = r.rawStatus === "completed";
       const isCancelled = r.rawStatus === "cancelled";
-      const lastApproval = r.approvals && r.approvals.length > 0 
-        ? r.approvals[r.approvals.length - 1] 
-        : null;
-      const notes = lastApproval?.notes ? `Approval notes: ${lastApproval.notes}` : "Processed via OVMS platform.";
+
+      const adminApproval = r.approvals?.find((a: any) => 
+        a.is_admin || a.approver?.role === 'admin' || (a.notes && a.notes.includes('Disetujui oleh Admin'))
+      );
+      const lastApproval = adminApproval || (r.approvals && r.approvals.length > 0 ? r.approvals[r.approvals.length - 1] : null);
+      const isAdminApproved = Boolean(
+        adminApproval ||
+        (lastApproval && (lastApproval.is_admin || lastApproval.approver?.role === 'admin' || (lastApproval.notes && lastApproval.notes.includes('Disetujui oleh Admin'))))
+      );
+
+      const notes = lastApproval?.notes ? `Approval: ${lastApproval.notes}` : "Diproses melalui sistem OVMS.";
 
       return {
         id: r.id,
@@ -270,6 +304,7 @@ export default function EmployeeHistoryPage() {
         ratingNotes: (r as any).rating_notes ?? r.ratingNotes,
         driverName: r.driverName || "Driver",
         rawRequest: r,
+        isAdminApproved,
       };
     });
 
@@ -365,28 +400,64 @@ export default function EmployeeHistoryPage() {
         {/* Filters and List */}
         <div className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden shadow-sm flex flex-col">
           {/* Header & Tabs */}
-          <div className="border-b border-[#e2e8f0] px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="border-b border-[#e2e8f0] px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex items-center gap-2">
               <IconList />
               <span className="font-bold text-[#0f172a] text-[16px]">Log Riwayat ({filtered.length})</span>
             </div>
 
-            {/* Tabs */}
-            <div className="flex bg-[#f1f5f9] p-1 rounded-xl w-full sm:w-auto max-w-full overflow-x-auto no-scrollbar scrollbar-none flex-nowrap self-start sm:self-auto">
-              {(['All History', 'Completed', 'Rejected', 'Cancelled'] as TabFilter[]).map((t) => (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Scope filter: Riwayat Saya vs Riwayat Semua Request */}
+              <div className="flex bg-[#f1f5f9] p-1 rounded-xl">
                 <button
-                  key={t}
+                  type="button"
                   onClick={() => {
-                    setTab(t);
+                    setScopeFilter('my');
                     setCurrentPage(1);
                   }}
-                  className={`whitespace-nowrap flex-shrink-0 px-3.5 sm:px-4 py-2 text-[12px] font-bold rounded-lg transition-all cursor-pointer ${
-                    tab === t ? 'bg-white text-[#1e3a8a] shadow-sm' : 'text-[#64748b] hover:text-[#0f172a]'
+                  className={`flex-1 sm:flex-none px-3.5 py-1.5 text-[11.5px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    scopeFilter === 'my'
+                      ? 'bg-[#1e3a8a] text-white shadow-xs'
+                      : 'text-[#64748b] hover:text-[#0f172a]'
                   }`}
                 >
-                  {tabLabels[t]}
+                  <Icon name="person" className="text-[14px]" />
+                  <span>Riwayat Saya</span>
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScopeFilter('all');
+                    setCurrentPage(1);
+                  }}
+                  className={`flex-1 sm:flex-none px-3.5 py-1.5 text-[11.5px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    scopeFilter === 'all'
+                      ? 'bg-[#1e3a8a] text-white shadow-xs'
+                      : 'text-[#64748b] hover:text-[#0f172a]'
+                  }`}
+                >
+                  <Icon name="groups" className="text-[14px]" />
+                  <span>Riwayat Semua Request</span>
+                </button>
+              </div>
+
+              {/* Status Tabs */}
+              <div className="flex bg-[#f1f5f9] p-1 rounded-xl w-full sm:w-auto max-w-full overflow-x-auto no-scrollbar scrollbar-none flex-nowrap self-start sm:self-auto">
+                {(['All History', 'Completed', 'Rejected', 'Cancelled'] as TabFilter[]).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => {
+                      setTab(t);
+                      setCurrentPage(1);
+                    }}
+                    className={`whitespace-nowrap flex-shrink-0 px-3 sm:px-3.5 py-1.5 text-[11.5px] font-bold rounded-lg transition-all cursor-pointer ${
+                      tab === t ? 'bg-white text-[#1e3a8a] shadow-sm' : 'text-[#64748b] hover:text-[#0f172a]'
+                    }`}
+                  >
+                    {tabLabels[t]}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

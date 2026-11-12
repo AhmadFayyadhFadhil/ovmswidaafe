@@ -1248,25 +1248,55 @@ export default function MyRequestsPage() {
                           </div>
 
                           {(r.qr_code_token && ["driver_assigned", "on_going"].includes(r.rawStatus)) ? (
-                            <div 
-                              onClick={() => setZoomedQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${r.qr_code_token}`)}`)}
-                              className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-2.5 shadow-sm max-w-xs flex-shrink-0 cursor-zoom-in hover:border-blue-500 transition-all hover:scale-105"
-                              title="Klik untuk memperbesar"
-                            >
-                              <div className="bg-white p-1 rounded-lg border border-slate-100 shadow-3xs">
-                                <img
-                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${r.qr_code_token}`)}`}
-                                  alt="Ticket QR Code"
-                                  className="w-[70px] h-[70px] object-contain"
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[9px] font-extrabold text-[#64748b] uppercase tracking-widest">QR Code Tiket</div>
-                                <span className="text-[9px] font-mono font-bold text-slate-400 block mt-0.5">
-                                  {r.qr_code_token}
-                                </span>
-                              </div>
-                            </div>
+                            (() => {
+                              const isTripInternal = !r.is_external;
+                              const recordedStartKm = r.departure_start_km ?? r.start_km;
+                              const hasRecordedStartKm = Boolean(
+                                r.driver_has_started_km || 
+                                (recordedStartKm && Number(recordedStartKm) > 0)
+                              );
+
+                              // Sembunyikan QR Code jika perjalanan internal belum diinput KM awal oleh driver
+                              if (isTripInternal && !hasRecordedStartKm) {
+                                return (
+                                  <div className="flex items-center gap-2.5 bg-amber-50/80 border border-amber-200 rounded-xl p-3 max-w-xs flex-shrink-0 text-amber-900 shadow-2xs">
+                                    <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                                      <Icon name="hourglass_top" className="text-lg animate-pulse" />
+                                    </div>
+                                    <div className="text-left">
+                                      <div className="text-[10px] font-black uppercase tracking-wider text-amber-800">
+                                        QR Belum Aktif
+                                      </div>
+                                      <div className="text-[10.5px] text-amber-700 leading-tight mt-0.5 font-medium">
+                                        Menunggu Driver mengisi KM awal sebelum pemeriksaan gerbang.
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div 
+                                  onClick={() => setZoomedQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${r.qr_code_token}`)}`)}
+                                  className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-2.5 shadow-sm max-w-xs flex-shrink-0 cursor-zoom-in hover:border-blue-500 transition-all hover:scale-105"
+                                  title="Klik untuk memperbesar"
+                                >
+                                  <div className="bg-white p-1 rounded-lg border border-slate-100 shadow-3xs">
+                                    <img
+                                      src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${r.qr_code_token}`)}`}
+                                      alt="Ticket QR Code"
+                                      className="w-[70px] h-[70px] object-contain"
+                                    />
+                                  </div>
+                                  <div>
+                                    <div className="text-[9px] font-extrabold text-[#64748b] uppercase tracking-widest">QR Code Tiket</div>
+                                    <span className="text-[9px] font-mono font-bold text-slate-400 block mt-0.5">
+                                      {r.qr_code_token}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })()
                           ) : r.rawStatus === "completed" ? (
                             (() => {
                               const depTime = r.security_checked_out_at || r.started_at;

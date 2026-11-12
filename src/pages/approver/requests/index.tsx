@@ -258,7 +258,15 @@ function RequestCard({
                 className="flex-1 h-10 bg-[#1e3a8a] text-white rounded-xl text-[12.5px] font-bold hover:bg-[#1e40af] active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
               >
                 <Icon name="fact_check" className="text-[17px]" />
-                <span>Tinjau & Setujui</span>
+                <span>
+                  {req.rawStatus === "submitted"
+                    ? "Setujui (Kadep)"
+                    : req.rawStatus === "approved_department"
+                    ? "Setujui / Alokasi"
+                    : req.rawStatus === "assigned_by_ga"
+                    ? "Setujui Final (GA)"
+                    : "Tinjau & Setujui"}
+                </span>
               </button>
             </div>
           ) : (
@@ -294,6 +302,11 @@ export default function ApprovalManagement() {
   });
   const PER_PAGE = 4;
 
+  const isAdminUser = Boolean(
+    user?.role === "admin" ||
+    user?.roles?.some((r: string) => r.toLowerCase().includes("admin"))
+  );
+
   const isHrGaHead = user?.role === "approver" && 
     (user?.department_id === "HR&GA" || user?.department_id === "HRD&GA" || user?.department_id === "HRD & GA" || user?.department_name === "HRD & GA") && 
     !!user?.is_department_head;
@@ -311,30 +324,40 @@ export default function ApprovalManagement() {
       if (["completed", "rejected", "cancelled"].includes(r.rawStatus || "")) {
         return false;
       }
+      if (isAdminUser) {
+        return ["submitted", "approved_department", "assigned_by_ga"].includes(r.rawStatus || "") || r.canApprove;
+      }
       if (isHrGaHead) {
         return r.canApprove || ["assigned_by_ga", "approved_hrd_ga", "approved_hrd", "waiting_driver", "driver_assigned", "on_going"].includes(r.rawStatus || "");
       }
       return r.canApprove || r.rawStatus === "submitted";
     })
-    .map(r => ({
-      id: r.id,
-      reqId: `#RQ-${r.id}`,
-      requesterName: r.employee || "Staff",
-      role: "Staff Member",
-      department: r.department || "IT Department",
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(r.employee || "Staff")}&background=1e3a8a&color=fff`,
-      priority: r.priority === "URGENT" || r.priority === "HIGH" ? "URGENT" : "NORMAL",
-      destination: r.destination,
-      schedule: `${r.date} ${r.time}`,
-      passengers: `${r.passengers?.length || 0} Person`,
-      date: r.date || "Today",
-      time: r.time || "09:00",
-      vehicleType: r.vehicleModel || "Unassigned",
-      purpose: r.purpose || "Operational Trip",
-      rawStatus: r.rawStatus,
-      canApprove: !!r.canApprove,
-      approvals: r.approvals || [],
-    }));
+    .map(r => {
+      const canApproveThis = Boolean(
+        r.canApprove ||
+        (isAdminUser && ["submitted", "approved_department", "assigned_by_ga"].includes(r.rawStatus || ""))
+      );
+
+      return {
+        id: r.id,
+        reqId: `#RQ-${r.id}`,
+        requesterName: r.employee || "Staff",
+        role: "Staff Member",
+        department: r.department || "IT Department",
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(r.employee || "Staff")}&background=1e3a8a&color=fff`,
+        priority: r.priority === "URGENT" || r.priority === "HIGH" ? "URGENT" : "NORMAL",
+        destination: r.destination,
+        schedule: `${r.date} ${r.time}`,
+        passengers: `${r.passengers?.length || 0} Person`,
+        date: r.date || "Today",
+        time: r.time || "09:00",
+        vehicleType: r.vehicleModel || "Unassigned",
+        purpose: r.purpose || "Operational Trip",
+        rawStatus: r.rawStatus,
+        canApprove: canApproveThis,
+        approvals: r.approvals || [],
+      };
+    });
 
   // Auto-open request detail if ?open_request=X or ?req_id=X is present in URL
   useEffect(() => {

@@ -22,6 +22,7 @@ interface HistoryItem {
   statusLabel: string;
   decidedBy?: string;
   notes?: string;
+  isAdminApproved?: boolean;
 }
 
 // ── Icons ────────────────────────────────────────────────────────────────────
@@ -144,6 +145,11 @@ function HistoryRow({ item, onViewDetail }: { item: HistoryItem; onViewDetail: (
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="text-[13px] font-extrabold text-[#1e3a8a]">{item.reqId}</span>
             <span className={`text-[9.5px] font-extrabold px-2 py-0.5 rounded-full ${pri.cls}`}>{pri.label}</span>
+            {item.isAdminApproved && (
+              <span className="text-[9.5px] font-black px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                Disetujui Admin
+              </span>
+            )}
           </div>
           <div className="text-[13.5px] font-bold text-[#0f172a] truncate">{item.title}</div>
           <div className="text-[11.5px] font-medium text-slate-600 mt-1 space-y-0.5 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
@@ -240,12 +246,21 @@ export default function HistoryPage() {
   const requestsList = fetchedRequests || [];
 
   const historyItems: HistoryItem[] = requestsList
-    .filter(r => ["completed", "rejected", "cancelled"].includes(r.rawStatus || ""))
+    .filter(r => {
+      // Kecualikan yang masih baru (submitted) dan belum pernah melalui aksi approval
+      if (r.rawStatus === "submitted" && (!r.approvals || r.approvals.length === 0)) {
+        return false;
+      }
+      return true;
+    })
     .map(r => {
-      // Cari log persetujuan untuk user saat ini, atau gunakan persetujuan terakhir sebagai cadangan
+      // Cari approval log: utamakan user saat ini, lalu admin, atau yang terakhir
+      const adminApproval = r.approvals?.find((a: any) => 
+        a.is_admin || a.approver?.role === 'admin' || (a.notes && a.notes.includes('Disetujui oleh Admin'))
+      );
       const userApproval = r.approvals?.find(
         (a: any) => String(a.approver?.id) === String(user?.id)
-      ) || (r.approvals && r.approvals.length > 0 ? r.approvals[r.approvals.length - 1] : null);
+      ) || adminApproval || (r.approvals && r.approvals.length > 0 ? r.approvals[r.approvals.length - 1] : null);
 
       const isCancelled = r.rawStatus === "cancelled";
       const isRejected = r.rawStatus === "rejected" || (userApproval && userApproval.status === "rejected");
@@ -259,6 +274,43 @@ export default function HistoryPage() {
       } else if (isRejected) {
         status = "REJECTED";
         statusLabel = "Tindakan Ditolak";
+      } else {
+        switch (r.rawStatus) {
+          case "approved_department":
+            statusLabel = "Disetujui Kadep (Menunggu Alokasi Armada)";
+            break;
+          case "assigned_by_ga":
+            statusLabel = "Disetujui Kadep & Alokasi GA";
+            break;
+          case "approved_hrd_ga":
+          case "approved_hrd":
+            statusLabel = "Disetujui GA / HRD";
+            break;
+          case "waiting_driver":
+          case "driver_assigned":
+            statusLabel = "Disetujui (Driver Terjadwal)";
+            break;
+          case "on_going":
+            statusLabel = "Disetujui (Sedang Berjalan)";
+            break;
+          case "completed":
+            statusLabel = "Perjalanan Selesai";
+            break;
+          default:
+            statusLabel = "Telah Disetujui";
+        }
+      }
+
+      const isAdminApproved = Boolean(
+        adminApproval ||
+        (userApproval && (userApproval.is_admin || userApproval.approver?.role === 'admin' || (userApproval.notes && userApproval.notes.includes('Disetujui oleh Admin'))))
+      );
+
+      let decidedByStr = userApproval?.approver?.name || "Manager Approver";
+      if (isAdminApproved) {
+        decidedByStr = userApproval?.approver?.name 
+          ? `Admin (${userApproval.approver.name})` 
+          : "Disetujui oleh Admin";
       }
 
       let decisionDate = `${r.date} ${r.time}`;
@@ -286,8 +338,9 @@ export default function HistoryPage() {
         priority: (r.priority === "URGENT" || r.priority === "HIGH" ? "URGENT" : "NORMAL") as Priority,
         status,
         statusLabel,
-        decidedBy: userApproval?.approver?.name || "Manager Approver",
-        notes: userApproval?.notes || "Diproses melalui sistem OVMS."
+        decidedBy: decidedByStr,
+        notes: userApproval?.notes || "Diproses melalui sistem OVMS.",
+        isAdminApproved,
       };
     });
 

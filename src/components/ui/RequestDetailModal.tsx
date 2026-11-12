@@ -190,6 +190,34 @@ export function RequestDetailModal({
     }
   };
 
+  const isAdminUser = Boolean(
+    user?.role === "admin" ||
+    user?.roles?.some((r: string) => r.toLowerCase().includes("admin"))
+  );
+
+  const rawStatus = request.rawStatus || request.status || "";
+  const isApproverEligible = Boolean(
+    onApprove && (
+      (request.canApprove && !["completed", "rejected", "cancelled", "on_going", "driver_assigned", "waiting_driver", "assigned_by_ga", "approved_hrd_ga", "approved_department"].includes(rawStatus)) ||
+      (isAdminUser && ["submitted", "approved_department", "assigned_by_ga"].includes(rawStatus))
+    )
+  );
+
+  let adminStageDescription = "";
+  let approveButtonText = "Setujui Permintaan";
+  if (isAdminUser) {
+    if (rawStatus === "submitted") {
+      adminStageDescription = "Tahap 1: Mewakili Kepala Departemen (Kadep)";
+      approveButtonText = "Setujui (Mewakili Kadep)";
+    } else if (rawStatus === "approved_department") {
+      adminStageDescription = "Tahap 2: Mewakili Koordinator Driver / Alokasi Armada";
+      approveButtonText = "Setujui (Mewakili Koordinator)";
+    } else if (rawStatus === "assigned_by_ga") {
+      adminStageDescription = "Tahap 3: Mewakili Persetujuan Akhir GA / HRD";
+      approveButtonText = "Setujui Final (Mewakili GA)";
+    }
+  }
+
   const passengers = request.passengers || [];
   const approvals = request.approvals || [];
 
@@ -250,15 +278,19 @@ export function RequestDetailModal({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Review Banner for Approver */}
-          {request.canApprove && !["completed", "rejected", "cancelled", "on_going", "driver_assigned", "waiting_driver", "assigned_by_ga", "approved_hrd_ga", "approved_department"].includes(request.rawStatus || request.status || "") && onApprove && (
+          {isApproverEligible && onApprove && (
             <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-2xl flex items-center gap-3.5 text-blue-900 shadow-2xs">
               <div className="w-10 h-10 rounded-xl bg-[#1e3a8a] text-white flex items-center justify-center flex-shrink-0 shadow-xs">
                 <Icon name="fact_check" className="text-[22px]" />
               </div>
               <div className="text-xs">
-                <div className="font-bold text-[13.5px] text-[#0f2a5e]">Pengecekan Ulang Pengajuan Kendaraan</div>
+                <div className="font-bold text-[13.5px] text-[#0f2a5e]">
+                  {isAdminUser ? `Pengecekan & Persetujuan Khusus Administrator (${adminStageDescription || 'Multi-Approval'})` : "Pengecekan Ulang Pengajuan Kendaraan"}
+                </div>
                 <div className="text-blue-700 font-medium mt-0.5 leading-relaxed">
-                  Silakan periksa kembali rincian perjalanan, jadwal keberangkatan, dan daftar penumpang di bawah ini sebelum memberikan persetujuan resmi.
+                  {isAdminUser
+                    ? "Sebagai Administrator, Anda berwenang melakukan persetujuan independen pada tahap ini atau mewakili pejabat terkait secara langsung."
+                    : "Silakan periksa kembali rincian perjalanan, jadwal keberangkatan, dan daftar penumpang di bawah ini sebelum memberikan persetujuan resmi."}
                 </div>
               </div>
             </div>
@@ -1861,6 +1893,12 @@ export function RequestDetailModal({
                         }
                       }
 
+                      const isAdminApproved = Boolean(
+                        app.is_admin ||
+                        app.approver?.role === "admin" ||
+                        (app.notes && app.notes.includes("Disetujui oleh Admin"))
+                      );
+
                       return (
                         <div key={app.id || idx} className="relative">
                           <div className={`absolute -left-[23px] top-0 w-3.5 h-3.5 rounded-full border-2 border-white flex items-center justify-center ${
@@ -1868,10 +1906,17 @@ export function RequestDetailModal({
                           }`} />
 
                           <div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-[11.5px] font-bold text-slate-700">
-                                {roleTitle}
-                              </span>
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[11.5px] font-bold text-slate-700">
+                                  {roleTitle}
+                                </span>
+                                {isAdminApproved && (
+                                  <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-200">
+                                    Disetujui oleh Admin
+                                  </span>
+                                )}
+                              </div>
                               <span className={`text-[9px] font-bold uppercase px-1 py-0.2 rounded ${
                                 isApproved ? "text-green-700 bg-green-50" : "text-red-700 bg-red-50"
                               }`}>
@@ -2009,7 +2054,7 @@ export function RequestDetailModal({
             </button>
           )}
 
-          {request.canApprove && !["completed", "rejected", "cancelled", "on_going", "driver_assigned", "waiting_driver", "assigned_by_ga", "approved_hrd_ga", "approved_department"].includes(request.rawStatus || request.status || "") && onApprove && onReject ? (
+          {isApproverEligible && onApprove && onReject ? (
             <>
               <button
                 type="button"
@@ -2043,7 +2088,7 @@ export function RequestDetailModal({
                 className="w-full sm:w-auto h-10 px-6 bg-[#1e3a8a] text-white rounded-xl text-[13px] font-bold hover:bg-[#1e40af] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-sm"
               >
                 <Icon name={isApproving ? "sync" : "check_circle"} className={`text-[16px] ${isApproving ? "animate-spin" : ""}`} />
-                {isApproving ? "Menyetujui..." : "Setujui Permintaan"}
+                {isApproving ? "Menyetujui..." : approveButtonText}
               </button>
             </>
           ) : (
