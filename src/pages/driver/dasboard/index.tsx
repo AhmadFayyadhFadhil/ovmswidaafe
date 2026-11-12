@@ -488,62 +488,87 @@ export default function DriverDashboard() {
 
   const activeTrips = rawRequests.filter(
     (r) => {
+      if (r.rawStatus === "rejected" || r.rawStatus === "cancelled") return false;
+
+      const isDeptDriver = String(r.driverId) === String(user?.id) || String(r.driver_id) === String(user?.id);
+      const isRetDriver = String(r.return_driver_id) === String(user?.id) || String(r.return_driver?.id) === String(user?.id);
+      const isItineraryDriver = Array.isArray(r.itineraries) && r.itineraries.some((it: any) => String(it.driver_id) === String(user?.id));
+      const asg = rawAssignments.find(
+        (a) => String(a.request?.id) === String(r.id) && String(a.driver?.id) === String(user?.id)
+      );
+
+      const isAssignedToUser = isDeptDriver || isRetDriver || isItineraryDriver || (asg && asg.status === "accepted");
+      if (!isAssignedToUser) return false;
+
+      // Handle split trip session completion per driver:
+      if (r.trip_mode === 'split_drop_pickup') {
+        const hasDepEndKm = Boolean(r.departure_end_km && Number(r.departure_end_km) > 0);
+        const hasRetEndKm = Boolean(r.return_end_km && Number(r.return_end_km) > 0);
+
+        if (isDeptDriver && !isRetDriver) {
+          // Departure driver finishes Sesi 1 only when departure_end_km is recorded
+          return !hasDepEndKm;
+        }
+        if (isRetDriver && !isDeptDriver) {
+          // Return driver finishes Sesi 2 only when return_end_km is recorded
+          return !hasRetEndKm;
+        }
+        if (isDeptDriver && isRetDriver) {
+          // Both sessions finished only when return_end_km is recorded
+          return !hasRetEndKm;
+        }
+        return true;
+      }
+
+      // For standard single trips:
+      const hasEndKm = Boolean(
+        (r.end_km && Number(r.end_km) > 0) ||
+        (r.operational_trip?.end_km && Number(r.operational_trip?.end_km) > 0)
+      );
+
+      // If status is completed but end_km is not yet entered (e.g. security gate check-in done), driver still needs to input KM Akhir
+      if (r.rawStatus === "completed") {
+        return !r.is_external && !hasEndKm;
+      }
+
       const isMatchedStatus = 
         r.rawStatus === "driver_assigned" || 
         r.rawStatus === "on_going" ||
         r.rawStatus === "waiting_driver" ||
         r.rawStatus === "assigned_by_ga";
-      if (!isMatchedStatus) return false;
-      
-      const asg = rawAssignments.find(
-        (a) => String(a.request?.id) === String(r.id) && String(a.driver?.id) === String(user?.id)
-      );
-      if (asg && asg.status === "accepted") return true;
 
-      // Handle split trip session completion per driver:
-      if (r.trip_mode === 'split_drop_pickup') {
-        const isDeptDriver = String(r.driverId) === String(user?.id) || String(r.driver_id) === String(user?.id);
-        const isRetDriver = String(r.return_driver_id) === String(user?.id) || String(r.return_driver?.id) === String(user?.id);
-
-        if (isDeptDriver && !isRetDriver && r.departure_checked_in_at) {
-          // Departure driver finished Sesi 1
-          return false;
-        }
-        if (isRetDriver && r.return_checked_in_at) {
-          // Return driver finished Sesi 2
-          return false;
-        }
-        if (isDeptDriver && isRetDriver && r.return_checked_in_at) {
-          // Both sessions finished
-          return false;
-        }
-        return isDeptDriver || isRetDriver;
-      }
-
-      // Match if user is assigned as primary driver or return driver on the request
-      if (
-        String(r.driverId) === String(user?.id) || 
-        String(r.return_driver_id) === String(user?.id) || 
-        String(r.return_driver?.id) === String(user?.id)
-      ) {
-        return true;
-      }
-
-      return false;
+      return isMatchedStatus;
     }
   );
   
   const historyTrips = rawRequests
     .filter((r) => {
-      if (r.rawStatus === "completed" || r.rawStatus === "rejected" || r.rawStatus === "cancelled") {
+      if (r.rawStatus === "rejected" || r.rawStatus === "cancelled") {
         return true;
       }
       if (r.trip_mode === 'split_drop_pickup') {
         const isDeptDriver = String(r.driverId) === String(user?.id) || String(r.driver_id) === String(user?.id);
         const isRetDriver = String(r.return_driver_id) === String(user?.id) || String(r.return_driver?.id) === String(user?.id);
-        if (isDeptDriver && !isRetDriver && r.departure_checked_in_at) {
+        const hasDepEndKm = Boolean(r.departure_end_km && Number(r.departure_end_km) > 0);
+        const hasRetEndKm = Boolean(r.return_end_km && Number(r.return_end_km) > 0);
+
+        if (isDeptDriver && !isRetDriver && hasDepEndKm) {
           return true;
         }
+        if (isRetDriver && !isDeptDriver && hasRetEndKm) {
+          return true;
+        }
+        if (isDeptDriver && isRetDriver && hasRetEndKm) {
+          return true;
+        }
+        return false;
+      }
+      if (r.rawStatus === "completed") {
+        // If internal trip with no end_km recorded yet, not yet completed in driver history
+        if (!r.is_external && (!r.end_km || Number(r.end_km) === 0)) {
+          return false;
+        }
+        return true;
       }
       return false;
     })
@@ -673,6 +698,36 @@ export default function DriverDashboard() {
       }
     }
 
+    if (r.trip_mode === 'split_drop_pickup') {
+      const isRet = String(r.return_driver_id) === String(user?.id) || String(r.return_driver?.id) === String(user?.id);
+      const isDep = String(r.driverId) === String(user?.id) || String(r.driver_id) === String(user?.id);
+      const isRetLeg = isRet && (!isDep || Boolean(r.departure_checked_in_at));
+      
+      if (isRetLeg) {
+        destinationVal = `Jemput dari: ${r.destination || "Lokasi Penjemputan"}`;
+        if (r.return_departure_time) {
+          const retTime = r.return_departure_time;
+          timeVal = retTime.includes(' ') ? retTime.split(' ')[1].substring(0, 5) : (retTime.includes('T') ? retTime.split('T')[1].substring(0, 5) : retTime.substring(0, 5));
+        }
+        const retVeh = r.return_vehicle || rawVehicles.find(v => String(v.id) === String(r.return_vehicle_id));
+        if (retVeh) {
+          vehicleVal = `${retVeh.name || retVeh.model || "Kendaraan"} (${retVeh.plate_number || retVeh.plate || "-"})`;
+        }
+        if (r.return_checked_in_at && (!r.return_end_km || Number(r.return_end_km) === 0)) {
+          tripStatusVal = 'on_going';
+        }
+      } else {
+        destinationVal = `Antar ke: ${r.destination || "Lokasi Tujuan"}`;
+        const depVeh = r.vehicle || rawVehicles.find(v => String(v.id) === String(r.vehicleId || r.vehicle_id));
+        if (depVeh) {
+          vehicleVal = `${depVeh.name || depVeh.model || "Kendaraan"} (${depVeh.plate_number || depVeh.plate || "-"})`;
+        }
+        if (r.departure_checked_in_at && (!r.departure_end_km || Number(r.departure_end_km) === 0)) {
+          tripStatusVal = 'on_going';
+        }
+      }
+    }
+
     return {
       id: asg?.id || String(r.id),
       avatar,
@@ -690,12 +745,23 @@ export default function DriverDashboard() {
     };
   });
 
-  // Current active trip hero (on_going priority, then driver_assigned, then assigned_by_ga, then waiting_driver)
+  // Current active trip hero (prioritize trip pending KM Akhir, then on_going, then driver_assigned, then assigned_by_ga, then waiting_driver)
   const currentTrip = 
+    activeTrips.find(t => {
+      if (t.trip_mode === 'split_drop_pickup') {
+        const isRet = String(t.return_driver_id) === String(user?.id) || String(t.return_driver?.id) === String(user?.id);
+        const isDep = String(t.driverId) === String(user?.id) || String(t.driver_id) === String(user?.id);
+        if (isRet && t.return_checked_in_at && (!t.return_end_km || Number(t.return_end_km) === 0)) return true;
+        if (isDep && !isRet && t.departure_checked_in_at && (!t.departure_end_km || Number(t.departure_end_km) === 0)) return true;
+      }
+      if (t.security_checked_in_at && (!t.end_km || Number(t.end_km) === 0)) return true;
+      return false;
+    }) ||
     activeTrips.find(t => t.rawStatus === "on_going") || 
     activeTrips.find(t => t.rawStatus === "driver_assigned") ||
     activeTrips.find(t => t.rawStatus === "assigned_by_ga") ||
-    activeTrips.find(t => t.rawStatus === "waiting_driver");
+    activeTrips.find(t => t.rawStatus === "waiting_driver") ||
+    (activeTrips.length > 0 ? activeTrips[0] : undefined);
 
   const totalCompletedCount = rawRequests.filter(r => r.rawStatus === "completed").length;
   const upcomingCount = activeTrips.length;
@@ -771,7 +837,7 @@ export default function DriverDashboard() {
             || currentTrip.itineraries.find((it: any) => String(it.driver_id) === String(user?.id));
         })();
 
-        const isSplitTrip = currentTrip?.trip_mode === 'split_drop_pickup';
+        const isSplitTrip = Boolean(currentTrip?.trip_mode === 'split_drop_pickup');
 
         const isReturnDriver = Boolean(
           isSplitTrip &&
@@ -779,14 +845,15 @@ export default function DriverDashboard() {
         );
 
         const isDepartureDriver = Boolean(
-          String(currentTrip?.driverId) === String(user?.id) ||
-          String(currentTrip?.driver_id) === String(user?.id)
+          currentTrip &&
+          (String(currentTrip?.driverId) === String(user?.id) ||
+          String(currentTrip?.driver_id) === String(user?.id))
         );
 
         const isReturnLeg = Boolean(
           isSplitTrip &&
           isReturnDriver &&
-          (!isDepartureDriver || Boolean(currentTrip.departure_checked_in_at))
+          (!isDepartureDriver || Boolean(currentTrip?.departure_checked_in_at))
         );
 
         const driverTripStatus = (() => {
@@ -802,9 +869,12 @@ export default function DriverDashboard() {
           }
 
           if (isSplitTrip) {
+            const hasDepEndKm = Boolean(currentTrip.departure_end_km && Number(currentTrip.departure_end_km) > 0);
+            const hasRetEndKm = Boolean(currentTrip.return_end_km && Number(currentTrip.return_end_km) > 0);
+
             if (isReturnLeg) {
               if (currentTrip.return_checked_in_at) {
-                return 'completed';
+                return hasRetEndKm ? 'completed' : 'on_going';
               } else if (currentTrip.return_checked_out_at) {
                 return 'on_going';
               } else {
@@ -812,7 +882,7 @@ export default function DriverDashboard() {
               }
             } else {
               if (currentTrip.departure_checked_in_at) {
-                return 'completed';
+                return hasDepEndKm ? 'completed' : 'on_going';
               } else if (currentTrip.departure_checked_out_at) {
                 return 'on_going';
               } else {
@@ -828,7 +898,13 @@ export default function DriverDashboard() {
             (ot: any) => String(ot.driver?.id) === String(user?.id) || String(ot.driver_id) === String(user?.id)
           );
           if (myTripDetails) {
+            if (myTripDetails.status === 'completed' && (!myTripDetails.end_km || Number(myTripDetails.end_km) === 0)) {
+              return 'on_going';
+            }
             return myTripDetails.status;
+          }
+          if (currentTrip.security_checked_in_at && (!currentTrip.end_km || Number(currentTrip.end_km) === 0)) {
+            return 'on_going';
           }
           return currentTrip.rawStatus;
         })();
@@ -836,6 +912,7 @@ export default function DriverDashboard() {
         const heroStatus = currentTrip ? getHeroStatusConfig(driverTripStatus || currentTrip.rawStatus) : null;
 
         const displayDestination = (() => {
+          if (!currentTrip) return "";
           if (activeItineraryForDriver) {
             const dests = [];
             if (activeItineraryForDriver.morning_destination) dests.push(activeItineraryForDriver.morning_destination);
@@ -851,6 +928,7 @@ export default function DriverDashboard() {
         })();
 
         const displayTime = (() => {
+          if (!currentTrip) return "";
           if (activeItineraryForDriver) {
             const times = [];
             if (activeItineraryForDriver.morning_destination) times.push(activeItineraryForDriver.morning_time || "08:00");
@@ -871,23 +949,29 @@ export default function DriverDashboard() {
           return currentTrip?.time || "09:00";
         })();
 
-        const assignedVehicleObj = isSplitTrip
-          ? (isReturnLeg
-              ? (currentTrip.return_vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.return_vehicle_id)) || currentTrip.vehicle)
+        const assignedVehicleObj = currentTrip
+          ? (isSplitTrip
+              ? (isReturnLeg
+                  ? (currentTrip.return_vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.return_vehicle_id)) || currentTrip.vehicle)
+                  : (currentTrip.vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.vehicleId || currentTrip.vehicle_id))))
               : (currentTrip.vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.vehicleId || currentTrip.vehicle_id))))
-          : (currentTrip.vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.vehicleId || currentTrip.vehicle_id)));
+          : null;
 
         const assignedVehicleName = assignedVehicleObj 
           ? `${assignedVehicleObj.name || assignedVehicleObj.model || "Kendaraan"} (${assignedVehicleObj.plate_number || assignedVehicleObj.plate || "-"})`
-          : (currentTrip.vehicleModel || "Unassigned");
+          : (currentTrip?.vehicleModel || "Unassigned");
 
-        const partnerDriverName = isReturnLeg
-          ? (currentTrip.driver?.name || currentTrip.driver_name || null)
-          : (currentTrip.return_driver?.name || null);
+        const partnerDriverName = currentTrip
+          ? (isReturnLeg
+              ? (currentTrip.driver?.name || currentTrip.driver_name || null)
+              : (currentTrip.return_driver?.name || null))
+          : null;
 
-        const partnerVehicleObj = isReturnLeg
-          ? (currentTrip.vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.vehicleId || currentTrip.vehicle_id)))
-          : (currentTrip.return_vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.return_vehicle_id)));
+        const partnerVehicleObj = currentTrip
+          ? (isReturnLeg
+              ? (currentTrip.vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.vehicleId || currentTrip.vehicle_id)))
+              : (currentTrip.return_vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.return_vehicle_id))))
+          : null;
 
         const partnerVehicleName = partnerVehicleObj
           ? `${partnerVehicleObj.name || partnerVehicleObj.model || "Kendaraan"} (${partnerVehicleObj.plate_number || partnerVehicleObj.plate || "-"})`
