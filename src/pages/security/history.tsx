@@ -616,46 +616,51 @@ export default function SecurityHistoryPage() {
                                 : "bg-slate-100 text-slate-700 border border-slate-200/60"
                           }`}
                         >
-                          {isSplit ? "Split Trip (Antar & Jemput)" : isExternal ? "Armada Eksternal" : "Armada Internal"}
+                          {isSplit ? (
+                            <>
+                              <span className="inline sm:hidden">Split Trip</span>
+                              <span className="hidden sm:inline">Split Trip (Antar & Jemput)</span>
+                            </>
+                          ) : isExternal ? "Armada Eksternal" : "Armada Internal"}
                         </span>
                       </div>
 
                       {/* Status Pill & Chevron Toggle */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                         {isSplit ? (
                           isRetDone ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shrink-0 whitespace-nowrap">
                               <Icon name="check_circle" className="text-xs text-emerald-600" />
                               <span>Selesai (Semua Sesi)</span>
                             </span>
                           ) : isRetOngoing ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 shrink-0 whitespace-nowrap">
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                               <span>Sedang Jemput</span>
                             </span>
                           ) : isDepDone ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80 shrink-0 whitespace-nowrap">
                               <Icon name="schedule" className="text-xs text-blue-600" />
                               <span>Terjadwal Jemput</span>
                             </span>
                           ) : isDepOngoing ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 shrink-0 whitespace-nowrap">
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                               <span>Sedang Antar</span>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700 border border-slate-200/80">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700 border border-slate-200/80 shrink-0 whitespace-nowrap">
                               <Icon name="schedule" className="text-xs text-slate-500" />
                               <span>Terjadwal</span>
                             </span>
                           )
                         ) : hasCheckin ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shrink-0 whitespace-nowrap">
                             <Icon name="check_circle" className="text-xs text-emerald-600" />
                             <span>Selesai</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 shrink-0 whitespace-nowrap">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                             <span>Sedang Jalan</span>
                           </span>
@@ -687,18 +692,42 @@ export default function SecurityHistoryPage() {
                         </div>
 
                         {isSplit ? (
-                          <div className="text-[11px] text-slate-500 mt-1 space-y-0.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-blue-800 bg-blue-50 px-1.5 py-0.2 rounded text-[9.5px]">Sesi 1</span>
-                              <span className="font-semibold text-slate-700">{log.vehicle?.name ? `${log.vehicle.name} (${log.vehicle.plate_number})` : (log.vehicleModel || "Armada Antar")}</span>
-                              <span className="text-slate-300">•</span>
-                              <span className="text-slate-600">{log.driver?.name || log.driverName || "-"}</span>
+                          <div className="mt-2 space-y-1.5">
+                            {/* Sesi 1 Box */}
+                            <div className="bg-slate-50/80 rounded-lg p-2 border border-slate-100 text-[11px] space-y-1">
+                              <div className="flex items-start gap-1.5">
+                                <span className="font-bold text-blue-800 bg-blue-100/70 px-1.5 py-0.5 rounded text-[9px] shrink-0 mt-0.5">
+                                  Sesi 1 (Antar)
+                                </span>
+                                <div className="font-bold text-slate-800 leading-snug">
+                                  {log.vehicle?.name ? `${log.vehicle.name} (${log.vehicle.plate_number})` : (log.vehicleModel || "Armada Antar")}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 text-[10.5px] text-slate-500 pl-0.5">
+                                <Icon name="person" className="text-xs text-slate-400 shrink-0" />
+                                <span>Driver: <strong className="text-slate-700">{log.driver?.name || log.driverName || "-"}</strong></span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded text-[9.5px]">Sesi 2</span>
-                              <span className="font-semibold text-slate-700">{log.return_vehicle?.name ? `${log.return_vehicle.name} (${log.return_vehicle.plate_number})` : (log.vehicleModel || "Armada Jemput")}</span>
-                              <span className="text-slate-300">•</span>
-                              <span className="text-slate-600">{log.return_driver?.name || log.driverName || "-"}</span>
+
+                            {/* Sesi 2 Box */}
+                            <div className="bg-slate-50/80 rounded-lg p-2 border border-slate-100 text-[11px] space-y-1">
+                              <div className="flex items-start gap-1.5">
+                                <span className="font-bold text-amber-800 bg-amber-100/70 px-1.5 py-0.5 rounded text-[9px] shrink-0 mt-0.5">
+                                  Sesi 2 (Jemput)
+                                </span>
+                                <div className="font-bold text-slate-800 leading-snug">
+                                  {log.return_vehicle?.name ? `${log.return_vehicle.name} (${log.return_vehicle.plate_number})` : (log.vehicleModel || "Armada Jemput")}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 text-[10.5px] text-slate-500 pl-0.5">
+                                <Icon name="person" className="text-xs text-slate-400 shrink-0" />
+                                <span>Driver: <strong className="text-slate-700">{log.return_driver?.name || log.driverName || "-"}</strong></span>
+                                {log.return_departure_time && (
+                                  <span className="text-slate-400 text-[10px] ml-1">
+                                    • {formatDateTime(log.return_departure_time)}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ) : (
@@ -752,41 +781,47 @@ export default function SecurityHistoryPage() {
                       
                       {isSplit ? (
                         <div className="space-y-3">
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
                             <span className="text-[11px] font-extrabold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
-                              <Icon name="sync" className="text-sm text-blue-700" />
-                              Rincian Sesi Perjalanan (Split Trip: Antar & Jemput)
+                              <Icon name="sync" className="text-sm text-blue-700 shrink-0" />
+                              <span className="inline sm:hidden">Rincian Sesi (Split Trip)</span>
+                              <span className="hidden sm:inline">Rincian Sesi Perjalanan (Split Trip: Antar & Jemput)</span>
                             </span>
                             {log.total_km ? (
-                              <span className="text-[10px] bg-emerald-600 text-white font-extrabold px-2 py-0.5 rounded-full font-mono">
+                              <span className="text-[10px] bg-emerald-600 text-white font-extrabold px-2.5 py-0.5 rounded-full font-mono shrink-0">
                                 Total: {Number(log.total_km).toLocaleString('id-ID')} km
                               </span>
                             ) : null}
                           </div>
 
                           {/* Card Sesi 1: Antar */}
-                          <div className="bg-white p-4 rounded-xl border border-blue-200/70 shadow-xs space-y-3">
-                            <div className="flex justify-between items-start gap-2 border-b border-blue-50 pb-2.5">
-                              <div>
+                          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-blue-200/70 shadow-xs space-y-3">
+                            <div className="border-b border-blue-50 pb-2.5 space-y-1.5">
+                              {/* Row 1: Session Title + Status Badge */}
+                              <div className="flex items-center justify-between gap-2">
                                 <div className="font-extrabold text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
-                                  <Icon name="directions_car" className="text-base text-blue-900" />
+                                  <Icon name="directions_car" className="text-base text-blue-900 shrink-0" />
                                   <span>Sesi 1: Antar (Keberangkatan)</span>
-                                  <span className="text-slate-400 font-normal">
-                                    — {log.vehicle?.name ? `${log.vehicle.name} (${log.vehicle.plate_number})` : (log.vehicleModel || "Armada")}
-                                  </span>
                                 </div>
-                                <div className="text-[11.5px] text-slate-600 font-medium mt-0.5 flex items-center gap-1">
-                                  <Icon name="person" className="text-xs text-slate-400" />
-                                  <span>Driver: <strong className="text-slate-800">{log.driver?.name || log.driverName || "-"}</strong></span>
-                                </div>
+                                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 whitespace-nowrap ${
+                                  isDepDone ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                                  isDepOngoing ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse" :
+                                  "bg-slate-100 text-slate-600 border border-slate-200"
+                                }`}>
+                                  {isDepDone ? "Selesai (Kembali)" : isDepOngoing ? "Sedang Mengantar" : "Terjadwal"}
+                                </span>
                               </div>
-                              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full flex-shrink-0 ${
-                                isDepDone ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
-                                isDepOngoing ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse" :
-                                "bg-slate-100 text-slate-600 border border-slate-200"
-                              }`}>
-                                {isDepDone ? "Selesai (Kembali)" : isDepOngoing ? "Sedang Mengantar" : "Terjadwal"}
-                              </span>
+
+                              {/* Row 2: Vehicle details */}
+                              <div className="text-[11.5px] text-slate-700 font-semibold flex items-center gap-1.5 pl-5">
+                                <span>{log.vehicle?.name ? `${log.vehicle.name} (${log.vehicle.plate_number})` : (log.vehicleModel || "Armada")}</span>
+                              </div>
+
+                              {/* Row 3: Driver details */}
+                              <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1 pl-5">
+                                <Icon name="person" className="text-xs text-slate-400 shrink-0" />
+                                <span>Driver: <strong className="text-slate-800">{log.driver?.name || log.driverName || "-"}</strong></span>
+                              </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
@@ -839,12 +874,19 @@ export default function SecurityHistoryPage() {
 
                             {/* Sesi 1 Odometer summary */}
                             {log.departure_total_km !== null && log.departure_total_km !== undefined && (
-                              <div className="text-[11px] font-bold text-blue-800 bg-blue-50/70 px-3 py-1.5 rounded-xl border border-blue-200 flex items-center justify-between">
-                                <span className="flex items-center gap-1">
-                                  <Icon name="speed" className="text-xs text-blue-600" />
-                                  <span>Odometer Sesi Antar:</span>
+                              <div className="bg-blue-50/70 p-2.5 sm:px-3 sm:py-2 rounded-xl border border-blue-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                                <span className="text-[11px] font-bold text-blue-900 flex items-center gap-1.5">
+                                  <Icon name="speed" className="text-sm text-blue-600 shrink-0" />
+                                  <span>Odometer Sesi Antar</span>
                                 </span>
-                                <span className="font-mono">{Number(log.departure_start_km ?? 0).toLocaleString('id-ID')} KM ➔ {Number(log.departure_end_km ?? 0).toLocaleString('id-ID')} KM ({Number(log.departure_total_km).toLocaleString('id-ID')} KM)</span>
+                                <div className="flex items-center justify-between sm:justify-end gap-2 text-xs font-semibold">
+                                  <span className="font-mono text-slate-700 text-[11px]">
+                                    {Number(log.departure_start_km ?? 0).toLocaleString('id-ID')} km ➔ {Number(log.departure_end_km ?? 0).toLocaleString('id-ID')} km
+                                  </span>
+                                  <span className="text-[10px] font-extrabold bg-blue-600 text-white px-2 py-0.5 rounded-full font-mono shrink-0">
+                                    {Number(log.departure_total_km).toLocaleString('id-ID')} km
+                                  </span>
+                                </div>
                               </div>
                             )}
 
@@ -854,44 +896,54 @@ export default function SecurityHistoryPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleOpenCheckin(log)}
-                                  className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                  className="w-full min-h-[44px] py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
                                 >
                                   <Icon name="login" className="text-base" />
-                                  <span>Konfirmasi Masuk Gate - Sesi Antar (Kembali ke Pabrik)</span>
+                                  <span>
+                                    <span className="inline sm:hidden">Konfirmasi Masuk Gate (Sesi Antar)</span>
+                                    <span className="hidden sm:inline">Konfirmasi Masuk Gate - Sesi Antar (Kembali ke Pabrik)</span>
+                                  </span>
                                 </button>
                               </div>
                             )}
                           </div>
 
                           {/* Card Sesi 2: Jemput */}
-                          <div className="bg-white p-4 rounded-xl border border-amber-200/70 shadow-xs space-y-3">
-                            <div className="flex justify-between items-start gap-2 border-b border-amber-50 pb-2.5">
-                              <div>
+                          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-amber-200/70 shadow-xs space-y-3">
+                            <div className="border-b border-amber-50 pb-2.5 space-y-1.5">
+                              {/* Row 1: Session Title + Status Badge */}
+                              <div className="flex items-center justify-between gap-2">
                                 <div className="font-extrabold text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
-                                  <Icon name="sync" className="text-base text-amber-700" />
+                                  <Icon name="sync" className="text-base text-amber-700 shrink-0" />
                                   <span>Sesi 2: Jemput (Penjemputan)</span>
-                                  <span className="text-slate-400 font-normal">
-                                    — {log.return_vehicle?.name ? `${log.return_vehicle.name} (${log.return_vehicle.plate_number})` : (log.vehicleModel || "Armada")}
-                                  </span>
                                 </div>
-                                <div className="text-[11.5px] text-slate-600 font-medium mt-0.5 flex items-center gap-1">
-                                  <Icon name="person" className="text-xs text-slate-400" />
-                                  <span>Driver: <strong className="text-slate-800">{log.return_driver?.name || log.driverName || "-"}</strong></span>
-                                  {log.return_departure_time && (
-                                    <span className="text-slate-400 ml-2 font-normal">
-                                      (Jadwal: {formatDateTime(log.return_departure_time)})
-                                    </span>
-                                  )}
-                                </div>
+                                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 whitespace-nowrap ${
+                                  isRetDone ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                                  isRetOngoing ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse" :
+                                  isDepDone ? "bg-blue-50 text-blue-700 border border-blue-200" :
+                                  "bg-slate-100 text-slate-600 border border-slate-200"
+                                }`}>
+                                  {isRetDone ? "Selesai Sempurna" : isRetOngoing ? "Sedang Menjemput" : isDepDone ? "Siap Berangkat" : "Menunggu Sesi Antar"}
+                                </span>
                               </div>
-                              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full flex-shrink-0 ${
-                                isRetDone ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
-                                isRetOngoing ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse" :
-                                isDepDone ? "bg-blue-50 text-blue-700 border border-blue-200" :
-                                "bg-slate-100 text-slate-600 border border-slate-200"
-                              }`}>
-                                {isRetDone ? "Selesai Sempurna" : isRetOngoing ? "Sedang Menjemput" : isDepDone ? "Siap Berangkat" : "Menunggu Sesi Antar"}
-                              </span>
+
+                              {/* Row 2: Vehicle details */}
+                              <div className="text-[11.5px] text-slate-700 font-semibold flex items-center gap-1.5 pl-5">
+                                <span>{log.return_vehicle?.name ? `${log.return_vehicle.name} (${log.return_vehicle.plate_number})` : (log.vehicleModel || "Armada")}</span>
+                              </div>
+
+                              {/* Row 3: Driver details */}
+                              <div className="text-[11px] text-slate-500 font-medium flex items-center flex-wrap gap-x-2 gap-y-0.5 pl-5">
+                                <div className="flex items-center gap-1">
+                                  <Icon name="person" className="text-xs text-slate-400 shrink-0" />
+                                  <span>Driver: <strong className="text-slate-800">{log.return_driver?.name || log.driverName || "-"}</strong></span>
+                                </div>
+                                {log.return_departure_time && (
+                                  <span className="text-slate-400 text-[10.5px]">
+                                    (Jadwal: {formatDateTime(log.return_departure_time)})
+                                  </span>
+                                )}
+                              </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
@@ -944,12 +996,19 @@ export default function SecurityHistoryPage() {
 
                             {/* Sesi 2 Odometer summary */}
                             {log.return_total_km !== null && log.return_total_km !== undefined && (
-                              <div className="text-[11px] font-bold text-amber-900 bg-amber-50/70 px-3 py-1.5 rounded-xl border border-amber-200 flex items-center justify-between">
-                                <span className="flex items-center gap-1">
-                                  <Icon name="speed" className="text-xs text-amber-600" />
-                                  <span>Odometer Sesi Jemput:</span>
+                              <div className="bg-amber-50/70 p-2.5 sm:px-3 sm:py-2 rounded-xl border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                                <span className="text-[11px] font-bold text-amber-900 flex items-center gap-1.5">
+                                  <Icon name="speed" className="text-sm text-amber-600 shrink-0" />
+                                  <span>Odometer Sesi Jemput</span>
                                 </span>
-                                <span className="font-mono">{Number(log.return_start_km ?? 0).toLocaleString('id-ID')} KM ➔ {Number(log.return_end_km ?? 0).toLocaleString('id-ID')} KM ({Number(log.return_total_km).toLocaleString('id-ID')} KM)</span>
+                                <div className="flex items-center justify-between sm:justify-end gap-2 text-xs font-semibold">
+                                  <span className="font-mono text-slate-700 text-[11px]">
+                                    {Number(log.return_start_km ?? 0).toLocaleString('id-ID')} km ➔ {Number(log.return_end_km ?? 0).toLocaleString('id-ID')} km
+                                  </span>
+                                  <span className="text-[10px] font-extrabold bg-amber-600 text-white px-2 py-0.5 rounded-full font-mono shrink-0">
+                                    {Number(log.return_total_km).toLocaleString('id-ID')} km
+                                  </span>
+                                </div>
                               </div>
                             )}
 
@@ -959,10 +1018,13 @@ export default function SecurityHistoryPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleOpenCheckin(log)}
-                                  className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                  className="w-full min-h-[44px] py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
                                 >
                                   <Icon name="login" className="text-base" />
-                                  <span>Konfirmasi Masuk Gate - Sesi Jemput (Selesai Rangkaian)</span>
+                                  <span>
+                                    <span className="inline sm:hidden">Konfirmasi Masuk Gate (Sesi Jemput)</span>
+                                    <span className="hidden sm:inline">Konfirmasi Masuk Gate - Sesi Jemput (Selesai Rangkaian)</span>
+                                  </span>
                                 </button>
                               </div>
                             )}

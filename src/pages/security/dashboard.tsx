@@ -1274,33 +1274,40 @@ export default function SecurityDashboard() {
                                   return (
                                     <div className="space-y-3">
                                       {/* Sesi 1: Antar */}
-                                      <div className="bg-slate-50 p-4 rounded-xl border border-blue-200/70 space-y-3 shadow-2xs">
-                                        <div className="flex justify-between items-start gap-2 border-b border-blue-100 pb-2.5">
-                                          <div>
-                                            <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                                              <Icon name="directions_car" className="text-sm text-blue-700" />
-                                              <span>Sesi 1: Antar — {s1VehicleName}</span>
+                                      <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-blue-200/70 space-y-3 shadow-2xs">
+                                        <div className="border-b border-blue-100 pb-2.5 space-y-1.5">
+                                          {/* Row 1: Session Title + Status Badge */}
+                                          <div className="flex items-center justify-between gap-2">
+                                            <div className="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
+                                              <Icon name="directions_car" className="text-base text-blue-700 shrink-0" />
+                                              <span>Sesi 1: Antar (Keberangkatan)</span>
                                             </div>
-                                            <div className="text-[11px] text-slate-500 font-medium mt-0.5">
-                                              Driver: <strong className="text-slate-700">{s1DriverName}</strong>
-                                            </div>
+                                            <span className={`text-[9.5px] font-extrabold uppercase px-2.5 py-0.5 rounded-full shrink-0 whitespace-nowrap ${
+                                              isDepDone ? "bg-emerald-100 text-emerald-800" :
+                                              isDepOngoing ? "bg-amber-100 text-amber-800 animate-pulse" :
+                                              "bg-blue-100 text-blue-800"
+                                            }`}>
+                                              {isDepDone ? "Selesai (Kembali)" : isDepOngoing ? "Sedang Mengantar" : "Terjadwal"}
+                                            </span>
                                           </div>
-                                          <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
-                                            isDepDone ? "bg-emerald-100 text-emerald-800" :
-                                            isDepOngoing ? "bg-amber-100 text-amber-800 animate-pulse" :
-                                            "bg-blue-100 text-blue-800"
-                                          }`}>
-                                            {isDepDone ? "Selesai (Kembali)" : isDepOngoing ? "Sedang Mengantar" : "Terjadwal"}
-                                          </span>
+                                          {/* Row 2: Vehicle details */}
+                                          <div className="text-[11px] text-slate-700 font-semibold pl-5">
+                                            {s1VehicleName}
+                                          </div>
+                                          {/* Row 3: Driver details */}
+                                          <div className="text-[11px] text-slate-500 font-medium pl-5 flex items-center gap-1">
+                                            <Icon name="person" className="text-xs text-slate-400 shrink-0" />
+                                            <span>Driver: <strong className="text-slate-700">{s1DriverName}</strong></span>
+                                          </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10.5px]">
                                           <div className="bg-white p-2.5 rounded-lg border border-slate-100 space-y-0.5">
-                                            <span className="font-bold text-slate-400 block mb-0.5">Berangkat Antar</span>
+                                            <span className="font-bold text-slate-400 block mb-0.5 text-[9.5px] uppercase">Berangkat Antar</span>
                                             {depOut ? (
-                                              <div className="text-slate-600">
+                                              <div className="text-slate-600 space-y-0.5">
                                                 <span className="font-semibold">{parseTimeStr(depOut)}</span>
-                                                <span className="text-slate-400 text-[9px] block">Oleh: {scannedRequest.departure_checkout_by || scannedRequest.security_checkout_by || "-"}</span>
+                                                <span className="text-slate-400 text-[9.5px] block">Oleh: {scannedRequest.departure_checkout_by || scannedRequest.security_checkout_by || "-"}</span>
                                                 {scannedRequest.departure_checkout_notes && (
                                                   <span className="text-slate-500 italic block mt-0.5">"{scannedRequest.departure_checkout_notes}"</span>
                                                 )}
@@ -1310,11 +1317,11 @@ export default function SecurityDashboard() {
                                             )}
                                           </div>
                                           <div className="bg-white p-2.5 rounded-lg border border-slate-100 space-y-0.5">
-                                            <span className="font-bold text-slate-400 block mb-0.5">Kembali ke Pabrik</span>
+                                            <span className="font-bold text-slate-400 block mb-0.5 text-[9.5px] uppercase">Kembali ke Pabrik</span>
                                             {depIn ? (
-                                              <div className="text-slate-600">
+                                              <div className="text-slate-600 space-y-0.5">
                                                 <span className="font-semibold">{parseTimeStr(depIn)}</span>
-                                                <span className="text-slate-400 text-[9px] block">Oleh: {scannedRequest.departure_checkin_by || scannedRequest.security_checkin_by || "-"}</span>
+                                                <span className="text-slate-400 text-[9.5px] block">Oleh: {scannedRequest.departure_checkin_by || scannedRequest.security_checkin_by || "-"}</span>
                                                 {scannedRequest.departure_checkin_notes && (
                                                   <span className="text-slate-500 italic block mt-0.5">"{scannedRequest.departure_checkin_notes}"</span>
                                                 )}
@@ -1332,19 +1339,25 @@ export default function SecurityDashboard() {
                                               <button
                                                 type="button"
                                                 onClick={() => handleConfirmScanClick("checkout")}
-                                                className="w-full py-2.5 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                                className="w-full min-h-[44px] py-2.5 px-3 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
                                               >
                                                 <Icon name="done_all" className="text-sm" />
-                                                Konfirmasi Keluar Gate - Sesi Antar
+                                                <span>
+                                                  <span className="inline sm:hidden">Konfirmasi Keluar Gate (Sesi Antar)</span>
+                                                  <span className="hidden sm:inline">Konfirmasi Keluar Gate - Sesi Antar</span>
+                                                </span>
                                               </button>
                                             ) : (
                                               <button
                                                 type="button"
                                                 onClick={() => handleConfirmScanClick("checkin")}
-                                                className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                                className="w-full min-h-[44px] py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
                                               >
                                                 <Icon name="done_all" className="text-sm" />
-                                                Konfirmasi Masuk Gate - Sesi Antar (Kembali ke Pabrik)
+                                                <span>
+                                                  <span className="inline sm:hidden">Konfirmasi Masuk Gate (Sesi Antar)</span>
+                                                  <span className="hidden sm:inline">Konfirmasi Masuk Gate - Sesi Antar (Kembali ke Pabrik)</span>
+                                                </span>
                                               </button>
                                             )}
                                           </div>
@@ -1352,39 +1365,48 @@ export default function SecurityDashboard() {
                                       </div>
 
                                       {/* Sesi 2: Jemput */}
-                                      <div className="bg-slate-50 p-4 rounded-xl border border-amber-200/70 space-y-3 shadow-2xs">
-                                        <div className="flex justify-between items-start gap-2 border-b border-amber-100 pb-2.5">
-                                          <div>
-                                            <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                                              <Icon name="sync" className="text-sm text-amber-600" />
-                                              <span>Sesi 2: Jemput — {s2VehicleName}</span>
+                                      <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-amber-200/70 space-y-3 shadow-2xs">
+                                        <div className="border-b border-amber-100 pb-2.5 space-y-1.5">
+                                          {/* Row 1: Session Title + Status Badge */}
+                                          <div className="flex items-center justify-between gap-2">
+                                            <div className="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
+                                              <Icon name="sync" className="text-base text-amber-600 shrink-0" />
+                                              <span>Sesi 2: Jemput (Penjemputan)</span>
                                             </div>
-                                            <div className="text-[11px] text-slate-500 font-medium mt-0.5">
-                                              Driver: <strong className="text-slate-700">{s2DriverName}</strong>
-                                              {scannedRequest.return_departure_time && (
-                                                <span className="text-slate-400 ml-2 font-normal">
-                                                  (Jadwal: {parseTimeStr(scannedRequest.return_departure_time)})
-                                                </span>
-                                              )}
-                                            </div>
+                                            <span className={`text-[9.5px] font-extrabold uppercase px-2.5 py-0.5 rounded-full shrink-0 whitespace-nowrap ${
+                                              isRetDone ? "bg-emerald-100 text-emerald-800" :
+                                              isRetOngoing ? "bg-amber-100 text-amber-800 animate-pulse" :
+                                              isDepDone ? "bg-blue-100 text-blue-800" :
+                                              "bg-slate-100 text-slate-600"
+                                            }`}>
+                                              {isRetDone ? "Selesai (Tuntas)" : isRetOngoing ? "Sedang Menjemput" : isDepDone ? "Siap Berangkat" : "Menunggu Sesi Antar"}
+                                            </span>
                                           </div>
-                                          <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
-                                            isRetDone ? "bg-emerald-100 text-emerald-800" :
-                                            isRetOngoing ? "bg-amber-100 text-amber-800 animate-pulse" :
-                                            isDepDone ? "bg-blue-100 text-blue-800" :
-                                            "bg-slate-100 text-slate-600"
-                                          }`}>
-                                            {isRetDone ? "Selesai (Tuntas)" : isRetOngoing ? "Sedang Menjemput" : isDepDone ? "Siap Berangkat" : "Menunggu Sesi Antar"}
-                                          </span>
+                                          {/* Row 2: Vehicle details */}
+                                          <div className="text-[11px] text-slate-700 font-semibold pl-5">
+                                            {s2VehicleName}
+                                          </div>
+                                          {/* Row 3: Driver details */}
+                                          <div className="text-[11px] text-slate-500 font-medium pl-5 flex items-center flex-wrap gap-x-2 gap-y-0.5">
+                                            <div className="flex items-center gap-1">
+                                              <Icon name="person" className="text-xs text-slate-400 shrink-0" />
+                                              <span>Driver: <strong className="text-slate-700">{s2DriverName}</strong></span>
+                                            </div>
+                                            {scannedRequest.return_departure_time && (
+                                              <span className="text-slate-400 text-[10.5px]">
+                                                (Jadwal: {parseTimeStr(scannedRequest.return_departure_time)})
+                                              </span>
+                                            )}
+                                          </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10.5px]">
                                           <div className="bg-white p-2.5 rounded-lg border border-slate-100 space-y-0.5">
-                                            <span className="font-bold text-slate-400 block mb-0.5">Berangkat Jemput</span>
+                                            <span className="font-bold text-slate-400 block mb-0.5 text-[9.5px] uppercase">Berangkat Jemput</span>
                                             {retOut ? (
-                                              <div className="text-slate-600">
+                                              <div className="text-slate-600 space-y-0.5">
                                                 <span className="font-semibold">{parseTimeStr(retOut)}</span>
-                                                <span className="text-slate-400 text-[9px] block">Oleh: {scannedRequest.return_checkout_by || "-"}</span>
+                                                <span className="text-slate-400 text-[9.5px] block">Oleh: {scannedRequest.return_checkout_by || "-"}</span>
                                                 {scannedRequest.return_checkout_notes && (
                                                   <span className="text-slate-500 italic block mt-0.5">"{scannedRequest.return_checkout_notes}"</span>
                                                 )}
@@ -1394,11 +1416,11 @@ export default function SecurityDashboard() {
                                             )}
                                           </div>
                                           <div className="bg-white p-2.5 rounded-lg border border-slate-100 space-y-0.5">
-                                            <span className="font-bold text-slate-400 block mb-0.5">Kembali Selesai</span>
+                                            <span className="font-bold text-slate-400 block mb-0.5 text-[9.5px] uppercase">Kembali Selesai</span>
                                             {retIn ? (
-                                              <div className="text-slate-600">
+                                              <div className="text-slate-600 space-y-0.5">
                                                 <span className="font-semibold">{parseTimeStr(retIn)}</span>
-                                                <span className="text-slate-400 text-[9px] block">Oleh: {scannedRequest.return_checkin_by || "-"}</span>
+                                                <span className="text-slate-400 text-[9.5px] block">Oleh: {scannedRequest.return_checkin_by || "-"}</span>
                                                 {scannedRequest.return_checkin_notes && (
                                                   <span className="text-slate-500 italic block mt-0.5">"{scannedRequest.return_checkin_notes}"</span>
                                                 )}
@@ -1419,19 +1441,25 @@ export default function SecurityDashboard() {
                                             <button
                                               type="button"
                                               onClick={() => handleConfirmScanClick("checkout")}
-                                              className="w-full py-2.5 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                              className="w-full min-h-[44px] py-2.5 px-3 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
                                             >
                                               <Icon name="done_all" className="text-sm" />
-                                              Konfirmasi Keluar Gate - Sesi Jemput
+                                              <span>
+                                                <span className="inline sm:hidden">Konfirmasi Keluar Gate (Sesi Jemput)</span>
+                                                <span className="hidden sm:inline">Konfirmasi Keluar Gate - Sesi Jemput</span>
+                                              </span>
                                             </button>
                                           ) : !retIn ? (
                                             <button
                                               type="button"
                                               onClick={() => handleConfirmScanClick("checkin")}
-                                              className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                              className="w-full min-h-[44px] py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
                                             >
                                               <Icon name="done_all" className="text-sm" />
-                                              Konfirmasi Masuk Gate - Sesi Jemput (Selesai)
+                                              <span>
+                                                <span className="inline sm:hidden">Konfirmasi Masuk Gate (Sesi Jemput)</span>
+                                                <span className="hidden sm:inline">Konfirmasi Masuk Gate - Sesi Jemput (Selesai)</span>
+                                              </span>
                                             </button>
                                           ) : (
                                             <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl text-center text-xs font-bold border border-emerald-200">
