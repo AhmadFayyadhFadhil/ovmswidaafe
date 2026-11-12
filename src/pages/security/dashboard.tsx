@@ -917,15 +917,40 @@ export default function SecurityDashboard() {
                   </h4>
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <span className={`px-4 py-1.5 rounded-full text-xs font-bold capitalize ${
-                    scannedRequest.status === "on_going" ? "bg-amber-100 text-amber-800 animate-pulse" :
-                    scannedRequest.status === "completed" ? "bg-emerald-100 text-emerald-800" :
-                    "bg-blue-100 text-blue-800"
-                  }`}>
-                    {scannedRequest.status === "driver_assigned" ? "Siap Berangkat" :
-                     scannedRequest.status === "on_going" ? "Sedang Jalan" :
-                     scannedRequest.status === "completed" ? "Selesai" : scannedRequest.status}
-                  </span>
+                  {(() => {
+                    if (scannedRequest.trip_mode === "split_drop_pickup") {
+                      const isRetDone = !!scannedRequest.return_checked_in_at;
+                      const isRetOngoing = !!scannedRequest.return_checked_out_at && !isRetDone;
+                      const isDepDone = !!scannedRequest.departure_checked_in_at;
+                      const isDepOngoing = !!scannedRequest.departure_checked_out_at && !isDepDone;
+
+                      if (isRetDone) {
+                        return <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">Selesai (Semua Sesi)</span>;
+                      }
+                      if (isRetOngoing) {
+                        return <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 animate-pulse">Sedang Menjemput</span>;
+                      }
+                      if (isDepDone) {
+                        return <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">Terjadwal Jemput (Siap Berangkat)</span>;
+                      }
+                      if (isDepOngoing) {
+                        return <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 animate-pulse">Sedang Mengantar</span>;
+                      }
+                      return <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">Siap Berangkat (Antar)</span>;
+                    }
+
+                    return (
+                      <span className={`px-4 py-1.5 rounded-full text-xs font-bold capitalize ${
+                        scannedRequest.status === "on_going" ? "bg-amber-100 text-amber-800 animate-pulse" :
+                        scannedRequest.status === "completed" ? "bg-emerald-100 text-emerald-800" :
+                        "bg-blue-100 text-blue-800"
+                      }`}>
+                        {scannedRequest.status === "driver_assigned" ? "Siap Berangkat" :
+                         scannedRequest.status === "on_going" ? "Sedang Jalan" :
+                         scannedRequest.status === "completed" ? "Selesai" : scannedRequest.status}
+                      </span>
+                    );
+                  })()}
 
                   <button
                     type="button"
@@ -1216,10 +1241,210 @@ export default function SecurityDashboard() {
 
                         {(!Array.isArray(scannedRequest.itineraries) || scannedRequest.itineraries.length === 0) && (
                           <div className="space-y-3">
-                            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                              Daftar Unit Armada ({scannedRequest.operational_trips?.length || 0} Kendaraan)
-                            </div>
-                            {scannedRequest.operational_trips && scannedRequest.operational_trips.length > 0 ? (
+                            {scannedRequest.trip_mode === 'split_drop_pickup' ? (
+                              <div className="space-y-3">
+                                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                                  <span>Daftar Sesi Perjalanan (Split Trip)</span>
+                                  <span className="text-[10px] bg-blue-50 text-blue-800 font-extrabold px-2 py-0.5 rounded border border-blue-200">
+                                    Antar & Jemput Terpisah
+                                  </span>
+                                </div>
+
+                                {(() => {
+                                  const depOut = scannedRequest.departure_checked_out_at || scannedRequest.security_checked_out_at;
+                                  const depIn = scannedRequest.departure_checked_in_at || (scannedRequest.return_checked_out_at ? null : scannedRequest.security_checked_in_at);
+                                  const isDepDone = Boolean(depIn);
+                                  const isDepOngoing = Boolean(depOut && !depIn);
+
+                                  const retOut = scannedRequest.return_checked_out_at;
+                                  const retIn = scannedRequest.return_checked_in_at;
+                                  const isRetDone = Boolean(retIn);
+                                  const isRetOngoing = Boolean(retOut && !retIn);
+
+                                  const s1VehicleName = scannedRequest.vehicle?.name 
+                                    ? `${scannedRequest.vehicle.name} (${scannedRequest.vehicle.plate_number})` 
+                                    : (scannedRequest.vehicleModel || "Armada Antar");
+                                  const s1DriverName = scannedRequest.driver?.name || scannedRequest.driverName || "Driver Antar";
+
+                                  const s2VehicleName = scannedRequest.return_vehicle?.name 
+                                    ? `${scannedRequest.return_vehicle.name} (${scannedRequest.return_vehicle.plate_number})` 
+                                    : (scannedRequest.vehicleModel || "Armada Jemput");
+                                  const s2DriverName = scannedRequest.return_driver?.name || scannedRequest.driverName || "Driver Jemput";
+
+                                  return (
+                                    <div className="space-y-3">
+                                      {/* Sesi 1: Antar */}
+                                      <div className="bg-slate-50 p-4 rounded-xl border border-blue-200/70 space-y-3 shadow-2xs">
+                                        <div className="flex justify-between items-start gap-2 border-b border-blue-100 pb-2.5">
+                                          <div>
+                                            <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                                              <Icon name="directions_car" className="text-sm text-blue-700" />
+                                              <span>Sesi 1: Antar — {s1VehicleName}</span>
+                                            </div>
+                                            <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                                              Driver: <strong className="text-slate-700">{s1DriverName}</strong>
+                                            </div>
+                                          </div>
+                                          <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                                            isDepDone ? "bg-emerald-100 text-emerald-800" :
+                                            isDepOngoing ? "bg-amber-100 text-amber-800 animate-pulse" :
+                                            "bg-blue-100 text-blue-800"
+                                          }`}>
+                                            {isDepDone ? "Selesai (Kembali)" : isDepOngoing ? "Sedang Mengantar" : "Terjadwal"}
+                                          </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                          <div className="bg-white p-2.5 rounded-lg border border-slate-100 space-y-0.5">
+                                            <span className="font-bold text-slate-400 block mb-0.5">Berangkat Antar</span>
+                                            {depOut ? (
+                                              <div className="text-slate-600">
+                                                <span className="font-semibold">{parseTimeStr(depOut)}</span>
+                                                <span className="text-slate-400 text-[9px] block">Oleh: {scannedRequest.departure_checkout_by || scannedRequest.security_checkout_by || "-"}</span>
+                                                {scannedRequest.departure_checkout_notes && (
+                                                  <span className="text-slate-500 italic block mt-0.5">"{scannedRequest.departure_checkout_notes}"</span>
+                                                )}
+                                              </div>
+                                            ) : (
+                                              <span className="text-slate-400 italic">Belum berangkat</span>
+                                            )}
+                                          </div>
+                                          <div className="bg-white p-2.5 rounded-lg border border-slate-100 space-y-0.5">
+                                            <span className="font-bold text-slate-400 block mb-0.5">Kembali ke Pabrik</span>
+                                            {depIn ? (
+                                              <div className="text-slate-600">
+                                                <span className="font-semibold">{parseTimeStr(depIn)}</span>
+                                                <span className="text-slate-400 text-[9px] block">Oleh: {scannedRequest.departure_checkin_by || scannedRequest.security_checkin_by || "-"}</span>
+                                                {scannedRequest.departure_checkin_notes && (
+                                                  <span className="text-slate-500 italic block mt-0.5">"{scannedRequest.departure_checkin_notes}"</span>
+                                                )}
+                                              </div>
+                                            ) : (
+                                              <span className="text-slate-400 italic">Belum kembali</span>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        {/* Sesi 1 Action Buttons */}
+                                        {!isDepDone && (
+                                          <div className="pt-1">
+                                            {!depOut ? (
+                                              <button
+                                                type="button"
+                                                onClick={() => handleConfirmScanClick("checkout")}
+                                                className="w-full py-2.5 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                              >
+                                                <Icon name="done_all" className="text-sm" />
+                                                Konfirmasi Keluar Gate - Sesi Antar
+                                              </button>
+                                            ) : (
+                                              <button
+                                                type="button"
+                                                onClick={() => handleConfirmScanClick("checkin")}
+                                                className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                              >
+                                                <Icon name="done_all" className="text-sm" />
+                                                Konfirmasi Masuk Gate - Sesi Antar (Kembali ke Pabrik)
+                                              </button>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Sesi 2: Jemput */}
+                                      <div className="bg-slate-50 p-4 rounded-xl border border-amber-200/70 space-y-3 shadow-2xs">
+                                        <div className="flex justify-between items-start gap-2 border-b border-amber-100 pb-2.5">
+                                          <div>
+                                            <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                                              <Icon name="sync" className="text-sm text-amber-600" />
+                                              <span>Sesi 2: Jemput — {s2VehicleName}</span>
+                                            </div>
+                                            <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                                              Driver: <strong className="text-slate-700">{s2DriverName}</strong>
+                                              {scannedRequest.return_departure_time && (
+                                                <span className="text-slate-400 ml-2 font-normal">
+                                                  (Jadwal: {parseTimeStr(scannedRequest.return_departure_time)})
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                          <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                                            isRetDone ? "bg-emerald-100 text-emerald-800" :
+                                            isRetOngoing ? "bg-amber-100 text-amber-800 animate-pulse" :
+                                            isDepDone ? "bg-blue-100 text-blue-800" :
+                                            "bg-slate-100 text-slate-600"
+                                          }`}>
+                                            {isRetDone ? "Selesai (Tuntas)" : isRetOngoing ? "Sedang Menjemput" : isDepDone ? "Siap Berangkat" : "Menunggu Sesi Antar"}
+                                          </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                          <div className="bg-white p-2.5 rounded-lg border border-slate-100 space-y-0.5">
+                                            <span className="font-bold text-slate-400 block mb-0.5">Berangkat Jemput</span>
+                                            {retOut ? (
+                                              <div className="text-slate-600">
+                                                <span className="font-semibold">{parseTimeStr(retOut)}</span>
+                                                <span className="text-slate-400 text-[9px] block">Oleh: {scannedRequest.return_checkout_by || "-"}</span>
+                                                {scannedRequest.return_checkout_notes && (
+                                                  <span className="text-slate-500 italic block mt-0.5">"{scannedRequest.return_checkout_notes}"</span>
+                                                )}
+                                              </div>
+                                            ) : (
+                                              <span className="text-slate-400 italic">Belum berangkat</span>
+                                            )}
+                                          </div>
+                                          <div className="bg-white p-2.5 rounded-lg border border-slate-100 space-y-0.5">
+                                            <span className="font-bold text-slate-400 block mb-0.5">Kembali Selesai</span>
+                                            {retIn ? (
+                                              <div className="text-slate-600">
+                                                <span className="font-semibold">{parseTimeStr(retIn)}</span>
+                                                <span className="text-slate-400 text-[9px] block">Oleh: {scannedRequest.return_checkin_by || "-"}</span>
+                                                {scannedRequest.return_checkin_notes && (
+                                                  <span className="text-slate-500 italic block mt-0.5">"{scannedRequest.return_checkin_notes}"</span>
+                                                )}
+                                              </div>
+                                            ) : (
+                                              <span className="text-slate-400 italic">Belum kembali</span>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        {/* Sesi 2 Action Buttons */}
+                                        <div className="pt-1">
+                                          {!isDepDone ? (
+                                            <div className="p-2.5 bg-slate-100/90 text-slate-500 rounded-xl text-center text-[11px] font-medium border border-slate-200/80">
+                                              Menunggu Sesi Antar selesai & kendaraan kembali ke pabrik terlebih dahulu
+                                            </div>
+                                          ) : !retOut ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleConfirmScanClick("checkout")}
+                                              className="w-full py-2.5 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                            >
+                                              <Icon name="done_all" className="text-sm" />
+                                              Konfirmasi Keluar Gate - Sesi Jemput
+                                            </button>
+                                          ) : !retIn ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleConfirmScanClick("checkin")}
+                                              className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                            >
+                                              <Icon name="done_all" className="text-sm" />
+                                              Konfirmasi Masuk Gate - Sesi Jemput (Selesai)
+                                            </button>
+                                          ) : (
+                                            <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl text-center text-xs font-bold border border-emerald-200">
+                                              Seluruh Rangkaian Perjalanan (Antar & Jemput) Telah Selesai
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            ) : scannedRequest.operational_trips && scannedRequest.operational_trips.length > 0 ? (
                               scannedRequest.operational_trips.map((trip: any) => {
                                 const hasCheckout = !!trip.security_checked_out_at;
                                 const hasCheckin = !!trip.security_checked_in_at;
@@ -1275,6 +1500,7 @@ export default function SecurityDashboard() {
                                       <div className="flex gap-2">
                                         {!hasCheckout ? (
                                           <button
+                                            type="button"
                                             onClick={() => handleConfirmTripScanClick(trip.id, "checkout")}
                                             className="flex-1 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
                                           >
@@ -1282,6 +1508,7 @@ export default function SecurityDashboard() {
                                           </button>
                                         ) : (
                                           <button
+                                            type="button"
                                             onClick={() => handleConfirmTripScanClick(trip.id, "checkin")}
                                             className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
                                           >
@@ -1296,77 +1523,31 @@ export default function SecurityDashboard() {
                             ) : (
                               !scannedRequest.is_external && (
                                 <div className="pt-1">
-                                  {scannedRequest.trip_mode === 'split_drop_pickup' ? (
-                                    <div className="space-y-2">
-                                      {!scannedRequest.departure_checked_out_at ? (
-                                        <button
-                                          onClick={() => handleConfirmScanClick("checkout")}
-                                          className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
-                                        >
-                                          <Icon name="done_all" className="text-base" />
-                                          Konfirmasi Keluar Gate - Sesi Antar
-                                        </button>
-                                      ) : !scannedRequest.departure_checked_in_at ? (
-                                        <button
-                                          onClick={() => handleConfirmScanClick("checkin")}
-                                          className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
-                                        >
-                                          <Icon name="done_all" className="text-base" />
-                                          Konfirmasi Masuk Gate - Sesi Antar (Kembali ke Pabrik)
-                                        </button>
-                                      ) : !scannedRequest.return_checked_out_at ? (
-                                        <div className="space-y-1.5">
-                                          <div className="text-[11px] font-bold text-amber-800 bg-amber-50 p-2 rounded-xl border border-amber-200 text-left">
-                                            <div>Driver Jemput: <strong>{scannedRequest.return_driver?.name || scannedRequest.driverName}</strong></div>
-                                            <div>Mobil Jemput: <strong>{scannedRequest.return_vehicle?.name ? `${scannedRequest.return_vehicle.name} (${scannedRequest.return_vehicle.plate_number})` : scannedRequest.vehicleModel}</strong></div>
-                                          </div>
-                                          <button
-                                            onClick={() => handleConfirmScanClick("checkout")}
-                                            className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
-                                          >
-                                            <Icon name="done_all" className="text-base" />
-                                            Konfirmasi Keluar Gate - Sesi Jemput
-                                          </button>
-                                        </div>
-                                      ) : !scannedRequest.return_checked_in_at ? (
-                                        <button
-                                          onClick={() => handleConfirmScanClick("checkin")}
-                                          className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
-                                        >
-                                          <Icon name="done_all" className="text-base" />
-                                          Konfirmasi Masuk Gate - Sesi Jemput (Selesai)
-                                        </button>
-                                      ) : (
-                                        <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl text-center text-xs font-bold border border-emerald-200">
-                                          Seluruh Rangkaian Perjalanan (Antar & Jemput) Telah Selesai
-                                        </div>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <div>
-                                      {!scannedRequest.security_checked_out_at ? (
-                                        <button
-                                          onClick={() => handleConfirmScanClick("checkout")}
-                                          className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
-                                        >
-                                          <Icon name="done_all" className="text-base" />
-                                          Konfirmasi Keluar Gate
-                                        </button>
-                                      ) : !scannedRequest.security_checked_in_at ? (
-                                        <button
-                                          onClick={() => handleConfirmScanClick("checkin")}
-                                          className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
-                                        >
-                                          <Icon name="done_all" className="text-base" />
-                                          Konfirmasi Masuk Gate
-                                        </button>
-                                      ) : (
-                                        <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl text-center text-xs font-bold border border-emerald-200">
-                                          Perjalanan Ini Telah Selesai (Completed)
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
+                                  <div>
+                                    {!scannedRequest.security_checked_out_at ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleConfirmScanClick("checkout")}
+                                        className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                      >
+                                        <Icon name="done_all" className="text-base" />
+                                        Konfirmasi Keluar Gate
+                                      </button>
+                                    ) : !scannedRequest.security_checked_in_at ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleConfirmScanClick("checkin")}
+                                        className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                                      >
+                                        <Icon name="done_all" className="text-base" />
+                                        Konfirmasi Masuk Gate
+                                      </button>
+                                    ) : (
+                                      <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl text-center text-xs font-bold border border-emerald-200">
+                                        Perjalanan Ini Telah Selesai (Completed)
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               )
                             )}
@@ -1382,7 +1563,7 @@ export default function SecurityDashboard() {
                       </div>
                     </div>
 
-                    {(scannedRequest.start_km || scannedRequest.end_km) && !scannedRequest.is_external && (
+                    {((scannedRequest.start_km || scannedRequest.end_km || scannedRequest.departure_start_km || scannedRequest.return_start_km) && !scannedRequest.is_external) && (
                       <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-2">
                         <div className="text-[11px] font-extrabold text-[#00236f] uppercase tracking-wider flex items-center justify-between">
                           <span className="flex items-center gap-1.5">
@@ -1395,26 +1576,79 @@ export default function SecurityDashboard() {
                             </span>
                           ) : null}
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-center">
-                          <div className="bg-white p-2 rounded-xl border border-blue-100">
-                            <span className="text-[10px] text-slate-400 font-bold block uppercase">KM Keluar (Awal)</span>
-                            <span className="font-extrabold text-slate-800 mt-0.5 block">
-                              {scannedRequest.start_km ? `${Number(scannedRequest.start_km).toLocaleString('id-ID')} km` : "-"}
-                            </span>
+
+                        {scannedRequest.trip_mode === 'split_drop_pickup' ? (
+                          <div className="space-y-2">
+                            {/* Odometer Sesi 1 */}
+                            <div className="bg-white p-2.5 rounded-xl border border-blue-100 text-xs">
+                              <div className="flex justify-between items-center mb-1 text-[11px] font-bold text-blue-900">
+                                <span>Sesi 1 (Antar)</span>
+                                <span className="font-mono text-blue-700">
+                                  {scannedRequest.departure_total_km !== null && scannedRequest.departure_total_km !== undefined
+                                    ? `${Number(scannedRequest.departure_total_km).toLocaleString('id-ID')} km`
+                                    : (scannedRequest.departure_start_km && scannedRequest.departure_end_km)
+                                      ? `${(Number(scannedRequest.departure_end_km) - Number(scannedRequest.departure_start_km)).toLocaleString('id-ID')} km`
+                                      : "-"}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-center text-[10.5px]">
+                                <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                                  <span className="text-slate-400 block text-[9.5px]">KM Keluar</span>
+                                  <span className="font-bold text-slate-800">{scannedRequest.departure_start_km ? `${Number(scannedRequest.departure_start_km).toLocaleString('id-ID')} km` : "-"}</span>
+                                </div>
+                                <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                                  <span className="text-slate-400 block text-[9.5px]">KM Masuk</span>
+                                  <span className="font-bold text-slate-800">{scannedRequest.departure_end_km ? `${Number(scannedRequest.departure_end_km).toLocaleString('id-ID')} km` : "-"}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Odometer Sesi 2 */}
+                            <div className="bg-white p-2.5 rounded-xl border border-blue-100 text-xs">
+                              <div className="flex justify-between items-center mb-1 text-[11px] font-bold text-amber-900">
+                                <span>Sesi 2 (Jemput)</span>
+                                <span className="font-mono text-amber-700">
+                                  {scannedRequest.return_total_km !== null && scannedRequest.return_total_km !== undefined
+                                    ? `${Number(scannedRequest.return_total_km).toLocaleString('id-ID')} km`
+                                    : (scannedRequest.return_start_km && scannedRequest.return_end_km)
+                                      ? `${(Number(scannedRequest.return_end_km) - Number(scannedRequest.return_start_km)).toLocaleString('id-ID')} km`
+                                      : "-"}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-center text-[10.5px]">
+                                <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                                  <span className="text-slate-400 block text-[9.5px]">KM Keluar</span>
+                                  <span className="font-bold text-slate-800">{scannedRequest.return_start_km ? `${Number(scannedRequest.return_start_km).toLocaleString('id-ID')} km` : "-"}</span>
+                                </div>
+                                <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                                  <span className="text-slate-400 block text-[9.5px]">KM Masuk</span>
+                                  <span className="font-bold text-slate-800">{scannedRequest.return_end_km ? `${Number(scannedRequest.return_end_km).toLocaleString('id-ID')} km` : "-"}</span>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <div className="bg-white p-2 rounded-xl border border-blue-100">
-                            <span className="text-[10px] text-slate-400 font-bold block uppercase">KM Masuk (Akhir)</span>
-                            <span className="font-extrabold text-slate-800 mt-0.5 block">
-                              {scannedRequest.end_km ? `${Number(scannedRequest.end_km).toLocaleString('id-ID')} km` : "-"}
-                            </span>
+                        ) : (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-center">
+                            <div className="bg-white p-2 rounded-xl border border-blue-100">
+                              <span className="text-[10px] text-slate-400 font-bold block uppercase">KM Keluar (Awal)</span>
+                              <span className="font-extrabold text-slate-800 mt-0.5 block">
+                                {scannedRequest.start_km ? `${Number(scannedRequest.start_km).toLocaleString('id-ID')} km` : "-"}
+                              </span>
+                            </div>
+                            <div className="bg-white p-2 rounded-xl border border-blue-100">
+                              <span className="text-[10px] text-slate-400 font-bold block uppercase">KM Masuk (Akhir)</span>
+                              <span className="font-extrabold text-slate-800 mt-0.5 block">
+                                {scannedRequest.end_km ? `${Number(scannedRequest.end_km).toLocaleString('id-ID')} km` : "-"}
+                              </span>
+                            </div>
+                            <div className="bg-white p-2 rounded-xl border border-blue-100 col-span-2 sm:col-span-1">
+                              <span className="text-[10px] text-slate-400 font-bold block uppercase">Jarak Tempuh</span>
+                              <span className="font-extrabold text-blue-700 mt-0.5 block">
+                                {scannedRequest.total_km ? `${Number(scannedRequest.total_km).toLocaleString('id-ID')} km` : "-"}
+                              </span>
+                            </div>
                           </div>
-                          <div className="bg-white p-2 rounded-xl border border-blue-100 col-span-2 sm:col-span-1">
-                            <span className="text-[10px] text-slate-400 font-bold block uppercase">Jarak Tempuh</span>
-                            <span className="font-extrabold text-blue-700 mt-0.5 block">
-                              {scannedRequest.total_km ? `${Number(scannedRequest.total_km).toLocaleString('id-ID')} km` : "-"}
-                            </span>
-                          </div>
-                        </div>
+                        )}
                       </div>
                     )}
 
@@ -1523,7 +1757,11 @@ export default function SecurityDashboard() {
               
               <div className="text-center mb-5 pt-2">
                 <h3 className="text-lg sm:text-xl font-extrabold text-slate-800">
-                  {confirmingType === 'checkout' ? 'Konfirmasi Keluar Gate' : 'Konfirmasi Masuk Gate'}
+                  {scannedRequest?.trip_mode === 'split_drop_pickup'
+                    ? (scannedRequest?.departure_checked_in_at
+                        ? (confirmingType === 'checkout' ? 'Konfirmasi Keluar Gate - Sesi Jemput' : 'Konfirmasi Masuk Gate - Sesi Jemput (Selesai)')
+                        : (confirmingType === 'checkout' ? 'Konfirmasi Keluar Gate - Sesi Antar' : 'Konfirmasi Masuk Gate - Sesi Antar (Kembali)'))
+                    : (confirmingType === 'checkout' ? 'Konfirmasi Keluar Gate' : 'Konfirmasi Masuk Gate')}
                 </h3>
                 <p className="text-xs text-slate-400 mt-1">
                   {confirmingType === 'checkout'
