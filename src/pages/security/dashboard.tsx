@@ -74,13 +74,19 @@ export default function SecurityDashboard() {
 
   const returnBreakdown = useMemo(() => {
     if (!isPooled) return [];
-    const map: Record<string, { driverName: string; vehicleName: string; time: string; requests: any[] }> = {};
+    const map: Record<string, { driverId: any; vehicleId: any; driverName: string; vehicleName: string; time: string; requests: any[] }> = {};
     allPooledRequests.forEach((pr: any) => {
-      const dName = pr.return_driver_name || pr.driver_name || "Driver Jemput";
-      const vName = pr.return_vehicle_name || "Armada Jemput";
-      const key = `${pr.return_driver_id || 'd'}_${pr.return_vehicle_id || 'v'}`;
+      const dName = pr.return_driver_name || pr.return_driver?.name || pr.driver_name || pr.driver?.name || "Driver Jemput";
+      const vName = (pr.return_vehicle_name && String(pr.return_vehicle_name).trim() !== "0" && !String(pr.return_vehicle_name).startsWith("0"))
+        ? String(pr.return_vehicle_name)
+        : (pr.return_vehicle ? `${pr.return_vehicle.name || "Kendaraan"} (${pr.return_vehicle.plate_number || pr.return_vehicle.plate || "-"})` : (pr.vehicle ? `${pr.vehicle.name || "Kendaraan"} (${pr.vehicle.plate_number || pr.vehicle.plate || "-"})` : "Armada Jemput"));
+      const rDriverId = pr.return_driver_id || pr.return_driver?.id || pr.driver_id || pr.driver?.id || 'd';
+      const rVehId = pr.return_vehicle_id || pr.return_vehicle?.id || pr.vehicle_id || pr.vehicle?.id || 'v';
+      const key = `${rDriverId}_${rVehId}`;
       if (!map[key]) {
         map[key] = {
+          driverId: rDriverId,
+          vehicleId: rVehId,
           driverName: dName,
           vehicleName: vName,
           time: pr.return_departure_time ? parseTimeStr(pr.return_departure_time) : "-",
@@ -1641,20 +1647,34 @@ export default function SecurityDashboard() {
                                                 <span>Rincian Armada Penjemputan ({returnBreakdown.length} Armada Terpisah):</span>
                                               </div>
                                               <div className="grid grid-cols-1 gap-1.5">
-                                                {returnBreakdown.map((rb, idx) => (
-                                                  <div key={idx} className="bg-white p-2.5 rounded-lg border border-amber-200 text-[11px] space-y-0.5 shadow-2xs">
-                                                    <div className="font-bold text-slate-800 flex items-center justify-between">
-                                                      <span className="text-blue-900">{rb.vehicleName}</span>
-                                                      <span className="text-amber-800 font-bold bg-amber-50 px-1.5 py-0.5 rounded text-[10px]">{rb.time}</span>
+                                                {returnBreakdown.map((rb, idx) => {
+                                                  const isCurrentArmada = String(rb.driverId) === String(scannedRequest.return_driver_id || scannedRequest.return_driver?.id || scannedRequest.driver_id || scannedRequest.driver?.id);
+                                                  return (
+                                                    <div key={idx} className={`p-2.5 rounded-lg border text-[11px] space-y-1 shadow-2xs transition-all ${
+                                                      isCurrentArmada 
+                                                        ? 'bg-amber-50/90 border-amber-400 ring-2 ring-amber-400/30' 
+                                                        : 'bg-white border-slate-200'
+                                                    }`}>
+                                                      <div className="font-bold text-slate-800 flex items-center justify-between">
+                                                        <div className="flex items-center gap-1.5">
+                                                          <span className="text-blue-900 font-extrabold">{rb.vehicleName}</span>
+                                                          {isCurrentArmada && (
+                                                            <span className="text-[9.5px] bg-amber-600 text-white font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                                                              Di Pos Gate Saat Ini
+                                                            </span>
+                                                          )}
+                                                        </div>
+                                                        <span className="text-amber-800 font-bold bg-amber-100/70 border border-amber-300 px-1.5 py-0.5 rounded text-[10px]">{rb.time}</span>
+                                                      </div>
+                                                      <div className="text-slate-600">
+                                                        Driver: <strong>{rb.driverName}</strong>
+                                                      </div>
+                                                      <div className="text-slate-500 text-[10px]">
+                                                        Menjemput: <strong className="text-slate-700">{rb.requests.map((r: any) => `#${r.id} ${r.user_name || r.employee || ''}`).join(", ")}</strong>
+                                                      </div>
                                                     </div>
-                                                    <div className="text-slate-600">
-                                                      Driver: <strong>{rb.driverName}</strong>
-                                                    </div>
-                                                    <div className="text-slate-500 text-[10px]">
-                                                      Menjemput: <strong className="text-slate-700">{rb.requests.map((r: any) => `#${r.id} ${r.user_name}`).join(", ")}</strong>
-                                                    </div>
-                                                  </div>
-                                                ))}
+                                                  );
+                                                })}
                                               </div>
                                             </div>
                                           )}
@@ -1706,7 +1726,7 @@ export default function SecurityDashboard() {
                                               <Icon name="done_all" className="text-sm" />
                                               <span>
                                                 <span className="inline sm:hidden">Konfirmasi Keluar Gate (Sesi Jemput)</span>
-                                                <span className="hidden sm:inline">Konfirmasi Keluar Gate - Sesi Jemput</span>
+                                                <span className="hidden sm:inline">Konfirmasi Keluar Gate - Sesi Jemput ({s2DriverName} - {s2VehicleName})</span>
                                               </span>
                                             </button>
                                           ) : !retIn ? (

@@ -329,7 +329,9 @@ export default function DriverDashboard() {
         requestService.getAll(),
         vehicleService.getAll(),
         import.meta.env.VITE_ENABLE_MOCK !== "true" ? apiClient.get("/profile").catch(() => null) : Promise.resolve(null),
-        driverService.getAll().catch(() => ({ data: [] })),
+        (user?.is_driver_coordinator || user?.roles?.includes('Driver Coordinator') || user?.role === 'gahrd') 
+          ? driverService.getAll().catch(() => ({ data: [] }))
+          : Promise.resolve({ data: [] }),
       ]);
 
       setRawAssignments(assignRes.data || []);
@@ -506,7 +508,8 @@ export default function DriverDashboard() {
 
       const isDeptDriver = Boolean(
         (r.driverId && String(r.driverId) === String(user?.id)) ||
-        (r.driver_id && String(r.driver_id) === String(user?.id))
+        (r.driver_id && String(r.driver_id) === String(user?.id)) ||
+        (r.driver?.id && String(r.driver?.id) === String(user?.id))
       );
       const isRetDriver = Boolean(
         (r.return_driver_id && String(r.return_driver_id) === String(user?.id)) ||
@@ -777,7 +780,7 @@ export default function DriverDashboard() {
 
     if (r.trip_mode === 'split_drop_pickup') {
       const isRet = String(r.return_driver_id) === String(user?.id) || String(r.return_driver?.id) === String(user?.id);
-      const isDep = String(r.driverId) === String(user?.id) || String(r.driver_id) === String(user?.id);
+      const isDep = String(r.driverId) === String(user?.id) || String(r.driver_id) === String(user?.id) || String(r.driver?.id) === String(user?.id);
       const isRetLeg = isRet && (!isDep || Boolean(r.departure_checked_in_at));
       
       if (isRetLeg) {
@@ -1022,7 +1025,12 @@ export default function DriverDashboard() {
           return currentTrip.rawStatus;
         })();
 
-        const heroStatus = currentTrip ? getHeroStatusConfig(driverTripStatus || currentTrip.rawStatus) : null;
+        const isWaitingForSesi1 = Boolean(isSplitTrip && isReturnLeg && !currentTrip?.departure_checked_in_at);
+        const heroStatus = currentTrip 
+          ? (isWaitingForSesi1 
+              ? { label: "Menunggu Sesi Antar Selesai", color: "bg-amber-400" } 
+              : getHeroStatusConfig(driverTripStatus || currentTrip.rawStatus))
+          : null;
 
         const displayDestination = (() => {
           if (!currentTrip) return "";
@@ -1157,7 +1165,7 @@ export default function DriverDashboard() {
                 <div className="absolute right-20 bottom-0 w-40 h-40 bg-[#1e3a8a]/20 rounded-full translate-y-1/2 pointer-events-none" />
 
                 <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div className="space-y-4">
+                  <div className="space-y-4 flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <div className="inline-flex items-center gap-2 bg-[#1a2d4f] border border-[#2a4a7f] text-white text-[11px] font-bold px-3 py-1.5 rounded-full">
                         <span className={`w-2 h-2 rounded-full ${heroStatus?.color}`} />
@@ -1213,13 +1221,13 @@ export default function DriverDashboard() {
                       )}
                     </div>
 
-                    <div className="bg-[#1a2d4f]/60 border border-[#2a4a7f] rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      <div>
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1">
-                          <Icon name="location_on" className="text-[14px]" />
-                          Destination
+                    <div className="bg-[#1a2d4f]/60 border border-[#2a4a7f] rounded-xl p-3 sm:p-4 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1 truncate">
+                          <Icon name="location_on" className="text-[14px] shrink-0" />
+                          <span>Destination</span>
                         </div>
-                        <div className="text-[13px] font-bold truncate max-w-[150px]" title={
+                        <div className="text-[13px] font-bold truncate" title={
                           isSessionPooled
                             ? effectivePooledRequests.map((pr: any) => pr.destination_place || pr.destination_city || pr.destination || "-").join(" & ")
                             : displayDestination
@@ -1229,28 +1237,28 @@ export default function DriverDashboard() {
                             : displayDestination}
                         </div>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1">
-                          <Icon name="schedule" className="text-[14px]" />
-                          Departure
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1 truncate">
+                          <Icon name="schedule" className="text-[14px] shrink-0" />
+                          <span>Departure</span>
                         </div>
                         <div className="text-[13px] font-bold truncate" title={displayTime}>{displayTime}</div>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1">
-                          <Icon name="directions_car" className="text-[14px]" />
-                          Armada Mobil
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1 truncate">
+                          <Icon name="directions_car" className="text-[14px] shrink-0" />
+                          <span>Armada Mobil</span>
                         </div>
-                        <div className="text-[13px] font-bold truncate max-w-[160px] text-blue-200" title={assignedVehicleName}>
+                        <div className="text-[13px] font-bold truncate text-blue-200" title={assignedVehicleName}>
                           {assignedVehicleName}
                         </div>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1">
-                          <Icon name="group" className="text-[14px]" />
-                          Passengers
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1 truncate">
+                          <Icon name="group" className="text-[14px] shrink-0" />
+                          <span>Passengers</span>
                         </div>
-                        <div className="text-[13px] font-bold">
+                        <div className="text-[13px] font-bold truncate">
                           {isSessionPooled
                             ? `${effectivePooledRequests.reduce((acc: number, pr: any) => acc + (Number(pr.passenger_count || pr.passengerCount) || 1), 0)} Orang (${effectivePooledRequests.length} Rombongan)`
                             : `${currentTrip.passengerCount || 1} Person`}
@@ -1278,6 +1286,14 @@ export default function DriverDashboard() {
                           <div>
                             {isReturnLeg ? (
                               <div className="space-y-1.5">
+                                {isWaitingForSesi1 && (
+                                  <div className="text-[10.5px] text-amber-200 bg-amber-900/50 p-2.5 rounded-lg border border-amber-500/30 flex items-start gap-2 shadow-xs mb-2">
+                                    <Icon name="hourglass_top" className="text-[14px] mt-0.5 text-amber-300 shrink-0 animate-pulse" />
+                                    <span>
+                                      <strong>Sesi Penjemputan Belum Dibuka:</strong> Menunggu Sesi Pengantaran (Sesi 1) yang sedang dilakukan oleh <strong>{partnerDriverName || "Driver Antar"}</strong> selesai diperiksa check-in kembali di pos security pabrik.
+                                    </span>
+                                  </div>
+                                )}
                                 <div>
                                   Anda ditugaskan untuk <strong>Sesi Penjemputan</strong> menggunakan kendaraan <strong>{assignedVehicleName}</strong>
                                   {currentTrip.return_departure_time ? ` pada pukul ${currentTrip.return_departure_time.split(" ")[1] || currentTrip.return_departure_time}` : ''}.
@@ -1350,6 +1366,28 @@ export default function DriverDashboard() {
                       const isTripInternal = !currentTrip.is_external;
 
                       if (isTripInternal && ["driver_assigned", "pending", "on_going"].includes(driverTripStatus || "")) {
+                        if (isWaitingForSesi1) {
+                          return (
+                            <div className="bg-[#102447] border-2 border-amber-400/60 p-4 rounded-2xl flex flex-col items-center gap-2.5 w-full max-w-[280px] text-center shadow-lg animate-fadein">
+                              <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center animate-pulse">
+                                <Icon name="hourglass_top" className="text-[22px]" />
+                              </div>
+                              <div>
+                                <div className="text-[13px] font-extrabold text-amber-300">
+                                  Menunggu Pengantaran Selesai
+                                </div>
+                                <p className="text-[11px] text-slate-300 mt-1 leading-snug">
+                                  {partnerDriverName ? `Sesi 1 (Pengantaran) saat ini masih berjalan oleh ${partnerDriverName}.` : "Sesi 1 (Pengantaran) saat ini masih berjalan."}
+                                </p>
+                              </div>
+                              <div className="text-[10px] text-amber-200 bg-amber-950/60 px-2.5 py-1.5 rounded-lg border border-amber-500/30 font-semibold flex items-start gap-1.5 text-left">
+                                <Icon name="lock" className="text-[13px] text-amber-300 shrink-0 mt-0.5" />
+                                <span>Form KM Awal dan QR Code penjemputan akan otomatis aktif setelah kendaraan kembali ke pabrik (Sesi 1 check-in).</span>
+                              </div>
+                            </div>
+                          );
+                        }
+
                         const isLockedByPrev = Boolean(currentTrip.pending_previous_trip?.is_locked);
                         if (isLockedByPrev && !hasRecordedStartKm) {
                           return (
