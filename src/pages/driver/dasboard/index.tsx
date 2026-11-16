@@ -177,7 +177,14 @@ export default function DriverDashboard() {
     try {
       const res = await requestService.getById(reqId);
       if (res.data) {
-        setSelectedRequestForDetail(res.data);
+        const detailData = { ...res.data };
+        if ((detailData.is_pooled || detailData.pool_group_id) && (!detailData.pooled_requests || detailData.pooled_requests.length === 0)) {
+          const pooledFromLocal = rawRequests.filter(r => r.pool_group_id && r.pool_group_id === detailData.pool_group_id);
+          if (pooledFromLocal.length > 0) {
+            detailData.pooled_requests = pooledFromLocal;
+          }
+        }
+        setSelectedRequestForDetail(detailData);
         setDetailLoading(false);
         return;
       }
@@ -187,7 +194,11 @@ export default function DriverDashboard() {
 
     const found = rawRequests.find((r) => String(r.id) === String(reqId));
     if (found) {
-      setSelectedRequestForDetail(found);
+      const detailData = { ...found };
+      if ((detailData.is_pooled || detailData.pool_group_id) && (!detailData.pooled_requests || detailData.pooled_requests.length === 0)) {
+        detailData.pooled_requests = rawRequests.filter(r => r.pool_group_id && r.pool_group_id === detailData.pool_group_id);
+      }
+      setSelectedRequestForDetail(detailData);
     } else {
       setAlertModal({
         isOpen: true,
@@ -1139,8 +1150,14 @@ export default function DriverDashboard() {
                           <Icon name="location_on" className="text-[14px]" />
                           Destination
                         </div>
-                        <div className="text-[13px] font-bold truncate max-w-[150px]" title={displayDestination}>
-                          {displayDestination}
+                        <div className="text-[13px] font-bold truncate max-w-[150px]" title={
+                          isSessionPooled
+                            ? effectivePooledRequests.map((pr: any) => pr.destination_place || pr.destination_city || pr.destination || "-").join(" & ")
+                            : displayDestination
+                        }>
+                          {isSessionPooled
+                            ? effectivePooledRequests.map((pr: any) => pr.destination_place || pr.destination_city || pr.destination || "-").join(" & ")
+                            : displayDestination}
                         </div>
                       </div>
                       <div>
@@ -1164,7 +1181,11 @@ export default function DriverDashboard() {
                           <Icon name="group" className="text-[14px]" />
                           Passengers
                         </div>
-                        <div className="text-[13px] font-bold">{currentTrip.passengerCount || 1} Person</div>
+                        <div className="text-[13px] font-bold">
+                          {isSessionPooled
+                            ? `${effectivePooledRequests.reduce((acc: number, pr: any) => acc + (Number(pr.passenger_count || pr.passengerCount) || 1), 0)} Orang (${effectivePooledRequests.length} Rombongan)`
+                            : `${currentTrip.passengerCount || 1} Person`}
+                        </div>
                       </div>
                     </div>
 
@@ -1230,7 +1251,9 @@ export default function DriverDashboard() {
                   <div className="flex flex-col items-start md:items-end justify-between h-full gap-4 flex-shrink-0">
                     <div className="flex items-center gap-2">
                       <span className="text-[12px] text-[#8ca3c4] font-bold">
-                        Ref: #REQ-{currentTrip.id}
+                        {isSessionPooled
+                          ? `Ref: ${effectivePooledRequests.map((pr: any) => `#REQ-${pr.id}`).join(" & ")}`
+                          : `Ref: #REQ-${currentTrip.id}`}
                       </span>
                       <button
                         onClick={() => handleViewDetail(String(currentTrip.id))}

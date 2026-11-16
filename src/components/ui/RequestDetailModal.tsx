@@ -296,6 +296,141 @@ export function RequestDetailModal({
             </div>
           )}
 
+          {/* Section Rincian Perjalanan Gabungan (Shared Ride) */}
+          {(request.is_pooled || request.pool_group_id) && (
+            <div className="p-4 sm:p-5 bg-gradient-to-br from-indigo-50/90 to-blue-50/80 border border-indigo-200 rounded-2xl space-y-3.5 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-indigo-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-700 text-white flex items-center justify-center shadow-xs shrink-0">
+                    <Icon name="groups" className="text-[20px]" />
+                  </div>
+                  <div>
+                    <div className="text-[14px] font-extrabold text-indigo-950 flex items-center gap-2 flex-wrap">
+                      <span>Rincian Perjalanan Gabungan (Shared Ride)</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-700 border border-indigo-300 px-2 py-0.5 rounded-full">
+                        {request.pooled_requests?.length || 2} Tiket Tergabung
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-indigo-700 font-medium mt-0.5">
+                      Permohonan ini menggunakan 1 armada kendaraan operasional bersama penumpang dari permohonan lain.
+                    </div>
+                  </div>
+                </div>
+
+                {request.master_pool_qr && (
+                  <div className="flex items-center gap-1.5 self-start sm:self-auto bg-white border border-indigo-200 px-2.5 py-1 rounded-lg shadow-2xs">
+                    <Icon name="qr_code_2" className="text-[16px] text-indigo-600" />
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Master QR:</span>
+                    <span className="text-[11px] font-mono font-extrabold text-indigo-900">{request.master_pool_qr}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Daftar Rombongan Permohonan */}
+              {Array.isArray(request.pooled_requests) && request.pooled_requests.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {request.pooled_requests.map((pr: any) => {
+                    const isCurrent = String(pr.id) === String(request.id);
+                    return (
+                      <div
+                        key={pr.id}
+                        className={`p-3.5 rounded-xl border transition-all ${
+                          isCurrent
+                            ? "bg-white border-indigo-300 shadow-sm ring-1 ring-indigo-200"
+                            : "bg-white/80 border-indigo-100 hover:border-indigo-200"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-100">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[12px] font-extrabold text-slate-900 truncate">
+                              #{pr.id} {pr.user_name || pr.employee || "Pemohon"}
+                            </span>
+                            {isCurrent && (
+                              <span className="text-[9px] font-extrabold uppercase bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
+                                Tiket Ini
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                            {pr.department_name || "-"}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1.5 text-[11.5px]">
+                          <div className="flex items-start gap-1.5">
+                            <Icon name="location_on" className="text-[13px] text-blue-600 shrink-0 mt-0.5" />
+                            <span className="text-slate-500 shrink-0 font-medium">Tujuan:</span>
+                            <span className="font-bold text-slate-800 truncate" title={pr.destination_place || pr.destination_city || "-"}>
+                              {pr.destination_place || pr.destination_city || "-"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-start gap-1.5">
+                            <Icon name="assignment" className="text-[13px] text-slate-400 shrink-0 mt-0.5" />
+                            <span className="text-slate-500 shrink-0 font-medium">Keperluan:</span>
+                            <span className="font-semibold text-slate-700 truncate" title={pr.purpose || "-"}>
+                              {pr.purpose || "-"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <Icon name="schedule" className="text-[13px] text-slate-400 shrink-0" />
+                            <span className="text-slate-500 shrink-0 font-medium">Jadwal:</span>
+                            <span className="font-semibold text-slate-800">
+                              {pr.start_time || "-"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-start gap-1.5">
+                            <Icon name="group" className="text-[13px] text-slate-400 shrink-0 mt-0.5" />
+                            <span className="text-slate-500 shrink-0 font-medium">Penumpang:</span>
+                            <span className="font-bold text-slate-800">
+                              {pr.passenger_count || 1} Orang
+                              {Array.isArray(pr.passengers) && pr.passengers.length > 0 && (
+                                <span className="font-normal text-slate-500 text-[10.5px] ml-1">
+                                  ({pr.passengers.map((p: any) => p.name).join(", ")})
+                                </span>
+                              )}
+                            </span>
+                          </div>
+
+                          {/* Sesi Penjemputan jika split trip */}
+                          {pr.trip_mode === "split_drop_pickup" && (
+                            <div className="mt-2 pt-2 border-t border-dashed border-slate-200 text-[10.5px] bg-slate-50 p-2 rounded-lg space-y-1">
+                              <div className="font-bold text-slate-700 flex items-center gap-1">
+                                <Icon name="sync" className="text-[12px] text-amber-600" />
+                                <span>Alokasi Sesi Penjemputan (Sesi 2):</span>
+                              </div>
+                              <div className="text-slate-600 pl-4 space-y-0.5">
+                                <div>Supir: <span className="font-bold text-slate-800">{pr.return_driver_name || "Belum Ditugaskan"}</span></div>
+                                <div>Armada: <span className="font-bold text-slate-800">{pr.return_vehicle_name || "-"}</span></div>
+                                {pr.return_departure_time && (
+                                  <div>Waktu Jemput: <span className="font-bold text-slate-800">{pr.return_departure_time}</span></div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-3 bg-white/70 rounded-xl border border-indigo-100 text-xs text-indigo-900 font-medium">
+                  Rombongan penugasan gabungan telah terdaftar di bawah Master QR yang sama.
+                </div>
+              )}
+
+              {/* Driver Operational Note */}
+              <div className="text-[11px] text-slate-600 bg-white/70 border border-indigo-100 rounded-xl p-2.5 flex items-start gap-2">
+                <Icon name="info" className="text-[14px] text-indigo-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Instruksi Operasional Driver:</strong> Supir bertugas melayani seluruh permohonan dalam rombongan di atas. Pastikan seluruh penumpang telah berada di armada sebelum keberangkatan dan antarkan sesuai titik tujuan masing-masing.
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Left Column: Requester & Trip Details (Span 2) */}
             <div className="md:col-span-2 space-y-5">

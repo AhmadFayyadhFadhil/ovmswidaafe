@@ -187,10 +187,16 @@ export interface FleetRequest {
     passenger_count?: number;
     passengers?: Array<{ name: string; notes?: string }>;
     driver_id?: number | null;
+    driver_name?: string | null;
     vehicle_id?: number | null;
+    vehicle_name?: string | null;
     return_driver_id?: number | null;
+    return_driver_name?: string | null;
     return_vehicle_id?: number | null;
+    return_vehicle_name?: string | null;
+    return_departure_time?: string | null;
     trip_mode?: string | null;
+    notes?: string | null;
   }>;
 }
 
