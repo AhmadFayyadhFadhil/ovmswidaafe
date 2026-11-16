@@ -753,17 +753,18 @@ export default function GAHRDRequestsPage() {
     setActionLoading(true);
     try {
       requestService.clearCache();
-      const res = await assignmentService.getAll({ per_page: 1000 });
-      const assignment = (res.data || []).find(
-        (a: any) => String(a.request?.id) === String(requestId) && a.status === 'pending_driver'
-      );
+      const res = await assignmentService.getAll({ per_page: 1000, request_id: requestId });
+      const asgs = res.data || [];
+      const assignment = asgs.find(
+        (a: any) => String(a.request?.id || a.request_id) === String(requestId) && !['completed', 'cancelled', 'rejected'].includes(a.status)
+      ) || asgs.find((a: any) => String(a.request?.id || a.request_id) === String(requestId));
       if (assignment) {
         await assignmentService.cancel(assignment.id);
         showToast("Penugasan driver berhasil dibatalkan!");
         requestService.clearCache();
         await fetchData();
       } else {
-        alert("Assignment tidak ditemukan.");
+        alert("Data penugasan tidak ditemukan pada server.");
       }
     } catch (err: any) {
       console.error(err);
@@ -1307,7 +1308,7 @@ export default function GAHRDRequestsPage() {
                     {/* Header */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 pt-5 pb-4 border-b border-[#f8fafc] bg-[#fafbfc]">
                       <div className="flex items-center gap-3">
-                        {["submitted", "approved_department", "assigned_by_ga", "driver_assigned"].includes(req.rawStatus) && !req.is_external && (
+                        {["submitted", "approved_department", "approved_hrd", "approved_hrd_ga", "waiting_driver", "assigned_by_ga", "driver_assigned"].includes(req.rawStatus) && !req.is_external && (
                           <div 
                             className="flex items-center justify-center p-1 cursor-pointer"
                             onClick={(e) => {

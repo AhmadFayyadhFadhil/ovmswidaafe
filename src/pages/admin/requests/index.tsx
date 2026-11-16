@@ -263,13 +263,16 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
 
   const handleCancelAssignment = async (requestId: string) => {
     try {
-      const res = await assignmentService.getAll({ per_page: 1000 });
-      const assignment = (res.data || []).find((a: any) => String(a.request?.id) === String(requestId) && a.status === 'pending_driver');
+      const res = await assignmentService.getAll({ per_page: 1000, request_id: requestId });
+      const asgs = res.data || [];
+      const assignment = asgs.find(
+        (a: any) => String(a.request?.id || a.request_id) === String(requestId) && !['completed', 'cancelled', 'rejected'].includes(a.status)
+      ) || asgs.find((a: any) => String(a.request?.id || a.request_id) === String(requestId));
       if (assignment) {
         await assignmentService.cancel(assignment.id);
         refetch();
       } else {
-        alert("Assignment tidak ditemukan.");
+        alert("Data penugasan tidak ditemukan pada server.");
       }
     } catch (err: any) {
       console.error(err);
