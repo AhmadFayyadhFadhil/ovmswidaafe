@@ -35,6 +35,13 @@ export default function SecurityDashboard() {
   const [securityNotes, setSecurityNotes] = useState("");
 
   // Session-aware pooling for security
+  const allPooledRequests = useMemo(() => {
+    if (!scannedRequest?.is_pooled && !scannedRequest?.pool_group_id) return [];
+    return scannedRequest.pooled_requests || [];
+  }, [scannedRequest]);
+
+  const isPooled = allPooledRequests.length > 1;
+
   const effectiveSecurityPooledRequests = useMemo(() => {
     if (!scannedRequest?.is_pooled && !scannedRequest?.pool_group_id) return [];
     const list = scannedRequest.pooled_requests || [];
@@ -64,6 +71,26 @@ export default function SecurityDashboard() {
   }, [scannedRequest]);
 
   const isSecuritySessionPooled = effectiveSecurityPooledRequests.length > 1;
+
+  const returnBreakdown = useMemo(() => {
+    if (!isPooled) return [];
+    const map: Record<string, { driverName: string; vehicleName: string; time: string; requests: any[] }> = {};
+    allPooledRequests.forEach((pr: any) => {
+      const dName = pr.return_driver_name || pr.driver_name || "Driver Jemput";
+      const vName = pr.return_vehicle_name || "Armada Jemput";
+      const key = `${pr.return_driver_id || 'd'}_${pr.return_vehicle_id || 'v'}`;
+      if (!map[key]) {
+        map[key] = {
+          driverName: dName,
+          vehicleName: vName,
+          time: pr.return_departure_time ? parseTimeStr(pr.return_departure_time) : "-",
+          requests: [],
+        };
+      }
+      map[key].requests.push(pr);
+    });
+    return Object.values(map);
+  }, [allPooledRequests, isPooled]);
 
   // Modal confirmation states
   const [showNameModal, setShowNameModal] = useState(false);
@@ -936,16 +963,53 @@ export default function SecurityDashboard() {
                 <div>
                   <button 
                     onClick={() => { setScannedRequest(null); setError(null); }}
-                    className="text-xs font-semibold text-slate-400 hover:text-slate-600 flex items-center gap-1 mb-2"
+                    className="text-xs font-semibold text-slate-400 hover:text-slate-600 flex items-center gap-1 mb-2.5 cursor-pointer"
                   >
                     <Icon name="arrow_back" className="text-sm" /> Kembali ke Scan
                   </button>
-                  <span className="px-2.5 py-1 text-xs font-bold uppercase rounded-md bg-blue-50 text-blue-800">
-                    ID Request: #{scannedRequest.id}
-                  </span>
-                  <h4 className="text-xl font-extrabold text-slate-800 mt-2">
-                    {scannedRequest.destination_city} - {scannedRequest.destination_place}
-                  </h4>
+
+                  {isPooled ? (
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="px-2.5 py-1 text-xs font-extrabold uppercase rounded-lg bg-indigo-100 text-indigo-900 border border-indigo-200 flex items-center gap-1.5">
+                          <Icon name="groups" className="text-sm text-indigo-600" />
+                          <span>Perjalanan Gabungan ({allPooledRequests.length} Permohonan)</span>
+                        </span>
+                        {allPooledRequests.map((pr: any) => (
+                          <span
+                            key={pr.id}
+                            className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border ${
+                              pr.id === scannedRequest.id
+                                ? 'bg-[#1e3a8a] text-white border-[#1e3a8a] shadow-xs'
+                                : 'bg-slate-100 text-slate-700 border-slate-200'
+                            }`}
+                          >
+                            #REQ-{pr.id}
+                          </span>
+                        ))}
+                        {scannedRequest.master_pool_qr && (
+                          <span className="px-2 py-0.5 text-[11px] font-mono font-bold bg-indigo-50 text-indigo-700 rounded border border-indigo-100">
+                            Master QR: {scannedRequest.master_pool_qr}
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="text-xl font-extrabold text-slate-800 mt-1">
+                        {Array.from(new Set(allPooledRequests.map((pr: any) => `${pr.destination_city || ''} - ${pr.destination_place || ''}`.replace(/^ - |- $/g, '').trim()))).join(" • ")}
+                      </h4>
+                      <p className="text-xs text-slate-500 font-medium">
+                        Total Rombongan: <strong className="text-slate-800 font-bold">{allPooledRequests.reduce((acc: number, pr: any) => acc + (pr.passenger_count || 1), 0)} Orang</strong>
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="px-2.5 py-1 text-xs font-bold uppercase rounded-md bg-blue-50 text-blue-800">
+                        ID Request: #{scannedRequest.id}
+                      </span>
+                      <h4 className="text-xl font-extrabold text-slate-800 mt-2">
+                        {scannedRequest.destination_city} - {scannedRequest.destination_place}
+                      </h4>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   {(() => {
@@ -997,15 +1061,15 @@ export default function SecurityDashboard() {
               </div>
 
               {/* Banner Rombongan Perjalanan Gabungan jika is_pooled */}
-              {(scannedRequest.is_pooled || scannedRequest.pool_group_id) && isSecuritySessionPooled && (
-                <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl flex flex-col gap-2.5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              {(scannedRequest.is_pooled || scannedRequest.pool_group_id) && isPooled && (
+                <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl flex flex-col gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-200/60 pb-2.5">
                     <div className="flex items-center gap-2">
                       <span className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
                         <Icon name="groups" className="text-base" />
                       </span>
                       <span className="font-extrabold text-sm text-indigo-950 uppercase tracking-wide">
-                        ROMBONGAN PERJALANAN GABUNGAN ({effectiveSecurityPooledRequests.length} PENUMPANG)
+                        ROMBONGAN PERJALANAN GABUNGAN ({allPooledRequests.length} PERMOHONAN)
                       </span>
                     </div>
                     <span className="text-[11px] font-mono font-bold bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded border border-indigo-200 self-start sm:self-auto">
@@ -1013,32 +1077,67 @@ export default function SecurityDashboard() {
                     </span>
                   </div>
                   <p className="text-xs text-indigo-800">
-                    Konfirmasi keberangkatan akan otomatis mencatat KM Keluar dan mengaktifkan status <strong>ON GOING</strong> untuk seluruh tiket dalam rombongan ini sekaligus.
+                    Konfirmasi gerbang security akan otomatis mencatat KM Keluar dan mengaktifkan status untuk seluruh tiket dalam rombongan ini sekaligus.
                   </p>
-                  {effectiveSecurityPooledRequests.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                      {effectiveSecurityPooledRequests.map((pr: any) => (
-                        <div key={pr.id} className="p-2.5 bg-white border border-indigo-100 rounded-xl flex items-center justify-between text-xs shadow-xs">
-                          <div className="min-w-0 pr-2">
-                            <span className="font-bold text-slate-800">#{pr.id} {pr.user_name}</span>
-                            <span className="text-slate-500 font-normal"> ({pr.department_name || "-"})</span>
-                            <div className="text-[11px] text-slate-600 truncate flex items-center gap-1 mt-0.5">
-                              <Icon name="location_on" className="text-[12px] text-blue-500 shrink-0" />
-                              <span className="truncate">{pr.destination_city || pr.destination_place || "-"}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-0.5">
+                    {allPooledRequests.map((pr: any) => (
+                      <div key={pr.id} className="p-3 bg-white border border-indigo-100 rounded-xl flex flex-col justify-between text-xs shadow-xs space-y-2">
+                        <div>
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <span className="font-bold text-slate-900 text-sm">#{pr.id} {pr.user_name}</span>
+                              <span className="text-slate-500 font-medium text-[11px] block">
+                                {pr.department_name || "-"} {pr.user_phone ? `• ${pr.user_phone}` : ""}
+                              </span>
                             </div>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 ${
                               pr.status === "on_going" ? "bg-amber-100 text-amber-800" :
                               pr.status === "completed" ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"
                             }`}>
                               {pr.status === "driver_assigned" ? "Siap" : pr.status}
                             </span>
                           </div>
+
+                          <div className="mt-2 space-y-1 text-[11px] text-slate-600">
+                            <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                              <Icon name="location_on" className="text-sm text-blue-600 shrink-0" />
+                              <span>{pr.destination_city || ""} - {pr.destination_place || "-"}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-600">
+                              <Icon name="assignment" className="text-xs text-slate-400 shrink-0" />
+                              <span>Keperluan: <strong className="text-slate-700">{pr.purpose || "-"}</strong></span>
+                            </div>
+                            {pr.passengers && pr.passengers.length > 0 && (
+                              <div className="flex items-center gap-1.5 text-slate-600">
+                                <Icon name="person" className="text-xs text-slate-400 shrink-0" />
+                                <span>Rekan: <strong className="text-slate-700">{pr.passengers.map((p: any) => p.name).join(", ")}</strong></span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
+
+                        {pr.trip_mode === 'split_drop_pickup' && (
+                          <div className="pt-2 border-t border-slate-100 text-[10.5px] grid grid-cols-2 gap-2 bg-slate-50/70 p-2 rounded-lg">
+                            <div>
+                              <span className="text-slate-400 block font-bold uppercase text-[9px]">Sesi Antar</span>
+                              <span className="font-semibold text-slate-700">{pr.driver_name || "Pak Winaryo"}</span>
+                              <span className="text-slate-500 block text-[9.5px] truncate">{pr.vehicle_name || "-"}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block font-bold uppercase text-[9px]">Sesi Jemput</span>
+                              <span className="font-semibold text-slate-700">{pr.return_driver_name || pr.driver_name || "-"}</span>
+                              <span className="text-slate-500 block text-[9.5px] truncate">{pr.return_vehicle_name || "-"}</span>
+                              {pr.return_departure_time && (
+                                <span className="text-amber-700 font-bold block text-[9px] mt-0.5">
+                                  Jadwal: {parseTimeStr(pr.return_departure_time)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -1064,26 +1163,78 @@ export default function SecurityDashboard() {
 
                 <div className={`${capturedPhoto ? 'md:col-span-2' : 'md:col-span-3'} grid grid-cols-1 sm:grid-cols-2 gap-4`}>
                   <div className="space-y-4">
-                    <div>
-                      <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pemohon</div>
-                      <div className="text-sm font-semibold text-slate-800 mt-0.5">{scannedRequest.requested_by?.name}</div>
-                      <div className="text-[10px] font-bold uppercase text-slate-400 tracking-wider mt-0.5">
-                        {scannedRequest.department_name || scannedRequest.department_id || "-"}
-                      </div>
-                    </div>
+                    {isPooled ? (
+                      <div className="space-y-3">
+                        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                          Daftar Penumpang Rombongan Gabungan ({allPooledRequests.length} Pemohon)
+                        </div>
+                        <div className="space-y-2">
+                          {allPooledRequests.map((pr: any, idx: number) => (
+                            <div key={pr.id} className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-slate-800 text-sm">
+                                  {idx + 1}. #{pr.id} {pr.user_name}
+                                </span>
+                                <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-800 rounded">
+                                  {pr.department_name || "-"}
+                                </span>
+                              </div>
+                              <div className="text-slate-600 text-[11.5px]">
+                                Tujuan: <strong>{pr.destination_city || ""} - {pr.destination_place || "-"}</strong>
+                              </div>
+                              <div className="text-slate-500 text-[11px]">
+                                Keperluan: {pr.purpose || "-"}
+                              </div>
+                              {pr.passengers && pr.passengers.length > 0 && (
+                                <div className="text-[10.5px] text-slate-600 bg-white p-1.5 rounded border border-slate-100 mt-1">
+                                  Rekan Ikut: <strong>{pr.passengers.map((p: any) => p.name).join(", ")}</strong>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
 
-                    <div>
-                      <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tujuan / Keperluan</div>
-                      <div className="text-sm text-slate-800 mt-0.5">{scannedRequest.purpose}</div>
-                    </div>
-
-                    <div>
-                      <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Estimasi Kembali</div>
-                      <div className="text-sm font-semibold text-[#1e3a8a] flex items-center gap-1.5 mt-1">
-                        <Icon name="timer" className="text-base" />
-                        {scannedRequest.estimated_duration ? `${scannedRequest.estimated_duration} Jam (Pulang Pergi)` : "-"}
+                        <div>
+                          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Estimasi Waktu Kembali</div>
+                          <div className="text-sm font-semibold text-[#1e3a8a] flex items-center gap-1.5 mt-1">
+                            <Icon name="timer" className="text-base" />
+                            {scannedRequest.estimated_duration ? `${scannedRequest.estimated_duration} Jam (Pulang Pergi)` : "-"}
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <>
+                        <div>
+                          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pemohon</div>
+                          <div className="text-sm font-semibold text-slate-800 mt-0.5">{scannedRequest.requested_by?.name}</div>
+                          <div className="text-[10px] font-bold uppercase text-slate-400 tracking-wider mt-0.5">
+                            {scannedRequest.department_name || scannedRequest.department_id || "-"}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tujuan / Keperluan</div>
+                          <div className="text-sm text-slate-800 mt-0.5">{scannedRequest.purpose}</div>
+                        </div>
+
+                        {scannedRequest.passengers && scannedRequest.passengers.length > 0 && (
+                          <div>
+                            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Daftar Rekan / Penumpang Ikut</div>
+                            <div className="text-xs font-semibold text-slate-700 mt-0.5">
+                              {scannedRequest.passengers.map((p: any) => p.name).join(", ")}
+                            </div>
+                          </div>
+                        )}
+
+                        <div>
+                          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Estimasi Kembali</div>
+                          <div className="text-sm font-semibold text-[#1e3a8a] flex items-center gap-1.5 mt-1">
+                            <Icon name="timer" className="text-base" />
+                            {scannedRequest.estimated_duration ? `${scannedRequest.estimated_duration} Jam (Pulang Pergi)` : "-"}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div className="space-y-4">
@@ -1376,6 +1527,12 @@ export default function SecurityDashboard() {
                                             <Icon name="person" className="text-xs text-slate-400 shrink-0" />
                                             <span>Driver: <strong className="text-slate-700">{s1DriverName}</strong></span>
                                           </div>
+                                          {isPooled && (
+                                            <div className="text-[10px] text-indigo-700 font-semibold pl-5 pt-0.5 flex items-center gap-1">
+                                              <Icon name="groups" className="text-xs text-indigo-600" />
+                                              <span>Membawa rombongan gabungan ({allPooledRequests.length} rombongan) untuk pengantaran.</span>
+                                            </div>
+                                          )}
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10.5px]">
@@ -1475,6 +1632,32 @@ export default function SecurityDashboard() {
                                               </span>
                                             )}
                                           </div>
+
+                                          {/* Distinct Return Breakdown for Pooled Trip */}
+                                          {returnBreakdown.length > 1 && (
+                                            <div className="mt-2 pt-2 border-t border-amber-200/60 pl-5 space-y-1.5">
+                                              <div className="text-[10.5px] font-extrabold text-amber-900 uppercase flex items-center gap-1">
+                                                <Icon name="alt_route" className="text-xs text-amber-700" />
+                                                <span>Rincian Armada Penjemputan ({returnBreakdown.length} Armada Terpisah):</span>
+                                              </div>
+                                              <div className="grid grid-cols-1 gap-1.5">
+                                                {returnBreakdown.map((rb, idx) => (
+                                                  <div key={idx} className="bg-white p-2.5 rounded-lg border border-amber-200 text-[11px] space-y-0.5 shadow-2xs">
+                                                    <div className="font-bold text-slate-800 flex items-center justify-between">
+                                                      <span className="text-blue-900">{rb.vehicleName}</span>
+                                                      <span className="text-amber-800 font-bold bg-amber-50 px-1.5 py-0.5 rounded text-[10px]">{rb.time}</span>
+                                                    </div>
+                                                    <div className="text-slate-600">
+                                                      Driver: <strong>{rb.driverName}</strong>
+                                                    </div>
+                                                    <div className="text-slate-500 text-[10px]">
+                                                      Menjemput: <strong className="text-slate-700">{rb.requests.map((r: any) => `#${r.id} ${r.user_name}`).join(", ")}</strong>
+                                                    </div>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10.5px]">
@@ -1926,7 +2109,36 @@ export default function SecurityDashboard() {
                   </div>
                 </div>
 
-                {/* Poin 9: External vehicle info vs Internal Odometer Section */}
+                {/* Rombongan Gabungan Summary Banner in Confirmation Modal */}
+                {isSecuritySessionPooled && (
+                  <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl text-xs space-y-1.5 animate-fadein">
+                    <div className="font-extrabold text-indigo-950 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Icon name="groups" className="text-sm text-indigo-600" />
+                        <span>Rombongan Gabungan ({effectiveSecurityPooledRequests.length} Permohonan)</span>
+                      </span>
+                      <span className="text-[10px] bg-indigo-200/80 text-indigo-800 font-mono px-2 py-0.5 rounded font-bold">
+                        {scannedRequest.master_pool_qr ? `MASTER QR: ${scannedRequest.master_pool_qr}` : scannedRequest.pool_group_id}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-0.5">
+                      {effectiveSecurityPooledRequests.map((pr: any) => (
+                        <div key={pr.id} className="p-2 bg-white rounded-lg border border-indigo-100 flex items-center justify-between text-[11px] shadow-2xs">
+                          <div>
+                            <span className="font-bold text-slate-800">#{pr.id} {pr.user_name}</span>
+                            <span className="text-slate-500 text-[10px] block truncate max-w-[130px]">{pr.destination_city || pr.destination_place}</span>
+                          </div>
+                          <span className="text-[9.5px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">
+                            {pr.department_name || "Staff"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[10.5px] text-indigo-700 italic pt-0.5">
+                      *Aksi konfirmasi {confirmingType === 'checkout' ? 'keluar' : 'masuk'} gate ini akan otomatis memproses seluruh {effectiveSecurityPooledRequests.length} tiket rombongan di atas sekaligus.
+                    </p>
+                  </div>
+                )}
                 {confirmingType === 'checkout' && scannedRequest?.is_external && (
                   <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-2xl space-y-1.5 text-xs text-amber-900">
                     <div className="font-bold flex items-center gap-1.5">
