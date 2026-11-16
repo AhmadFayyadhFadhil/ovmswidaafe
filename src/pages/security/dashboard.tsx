@@ -1641,36 +1641,57 @@ export default function SecurityDashboard() {
 
                                           {/* Distinct Return Breakdown for Pooled Trip */}
                                           {returnBreakdown.length > 1 && (
-                                            <div className="mt-2 pt-2 border-t border-amber-200/60 pl-5 space-y-1.5">
-                                              <div className="text-[10.5px] font-extrabold text-amber-900 uppercase flex items-center gap-1">
-                                                <Icon name="alt_route" className="text-xs text-amber-700" />
+                                            <div className="mt-2.5 pt-2.5 border-t border-amber-200/70 space-y-2">
+                                              <div className="text-[11px] font-extrabold text-amber-900 uppercase flex items-center gap-1.5">
+                                                <Icon name="alt_route" className="text-sm text-amber-700" />
                                                 <span>Rincian Armada Penjemputan ({returnBreakdown.length} Armada Terpisah):</span>
                                               </div>
-                                              <div className="grid grid-cols-1 gap-1.5">
+                                              <div className="grid grid-cols-1 gap-2">
                                                 {returnBreakdown.map((rb, idx) => {
                                                   const isCurrentArmada = String(rb.driverId) === String(scannedRequest.return_driver_id || scannedRequest.return_driver?.id || scannedRequest.driver_id || scannedRequest.driver?.id);
                                                   return (
-                                                    <div key={idx} className={`p-2.5 rounded-lg border text-[11px] space-y-1 shadow-2xs transition-all ${
-                                                      isCurrentArmada 
-                                                        ? 'bg-amber-50/90 border-amber-400 ring-2 ring-amber-400/30' 
-                                                        : 'bg-white border-slate-200'
-                                                    }`}>
-                                                      <div className="font-bold text-slate-800 flex items-center justify-between">
+                                                    <div 
+                                                      key={idx} 
+                                                      className={`p-3 rounded-xl border text-[11.5px] space-y-2 shadow-2xs transition-all ${
+                                                        isCurrentArmada 
+                                                          ? 'bg-amber-50/95 border-amber-400 ring-2 ring-amber-400/40' 
+                                                          : 'bg-white border-slate-200'
+                                                      }`}
+                                                    >
+                                                      {/* Baris 1: Status Badge & Waktu */}
+                                                      <div className="flex items-center justify-between gap-2">
+                                                        {isCurrentArmada ? (
+                                                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-600 text-white text-[9.5px] font-extrabold uppercase tracking-wide shadow-2xs">
+                                                            <Icon name="check_circle" className="text-[11px]" />
+                                                            <span>Di Pos Gate Saat Ini</span>
+                                                          </span>
+                                                        ) : (
+                                                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[9.5px] font-bold uppercase tracking-wide">
+                                                            <Icon name="schedule" className="text-[11px]" />
+                                                            <span>Terjadwal Terpisah</span>
+                                                          </span>
+                                                        )}
+                                                        <span className="text-amber-900 font-bold bg-amber-100/80 border border-amber-300 px-2 py-0.5 rounded text-[10px] shrink-0">
+                                                          Jadwal: {rb.time}
+                                                        </span>
+                                                      </div>
+
+                                                      {/* Baris 2: Nama Armada & Plat Nomor */}
+                                                      <div className="font-extrabold text-[13px] text-blue-950 flex items-center gap-1.5">
+                                                        <Icon name="directions_car" className="text-[15px] text-blue-700 shrink-0" />
+                                                        <span className="break-words">{rb.vehicleName}</span>
+                                                      </div>
+
+                                                      {/* Baris 3: Rincian Driver & Penumpang */}
+                                                      <div className="pt-1.5 border-t border-slate-100/80 space-y-1 text-slate-600 text-[11px]">
                                                         <div className="flex items-center gap-1.5">
-                                                          <span className="text-blue-900 font-extrabold">{rb.vehicleName}</span>
-                                                          {isCurrentArmada && (
-                                                            <span className="text-[9.5px] bg-amber-600 text-white font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                                                              Di Pos Gate Saat Ini
-                                                            </span>
-                                                          )}
+                                                          <Icon name="person" className="text-xs text-slate-400 shrink-0" />
+                                                          <span>Driver: <strong className="text-slate-800 font-bold">{rb.driverName}</strong></span>
                                                         </div>
-                                                        <span className="text-amber-800 font-bold bg-amber-100/70 border border-amber-300 px-1.5 py-0.5 rounded text-[10px]">{rb.time}</span>
-                                                      </div>
-                                                      <div className="text-slate-600">
-                                                        Driver: <strong>{rb.driverName}</strong>
-                                                      </div>
-                                                      <div className="text-slate-500 text-[10px]">
-                                                        Menjemput: <strong className="text-slate-700">{rb.requests.map((r: any) => `#${r.id} ${r.user_name || r.employee || ''}`).join(", ")}</strong>
+                                                        <div className="flex items-start gap-1.5 text-slate-500 text-[10.5px]">
+                                                          <Icon name="groups" className="text-xs text-slate-400 shrink-0 mt-0.5" />
+                                                          <span>Menjemput: <strong className="text-slate-800 font-semibold">{rb.requests.map((r: any) => `#${r.id} ${r.user_name || r.employee || ''}`).join(", ")}</strong></span>
+                                                        </div>
                                                       </div>
                                                     </div>
                                                   );

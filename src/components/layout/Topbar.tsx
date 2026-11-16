@@ -91,7 +91,7 @@ export function Topbar({
           <Icon name={isSidebarCollapsed ? "menu" : "menu_open"} className="text-[22px] transition-transform duration-200" />
         </button>
 
-        <h1 className="text-[16px] sm:text-[18px] font-bold text-[#0f172a] truncate">{title}</h1>
+        <h1 className="text-[15px] sm:text-[18px] font-bold text-[#0f172a] shrink-0">{title}</h1>
         
         {/* Render search bar ONLY on History / Audit pages */}
         {(showSearch || window.location.pathname.includes('/history') || window.location.pathname.includes('/audit')) && (
