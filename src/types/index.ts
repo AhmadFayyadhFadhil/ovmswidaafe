@@ -186,6 +186,11 @@ export interface FleetRequest {
     status?: string;
     passenger_count?: number;
     passengers?: Array<{ name: string; notes?: string }>;
+    driver_id?: number | null;
+    vehicle_id?: number | null;
+    return_driver_id?: number | null;
+    return_vehicle_id?: number | null;
+    trip_mode?: string | null;
   }>;
 }
 

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/RoleLayout";
 import { Icon } from "@/components/ui/Icon";
@@ -33,6 +33,37 @@ export default function SecurityDashboard() {
 
   const [scannedRequest, setScannedRequest] = useState<any>(null);
   const [securityNotes, setSecurityNotes] = useState("");
+
+  // Session-aware pooling for security
+  const effectiveSecurityPooledRequests = useMemo(() => {
+    if (!scannedRequest?.is_pooled && !scannedRequest?.pool_group_id) return [];
+    const list = scannedRequest.pooled_requests || [];
+    if (list.length === 0) return [];
+
+    const isSplitTrip = scannedRequest.trip_mode === 'split_drop_pickup';
+    const isStageReturn = isSplitTrip && Boolean(scannedRequest.departure_checked_in_at);
+
+    if (isStageReturn) {
+      const retDriverId = String(scannedRequest.return_driver_id || "");
+      const retVehId = String(scannedRequest.return_vehicle_id || "");
+      return list.filter((pr: any) => {
+        const prRetDriverId = String(pr.return_driver_id || "");
+        const prRetVehId = String(pr.return_vehicle_id || "");
+        return prRetDriverId === retDriverId && (!retVehId || !prRetVehId || prRetVehId === retVehId);
+      });
+    }
+
+    const depDriverId = String(scannedRequest.driver_id || "");
+    const depVehId = String(scannedRequest.vehicle_id || "");
+    return list.filter((pr: any) => {
+      const prDepDriverId = String(pr.driver_id || "");
+      const prDepVehId = String(pr.vehicle_id || "");
+      return (!depDriverId || !prDepDriverId || prDepDriverId === depDriverId) &&
+             (!depVehId || !prDepVehId || prDepVehId === depVehId);
+    });
+  }, [scannedRequest]);
+
+  const isSecuritySessionPooled = effectiveSecurityPooledRequests.length > 1;
 
   // Modal confirmation states
   const [showNameModal, setShowNameModal] = useState(false);
@@ -966,7 +997,7 @@ export default function SecurityDashboard() {
               </div>
 
               {/* Banner Rombongan Perjalanan Gabungan jika is_pooled */}
-              {(scannedRequest.is_pooled || scannedRequest.pool_group_id) && (
+              {(scannedRequest.is_pooled || scannedRequest.pool_group_id) && isSecuritySessionPooled && (
                 <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl flex flex-col gap-2.5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -974,7 +1005,7 @@ export default function SecurityDashboard() {
                         <Icon name="groups" className="text-base" />
                       </span>
                       <span className="font-extrabold text-sm text-indigo-950 uppercase tracking-wide">
-                        ROMBONGAN PERJALANAN GABUNGAN ({scannedRequest.pooled_requests?.length || 2} PENUMPANG)
+                        ROMBONGAN PERJALANAN GABUNGAN ({effectiveSecurityPooledRequests.length} PENUMPANG)
                       </span>
                     </div>
                     <span className="text-[11px] font-mono font-bold bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded border border-indigo-200 self-start sm:self-auto">
@@ -984,9 +1015,9 @@ export default function SecurityDashboard() {
                   <p className="text-xs text-indigo-800">
                     Konfirmasi keberangkatan akan otomatis mencatat KM Keluar dan mengaktifkan status <strong>ON GOING</strong> untuk seluruh tiket dalam rombongan ini sekaligus.
                   </p>
-                  {scannedRequest.pooled_requests && scannedRequest.pooled_requests.length > 0 && (
+                  {effectiveSecurityPooledRequests.length > 0 && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                      {scannedRequest.pooled_requests.map((pr: any) => (
+                      {effectiveSecurityPooledRequests.map((pr: any) => (
                         <div key={pr.id} className="p-2.5 bg-white border border-indigo-100 rounded-xl flex items-center justify-between text-xs shadow-xs">
                           <div className="min-w-0 pr-2">
                             <span className="font-bold text-slate-800">#{pr.id} {pr.user_name}</span>
@@ -2068,7 +2099,7 @@ export default function SecurityDashboard() {
                         <Icon name="done_all" className="text-base" />
                         <span>
                           {confirmingType === 'checkout' 
-                            ? (scannedRequest?.is_pooled || scannedRequest?.pool_group_id ? `Konfirmasi Berangkat Rombongan (${scannedRequest.pooled_requests?.length || 2} Penumpang)` : 'Konfirmasi Keluar')
+                            ? (isSecuritySessionPooled ? `Konfirmasi Berangkat Rombongan (${effectiveSecurityPooledRequests.length} Penumpang)` : 'Konfirmasi Keluar')
                             : 'Konfirmasi Masuk Gate'}
                         </span>
                       </>

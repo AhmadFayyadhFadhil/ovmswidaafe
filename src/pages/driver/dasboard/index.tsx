@@ -856,6 +856,39 @@ export default function DriverDashboard() {
           (!isDepartureDriver || Boolean(currentTrip?.departure_checked_in_at))
         );
 
+        // Sesi-aware pooled requests: Only consider requests that share the SAME driver in the CURRENT session
+        const effectivePooledRequests = (() => {
+          if (!currentTrip?.is_pooled && !currentTrip?.pool_group_id) return [];
+
+          const poolList: any[] = (currentTrip.pooled_requests && currentTrip.pooled_requests.length > 0)
+            ? currentTrip.pooled_requests
+            : rawRequests.filter((r: any) => r.pool_group_id && r.pool_group_id === currentTrip.pool_group_id);
+
+          if (poolList.length === 0) return [];
+
+          if (isSplitTrip) {
+            if (isReturnLeg) {
+              // Sesi 2 (Jemput): hanya sertakan permohonan yang supir jemputnya adalah supir saat ini
+              const currentRetDriverId = String(currentTrip.return_driver_id || user?.id);
+              return poolList.filter((pr: any) => {
+                const prRetDriverId = String(pr.return_driver_id || pr.return_driver?.id || "");
+                return prRetDriverId === currentRetDriverId;
+              });
+            } else {
+              // Sesi 1 (Antar): hanya sertakan permohonan yang supir antarnya adalah supir saat ini
+              const currentDepDriverId = String(currentTrip.driver_id || currentTrip.driverId || user?.id);
+              return poolList.filter((pr: any) => {
+                const prDepDriverId = String(pr.driver_id || pr.driverId || pr.driver?.id || "");
+                return prDepDriverId === currentDepDriverId;
+              });
+            }
+          }
+
+          return poolList;
+        })();
+
+        const isSessionPooled = effectivePooledRequests.length > 1;
+
         const driverTripStatus = (() => {
           if (!currentTrip) return null;
           if (activeItineraryForDriver) {
@@ -1062,18 +1095,18 @@ export default function DriverDashboard() {
                         </div>
                       )}
 
-                      {(currentTrip.is_pooled || currentTrip.pool_group_id) && (
+                      {isSessionPooled && (
                         <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-wide bg-indigo-500/25 text-indigo-300 border border-indigo-400/50 shadow-sm">
                           <Icon name="groups" className="text-[14px]" />
-                          <span>Perjalanan Gabungan ({currentTrip.pooled_requests?.length || 2} Rombongan)</span>
+                          <span>Perjalanan Gabungan ({effectivePooledRequests.length} Rombongan)</span>
                         </div>
                       )}
                     </div>
 
                     <div>
                       <h2 className="text-[28px] font-extrabold leading-tight">
-                        {(currentTrip.is_pooled || currentTrip.pool_group_id)
-                          ? `Rombongan: ${currentTrip.employee || "Staff"}${currentTrip.pooled_requests && currentTrip.pooled_requests.length > 1 ? ` + ${currentTrip.pooled_requests.length - 1} Lainnya` : ""}`
+                        {isSessionPooled
+                          ? `Rombongan: ${currentTrip.employee || "Staff"} + ${effectivePooledRequests.length - 1} Lainnya`
                           : (currentTrip.employee || "Staff")
                         }
                       </h2>
@@ -1082,17 +1115,17 @@ export default function DriverDashboard() {
                       </div>
 
                       {/* Pooled Passenger List Summary */}
-                      {(currentTrip.is_pooled || currentTrip.pool_group_id) && currentTrip.pooled_requests && currentTrip.pooled_requests.length > 1 && (
+                      {isSessionPooled && (
                         <div className="mt-2.5 p-3 bg-indigo-950/70 border border-indigo-500/30 rounded-xl space-y-1.5">
                           <div className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
                             <Icon name="groups" className="text-[13px]" />
                             <span>Daftar Permohonan Rombongan Gabungan:</span>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                            {currentTrip.pooled_requests.map((pr: any) => (
+                            {effectivePooledRequests.map((pr: any) => (
                               <div key={pr.id} className="text-[11px] font-medium text-slate-200 bg-indigo-900/50 px-2.5 py-1 rounded-lg border border-indigo-400/20 flex items-center justify-between">
-                                <span className="font-bold text-white">#{pr.id} {pr.user_name}</span>
-                                <span className="text-[10px] text-indigo-300">{pr.destination_city || pr.destination_place || "-"}</span>
+                                <span className="font-bold text-white">#{pr.id} {pr.user_name || pr.employee || pr.user?.name}</span>
+                                <span className="text-[10px] text-indigo-300">{pr.destination_city || pr.destination_place || pr.destination || "-"}</span>
                               </div>
                             ))}
                           </div>
@@ -1525,24 +1558,24 @@ export default function DriverDashboard() {
                               </div>
                             )}
 
-                            {(currentTrip.master_pool_qr || currentTrip.qr_code_token) && (
+                            {((isSessionPooled && currentTrip.master_pool_qr) || currentTrip.qr_code_token) && (
                               <div 
                                 onClick={() => {
-                                  const tokenToUse = currentTrip.master_pool_qr || currentTrip.qr_code_token;
+                                  const tokenToUse = (isSessionPooled && currentTrip.master_pool_qr) ? currentTrip.master_pool_qr : currentTrip.qr_code_token;
                                   setZoomedQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${tokenToUse}`)}`);
                                 }}
                                 className="bg-white p-2.5 rounded-xl border border-slate-700 shadow-sm flex flex-col items-center cursor-zoom-in hover:border-blue-500 transition-all hover:scale-105"
                                 title="Klik untuk memperbesar QR Satpam"
                               >
                                 <img
-                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${currentTrip.master_pool_qr || currentTrip.qr_code_token}`)}`}
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${(isSessionPooled && currentTrip.master_pool_qr) ? currentTrip.master_pool_qr : currentTrip.qr_code_token}`)}`}
                                   alt="Security Scan QR"
                                   className="w-[80px] h-[80px] object-contain"
                                 />
                                 <span className={`text-[8px] font-mono font-bold mt-1 px-1.5 py-0.5 rounded text-center ${
-                                  currentTrip.master_pool_qr ? "text-indigo-800 bg-indigo-100 font-extrabold" : "text-slate-500"
+                                  isSessionPooled && currentTrip.master_pool_qr ? "text-indigo-800 bg-indigo-100 font-extrabold" : "text-slate-500"
                                 }`}>
-                                  {currentTrip.master_pool_qr ? `MASTER QR: ${currentTrip.master_pool_qr}` : currentTrip.qr_code_token}
+                                  {isSessionPooled && currentTrip.master_pool_qr ? `MASTER QR: ${currentTrip.master_pool_qr}` : currentTrip.qr_code_token}
                                 </span>
                               </div>
                             )}
