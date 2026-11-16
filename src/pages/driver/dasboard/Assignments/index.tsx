@@ -148,11 +148,8 @@ export default function MyAssignmentsPage({
 }: MyAssignmentsPageProps) {
   const [search, setSearch] = useState("");
 
-  // Directly display driver assignments, merging pendingAssignments if any exist
-  const rawList = activeAssignments.length > 0 ? activeAssignments : pendingAssignments;
-  const currentList = Array.from(
-    new Map([...rawList, ...pendingAssignments].map((item) => [item.reqId, item])).values()
-  );
+  // Only display assignments that belong to the active driver
+  const currentList = activeAssignments.length > 0 ? activeAssignments : pendingAssignments;
 
   const filtered = currentList.filter(
     (a) =>

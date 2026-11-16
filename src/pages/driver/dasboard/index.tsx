@@ -494,21 +494,44 @@ export default function DriverDashboard() {
 
   // Filtered lists
   const pendingAssignments = rawAssignments
-    .filter((a) => a.status === "pending_driver")
+    .filter((a) => {
+      if (a.status !== "pending_driver") return false;
+      return String(a.driver_id || a.driver?.id) === String(user?.id);
+    })
     .map(mapAssignment);
 
   const activeTrips = rawRequests.filter(
     (r) => {
       if (r.rawStatus === "rejected" || r.rawStatus === "cancelled") return false;
 
-      const isDeptDriver = String(r.driverId) === String(user?.id) || String(r.driver_id) === String(user?.id);
-      const isRetDriver = String(r.return_driver_id) === String(user?.id) || String(r.return_driver?.id) === String(user?.id);
-      const isItineraryDriver = Array.isArray(r.itineraries) && r.itineraries.some((it: any) => String(it.driver_id) === String(user?.id));
-      const asg = rawAssignments.find(
-        (a) => String(a.request?.id) === String(r.id) && String(a.driver?.id) === String(user?.id)
+      const isDeptDriver = Boolean(
+        (r.driverId && String(r.driverId) === String(user?.id)) ||
+        (r.driver_id && String(r.driver_id) === String(user?.id))
+      );
+      const isRetDriver = Boolean(
+        (r.return_driver_id && String(r.return_driver_id) === String(user?.id)) ||
+        (r.return_driver?.id && String(r.return_driver?.id) === String(user?.id))
+      );
+      const isItineraryDriver = Boolean(
+        Array.isArray(r.itineraries) && r.itineraries.some((it: any) => String(it.driver_id) === String(user?.id))
       );
 
-      const isAssignedToUser = isDeptDriver || isRetDriver || isItineraryDriver || (asg && asg.status === "accepted");
+      // Determine if assigned to current user:
+      let isAssignedToUser = false;
+      if (r.trip_mode === 'split_drop_pickup') {
+        // In split drop & pickup, driver MUST be either departure driver or return driver
+        isAssignedToUser = isDeptDriver || isRetDriver;
+      } else if (Array.isArray(r.itineraries) && r.itineraries.length > 0) {
+        isAssignedToUser = isItineraryDriver || isDeptDriver;
+      } else if (r.driver_id || r.driverId) {
+        isAssignedToUser = isDeptDriver;
+      } else {
+        const asg = rawAssignments.find(
+          (a) => String(a.request?.id) === String(r.id) && String(a.driver?.id) === String(user?.id)
+        );
+        isAssignedToUser = Boolean(asg && asg.status === "accepted");
+      }
+
       if (!isAssignedToUser) return false;
 
       // Handle split trip session completion per driver:
@@ -528,7 +551,7 @@ export default function DriverDashboard() {
           // Both sessions finished only when return_end_km is recorded
           return !hasRetEndKm;
         }
-        return true;
+        return false;
       }
 
       // For standard single trips:
