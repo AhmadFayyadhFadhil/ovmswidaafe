@@ -1622,22 +1622,25 @@ export default function SecurityDashboard() {
                                               {isRetDone ? "Selesai (Tuntas)" : isRetOngoing ? "Sedang Menjemput" : isDepDone ? "Siap Berangkat" : "Menunggu Sesi Antar"}
                                             </span>
                                           </div>
-                                          {/* Row 2: Vehicle details */}
-                                          <div className="text-[11px] text-slate-700 font-semibold pl-5">
-                                            {s2VehicleName}
-                                          </div>
-                                          {/* Row 3: Driver details */}
-                                          <div className="text-[11px] text-slate-500 font-medium pl-5 flex items-center flex-wrap gap-x-2 gap-y-0.5">
-                                            <div className="flex items-center gap-1">
-                                              <Icon name="person" className="text-xs text-slate-400 shrink-0" />
-                                              <span>Driver: <strong className="text-slate-700">{s2DriverName}</strong></span>
-                                            </div>
-                                            {scannedRequest.return_departure_time && (
-                                              <span className="text-slate-400 text-[10.5px]">
-                                                (Jadwal: {parseTimeStr(scannedRequest.return_departure_time)})
-                                              </span>
-                                            )}
-                                          </div>
+                                          {/* Row 2: Vehicle & Driver details (only if single return vehicle) */}
+                                          {returnBreakdown.length <= 1 && (
+                                            <>
+                                              <div className="text-[11px] text-slate-700 font-semibold pl-5">
+                                                {s2VehicleName}
+                                              </div>
+                                              <div className="text-[11px] text-slate-500 font-medium pl-5 flex items-center flex-wrap gap-x-2 gap-y-0.5">
+                                                <div className="flex items-center gap-1">
+                                                  <Icon name="person" className="text-xs text-slate-400 shrink-0" />
+                                                  <span>Driver: <strong className="text-slate-700">{s2DriverName}</strong></span>
+                                                </div>
+                                                {scannedRequest.return_departure_time && (
+                                                  <span className="text-slate-400 text-[10.5px]">
+                                                    (Jadwal: {parseTimeStr(scannedRequest.return_departure_time)})
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </>
+                                          )}
 
                                           {/* Distinct Return Breakdown for Pooled Trip */}
                                           {returnBreakdown.length > 1 && (
@@ -1683,7 +1686,7 @@ export default function SecurityDashboard() {
                                                       </div>
 
                                                       {/* Baris 3: Rincian Driver & Penumpang */}
-                                                      <div className="pt-1.5 border-t border-slate-100/80 space-y-1 text-slate-600 text-[11px]">
+                                                      <div className={`pt-1.5 border-t ${isCurrentArmada ? 'border-amber-200/80' : 'border-slate-100'} space-y-1 text-slate-600 text-[11px]`}>
                                                         <div className="flex items-center gap-1.5">
                                                           <Icon name="person" className="text-xs text-slate-400 shrink-0" />
                                                           <span>Driver: <strong className="text-slate-800 font-bold">{rb.driverName}</strong></span>
