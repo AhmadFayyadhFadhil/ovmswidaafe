@@ -659,7 +659,50 @@ export default function DriverDashboard() {
     }
   });
 
-  const activeAssignments = activeTrips.map(r => {
+  const getTripSortTime = (t: any): number => {
+    let dateStr = t.date || "";
+    let timeStr = t.time || "00:00";
+
+    if (t.trip_mode === 'split_drop_pickup') {
+      const isRet = String(t.return_driver_id) === String(user?.id) || String(t.return_driver?.id) === String(user?.id);
+      const isDep = String(t.driverId) === String(user?.id) || String(t.driver_id) === String(user?.id);
+
+      if (isRet && (!isDep || Boolean(t.departure_checked_in_at))) {
+        timeStr = t.return_departure_time || t.return_time || t.time || "00:00";
+      } else {
+        timeStr = t.time || "00:00";
+      }
+    } else if (Array.isArray(t.itineraries) && t.itineraries.length > 0) {
+      const myIt = t.itineraries.find((it: any) => String(it.driver_id) === String(user?.id) && it.status !== 'completed')
+        || t.itineraries.find((it: any) => String(it.driver_id) === String(user?.id));
+      if (myIt) {
+        if (myIt.date) dateStr = myIt.date;
+        if (myIt.departure_time || myIt.time) timeStr = myIt.departure_time || myIt.time;
+      }
+    }
+
+    let isoDate = dateStr;
+    if (dateStr.includes('/')) {
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        if (parts[0].length === 4) {
+          isoDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        } else {
+          isoDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+      }
+    }
+
+    const cleanTime = (timeStr || "00:00").substring(0, 5);
+    const parsed = Date.parse(`${isoDate}T${cleanTime}:00`);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  const sortedActiveTrips = [...activeTrips].sort((a, b) => {
+    return getTripSortTime(a) - getTripSortTime(b);
+  });
+
+  const activeAssignments = sortedActiveTrips.map(r => {
     const asg = rawAssignments.find(
       (a) => String(a.request?.id) === String(r.id) && String(a.driver?.id) === String(user?.id)
     );
@@ -756,9 +799,12 @@ export default function DriverDashboard() {
     };
   });
 
-  // Current active trip hero (prioritize trip pending KM Akhir, then on_going, then driver_assigned, then assigned_by_ga, then waiting_driver)
+  // Current active trip hero:
+  // 1. Prioritize trip requiring KM Akhir input (checked in by gate security, awaiting driver closing KM)
+  // 2. Prioritize ongoing trip (in progress)
+  // 3. Earliest scheduled trip (chronologically sorted by date & departure/pickup time ascending)
   const currentTrip = 
-    activeTrips.find(t => {
+    sortedActiveTrips.find(t => {
       if (t.trip_mode === 'split_drop_pickup') {
         const isRet = String(t.return_driver_id) === String(user?.id) || String(t.return_driver?.id) === String(user?.id);
         const isDep = String(t.driverId) === String(user?.id) || String(t.driver_id) === String(user?.id);
@@ -768,11 +814,11 @@ export default function DriverDashboard() {
       if (t.security_checked_in_at && (!t.end_km || Number(t.end_km) === 0)) return true;
       return false;
     }) ||
-    activeTrips.find(t => t.rawStatus === "on_going") || 
-    activeTrips.find(t => t.rawStatus === "driver_assigned") ||
-    activeTrips.find(t => t.rawStatus === "assigned_by_ga") ||
-    activeTrips.find(t => t.rawStatus === "waiting_driver") ||
-    (activeTrips.length > 0 ? activeTrips[0] : undefined);
+    sortedActiveTrips.find(t => t.rawStatus === "on_going") || 
+    sortedActiveTrips.find(t => t.rawStatus === "driver_assigned") ||
+    sortedActiveTrips.find(t => t.rawStatus === "assigned_by_ga") ||
+    sortedActiveTrips.find(t => t.rawStatus === "waiting_driver") ||
+    (sortedActiveTrips.length > 0 ? sortedActiveTrips[0] : undefined);
 
   const totalCompletedCount = rawRequests.filter(r => r.rawStatus === "completed").length;
   const upcomingCount = activeTrips.length;
@@ -1721,7 +1767,7 @@ export default function DriverDashboard() {
                 <Icon name="commute" className="text-[48px] text-white/30 mb-2" />
                 <h3 className="text-[16px] font-bold">Tidak ada Perjalanan Aktif</h3>
                 <p className="text-[12.5px] text-white/60 mt-1 max-w-sm mx-auto">
-                  Belum ada penugasan yang perlu dimulai. Terima tugas baru dari daftar di bawah untuk memulai trip.
+                  Belum ada penugasan perjalanan aktif atau terjadwal untuk Anda saat ini.
                 </p>
               </div>
             )}
@@ -1947,13 +1993,13 @@ export default function DriverDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-[17px] font-bold text-[#0f172a]">
-                    {isDriverCoordinator ? "Tugas Menyetir Saya" : "Daftar Tugas Baru"}
+                    Tugas Menyetir Saya
                   </div>
                   <div className="text-[13px] text-[#64748b]">
-                    {isDriverCoordinator ? "Tugas mengemudi yang dialokasikan ke jadwal personal Anda" : "Terima atau tolak penugasan kendaraan operasional"}
+                    Daftar penugasan perjalanan operasional yang dialokasikan ke jadwal Anda
                   </div>
                 </div>
-                {pendingAssignments.length > 0 && (
+                {activeAssignments.length > 0 && (
                   <button
                     onClick={() => setActiveNav("My Assignments")}
                     className="text-[13px] font-semibold text-[#1e3a8a] hover:underline flex items-center gap-0.5 cursor-pointer"
@@ -1964,14 +2010,14 @@ export default function DriverDashboard() {
                 )}
               </div>
 
-              {pendingAssignments.length === 0 ? (
+              {activeAssignments.length === 0 ? (
                 <div className="bg-white border border-[#e2e8f0] rounded-2xl py-8 flex flex-col items-center justify-center text-center shadow-2xs">
-                  <p className="font-bold text-[#0f172a] text-[13.5px]">Tidak ada tugas menyetir baru yang tertunda</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Semua penugasan personal Anda telah diproses.</p>
+                  <p className="font-bold text-[#0f172a] text-[13.5px]">Tidak ada tugas menyetir aktif</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Belum ada jadwal penugasan operasional untuk Anda saat ini.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {pendingAssignments.slice(0, 2).map((req) => (
+                  {activeAssignments.slice(0, 2).map((req) => (
                     <RequestCard
                       key={req.id} req={req}
                       onApprove={handleApproveClick}

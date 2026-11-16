@@ -18,10 +18,10 @@ export interface Assignment {
 }
 
 interface MyAssignmentsPageProps {
-  pendingAssignments: Assignment[];
+  pendingAssignments?: Assignment[];
   activeAssignments: Assignment[];
-  onApprove: (id: string) => void;
-  onReject: (id: string) => void;
+  onApprove?: (id: string) => void;
+  onReject?: (id: string) => void;
   onViewDetail: (reqId: string) => void;
   onStartTrip?: (reqId: string) => void;
   onCompleteTrip?: (reqId: string) => void;
@@ -47,17 +47,18 @@ function ReqIdBadge({ id }: { id: string }) {
 }
 
 function AssignmentCard({
-  req, isPending: _isPending, onApprove: _onApprove, onReject: _onReject, onViewDetail, onStartTrip: _onStartTrip, onCompleteTrip: _onCompleteTrip
+  req, onViewDetail
 }: {
   req: Assignment;
-  isPending: boolean;
-  onApprove: (id: string) => void;
-  onReject: (id: string) => void;
+  isPending?: boolean;
+  onApprove?: (id: string) => void;
+  onReject?: (id: string) => void;
   onViewDetail: (reqId: string) => void;
   onStartTrip?: (reqId: string) => void;
   onCompleteTrip?: (reqId: string) => void;
 }) {
   const cleanReqId = req.reqId.replace('#REQ-', '');
+  const isOngoing = req.tripStatus === "on_going";
 
   return (
     <div className="bg-white border border-[#e2e8f0] rounded-2xl flex flex-col overflow-hidden hover:border-[#c7d7f7] hover:shadow-sm transition-all">
@@ -113,10 +114,17 @@ function AssignmentCard({
       </div>
 
       <div className="flex items-center justify-between px-5 py-4 border-t border-[#f1f5f9] bg-[#fafbff] mt-auto">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 border border-green-200 text-[11.5px] font-bold rounded-lg">
-          <Icon name="check_circle" className="text-[14px]" />
-          Terjadwal
-        </span>
+        {isOngoing ? (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 text-[11.5px] font-bold rounded-lg">
+            <Icon name="sync" className="text-[14px] animate-spin" />
+            Sedang Berjalan
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 border border-green-200 text-[11.5px] font-bold rounded-lg">
+            <Icon name="check_circle" className="text-[14px]" />
+            Terjadwal
+          </span>
+        )}
         <button
           onClick={() => onViewDetail(cleanReqId)}
           className="h-9 px-4 bg-[#2563eb] text-white text-[12px] font-bold rounded-xl hover:bg-[#1d4ed8] active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
@@ -130,18 +138,21 @@ function AssignmentCard({
 }
 
 export default function MyAssignmentsPage({
-  pendingAssignments,
-  activeAssignments,
+  pendingAssignments = [],
+  activeAssignments = [],
   onApprove,
   onReject,
   onViewDetail,
   onStartTrip,
   onCompleteTrip
 }: MyAssignmentsPageProps) {
-  const [activeTab, setActiveTab] = useState<"pending" | "active">("pending");
   const [search, setSearch] = useState("");
 
-  const currentList = activeTab === "pending" ? pendingAssignments : activeAssignments;
+  // Directly display driver assignments, merging pendingAssignments if any exist
+  const rawList = activeAssignments.length > 0 ? activeAssignments : pendingAssignments;
+  const currentList = Array.from(
+    new Map([...rawList, ...pendingAssignments].map((item) => [item.reqId, item])).values()
+  );
 
   const filtered = currentList.filter(
     (a) =>
@@ -154,34 +165,8 @@ export default function MyAssignmentsPage({
     <div className="p-4 sm:p-8 space-y-6">
       {/* Title */}
       <div>
-        <h2 className="text-[20px] font-bold text-[#0f172a]">Daftar Tugas Driver</h2>
-        <p className="text-[12.5px] text-[#64748b]">Kelola penugasan baru yang masuk dan pantau perjalanan yang sedang aktif.</p>
-      </div>
-
-      {/* Tabs Selector */}
-      <div className="flex border-b border-[#e2e8f0] pb-px">
-        <button
-          onClick={() => { setActiveTab("pending"); setSearch(""); }}
-          className={`px-5 py-2.5 text-[13.5px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === "pending"
-              ? "border-[#1e3a8a] text-[#1e3a8a]"
-              : "border-transparent text-[#64748b] hover:text-[#0f172a]"
-          }`}
-        >
-          <Icon name="assignment_late" className="text-lg" />
-          <span>Tugas Baru ({pendingAssignments.length})</span>
-        </button>
-        <button
-          onClick={() => { setActiveTab("active"); setSearch(""); }}
-          className={`px-5 py-2.5 text-[13.5px] font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === "active"
-              ? "border-[#1e3a8a] text-[#1e3a8a]"
-              : "border-transparent text-[#64748b] hover:text-[#0f172a]"
-          }`}
-        >
-          <Icon name="commute" className="text-lg" />
-          <span>Tugas Aktif ({activeAssignments.length})</span>
-        </button>
+        <h2 className="text-[20px] font-bold text-[#0f172a]">Daftar Tugas Menyetir</h2>
+        <p className="text-[12.5px] text-[#64748b]">Pantau dan kelola jadwal perjalanan operasional Anda yang aktif dan terjadwal.</p>
       </div>
 
       {/* Search Bar */}
@@ -197,7 +182,7 @@ export default function MyAssignmentsPage({
           />
         </div>
         <div className="text-[12px] text-[#64748b] font-medium self-end sm:self-auto">
-          Menampilkan <span className="font-bold text-[#0f172a]">{filtered.length}</span> tugas
+          Menampilkan <span className="font-bold text-[#0f172a]">{filtered.length}</span> penugasan
         </div>
       </div>
 
@@ -205,15 +190,13 @@ export default function MyAssignmentsPage({
       {filtered.length === 0 ? (
         <div className="bg-white border border-[#e2e8f0] rounded-2xl py-16 flex flex-col items-center justify-center text-center">
           <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center mb-3">
-            <Icon name={activeTab === "pending" ? "assignment" : "commute"} className="text-[22px] text-[#94a3b8]" />
+            <Icon name="commute" className="text-[22px] text-[#94a3b8]" />
           </div>
           <p className="font-bold text-[#0f172a] text-[14px]">
-            {activeTab === "pending" ? "Tidak ada tugas baru" : "Tidak ada tugas aktif"}
+            Tidak ada tugas menyetir
           </p>
           <p className="text-[12px] text-[#64748b] mt-1 max-w-xs">
-            {activeTab === "pending"
-              ? "Semua penugasan baru telah Anda proses."
-              : "Belum ada perjalanan operasional yang sedang berjalan."}
+            Belum ada jadwal perjalanan operasional yang ditugaskan kepada Anda saat ini.
           </p>
         </div>
       ) : (
@@ -222,7 +205,6 @@ export default function MyAssignmentsPage({
             <AssignmentCard
               key={req.id}
               req={req}
-              isPending={activeTab === "pending"}
               onApprove={onApprove}
               onReject={onReject}
               onViewDetail={onViewDetail}
