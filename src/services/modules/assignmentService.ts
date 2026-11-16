@@ -35,6 +35,25 @@ export const assignmentService = {
       message: res.data?.message
     };
   },
+  createPool: async (payload: {
+    request_ids: (number | string)[];
+    driver_id: number | string;
+    vehicle_id: number | string;
+    trip_mode?: string;
+    return_driver_id?: number | string;
+    return_vehicle_id?: number | string;
+    return_departure_time?: string;
+    return_notes?: string;
+    notes?: string;
+  }): Promise<ApiResponse<any>> => {
+    assignmentCache = null;
+    requestService.clearCache();
+    const res = await apiClient.post<any>('/assignments/pool', payload);
+    return {
+      data: res.data?.data,
+      message: res.data?.message
+    };
+  },
   respond: async (id: string, payload: { response: 'accepted' | 'rejected'; vehicle_id?: string; reject_reason?: string }): Promise<ApiResponse<any>> => {
     assignmentCache = null;
     requestService.clearCache();

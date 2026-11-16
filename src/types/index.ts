@@ -167,6 +167,26 @@ export interface FleetRequest {
   active_leg_stage?: 'departure_ready' | 'departure_ongoing' | 'return_ready' | 'return_ongoing' | 'all_completed' | null;
   split_trip_stage?: 'scheduled' | 'departure_ongoing' | 'waiting_pickup' | 'return_ongoing' | 'completed' | null;
   split_trip_status_label?: string | null;
+
+  // Multi-Request Pooling / Shared Ride:
+  is_pooled?: boolean;
+  pool_group_id?: string | null;
+  master_pool_qr?: string | null;
+  chained_from_request_id?: number | null;
+  chained_from_end_km?: number | null;
+  pooled_requests?: Array<{
+    id: number;
+    user_name?: string;
+    department_name?: string;
+    destination_city?: string;
+    destination_place?: string;
+    purpose?: string;
+    start_time?: string;
+    end_time?: string;
+    status?: string;
+    passenger_count?: number;
+    passengers?: Array<{ name: string; notes?: string }>;
+  }>;
 }
 
 export interface RequestItinerary {

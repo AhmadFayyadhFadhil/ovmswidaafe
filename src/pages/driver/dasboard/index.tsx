@@ -1061,13 +1061,43 @@ export default function DriverDashboard() {
                           <span>{isReturnLeg ? "Sesi 2: Jemput" : "Sesi 1: Antar"}</span>
                         </div>
                       )}
+
+                      {(currentTrip.is_pooled || currentTrip.pool_group_id) && (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-wide bg-indigo-500/25 text-indigo-300 border border-indigo-400/50 shadow-sm">
+                          <Icon name="groups" className="text-[14px]" />
+                          <span>Perjalanan Gabungan ({currentTrip.pooled_requests?.length || 2} Rombongan)</span>
+                        </div>
+                      )}
                     </div>
 
                     <div>
-                      <h2 className="text-[28px] font-extrabold leading-tight">{currentTrip.employee || "Staff"}</h2>
+                      <h2 className="text-[28px] font-extrabold leading-tight">
+                        {(currentTrip.is_pooled || currentTrip.pool_group_id)
+                          ? `Rombongan: ${currentTrip.employee || "Staff"}${currentTrip.pooled_requests && currentTrip.pooled_requests.length > 1 ? ` + ${currentTrip.pooled_requests.length - 1} Lainnya` : ""}`
+                          : (currentTrip.employee || "Staff")
+                        }
+                      </h2>
                       <div className="text-[11px] font-bold text-[#8ca3c4] uppercase tracking-widest mt-0.5">
                         {currentTrip.department || "Internal Staff"}
                       </div>
+
+                      {/* Pooled Passenger List Summary */}
+                      {(currentTrip.is_pooled || currentTrip.pool_group_id) && currentTrip.pooled_requests && currentTrip.pooled_requests.length > 1 && (
+                        <div className="mt-2.5 p-3 bg-indigo-950/70 border border-indigo-500/30 rounded-xl space-y-1.5">
+                          <div className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                            <Icon name="groups" className="text-[13px]" />
+                            <span>Daftar Permohonan Rombongan Gabungan:</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {currentTrip.pooled_requests.map((pr: any) => (
+                              <div key={pr.id} className="text-[11px] font-medium text-slate-200 bg-indigo-900/50 px-2.5 py-1 rounded-lg border border-indigo-400/20 flex items-center justify-between">
+                                <span className="font-bold text-white">#{pr.id} {pr.user_name}</span>
+                                <span className="text-[10px] text-indigo-300">{pr.destination_city || pr.destination_place || "-"}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="bg-[#1a2d4f]/60 border border-[#2a4a7f] rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -1246,6 +1276,18 @@ export default function DriverDashboard() {
                                   />
                                   <span className="text-[11px] font-bold text-slate-300">KM</span>
                                 </div>
+
+                                {currentTrip.chained_from_end_km && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setStartKmInput(String(currentTrip.chained_from_end_km))}
+                                    className="w-full flex items-center justify-center gap-1.5 py-1 px-2 bg-indigo-900/70 hover:bg-indigo-800 text-indigo-200 border border-indigo-400/50 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer shadow-xs active:scale-98"
+                                    title="Klik untuk mengisi otomatis dari KM Akhir perjalanan sebelumnya"
+                                  >
+                                    <Icon name="link" className="text-[12px]" />
+                                    <span>Auto-Chained: {Number(currentTrip.chained_from_end_km).toLocaleString('id-ID')} KM</span>
+                                  </button>
+                                )}
 
                                 {lastOdometerNum && (
                                   <button
@@ -1483,19 +1525,24 @@ export default function DriverDashboard() {
                               </div>
                             )}
 
-                            {currentTrip.qr_code_token && (
+                            {(currentTrip.master_pool_qr || currentTrip.qr_code_token) && (
                               <div 
-                                onClick={() => setZoomedQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${currentTrip.qr_code_token}`)}`)}
+                                onClick={() => {
+                                  const tokenToUse = currentTrip.master_pool_qr || currentTrip.qr_code_token;
+                                  setZoomedQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${tokenToUse}`)}`);
+                                }}
                                 className="bg-white p-2.5 rounded-xl border border-slate-700 shadow-sm flex flex-col items-center cursor-zoom-in hover:border-blue-500 transition-all hover:scale-105"
-                                title="Klik untuk memperbesar"
+                                title="Klik untuk memperbesar QR Satpam"
                               >
                                 <img
-                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${currentTrip.qr_code_token}`)}`}
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${currentTrip.master_pool_qr || currentTrip.qr_code_token}`)}`}
                                   alt="Security Scan QR"
                                   className="w-[80px] h-[80px] object-contain"
                                 />
-                                <span className="text-[8px] font-mono font-bold text-slate-500 mt-1">
-                                  {currentTrip.qr_code_token}
+                                <span className={`text-[8px] font-mono font-bold mt-1 px-1.5 py-0.5 rounded text-center ${
+                                  currentTrip.master_pool_qr ? "text-indigo-800 bg-indigo-100 font-extrabold" : "text-slate-500"
+                                }`}>
+                                  {currentTrip.master_pool_qr ? `MASTER QR: ${currentTrip.master_pool_qr}` : currentTrip.qr_code_token}
                                 </span>
                               </div>
                             )}

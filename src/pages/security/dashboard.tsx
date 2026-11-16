@@ -965,6 +965,52 @@ export default function SecurityDashboard() {
                 </div>
               </div>
 
+              {/* Banner Rombongan Perjalanan Gabungan jika is_pooled */}
+              {(scannedRequest.is_pooled || scannedRequest.pool_group_id) && (
+                <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl flex flex-col gap-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
+                        <Icon name="groups" className="text-base" />
+                      </span>
+                      <span className="font-extrabold text-sm text-indigo-950 uppercase tracking-wide">
+                        ROMBONGAN PERJALANAN GABUNGAN ({scannedRequest.pooled_requests?.length || 2} PENUMPANG)
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono font-bold bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded border border-indigo-200 self-start sm:self-auto">
+                      {scannedRequest.master_pool_qr ? `MASTER QR: ${scannedRequest.master_pool_qr}` : scannedRequest.pool_group_id}
+                    </span>
+                  </div>
+                  <p className="text-xs text-indigo-800">
+                    Konfirmasi keberangkatan akan otomatis mencatat KM Keluar dan mengaktifkan status <strong>ON GOING</strong> untuk seluruh tiket dalam rombongan ini sekaligus.
+                  </p>
+                  {scannedRequest.pooled_requests && scannedRequest.pooled_requests.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                      {scannedRequest.pooled_requests.map((pr: any) => (
+                        <div key={pr.id} className="p-2.5 bg-white border border-indigo-100 rounded-xl flex items-center justify-between text-xs shadow-xs">
+                          <div className="min-w-0 pr-2">
+                            <span className="font-bold text-slate-800">#{pr.id} {pr.user_name}</span>
+                            <span className="text-slate-500 font-normal"> ({pr.department_name || "-"})</span>
+                            <div className="text-[11px] text-slate-600 truncate flex items-center gap-1 mt-0.5">
+                              <Icon name="location_on" className="text-[12px] text-blue-500 shrink-0" />
+                              <span className="truncate">{pr.destination_city || pr.destination_place || "-"}</span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              pr.status === "on_going" ? "bg-amber-100 text-amber-800" :
+                              pr.status === "completed" ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"
+                            }`}>
+                              {pr.status === "driver_assigned" ? "Siap" : pr.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Data Detail Perjalanan & Scanned Proof */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
@@ -2020,7 +2066,11 @@ export default function SecurityDashboard() {
                     ) : (
                       <>
                         <Icon name="done_all" className="text-base" />
-                        <span>{confirmingType === 'checkout' ? 'Konfirmasi Keluar' : 'Konfirmasi Masuk Gate'}</span>
+                        <span>
+                          {confirmingType === 'checkout' 
+                            ? (scannedRequest?.is_pooled || scannedRequest?.pool_group_id ? `Konfirmasi Berangkat Rombongan (${scannedRequest.pooled_requests?.length || 2} Penumpang)` : 'Konfirmasi Keluar')
+                            : 'Konfirmasi Masuk Gate'}
+                        </span>
                       </>
                     )}
                   </button>

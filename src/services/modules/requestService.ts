@@ -255,6 +255,14 @@ export function mapRequestFromBackend(r: any): FleetRequest {
     active_leg_stage: r.active_leg_stage || null,
     split_trip_stage: r.split_trip_stage || null,
     split_trip_status_label: r.split_trip_status_label || null,
+
+    // Multi-Request Pooling / Shared Ride:
+    is_pooled: !!r.is_pooled,
+    pool_group_id: r.pool_group_id || null,
+    master_pool_qr: r.master_pool_qr || null,
+    chained_from_request_id: r.chained_from_request_id || null,
+    chained_from_end_km: r.chained_from_end_km ?? null,
+    pooled_requests: Array.isArray(r.pooled_requests) ? r.pooled_requests : [],
   } as any;
 }
 
