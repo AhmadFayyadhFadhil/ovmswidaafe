@@ -240,7 +240,7 @@ export default function GAHRDRequestsPage() {
     try {
       requestService.clearCache();
       const [reqRes, driverRes, vehicleRes] = await Promise.all([
-        requestService.getAll({ per_page: 100 }),
+        requestService.getAll({ per_page: 1000 }),
         driverService.getAll(),
         vehicleService.getAll({ per_page: 1000 }),
       ]);
@@ -1283,13 +1283,21 @@ export default function GAHRDRequestsPage() {
                   (isUrgentReq && req.rawStatus === "submitted") ||
                   (req.rawStatus === "driver_assigned" && req.driverName === "Not Assigned");
 
+                const isMultiDayOngoing = Boolean(
+                  Array.isArray(req.itineraries) &&
+                  req.itineraries.length > 0 &&
+                  req.rawStatus === "on_going" &&
+                  req.itineraries.some((it: any) => it.status !== "completed" && it.morning_status !== "completed")
+                );
+
                 const showApproveAllocation = isGAOrAdmin && isAllocatedByCoordinator;
 
                 const showEdit =
                   (isAllocatedByCoordinator && (isCoordinator || isGAOrAdmin)) ||
                   (req.rawStatus === "waiting_driver" && !req.all_drivers_approved) ||
                   (req.is_external && ["assigned_by_ga", "on_going", "completed"].includes(req.rawStatus)) ||
-                  (isGAOrAdmin && req.rawStatus === "driver_assigned");
+                  (isGAOrAdmin && req.rawStatus === "driver_assigned") ||
+                  ((isCoordinator || isGAOrAdmin) && isMultiDayOngoing);
 
                 const showCancel = req.rawStatus === "waiting_driver" || isAllocatedByCoordinator;
                 const canCancelRequest = ["submitted", "approved_department", "waiting_driver", "driver_assigned", "assigned_by_ga"].includes(req.rawStatus);
@@ -1754,27 +1762,43 @@ export default function GAHRDRequestsPage() {
                         return !isBusy;
                       });
 
+                      const itOriginal = selectedRequest?.itineraries?.find((it: any) => it.id === asg.itinerary_id) || selectedRequest?.itineraries?.[idx];
+                      const isCompletedDay = Boolean(
+                        itOriginal && (
+                          itOriginal.status === "completed" ||
+                          itOriginal.morning_status === "completed" ||
+                          itOriginal.assignment?.status === "completed"
+                        )
+                      );
+
                       return (
-                        <div key={asg.itinerary_id || idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                        <div key={asg.itinerary_id || idx} className={`p-4 rounded-2xl space-y-3 border ${isCompletedDay ? "bg-emerald-50/40 border-emerald-200" : "bg-slate-50 border-slate-200"}`}>
                           <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                             <span className="font-extrabold text-[#00236f] text-[13px] flex items-center gap-1.5">
                               <Icon name="event" className="text-blue-600 text-base" />
                               Hari ke-{idx + 1}: {itDate ? new Date(itDate).toLocaleDateString("id-ID", { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' }) : `Hari ${idx+1}`}
                             </span>
-                            <div className="flex items-center gap-2">
-                              <label className="text-[11px] font-bold text-slate-600 cursor-pointer flex items-center gap-1">
-                                <input
-                                  type="checkbox"
-                                  checked={asg.is_external}
-                                  onChange={e => {
-                                    const checked = e.target.checked;
-                                    setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, is_external: checked } : item));
-                                  }}
-                                  className="rounded text-blue-600"
-                                />
-                                Sewa Pihak Ke-3
-                              </label>
-                            </div>
+                            {isCompletedDay ? (
+                              <span className="px-2.5 py-0.5 text-[10.5px] font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                                <Icon name="check_circle" className="text-[13px]" />
+                                Telah Selesai (Terkunci)
+                              </span>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <label className="text-[11px] font-bold text-slate-600 cursor-pointer flex items-center gap-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={asg.is_external}
+                                    onChange={e => {
+                                      const checked = e.target.checked;
+                                      setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, is_external: checked } : item));
+                                    }}
+                                    className="rounded text-blue-600"
+                                  />
+                                  Sewa Pihak Ke-3
+                                </label>
+                              </div>
+                            )}
                           </div>
 
                           {/* Sesi Jam Per Tanggal */}
@@ -1784,11 +1808,13 @@ export default function GAHRDRequestsPage() {
                               <TimeInput24
                                 value={asg.morning_time || "08:00"}
                                 onChange={val => {
+                                  if (isCompletedDay) return;
                                   setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, morning_time: val } : item));
                                 }}
+                                disabled={isCompletedDay}
                                 placeholder="08:00"
                                 align="left"
-                                className="w-full h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-slate-50 focus:bg-white font-semibold text-slate-800 focus:outline-none"
+                                className="w-full h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-slate-50 focus:bg-white font-semibold text-slate-800 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                               />
                             </div>
                             <div>
@@ -1796,11 +1822,13 @@ export default function GAHRDRequestsPage() {
                               <TimeInput24
                                 value={asg.afternoon_time || "14:00"}
                                 onChange={val => {
+                                  if (isCompletedDay) return;
                                   setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, afternoon_time: val } : item));
                                 }}
+                                disabled={isCompletedDay}
                                 placeholder="14:00"
                                 align="left"
-                                className="w-full h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-slate-50 focus:bg-white font-semibold text-slate-800 focus:outline-none"
+                                className="w-full h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-slate-50 focus:bg-white font-semibold text-slate-800 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                               />
                             </div>
                           </div>
@@ -1814,31 +1842,37 @@ export default function GAHRDRequestsPage() {
                                   type="text"
                                   value={asg.external_driver_name}
                                   onChange={e => {
+                                    if (isCompletedDay) return;
                                     const val = e.target.value;
                                     setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, external_driver_name: val } : item));
                                   }}
+                                  disabled={isCompletedDay}
                                   placeholder="Nama Driver Sewa"
-                                  className="h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-white"
+                                  className="h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-white disabled:opacity-60 disabled:cursor-not-allowed"
                                 />
                                 <input
                                   type="text"
                                   value={asg.external_license_plate}
                                   onChange={e => {
+                                    if (isCompletedDay) return;
                                     const val = e.target.value;
                                     setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, external_license_plate: val } : item));
                                   }}
+                                  disabled={isCompletedDay}
                                   placeholder="Plat Nomor"
-                                  className="h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-white"
+                                  className="h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-white disabled:opacity-60 disabled:cursor-not-allowed"
                                 />
                                 <input
                                   type="text"
                                   value={asg.third_party_cost}
                                   onChange={e => {
+                                    if (isCompletedDay) return;
                                     const val = formatNumberIndonesian(e.target.value);
                                     setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, third_party_cost: val } : item));
                                   }}
+                                  disabled={isCompletedDay}
                                   placeholder="Biaya Sewa (Rp)"
-                                  className="h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-white"
+                                  className="h-8 px-2 border border-slate-200 rounded-lg text-[11.5px] bg-white disabled:opacity-60 disabled:cursor-not-allowed"
                                 />
                               </div>
                             </div>
@@ -1850,10 +1884,12 @@ export default function GAHRDRequestsPage() {
                                 <select
                                   value={asg.driver_id}
                                   onChange={e => {
+                                    if (isCompletedDay) return;
                                     const val = e.target.value;
                                     setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, driver_id: val } : item));
                                   }}
-                                  className="w-full h-9 px-2 border border-slate-200 rounded-xl text-[12px] bg-white focus:outline-none"
+                                  disabled={isCompletedDay}
+                                  className="w-full h-9 px-2 border border-slate-200 rounded-xl text-[12px] bg-white focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
                                   <option value="">-- Pilih Driver --</option>
                                   {dateAvailableDrivers.map(d => {
@@ -1872,10 +1908,12 @@ export default function GAHRDRequestsPage() {
                                 <select
                                   value={asg.vehicle_id}
                                   onChange={e => {
+                                    if (isCompletedDay) return;
                                     const val = e.target.value;
                                     setDailyAssignments(prev => prev.map((item, i) => i === idx ? { ...item, vehicle_id: val } : item));
                                   }}
-                                  className="w-full h-9 px-2 border border-slate-200 rounded-xl text-[12px] bg-white focus:outline-none"
+                                  disabled={isCompletedDay}
+                                  className="w-full h-9 px-2 border border-slate-200 rounded-xl text-[12px] bg-white focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
                                   <option value="">-- Pilih Mobil --</option>
                                   {dateAvailableVehicles.map(v => (
@@ -2721,7 +2759,11 @@ export default function GAHRDRequestsPage() {
                   disabled={
                     actionLoading || 
                     (selectedRequest?.itineraries && selectedRequest.itineraries.length > 0
-                      ? dailyAssignments.length === 0 || dailyAssignments.some(asg => !asg.is_external && (!asg.driver_id || !asg.vehicle_id))
+                      ? dailyAssignments.length === 0 || dailyAssignments.some(asg => {
+                          const itOrig = selectedRequest?.itineraries?.find((it: any) => it.id === asg.itinerary_id);
+                          if (itOrig && (itOrig.status === 'completed' || itOrig.morning_status === 'completed')) return false;
+                          return !asg.is_external && (!asg.driver_id || !asg.vehicle_id);
+                        })
                       : (!isExternal && (!selectedDriverId || !selectedVehicleId))
                     )
                   }

@@ -726,9 +726,47 @@ export default function SecurityDashboard() {
         setScannedRequest((prev: any) => {
           if (!prev) return prev;
           const isSplit = prev.trip_mode === "split_drop_pickup";
+          let updatedItineraries = prev.itineraries;
+
+          if (selectedItineraryId && Array.isArray(prev.itineraries)) {
+            updatedItineraries = prev.itineraries.map((it: any) => {
+              if (it.id !== selectedItineraryId) return it;
+              if (confirmingType === "checkout") {
+                if (selectedSession === "afternoon") {
+                  return {
+                    ...it,
+                    afternoon_checked_out_at: scannedAtStr,
+                    afternoon_checkout_by: guardName.trim(),
+                  };
+                }
+                return {
+                  ...it,
+                  morning_checked_out_at: scannedAtStr,
+                  morning_checkout_by: guardName.trim(),
+                };
+              } else {
+                if (selectedSession === "afternoon") {
+                  return {
+                    ...it,
+                    afternoon_checked_in_at: scannedAtStr,
+                    afternoon_checkin_by: guardName.trim(),
+                    afternoon_status: 'completed',
+                  };
+                }
+                return {
+                  ...it,
+                  morning_checked_in_at: scannedAtStr,
+                  morning_checkin_by: guardName.trim(),
+                  morning_status: 'completed',
+                };
+              }
+            });
+          }
+
           if (confirmingType === "checkout") {
             return {
               ...prev,
+              itineraries: updatedItineraries,
               departure_checked_out_at: prev.departure_checked_out_at || scannedAtStr,
               departure_checkout_by: prev.departure_checkout_by || guardName.trim(),
               security_checked_out_at: prev.security_checked_out_at || scannedAtStr,
@@ -737,6 +775,7 @@ export default function SecurityDashboard() {
           } else {
             return {
               ...prev,
+              itineraries: updatedItineraries,
               departure_checked_in_at: (isSplit && !prev.departure_checked_in_at) ? scannedAtStr : prev.departure_checked_in_at,
               departure_checkin_by: (isSplit && !prev.departure_checkin_by) ? guardName.trim() : prev.departure_checkin_by,
               security_checked_in_at: scannedAtStr,

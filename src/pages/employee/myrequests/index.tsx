@@ -361,8 +361,14 @@ export default function MyRequestsPage() {
     const isCreator = creatorId !== "" && creatorId === targetUserId;
     const isPassenger = Array.isArray(r.passengers) && r.passengers.some((p: any) => {
       const pUserId = String(p.user_id || p.user?.id || "");
+      if (pUserId !== "" && pUserId === targetUserId) return true;
       const pName = (p.name || "").trim().toLowerCase();
-      return (pUserId !== "" && pUserId === targetUserId) || (pName !== "" && pName === targetUserName);
+      if (!pName || !targetUserName) return false;
+      if (pName === targetUserName) return true;
+      if (pName.length >= 4 && targetUserName.length >= 4) {
+        if (pName.includes(targetUserName) || targetUserName.includes(pName)) return true;
+      }
+      return false;
     });
     return isCreator || isPassenger;
   });

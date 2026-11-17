@@ -328,14 +328,17 @@ export default function ApprovalManagement() {
         return ["submitted", "approved_department", "assigned_by_ga"].includes(r.rawStatus || "") || r.canApprove;
       }
       if (isHrGaHead) {
-        return r.canApprove || ["assigned_by_ga", "approved_hrd_ga", "approved_hrd", "waiting_driver", "driver_assigned", "on_going"].includes(r.rawStatus || "");
+        const isOutsourceTamu = (r.department || "").toLowerCase().includes("outsource") || (r.department || "").toLowerCase().includes("tamu");
+        return r.canApprove || (isOutsourceTamu && r.rawStatus === "submitted") || ["assigned_by_ga", "approved_hrd_ga", "approved_hrd", "waiting_driver", "driver_assigned", "on_going"].includes(r.rawStatus || "");
       }
       return r.canApprove || r.rawStatus === "submitted";
     })
     .map(r => {
+      const isOutsourceTamu = (r.department || "").toLowerCase().includes("outsource") || (r.department || "").toLowerCase().includes("tamu");
       const canApproveThis = Boolean(
         r.canApprove ||
-        (isAdminUser && ["submitted", "approved_department", "assigned_by_ga"].includes(r.rawStatus || ""))
+        (isAdminUser && ["submitted", "approved_department", "assigned_by_ga"].includes(r.rawStatus || "")) ||
+        (isHrGaHead && isOutsourceTamu && r.rawStatus === "submitted")
       );
 
       return {

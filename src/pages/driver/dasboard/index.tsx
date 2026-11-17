@@ -325,9 +325,9 @@ export default function DriverDashboard() {
     setError(null);
     try {
       const [assignRes, requestRes, vehicleRes, profileRes, driversRes] = await Promise.all([
-        assignmentService.getAll(),
-        requestService.getAll(),
-        vehicleService.getAll(),
+        assignmentService.getAll({ per_page: 500 }),
+        requestService.getAll({ per_page: 500 }),
+        vehicleService.getAll({ per_page: 500 }),
         import.meta.env.VITE_ENABLE_MOCK !== "true" ? apiClient.get("/profile").catch(() => null) : Promise.resolve(null),
         (user?.is_driver_coordinator || user?.roles?.includes('Driver Coordinator') || user?.role === 'gahrd') 
           ? driverService.getAll().catch(() => ({ data: [] }))
@@ -509,7 +509,11 @@ export default function DriverDashboard() {
       const isDeptDriver = Boolean(
         (r.driverId && String(r.driverId) === String(user?.id)) ||
         (r.driver_id && String(r.driver_id) === String(user?.id)) ||
-        (r.driver?.id && String(r.driver?.id) === String(user?.id))
+        (r.driver?.id && String(r.driver?.id) === String(user?.id)) ||
+        (r.operational_trip?.driver_id && String(r.operational_trip?.driver_id) === String(user?.id)) ||
+        (r.operational_trip?.driver?.id && String(r.operational_trip?.driver?.id) === String(user?.id)) ||
+        (Array.isArray(r.operational_trips) && r.operational_trips.some((ot: any) => String(ot.driver_id || ot.driver?.id) === String(user?.id))) ||
+        (Array.isArray(r.assignments) && r.assignments.some((asg: any) => String(asg.driver_id || asg.driver?.id) === String(user?.id)))
       );
       const isRetDriver = Boolean(
         (r.return_driver_id && String(r.return_driver_id) === String(user?.id)) ||
@@ -557,6 +561,27 @@ export default function DriverDashboard() {
         return false;
       }
 
+      // For multi-day trips with itineraries:
+      if (Array.isArray(r.itineraries) && r.itineraries.length > 0) {
+        const myItineraries = r.itineraries.filter((it: any) => 
+          String(it.driver_id) === String(user?.id) || isDeptDriver
+        );
+        if (myItineraries.length > 0) {
+          const hasIncompleteOrPendingEndKm = myItineraries.some((it: any) => {
+            const isCompleted = it.status === 'completed' || it.morning_status === 'completed' || it.afternoon_status === 'completed' || it.assignment?.status === 'completed';
+            const hasEndKm = Boolean(it.end_km && Number(it.end_km) > 0);
+            const hasGateCheckin = Boolean(it.morning_checked_in_at || it.afternoon_checked_in_at || it.security_checked_in_at);
+            if (isCompleted && hasEndKm) return false;
+            if (isCompleted && !hasEndKm && hasGateCheckin) return true;
+            if (!isCompleted) return true;
+            return false;
+          });
+          if (!hasIncompleteOrPendingEndKm) {
+            return false;
+          }
+        }
+      }
+
       // For standard single trips:
       const hasEndKm = Boolean(
         (r.end_km && Number(r.end_km) > 0) ||
@@ -572,7 +597,8 @@ export default function DriverDashboard() {
         r.rawStatus === "driver_assigned" || 
         r.rawStatus === "on_going" ||
         r.rawStatus === "waiting_driver" ||
-        r.rawStatus === "assigned_by_ga";
+        r.rawStatus === "assigned_by_ga" ||
+        r.rawStatus === "approved_hrd_ga";
 
       return isMatchedStatus;
     }
@@ -837,6 +863,16 @@ export default function DriverDashboard() {
         if (isRet && t.return_checked_in_at && (!t.return_end_km || Number(t.return_end_km) === 0)) return true;
         if (isDep && !isRet && t.departure_checked_in_at && (!t.departure_end_km || Number(t.departure_end_km) === 0)) return true;
       }
+      if (Array.isArray(t.itineraries) && t.itineraries.length > 0) {
+        const activeIt = t.itineraries.find((it: any) => 
+          String(it.driver_id) === String(user?.id) || String(t.driverId || t.driver_id) === String(user?.id)
+        );
+        if (activeIt) {
+          const itGateCheckin = Boolean(activeIt.morning_checked_in_at || activeIt.afternoon_checked_in_at || activeIt.security_checked_in_at);
+          const itEndKm = Boolean(activeIt.end_km && Number(activeIt.end_km) > 0);
+          if (itGateCheckin && !itEndKm) return true;
+        }
+      }
       if (t.security_checked_in_at && (!t.end_km || Number(t.end_km) === 0)) return true;
       return false;
     }) ||
@@ -844,6 +880,7 @@ export default function DriverDashboard() {
     sortedActiveTrips.find(t => t.rawStatus === "driver_assigned") ||
     sortedActiveTrips.find(t => t.rawStatus === "assigned_by_ga") ||
     sortedActiveTrips.find(t => t.rawStatus === "waiting_driver") ||
+    sortedActiveTrips.find(t => t.rawStatus === "approved_hrd_ga") ||
     (sortedActiveTrips.length > 0 ? sortedActiveTrips[0] : undefined);
 
   const totalCompletedCount = rawRequests.filter(r => r.rawStatus === "completed").length;
@@ -1162,13 +1199,27 @@ export default function DriverDashboard() {
             {(() => {
               if (!currentTrip || currentTrip.is_external) return null;
               const isSplit = currentTrip.trip_mode === "split_drop_pickup";
+              const isMultiDay = Array.isArray(currentTrip.itineraries) && currentTrip.itineraries.length > 0;
               const isReturn = isSplit && String(currentTrip.return_driver_id) === String(user?.id);
-              const isGateCheckedIn = isSplit
-                ? (isReturn ? Boolean(currentTrip.return_checked_in_at) : Boolean(currentTrip.departure_checked_in_at))
-                : Boolean(currentTrip.security_checked_in_at);
-              const hasEndKm = isSplit
-                ? (isReturn ? Boolean(currentTrip.return_end_km && Number(currentTrip.return_end_km) > 0) : Boolean(currentTrip.departure_end_km && Number(currentTrip.departure_end_km) > 0))
-                : Boolean(currentTrip.end_km && Number(currentTrip.end_km) > 0);
+              
+              let isGateCheckedIn = false;
+              let hasEndKm = false;
+
+              if (isMultiDay) {
+                const activeIt = currentTrip.itineraries.find((it: any) => 
+                  String(it.driver_id) === String(user?.id) || String(currentTrip.driverId || currentTrip.driver_id) === String(user?.id)
+                );
+                if (activeIt) {
+                  isGateCheckedIn = Boolean(activeIt.morning_checked_in_at || activeIt.afternoon_checked_in_at || activeIt.security_checked_in_at);
+                  hasEndKm = Boolean(activeIt.end_km && Number(activeIt.end_km) > 0);
+                }
+              } else if (isSplit) {
+                isGateCheckedIn = isReturn ? Boolean(currentTrip.return_checked_in_at) : Boolean(currentTrip.departure_checked_in_at);
+                hasEndKm = isReturn ? Boolean(currentTrip.return_end_km && Number(currentTrip.return_end_km) > 0) : Boolean(currentTrip.departure_end_km && Number(currentTrip.departure_end_km) > 0);
+              } else {
+                isGateCheckedIn = Boolean(currentTrip.security_checked_in_at);
+                hasEndKm = Boolean(currentTrip.end_km && Number(currentTrip.end_km) > 0);
+              }
 
               if (isGateCheckedIn && !hasEndKm) {
                 return (
