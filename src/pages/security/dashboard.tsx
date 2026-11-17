@@ -722,29 +722,41 @@ export default function SecurityDashboard() {
         setConfirmingType(null);
         setCapturedPhoto(null);
 
-        // Jika konfirmasi keluar gate (checkout), langsung alihkan ke Riwayat Scan dan buka detail request
-        if (confirmingType === "checkout") {
-          navigate("/security/history", {
-            state: {
-              autoExpandId: String(reqId),
-              successMsg: successMessage || "Konfirmasi keluar gate berhasil dicatat!"
-            }
-          });
-          return;
-        }
-
-        // Refresh request data so security sees updated status
-        try {
-          const refreshRes = await apiClient.get('/security/lookup', {
-            params: { qr_code_token: scannedRequest.qr_code_token || `REQ-${scannedRequest.id}` }
-          });
-          if (refreshRes.data && refreshRes.data.status === "success") {
-            setScannedRequest(refreshRes.data.data);
+        // Optimistic local state update agar tombol check-in/out seketika lenyap dalam 0 ms
+        setScannedRequest((prev: any) => {
+          if (!prev) return prev;
+          const isSplit = prev.trip_mode === "split_drop_pickup";
+          if (confirmingType === "checkout") {
+            return {
+              ...prev,
+              departure_checked_out_at: prev.departure_checked_out_at || scannedAtStr,
+              departure_checkout_by: prev.departure_checkout_by || guardName.trim(),
+              security_checked_out_at: prev.security_checked_out_at || scannedAtStr,
+              security_checkout_by: prev.security_checkout_by || guardName.trim(),
+            };
+          } else {
+            return {
+              ...prev,
+              departure_checked_in_at: (isSplit && !prev.departure_checked_in_at) ? scannedAtStr : prev.departure_checked_in_at,
+              departure_checkin_by: (isSplit && !prev.departure_checkin_by) ? guardName.trim() : prev.departure_checkin_by,
+              security_checked_in_at: scannedAtStr,
+              security_checkin_by: guardName.trim(),
+              return_checked_in_at: isSplit ? scannedAtStr : prev.return_checked_in_at,
+              return_checkin_by: isSplit ? guardName.trim() : prev.return_checkin_by,
+            };
           }
-        } catch (e) {
-          // silently ignore refresh errors, keep showing current data
-        }
-        setSuccessMsg(successMessage);
+        });
+
+        // Langsung alihkan ke Riwayat Scan dan buka detail request (seragam untuk checkout maupun checkin)
+        navigate("/security/history", {
+          state: {
+            autoExpandId: String(reqId),
+            successMsg: successMessage || (confirmingType === "checkout" 
+              ? "Konfirmasi keluar gate berhasil dicatat!" 
+              : "Konfirmasi masuk gate (kembali ke pabrik) berhasil dicatat!")
+          }
+        });
+        return;
       } else {
         setError("Gagal mengonfirmasi scan.");
       }

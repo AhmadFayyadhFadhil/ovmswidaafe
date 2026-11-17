@@ -261,6 +261,7 @@ export function mapRequestFromBackend(r: any): FleetRequest {
     // Multi-Request Pooling / Shared Ride:
     is_pooled: !!r.is_pooled,
     pool_group_id: r.pool_group_id || null,
+    return_pool_group_id: r.return_pool_group_id || null,
     master_pool_qr: r.master_pool_qr || null,
     chained_from_request_id: r.chained_from_request_id || null,
     chained_from_end_km: r.chained_from_end_km ?? null,
@@ -502,6 +503,14 @@ export const requestService = {
     const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/reassign-return-driver`, payload);
     return {
       data: mapRequestFromBackend(res.data?.data),
+      message: res.data?.message
+    };
+  },
+  poolReturn: async (payload: { request_ids: number[]; return_driver_id: number; return_vehicle_id?: number; notes?: string }): Promise<ApiResponse<FleetRequest[]>> => {
+    requestCache = null;
+    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/pool-return`, payload);
+    return {
+      data: Array.isArray(res.data?.data) ? res.data.data.map(mapRequestFromBackend) : [],
       message: res.data?.message
     };
   },

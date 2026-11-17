@@ -703,9 +703,26 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                       </span>
                     </td>
                     <td className="px-4 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(r.status)}`}>
-                        {r.status === "APPROVED" ? "DISETUJUI" : r.status === "PENDING" ? "MENUNGGU" : r.status === "ONGOING" ? "SEDANG BERJALAN" : r.status === "COMPLETED" ? "SELESAI" : r.status === "REJECTED" ? "DITOLAK" : r.status === "CANCELLED" ? "DIBATALKAN" : r.status}
-                      </span>
+                      {(() => {
+                        const isSplit = r.trip_mode === "split_drop_pickup";
+                        const isGateIn = isSplit ? Boolean(r.return_checked_in_at || r.departure_checked_in_at) : Boolean(r.security_checked_in_at);
+                        const isEndKmMissing = isGateIn && !r.is_external && (!r.end_km || Number(r.end_km) === 0) && r.rawStatus !== "completed";
+
+                        if (isEndKmMissing) {
+                          return (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-300 inline-flex items-center gap-1 shrink-0 whitespace-nowrap shadow-xs animate-pulse" title="Mobil sudah masuk gerbang tapi KM akhir belum diisi driver">
+                              <Icon name="speed" className="text-xs" />
+                              Menunggu KM Akhir
+                            </span>
+                          );
+                        }
+
+                        return (
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(r.status)}`}>
+                            {r.status === "APPROVED" ? "DISETUJUI" : r.status === "PENDING" ? "MENUNGGU" : r.status === "ONGOING" ? "SEDANG BERJALAN" : r.status === "COMPLETED" ? "SELESAI" : r.status === "REJECTED" ? "DITOLAK" : r.status === "CANCELLED" ? "DIBATALKAN" : r.status}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">

@@ -171,6 +171,7 @@ export interface FleetRequest {
   // Multi-Request Pooling / Shared Ride:
   is_pooled?: boolean;
   pool_group_id?: string | null;
+  return_pool_group_id?: string | null;
   master_pool_qr?: string | null;
   chained_from_request_id?: number | null;
   chained_from_end_km?: number | null;

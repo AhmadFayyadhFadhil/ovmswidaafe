@@ -1158,6 +1158,59 @@ export default function DriverDashboard() {
               return null;
             })()}
 
+            {/* Peringatan: Mobil Telah Masuk Gerbang Namun Belum Input KM Akhir */}
+            {(() => {
+              if (!currentTrip || currentTrip.is_external) return null;
+              const isSplit = currentTrip.trip_mode === "split_drop_pickup";
+              const isReturn = isSplit && String(currentTrip.return_driver_id) === String(user?.id);
+              const isGateCheckedIn = isSplit
+                ? (isReturn ? Boolean(currentTrip.return_checked_in_at) : Boolean(currentTrip.departure_checked_in_at))
+                : Boolean(currentTrip.security_checked_in_at);
+              const hasEndKm = isSplit
+                ? (isReturn ? Boolean(currentTrip.return_end_km && Number(currentTrip.return_end_km) > 0) : Boolean(currentTrip.departure_end_km && Number(currentTrip.departure_end_km) > 0))
+                : Boolean(currentTrip.end_km && Number(currentTrip.end_km) > 0);
+
+              if (isGateCheckedIn && !hasEndKm) {
+                return (
+                  <div className="p-4 sm:p-4.5 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-orange-500/10 border-2 border-amber-500/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 shadow-sm animate-fadein">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 animate-bounce">
+                        <Icon name="speed" className="text-[22px]" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-[13.5px] font-black text-amber-950 uppercase tracking-tight">
+                            Peringatan: KM Akhir Belum Dilengkapi!
+                          </h4>
+                          <span className="text-[10px] font-extrabold bg-amber-500 text-white px-2 py-0.5 rounded-full uppercase shrink-0 whitespace-nowrap">
+                            Wajib Isi
+                          </span>
+                        </div>
+                        <p className="text-[12px] text-amber-900 mt-0.5 font-medium leading-relaxed">
+                          Kendaraan telah diverifikasi masuk gerbang pabrik oleh Security. Harap segera catat KM Akhir spidometer untuk menutup penugasan <strong>#{currentTrip.reqId || `REQ-${currentTrip.id}`}</strong>.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConfirmModal({
+                          isOpen: true,
+                          type: "complete",
+                          targetId: currentTrip.id,
+                        });
+                      }}
+                      className="self-start sm:self-auto px-4 py-2.5 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-extrabold text-xs rounded-xl shadow transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer"
+                    >
+                      <Icon name="check_circle" className="text-sm" />
+                      <span>Isi KM Akhir Sekarang</span>
+                    </button>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             {/* Hero current assignment */}
             {currentTrip ? (
               <div data-guide="driver-task-card" className="relative bg-[#0f1f3d] rounded-2xl p-6 sm:p-7 overflow-hidden text-white shadow-lg">
@@ -2282,7 +2335,10 @@ export default function DriverDashboard() {
             <div className="p-6 space-y-4">
               {(() => {
                 const targetReq = rawRequests.find((r) => String(r.id) === String(confirmModal.targetId)) || currentTrip;
-                const targetStartKm = targetReq?.start_km ?? targetReq?.operational_trip?.start_km ?? (Array.isArray(targetReq?.operational_trips) && targetReq?.operational_trips[0]?.start_km) ?? null;
+                const isReturnLeg = targetReq?.trip_mode === "split_drop_pickup" && String(targetReq?.return_driver_id) === String(user?.id);
+                const targetStartKm = isReturnLeg
+                  ? (targetReq?.return_start_km ?? targetReq?.return_vehicle?.odometer ?? targetReq?.start_km ?? null)
+                  : (targetReq?.start_km ?? targetReq?.operational_trip?.start_km ?? (Array.isArray(targetReq?.operational_trips) && targetReq?.operational_trips[0]?.start_km) ?? null);
                 const isTripInternal = !targetReq?.is_external;
 
                 return (

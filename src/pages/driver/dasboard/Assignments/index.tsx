@@ -113,25 +113,39 @@ function AssignmentCard({
         </div>
       </div>
 
-      <div className="flex items-center justify-between px-5 py-4 border-t border-[#f1f5f9] bg-[#fafbff] mt-auto">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 px-5 py-4 border-t border-[#f1f5f9] bg-[#fafbff] mt-auto">
         {isOngoing ? (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 text-[11.5px] font-bold rounded-lg">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 text-[11.5px] font-bold rounded-lg self-start sm:self-auto shrink-0 whitespace-nowrap">
             <Icon name="sync" className="text-[14px] animate-spin" />
             Sedang Berjalan
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 border border-green-200 text-[11.5px] font-bold rounded-lg">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 border border-green-200 text-[11.5px] font-bold rounded-lg self-start sm:self-auto shrink-0 whitespace-nowrap">
             <Icon name="check_circle" className="text-[14px]" />
             Terjadwal
           </span>
         )}
-        <button
-          onClick={() => onViewDetail(cleanReqId)}
-          className="h-9 px-4 bg-[#2563eb] text-white text-[12px] font-bold rounded-xl hover:bg-[#1d4ed8] active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
-        >
-          <Icon name="visibility" className="text-[15px]" />
-          Lihat Detail
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {isOngoing && onCompleteTrip && (
+            <button
+              type="button"
+              onClick={() => onCompleteTrip(cleanReqId)}
+              className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold rounded-xl active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap shadow-xs"
+              title="Selesaikan perjalanan & input KM Akhir"
+            >
+              <Icon name="check_circle" className="text-[15px]" />
+              Selesaikan (Isi KM)
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => onViewDetail(cleanReqId)}
+            className="h-9 px-4 bg-[#2563eb] text-white text-[12px] font-bold rounded-xl hover:bg-[#1d4ed8] active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap"
+          >
+            <Icon name="visibility" className="text-[15px]" />
+            Lihat Detail
+          </button>
+        </div>
       </div>
     </div>
   );
