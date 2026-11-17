@@ -185,6 +185,12 @@ export default function SecurityHistoryPage() {
   );
 
   // Calculate statistics based on filtered logs for the selected date period
+  // Count logs per period for tab badges & smart guidance
+  const todayCount = securityLogs.filter((r) => matchesSecurityDate(r, "TODAY")).length;
+  const weekCount = securityLogs.filter((r) => matchesSecurityDate(r, "THIS_WEEK")).length;
+  const monthCount = securityLogs.filter((r) => matchesSecurityDate(r, "THIS_MONTH")).length;
+  const allCount = securityLogs.length;
+
   const totalScans = dateFilteredLogs.length;
   const activeTrips = dateFilteredLogs.filter((r) => {
     if (r.trip_mode === "split_drop_pickup") {
@@ -397,6 +403,39 @@ export default function SecurityHistoryPage() {
               <div className="text-base sm:text-2xl font-black text-slate-800 leading-tight mt-0.5">{completedTrips}</div>
             </div>
           </div>
+
+        {/* Smart Guidance Banner if TODAY has 0 scans but other periods have logs */}
+        {datePeriod === "TODAY" && totalScans === 0 && allCount > 0 && (
+          <div className="p-3 sm:p-4 bg-blue-50/90 border border-blue-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
+            <div className="flex items-start sm:items-center gap-2.5 text-blue-900">
+              <Icon name="info" className="text-xl text-blue-600 shrink-0 mt-0.5 sm:mt-0" />
+              <div>
+                <span className="font-extrabold">Belum ada aktivitas scan gerbang pada hari ini (Hari Ini: 0).</span>
+                <span className="text-blue-700 block sm:inline sm:ml-1">Terdapat <strong>{allCount}</strong> riwayat scan pada periode sebelumnya.</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+              {weekCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setDatePeriod("THIS_WEEK")}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-[11px] transition-all cursor-pointer shadow-xs flex items-center gap-1"
+                >
+                  <Icon name="date_range" className="text-[13px]" />
+                  Buka Minggu Ini ({weekCount})
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setDatePeriod("ALL")}
+                className="px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-900 border border-blue-300 font-bold rounded-xl text-[11px] transition-all cursor-pointer shadow-xs flex items-center gap-1"
+              >
+                <Icon name="all_inclusive" className="text-[13px]" />
+                Semua Waktu ({allCount})
+              </button>
+            </div>
+          </div>
+        )}
         </div>
 
         {/* Filters and Tabs */}
@@ -426,10 +465,10 @@ export default function SecurityHistoryPage() {
 
             <div className="flex items-center gap-2 overflow-x-auto pb-1 text-[11px] sm:text-xs font-bold scrollbar-none">
               {[
-                { key: "TODAY" as SecurityDatePeriod, label: "Hari Ini", icon: "today" },
-                { key: "THIS_WEEK" as SecurityDatePeriod, label: "Minggu Ini", icon: "date_range" },
-                { key: "THIS_MONTH" as SecurityDatePeriod, label: "Bulan Ini", icon: "calendar_month" },
-                { key: "ALL" as SecurityDatePeriod, label: "Semua Waktu", icon: "all_inclusive" },
+                { key: "TODAY" as SecurityDatePeriod, label: "Hari Ini", count: todayCount, icon: "today" },
+                { key: "THIS_WEEK" as SecurityDatePeriod, label: "Minggu Ini", count: weekCount, icon: "date_range" },
+                { key: "THIS_MONTH" as SecurityDatePeriod, label: "Bulan Ini", count: monthCount, icon: "calendar_month" },
+                { key: "ALL" as SecurityDatePeriod, label: "Semua Waktu", count: allCount, icon: "all_inclusive" },
                 { key: "CUSTOM" as SecurityDatePeriod, label: "Kustom", icon: "edit_calendar" },
               ].map((tab) => {
                 const isActive = datePeriod === tab.key;
@@ -446,6 +485,15 @@ export default function SecurityHistoryPage() {
                   >
                     <Icon name={tab.icon} className="text-sm" />
                     <span>{tab.label}</span>
+                    {typeof tab.count === "number" && (
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : tab.count > 0 ? "bg-blue-100 text-[#1e3a8a]" : "bg-slate-200 text-slate-500"
+                      }`}>
+                        {tab.count}
+                      </span>
+                    )}
                   </button>
                 );
               })}
