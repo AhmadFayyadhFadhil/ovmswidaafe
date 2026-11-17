@@ -484,7 +484,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
             <h2 className="text-[26px] font-bold text-[#0f172a]">Pemantauan Pengajuan</h2>
             <p className="text-[13px] text-[#64748b] mt-1">Pemantauan langsung penugasan armada dan status operasional kendaraan di seluruh organisasi.</p>
           </div>
-          <div className="flex gap-2.5 flex-shrink-0">
+          <div className="flex gap-2.5 flex-wrap sm:flex-nowrap">
             <button 
               onClick={() => {
                 const headers = ["ID Request", "Nama Pemohon", "Departemen", "Tipe Armada", "Armada / Kendaraan", "Pengemudi / Driver", "Vendor Sewa", "Biaya Sewa / Rental (Rp)", "Tujuan Perjalanan", "Jadwal", "Prioritas", "Status"];
@@ -620,7 +620,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
             <select
               value={statusFilter}
               onChange={e => handleStatusChange(e.target.value)}
-              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer"
+              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer flex-1 sm:flex-initial"
             >
               <option value="All">Semua Status</option>
               <option value="ACTIVE">Hanya Status Aktif</option>
@@ -634,7 +634,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
             <select 
               value={priorityFilter}
               onChange={e => { setPriorityFilter(e.target.value); setCurrentPage(1); }}
-              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer"
+              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer flex-1 sm:flex-initial"
             >
               <option value="All">Prioritas: Semua</option>
               <option value="URGENT">MENDESAK</option>

@@ -403,40 +403,40 @@ export default function SecurityHistoryPage() {
               <div className="text-base sm:text-2xl font-black text-slate-800 leading-tight mt-0.5">{completedTrips}</div>
             </div>
           </div>
+        </div>
 
         {/* Smart Guidance Banner if TODAY has 0 scans but other periods have logs */}
         {datePeriod === "TODAY" && totalScans === 0 && allCount > 0 && (
-          <div className="p-3 sm:p-4 bg-blue-50/90 border border-blue-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
-            <div className="flex items-start sm:items-center gap-2.5 text-blue-900">
+          <div className="p-3.5 sm:p-4 bg-blue-50/95 border border-blue-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+            <div className="flex items-start sm:items-center gap-2.5 text-blue-900 min-w-0">
               <Icon name="info" className="text-xl text-blue-600 shrink-0 mt-0.5 sm:mt-0" />
               <div>
-                <span className="font-extrabold">Belum ada aktivitas scan gerbang pada hari ini (Hari Ini: 0).</span>
+                <span className="font-extrabold block sm:inline">Belum ada aktivitas scan gerbang pada hari ini (Hari Ini: 0).</span>
                 <span className="text-blue-700 block sm:inline sm:ml-1">Terdapat <strong>{allCount}</strong> riwayat scan pada periode sebelumnya.</span>
               </div>
             </div>
-            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
               {weekCount > 0 && (
                 <button
                   type="button"
                   onClick={() => setDatePeriod("THIS_WEEK")}
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-[11px] transition-all cursor-pointer shadow-xs flex items-center gap-1"
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-[11px] transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
                 >
                   <Icon name="date_range" className="text-[13px]" />
-                  Buka Minggu Ini ({weekCount})
+                  <span>Buka Minggu Ini ({weekCount})</span>
                 </button>
               )}
               <button
                 type="button"
                 onClick={() => setDatePeriod("ALL")}
-                className="px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-900 border border-blue-300 font-bold rounded-xl text-[11px] transition-all cursor-pointer shadow-xs flex items-center gap-1"
+                className="px-3.5 py-2 bg-white hover:bg-blue-50 text-blue-900 border border-blue-300 font-bold rounded-xl text-[11px] transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
               >
                 <Icon name="all_inclusive" className="text-[13px]" />
-                Semua Waktu ({allCount})
+                <span>Semua Waktu ({allCount})</span>
               </button>
             </div>
           </div>
         )}
-        </div>
 
         {/* Filters and Tabs */}
         <div className="bg-white rounded-2xl border border-slate-100 p-3 sm:p-4 shadow-xs space-y-3">
