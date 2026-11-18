@@ -259,6 +259,55 @@ export default function DriverDashboard() {
     }
   };
 
+  const [kmAnomalyModal, setKmAnomalyModal] = useState<{
+    isOpen: boolean;
+    reqId: string | number;
+    kmNum: number;
+    diffKm: number;
+    isCompleteAction?: boolean;
+  }>({
+    isOpen: false,
+    reqId: "",
+    kmNum: 0,
+    diffKm: 0,
+    isCompleteAction: false,
+  });
+
+  const executeSaveEndKm = async (reqId: string | number, kmNum: number, forceConfirm = false) => {
+    setIsSavingEndKm(true);
+    try {
+      await requestService.recordEndKm(String(reqId), kmNum, forceConfirm);
+      setIsEditingEndKm(false);
+      setEndKmInput("");
+      await fetchData(true);
+      setAlertModal({
+        isOpen: true,
+        title: "Berhasil",
+        message: "Kilometer akhir berhasil disimpan!",
+        variant: "success",
+      });
+    } catch (err: any) {
+      if (err.response?.data?.require_confirmation) {
+        setKmAnomalyModal({
+          isOpen: true,
+          reqId,
+          kmNum,
+          diffKm: err.response.data.diff_km || 1000,
+          isCompleteAction: false,
+        });
+        return;
+      }
+      setAlertModal({
+        isOpen: true,
+        title: "Gagal Menyimpan KM Akhir",
+        message: err.response?.data?.message || "Gagal menyimpan kilometer akhir.",
+        variant: "danger",
+      });
+    } finally {
+      setIsSavingEndKm(false);
+    }
+  };
+
   const handleSaveEndKm = async (reqId: string | number, kmStr: string, minKm?: number | null) => {
     const cleaned = kmStr.replace(/[^\d]/g, '');
     const kmNum = cleaned ? parseInt(cleaned, 10) : NaN;
@@ -280,28 +329,17 @@ export default function DriverDashboard() {
       });
       return;
     }
-    setIsSavingEndKm(true);
-    try {
-      await requestService.recordEndKm(String(reqId), kmNum);
-      setIsEditingEndKm(false);
-      setEndKmInput("");
-      await fetchData(true);
-      setAlertModal({
+    if (minKm !== undefined && minKm !== null && minKm > 0 && (kmNum - minKm > 1000)) {
+      setKmAnomalyModal({
         isOpen: true,
-        title: "Berhasil",
-        message: "Kilometer akhir berhasil disimpan!",
-        variant: "success",
+        reqId,
+        kmNum,
+        diffKm: kmNum - minKm,
+        isCompleteAction: false,
       });
-    } catch (err: any) {
-      setAlertModal({
-        isOpen: true,
-        title: "Gagal Menyimpan KM Akhir",
-        message: err.response?.data?.message || "Gagal menyimpan kilometer akhir.",
-        variant: "danger",
-      });
-    } finally {
-      setIsSavingEndKm(false);
+      return;
     }
+    await executeSaveEndKm(reqId, kmNum, false);
   };
   
   const [confirmModal, setConfirmModal] = useState<{
@@ -2483,6 +2521,17 @@ export default function DriverDashboard() {
                               await requestService.start(id);
                             } else if (confirmModal.type === "complete") {
                               const endKmNum = endKmInput.trim() ? parseInt(endKmInput.trim(), 10) : undefined;
+                              if (endKmNum !== undefined && targetStartKm && (endKmNum - Number(targetStartKm) > 1000)) {
+                                setKmAnomalyModal({
+                                  isOpen: true,
+                                  reqId: id,
+                                  kmNum: endKmNum,
+                                  diffKm: endKmNum - Number(targetStartKm),
+                                  isCompleteAction: true,
+                                });
+                                setActionLoading(false);
+                                return;
+                              }
                               await requestService.complete(id, endKmNum);
                               setEndKmInput("");
                             } else if (confirmModal.type === "reject") {
@@ -2521,6 +2570,18 @@ export default function DriverDashboard() {
                             await fetchData();
                           } catch (err: any) {
                             console.error(err);
+                            if (err.response?.data?.require_confirmation && confirmModal.type === "complete") {
+                              const endKmNum = endKmInput.trim() ? parseInt(endKmInput.trim(), 10) : 0;
+                              setKmAnomalyModal({
+                                isOpen: true,
+                                reqId: id,
+                                kmNum: endKmNum,
+                                diffKm: err.response.data.diff_km || 1000,
+                                isCompleteAction: true,
+                              });
+                              setActionLoading(false);
+                              return;
+                            }
                             const errorMsg = err.response?.data?.message || "Terjadi kesalahan saat memproses aksi.";
                             const isLockError = errorMsg.includes("masih aktif") || errorMsg.includes("KM Akhir");
                             setAlertModal({
@@ -2612,6 +2673,47 @@ export default function DriverDashboard() {
         confirmText="Mengerti"
         variant={alertModal.variant}
         isAlertOnly={true}
+      />
+
+      {/* KM Anomaly Warning Modal */}
+      <ConfirmModal
+        isOpen={kmAnomalyModal.isOpen}
+        onClose={() => setKmAnomalyModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={async () => {
+          const { reqId, kmNum, isCompleteAction } = kmAnomalyModal;
+          setKmAnomalyModal(prev => ({ ...prev, isOpen: false }));
+          if (isCompleteAction) {
+            setActionLoading(true);
+            try {
+              await requestService.complete(String(reqId), kmNum, true);
+              setEndKmInput("");
+              setConfirmModal({ isOpen: false, type: "start", targetId: "" });
+              await fetchData(true);
+              setAlertModal({
+                isOpen: true,
+                title: "Perjalanan Selesai",
+                message: "Perjalanan berhasil diselesaikan dengan konfirmasi jarak tempuh.",
+                variant: "success",
+              });
+            } catch (err: any) {
+              setAlertModal({
+                isOpen: true,
+                title: "Gagal Menyelesaikan Perjalanan",
+                message: err.response?.data?.message || "Terjadi kesalahan saat menyelesaikan perjalanan.",
+                variant: "danger",
+              });
+            } finally {
+              setActionLoading(false);
+            }
+          } else {
+            await executeSaveEndKm(reqId, kmNum, true);
+          }
+        }}
+        title="Peringatan Jarak Tempuh Tidak Wajar"
+        message={`Jarak tempuh perjalanan tercatat sebesar +${kmAnomalyModal.diffKm.toLocaleString('id-ID')} KM (KM Akhir: ${kmAnomalyModal.kmNum.toLocaleString('id-ID')} KM). Apakah Anda yakin angka spidometer ini sudah benar dan bukan salah ketik?`}
+        confirmText="Ya, Angka Sudah Benar"
+        cancelText="Periksa Kembali"
+        variant="warning"
       />
     </Layout>
   );

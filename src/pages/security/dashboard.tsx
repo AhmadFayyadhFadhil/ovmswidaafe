@@ -674,6 +674,17 @@ export default function SecurityDashboard() {
           alert("Masukkan angka kilometer yang valid!");
           return;
         }
+
+        const lastVehKm = Number(scannedRequest.vehicle?.odometer || scannedRequest.vehicle_odometer || 0);
+        if (lastVehKm > 0 && kmNum > 0 && (kmNum - lastVehKm > 1000 || kmNum < lastVehKm)) {
+          const isFarLower = kmNum < lastVehKm;
+          const msg = isFarLower
+            ? `Peringatan Spidometer: Angka KM yang dimasukkan (${kmNum.toLocaleString('id-ID')} KM) lebih kecil dari odometer tercatat terakhir (${lastVehKm.toLocaleString('id-ID')} KM). Apakah Anda yakin angka ini sudah benar sesuai spidometer fisik mobil?`
+            : `Peringatan Spidometer: Angka KM yang dimasukkan (${kmNum.toLocaleString('id-ID')} KM) berselisih lebih dari 1.000 KM dari odometer terakhir (${lastVehKm.toLocaleString('id-ID')} KM). Apakah Anda yakin angka ini sudah benar sesuai spidometer fisik mobil?`;
+          if (!window.confirm(msg)) {
+            return;
+          }
+        }
       }
     }
 

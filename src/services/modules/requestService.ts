@@ -444,9 +444,12 @@ export const requestService = {
       message: res.data?.message
     };
   },
-  complete: async (id: string, endKm?: number): Promise<ApiResponse<void>> => {
+  complete: async (id: string, endKm?: number, forceConfirm?: boolean): Promise<ApiResponse<void>> => {
     requestCache = null;
-    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/complete`, endKm !== undefined ? { end_km: endKm } : {});
+    const payload: any = {};
+    if (endKm !== undefined) payload.end_km = endKm;
+    if (forceConfirm) payload.force_confirm = true;
+    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/complete`, payload);
     return {
       data: undefined,
       message: res.data?.message
@@ -460,9 +463,11 @@ export const requestService = {
       message: res.data?.message
     };
   },
-  recordEndKm: async (id: string, endKm: number): Promise<ApiResponse<any>> => {
+  recordEndKm: async (id: string, endKm: number, forceConfirm?: boolean): Promise<ApiResponse<any>> => {
     requestCache = null;
-    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/record-end-km`, { end_km: endKm });
+    const payload: any = { end_km: endKm };
+    if (forceConfirm) payload.force_confirm = true;
+    const res = await apiClient.post<any>(`${ENDPOINTS.REQUESTS}/${id}/record-end-km`, payload);
     return {
       data: res.data?.data ? mapRequestFromBackend(res.data.data) : undefined,
       message: res.data?.message
