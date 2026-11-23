@@ -312,7 +312,7 @@ export default function GAHRDRequestsPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const idParam = params.get("id");
+    const idParam = params.get("id") || params.get("open_request") || params.get("req_id");
     const assignParam = params.get("assign");
     if (assignParam && requests.length > 0) {
       const found = requests.find(r => String(r.id) === String(assignParam));

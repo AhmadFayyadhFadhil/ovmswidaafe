@@ -401,9 +401,20 @@ export default function DriverDashboard() {
     fetchData();
   }, []);
 
-
-
-
+  // Auto-open request detail if ?open_request=X or ?req_id=X is present in URL
+  useEffect(() => {
+    const openReq = searchParams.get("open_request") || searchParams.get("req_id") || searchParams.get("id");
+    if (openReq && (rawRequests.length > 0 || !loading)) {
+      handleViewDetail(String(openReq));
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.delete("open_request");
+        next.delete("req_id");
+        next.delete("id");
+        return next;
+      }, { replace: true });
+    }
+  }, [searchParams, rawRequests.length, loading]);
 
   const handleReject = (assignmentId: string) => {
     setConfirmModal({
@@ -2519,6 +2530,7 @@ export default function DriverDashboard() {
                           try {
                             if (confirmModal.type === "start") {
                               await requestService.start(id);
+                              setRawRequests(prev => prev.map(r => String(r.id) === String(id) ? { ...r, rawStatus: "on_going", status: "On Going" } : r));
                             } else if (confirmModal.type === "complete") {
                               const endKmNum = endKmInput.trim() ? parseInt(endKmInput.trim(), 10) : undefined;
                               if (endKmNum !== undefined && targetStartKm && (endKmNum - Number(targetStartKm) > 1000)) {
@@ -2534,6 +2546,7 @@ export default function DriverDashboard() {
                               }
                               await requestService.complete(id, endKmNum);
                               setEndKmInput("");
+                              setRawRequests(prev => prev.map(r => String(r.id) === String(id) ? { ...r, rawStatus: "completed", status: "Completed", end_km: endKmNum } : r));
                             } else if (confirmModal.type === "reject") {
                               await assignmentService.respond(id, {
                                 response: "rejected",
@@ -2687,6 +2700,7 @@ export default function DriverDashboard() {
             try {
               await requestService.complete(String(reqId), kmNum, true);
               setEndKmInput("");
+              setRawRequests(prev => prev.map(r => String(r.id) === String(reqId) ? { ...r, rawStatus: "completed", status: "Completed", end_km: kmNum } : r));
               setConfirmModal({ isOpen: false, type: "start", targetId: "" });
               await fetchData(true);
               setAlertModal({

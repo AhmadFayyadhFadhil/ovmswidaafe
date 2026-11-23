@@ -160,6 +160,10 @@ export default function SecurityHistoryPage() {
       if ((location.state as any).successMsg) {
         setToastMsg((location.state as any).successMsg);
       }
+      // Force clear cache and refresh to guarantee newly scanned request appears immediately
+      requestService.clearCache();
+      refetch();
+
       setTimeout(() => {
         const el = document.getElementById(`log-card-${targetId}`);
         if (el) {
@@ -170,7 +174,7 @@ export default function SecurityHistoryPage() {
       // Clean navigation state
       window.history.replaceState({}, document.title);
     }
-  }, [location.state, requestsList.length]);
+  }, [location.state]);
 
   // Filter requests that have check-out or check-in recorded by security
   const securityLogs = requestsList.filter((r) => {
@@ -287,6 +291,7 @@ export default function SecurityHistoryPage() {
         setSelectedLogForCheckin(null);
         setSelectedTripForCheckin(null);
         setCheckinNotes("");
+        requestService.clearCache();
         await refetch();
       } else {
         setCheckinError(res.data?.message || "Gagal mencatat konfirmasi masuk gate.");

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/RoleLayout";
 import { Icon } from "@/components/ui/Icon";
 import { apiClient } from "@/services/api/api";
+import { requestService } from "@/services/modules/requestService";
 import jsQR from "jsqr";
 
 // Parse time from datetime string directly (no JS timezone conversion)
@@ -723,6 +724,7 @@ export default function SecurityDashboard() {
       const res = await apiClient.post("/security/scan", payload);
 
       if (res.data && res.data.status === "success") {
+        requestService.clearCache();
         const successMessage = res.data.message;
         const reqId = scannedRequest.id;
         setSecurityNotes("");
