@@ -19,7 +19,7 @@ interface StepState {
 const STEP_LABELS = ["Diajukan", "Kepala Dept", "Koor Driver", "Koor GA", "Terjadwal", "Selesai"];
 const STEP_ICONS  = ["send", "how_to_reg", "person_pin", "verified_user", "schedule", "flag"];
 
-function getRequestSteps(rawStatus: string): StepState[] {
+function getRequestSteps(rawStatus: string, r?: any): StepState[] {
   const isRejected = rawStatus === "rejected" || rawStatus === "cancelled";
   
   if (isRejected) {
@@ -66,11 +66,27 @@ function getRequestSteps(rawStatus: string): StepState[] {
   const step3Active = rawStatus === "assigned_by_ga" || rawStatus === "waiting_driver";
 
   // 5. Terjadwal / In Progress
+  const isSplitWaitReturn = r?.trip_mode === "split_drop_pickup" && (Boolean(r?.departure_checked_in_at) || r?.split_trip_stage === "waiting_pickup") && !r?.return_checked_out_at;
+  const isSplitReturnOngoing = r?.trip_mode === "split_drop_pickup" && (Boolean(r?.return_checked_out_at) || r?.split_trip_stage === "return_ongoing") && !r?.return_checked_in_at;
+  const isSplitDepartureOngoing = r?.trip_mode === "split_drop_pickup" && (Boolean(r?.departure_checked_out_at) || r?.split_trip_stage === "departure_ongoing") && !r?.departure_checked_in_at;
+
+  const isActuallyOnGoing = r?.trip_mode === "split_drop_pickup" 
+    ? (isSplitDepartureOngoing || isSplitReturnOngoing) 
+    : (rawStatus === "on_going");
+
   const step4Done = rawStatus === "completed";
   const step4Active = rawStatus === "driver_assigned" || rawStatus === "on_going";
-  const step4Color = rawStatus === "driver_assigned" ? "blue" : "yellow";
-  const step4Label = rawStatus === "on_going" ? "Sedang Berjalan" : "Terjadwal";
-  const step4Icon = rawStatus === "on_going" ? "hourglass_empty" : "schedule";
+  const step4Color = isSplitWaitReturn ? "blue" : isActuallyOnGoing ? "yellow" : "blue";
+  const step4Label = isSplitWaitReturn
+    ? "Terjadwal Jemput"
+    : isSplitReturnOngoing
+    ? "Sedang Menjemput"
+    : isSplitDepartureOngoing
+    ? "Sedang Mengantar"
+    : isActuallyOnGoing
+    ? "Sedang Berjalan"
+    : "Terjadwal";
+  const step4Icon = (isSplitWaitReturn || !isActuallyOnGoing) ? "schedule" : "hourglass_empty";
 
   // 6. Selesai
   const step5Done = rawStatus === "completed";
@@ -86,7 +102,40 @@ function getRequestSteps(rawStatus: string): StepState[] {
   ];
 }
 
-function getStatusConfig(rawStatus: string) {
+function getStatusConfig(rawStatus: string, r?: any) {
+  if (r?.trip_mode === "split_drop_pickup") {
+    if (r.return_checked_in_at || r.split_trip_stage === "completed" || rawStatus === "completed") {
+      return {
+        label: "Selesai",
+        color: "bg-[#dcfce7] text-[#15803d] border border-[#bbf7d0]",
+      };
+    }
+    if (r.return_checked_out_at || r.split_trip_stage === "return_ongoing") {
+      return {
+        label: "Sedang Menjemput",
+        color: "bg-amber-50 text-amber-700 border border-amber-200",
+      };
+    }
+    if ((r.departure_checked_in_at || r.split_trip_stage === "waiting_pickup") && !r.return_checked_out_at) {
+      return {
+        label: "Terjadwal Jemput",
+        color: "bg-blue-50 text-blue-700 border border-blue-200",
+      };
+    }
+    if (r.departure_checked_out_at || r.split_trip_stage === "departure_ongoing") {
+      return {
+        label: "Sedang Mengantar",
+        color: "bg-amber-50 text-amber-700 border border-amber-200",
+      };
+    }
+    if (rawStatus === "driver_assigned" || r.split_trip_stage === "scheduled" || (!r.departure_checked_out_at && rawStatus === "on_going")) {
+      return {
+        label: "Siap Jalan",
+        color: "bg-[#dcfce7] text-[#15803d]",
+      };
+    }
+  }
+
   switch (rawStatus) {
     case "submitted":
       return {
@@ -312,8 +361,14 @@ export default function MyRequestsPage() {
     const isCreator = creatorId !== "" && creatorId === targetUserId;
     const isPassenger = Array.isArray(r.passengers) && r.passengers.some((p: any) => {
       const pUserId = String(p.user_id || p.user?.id || "");
+      if (pUserId !== "" && pUserId === targetUserId) return true;
       const pName = (p.name || "").trim().toLowerCase();
-      return (pUserId !== "" && pUserId === targetUserId) || (pName !== "" && pName === targetUserName);
+      if (!pName || !targetUserName) return false;
+      if (pName === targetUserName) return true;
+      if (pName.length >= 4 && targetUserName.length >= 4) {
+        if (pName.includes(targetUserName) || targetUserName.includes(pName)) return true;
+      }
+      return false;
     });
     return isCreator || isPassenger;
   });
@@ -549,9 +604,9 @@ export default function MyRequestsPage() {
           <div className="space-y-3">
             {paginated.map(r => {
               const isExpanded = String(expanded) === String(r.id);
-              const steps = getRequestSteps(r.rawStatus);
+              const steps = getRequestSteps(r.rawStatus, r);
 
-              const sc = getStatusConfig(r.rawStatus);
+              const sc = getStatusConfig(r.rawStatus, r);
 
               return (
                 <div key={r.id}
@@ -577,7 +632,32 @@ export default function MyRequestsPage() {
                             }
                             return null;
                           })()}
-                          {r.rawStatus === "on_going" && (
+                          {/* Split Trip Indicator */}
+                          {r.trip_mode === "split_drop_pickup" && !r.departure_checked_out_at && (r.rawStatus === "driver_assigned" || r.rawStatus === "on_going") && (
+                            <span className="text-[10px] font-bold text-blue-700 flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                              <Icon name="schedule" className="text-xs text-blue-600" />
+                              TERJADWAL (SIAP JALAN)
+                            </span>
+                          )}
+                          {r.trip_mode === "split_drop_pickup" && r.departure_checked_out_at && !r.departure_checked_in_at && (
+                            <span className="text-[10px] font-bold text-amber-700 flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                              SEDANG PENGANTARAN
+                            </span>
+                          )}
+                          {r.trip_mode === "split_drop_pickup" && (Boolean(r.departure_checked_in_at) || r.split_trip_stage === "waiting_pickup") && !r.return_checked_out_at && (
+                            <span className="text-[10px] font-bold text-blue-700 flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                              <Icon name="schedule" className="text-xs text-blue-600" />
+                              TERJADWAL JEMPUT
+                            </span>
+                          )}
+                          {r.trip_mode === "split_drop_pickup" && Boolean(r.return_checked_out_at) && !r.return_checked_in_at && (
+                            <span className="text-[10px] font-bold text-amber-700 flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                              SEDANG PENJEMPUTAN
+                            </span>
+                          )}
+                          {r.trip_mode !== "split_drop_pickup" && r.rawStatus === "on_going" && r.security_checked_out_at && (
                             <span className="text-[10px] font-bold text-[#4059aa] flex items-center gap-1">
                               <span className="w-1.5 h-1.5 rounded-full bg-[#4059aa] animate-pulse" />
                               SEDANG BERJALAN
@@ -768,8 +848,9 @@ export default function MyRequestsPage() {
                                   
                                   {/* Keberangkatan */}
                                   <div className="p-2.5 bg-white rounded-lg border border-blue-100/60 space-y-1.5">
-                                    <div className="font-bold text-blue-800 flex items-center gap-1 text-[11px] border-b border-blue-50 pb-1">
-                                      <span>🚙</span> Armada Keberangkatan
+                                    <div className="font-bold text-blue-800 flex items-center gap-1.5 text-[11px] border-b border-blue-50 pb-1">
+                                      <Icon name="directions_car" className="text-sm text-blue-700" />
+                                      <span>Armada Keberangkatan</span>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                       <div className="p-1.5 bg-slate-50/50 rounded border border-slate-100 space-y-0.5">
@@ -808,8 +889,9 @@ export default function MyRequestsPage() {
 
                                   {/* Penjemputan */}
                                   <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1.5">
-                                    <div className="font-bold text-slate-700 flex items-center gap-1 text-[11px] border-b border-slate-200 pb-1">
-                                      <span>🔄</span> Armada Penjemputan / Pulang
+                                    <div className="font-bold text-slate-700 flex items-center gap-1.5 text-[11px] border-b border-slate-200 pb-1">
+                                      <Icon name="sync" className="text-sm text-slate-600" />
+                                      <span>Armada Penjemputan / Pulang</span>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                       <div className="p-1.5 bg-white rounded border border-slate-100 space-y-0.5">
@@ -888,16 +970,93 @@ export default function MyRequestsPage() {
                                           </div>
                                         </div>
 
-                                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 ${
+                                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 flex items-center gap-1 ${
                                           it.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
                                           it.status === 'on_going' ? 'bg-amber-100 text-amber-800 animate-pulse' :
                                           'bg-slate-100 text-slate-600'
                                         }`}>
-                                          {it.status === 'completed' ? '✓ Selesai' : it.status === 'on_going' ? '⚡ Sedang Berjalan' : 'Terjadwal'}
+                                          {it.status === 'completed' ? (
+                                            <>
+                                              <Icon name="check" className="text-[11px]" />
+                                              <span>Selesai</span>
+                                            </>
+                                          ) : it.status === 'on_going' ? (
+                                            <>
+                                              <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span>
+                                              <span>Sedang Berjalan</span>
+                                            </>
+                                          ) : 'Terjadwal'}
                                         </span>
                                       </div>
                                     );
                                   })}
+                                </div>
+                              ) : r.trip_mode === "split_drop_pickup" ? (
+                                /* Case Split Drop & Pickup: Sesi 1 & Sesi 2 */
+                                <div className="space-y-2">
+                                  {/* Sesi 1: Antar */}
+                                  <div className="p-2.5 bg-blue-50/50 border border-blue-200/70 rounded-xl flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      <div className="w-8.5 h-8.5 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-extrabold shrink-0 shadow-sm">
+                                        {(r.driverName || "DA").split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[9.5px] font-bold uppercase bg-blue-100 text-blue-900 px-1.5 py-0.2 rounded">
+                                            Sesi 1: Antar
+                                          </span>
+                                          <span className="text-[12px] font-bold text-slate-800 truncate">{r.driverName || "Driver Belum Ditugaskan"}</span>
+                                        </div>
+                                        <div className="text-[10.5px] font-medium text-slate-600 truncate flex items-center gap-1 mt-0.5">
+                                          <Icon name="directions_car" className="text-xs text-blue-600" />
+                                          <span>{(r.vehicleModel || r.vehicleName || "Armada Antar").replace(/\s*\(\s*\)/g, '').trim()}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 ${
+                                      r.departure_checked_in_at ? 'bg-emerald-100 text-emerald-800' :
+                                      r.departure_checked_out_at ? 'bg-amber-100 text-amber-800 animate-pulse' :
+                                      'bg-slate-100 text-slate-600'
+                                    }`}>
+                                      {r.departure_checked_in_at ? 'Selesai Antar (Kembali ke Pabrik)' : r.departure_checked_out_at ? 'Dalam Perjalanan' : 'Terjadwal'}
+                                    </span>
+                                  </div>
+
+                                  {/* Sesi 2: Jemput */}
+                                  <div className="p-2.5 bg-amber-50/40 border border-amber-200/70 rounded-xl flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      <div className="w-8.5 h-8.5 rounded-full bg-amber-700 text-white flex items-center justify-center text-xs font-extrabold shrink-0 shadow-sm">
+                                        {((r.returnDriver?.name || r.return_driver_name) || "DJ").split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[9.5px] font-bold uppercase bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded">
+                                            Sesi 2: Jemput
+                                          </span>
+                                          <span className="text-[12px] font-bold text-slate-800 truncate">
+                                            {r.returnDriver?.name || r.return_driver_name || "Driver Jemput Belum Ditugaskan"}
+                                          </span>
+                                        </div>
+                                        <div className="text-[10.5px] font-medium text-slate-600 truncate flex items-center gap-1 mt-0.5">
+                                          <Icon name="directions_car" className="text-xs text-amber-600" />
+                                          <span>{(r.returnVehiclePlate ? `${r.returnVehicleName || 'Armada'} (${r.returnVehiclePlate})` : (r.return_vehicle_name || "Armada Jemput")).replace(/\s*\(\s*\)/g, '').trim()}</span>
+                                          {r.return_departure_time && (
+                                            <span className="text-slate-400 font-mono text-[10px]">
+                                              • {r.return_departure_time.split(" ")[1] || r.return_departure_time}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 ${
+                                      r.return_checked_in_at ? 'bg-emerald-100 text-emerald-800' :
+                                      r.return_checked_out_at ? 'bg-amber-100 text-amber-800 animate-pulse' :
+                                      r.departure_checked_in_at ? 'bg-blue-100 text-blue-800' :
+                                      'bg-slate-100 text-slate-600'
+                                    }`}>
+                                      {r.return_checked_in_at ? 'Selesai Jemput' : r.return_checked_out_at ? 'Dalam Penjemputan' : r.departure_checked_in_at ? 'Terjadwal Jemput' : 'Menunggu Sesi Antar'}
+                                    </span>
+                                  </div>
                                 </div>
                               ) : (
                                 /* Case Normal: Single-Day Driver Info Card(s) */
@@ -1095,25 +1254,55 @@ export default function MyRequestsPage() {
                           </div>
 
                           {(r.qr_code_token && ["driver_assigned", "on_going"].includes(r.rawStatus)) ? (
-                            <div 
-                              onClick={() => setZoomedQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${r.qr_code_token}`)}`)}
-                              className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-2.5 shadow-sm max-w-xs flex-shrink-0 cursor-zoom-in hover:border-blue-500 transition-all hover:scale-105"
-                              title="Klik untuk memperbesar"
-                            >
-                              <div className="bg-white p-1 rounded-lg border border-slate-100 shadow-3xs">
-                                <img
-                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${r.qr_code_token}`)}`}
-                                  alt="Ticket QR Code"
-                                  className="w-[70px] h-[70px] object-contain"
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[9px] font-extrabold text-[#64748b] uppercase tracking-widest">QR Code Tiket</div>
-                                <span className="text-[9px] font-mono font-bold text-slate-400 block mt-0.5">
-                                  {r.qr_code_token}
-                                </span>
-                              </div>
-                            </div>
+                            (() => {
+                              const isTripInternal = !r.is_external;
+                              const recordedStartKm = r.departure_start_km ?? r.start_km;
+                              const hasRecordedStartKm = Boolean(
+                                r.driver_has_started_km || 
+                                (recordedStartKm && Number(recordedStartKm) > 0)
+                              );
+
+                              // Sembunyikan QR Code jika perjalanan internal belum diinput KM awal oleh driver
+                              if (isTripInternal && !hasRecordedStartKm) {
+                                return (
+                                  <div className="flex items-center gap-2.5 bg-amber-50/80 border border-amber-200 rounded-xl p-3 max-w-xs flex-shrink-0 text-amber-900 shadow-2xs">
+                                    <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                                      <Icon name="hourglass_top" className="text-lg animate-pulse" />
+                                    </div>
+                                    <div className="text-left">
+                                      <div className="text-[10px] font-black uppercase tracking-wider text-amber-800">
+                                        QR Belum Aktif
+                                      </div>
+                                      <div className="text-[10.5px] text-amber-700 leading-tight mt-0.5 font-medium">
+                                        Menunggu Driver mengisi KM awal sebelum pemeriksaan gerbang.
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div 
+                                  onClick={() => setZoomedQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${r.qr_code_token}`)}`)}
+                                  className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-2.5 shadow-sm max-w-xs flex-shrink-0 cursor-zoom-in hover:border-blue-500 transition-all hover:scale-105"
+                                  title="Klik untuk memperbesar"
+                                >
+                                  <div className="bg-white p-1 rounded-lg border border-slate-100 shadow-3xs">
+                                    <img
+                                      src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${r.qr_code_token}`)}`}
+                                      alt="Ticket QR Code"
+                                      className="w-[70px] h-[70px] object-contain"
+                                    />
+                                  </div>
+                                  <div>
+                                    <div className="text-[9px] font-extrabold text-[#64748b] uppercase tracking-widest">QR Code Tiket</div>
+                                    <span className="text-[9px] font-mono font-bold text-slate-400 block mt-0.5">
+                                      {r.qr_code_token}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })()
                           ) : r.rawStatus === "completed" ? (
                             (() => {
                               const depTime = r.security_checked_out_at || r.started_at;

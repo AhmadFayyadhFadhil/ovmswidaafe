@@ -619,7 +619,7 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
               <div className="text-right">
                 <span className="text-[11px] font-bold uppercase text-slate-400 block">Status Pemantauan</span>
                 <span className="text-xs font-extrabold text-blue-900">
-                  {selectedCardModal.rawVal === 0 ? "🟢 0 Data (Sistem Bersih)" : "🟢 Terhubung Real-Time"}
+                  {selectedCardModal.rawVal === 0 ? "0 Data (Sistem Bersih)" : "Terhubung Real-Time"}
                 </span>
               </div>
             </div>
@@ -627,14 +627,14 @@ export default function AuditLogsView({ onNavigate }: { onNavigate?: (p: string)
             {/* Description & Function Analysis */}
             <div className="space-y-3 text-xs sm:text-sm">
               <div>
-                <span className="text-slate-500 block text-xs font-bold uppercase tracking-wider mb-1">💡 Apa Kegunaan Card Ini Bagi Admin?</span>
+                <span className="text-slate-500 block text-xs font-bold uppercase tracking-wider mb-1">Apa Kegunaan Card Ini Bagi Admin?</span>
                 <p className="text-slate-700 font-medium leading-relaxed bg-blue-50/40 p-3 rounded-xl border border-blue-100">
                   {selectedCardModal.description}
                 </p>
               </div>
 
               <div>
-                <span className="text-slate-500 block text-xs font-bold uppercase tracking-wider mb-1">🛡️ Rekomendasi Tindakan Admin:</span>
+                <span className="text-slate-500 block text-xs font-bold uppercase tracking-wider mb-1">Rekomendasi Tindakan Admin:</span>
                 <p className="text-slate-800 font-semibold leading-relaxed bg-amber-50/50 p-3 rounded-xl border border-amber-200/70 text-amber-950">
                   {selectedCardModal.recommendation}
                 </p>

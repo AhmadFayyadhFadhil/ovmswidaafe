@@ -406,8 +406,9 @@ export default function MyProfilePage({ onNavigate }: Props) {
                       <Icon name="badge" className="text-[18px] text-[#00236f]" />
                       <h4 className="text-[13px] font-bold text-[#0f172a]">Dokumen SIM A Driver</h4>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-600 border border-slate-200">
-                      🔒 Read-Only (Hanya Lihat)
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1">
+                      <Icon name="lock" className="text-xs" />
+                      <span>Read-Only (Hanya Lihat)</span>
                     </span>
                   </div>
 
@@ -467,7 +468,10 @@ export default function MyProfilePage({ onNavigate }: Props) {
             </div>
 
             <div className="flex justify-between items-center pt-2">
-              <span className="text-[11px] text-slate-400 italic">🔒 Dokumen dikelola & diunggah oleh Administrator.</span>
+              <span className="text-[11px] text-slate-400 italic flex items-center gap-1">
+                <Icon name="lock" className="text-xs" />
+                <span>Dokumen dikelola & diunggah oleh Administrator.</span>
+              </span>
               <button
                 onClick={() => setShowSimLightbox(false)}
                 className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition cursor-pointer"

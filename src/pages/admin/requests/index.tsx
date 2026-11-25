@@ -263,13 +263,16 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
 
   const handleCancelAssignment = async (requestId: string) => {
     try {
-      const res = await assignmentService.getAll({ per_page: 1000 });
-      const assignment = (res.data || []).find((a: any) => String(a.request?.id) === String(requestId) && a.status === 'pending_driver');
+      const res = await assignmentService.getAll({ per_page: 1000, request_id: requestId });
+      const asgs = res.data || [];
+      const assignment = asgs.find(
+        (a: any) => String(a.request?.id || a.request_id) === String(requestId) && !['completed', 'cancelled', 'rejected'].includes(a.status)
+      ) || asgs.find((a: any) => String(a.request?.id || a.request_id) === String(requestId));
       if (assignment) {
         await assignmentService.cancel(assignment.id);
         refetch();
       } else {
-        alert("Assignment tidak ditemukan.");
+        alert("Data penugasan tidak ditemukan pada server.");
       }
     } catch (err: any) {
       console.error(err);
@@ -432,9 +435,9 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
       );
     }
 
-    if (statusFilter === "All") {
+    if (statusFilter === "ACTIVE") {
       result = result.filter((r: any) => !["completed", "rejected", "cancelled"].includes(r.rawStatus || ""));
-    } else {
+    } else if (statusFilter !== "All") {
       result = result.filter((r: any) => (r.status || "").toUpperCase() === statusFilter.toUpperCase());
     }
 
@@ -481,7 +484,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
             <h2 className="text-[26px] font-bold text-[#0f172a]">Pemantauan Pengajuan</h2>
             <p className="text-[13px] text-[#64748b] mt-1">Pemantauan langsung penugasan armada dan status operasional kendaraan di seluruh organisasi.</p>
           </div>
-          <div className="flex gap-2.5 flex-shrink-0">
+          <div className="flex gap-2.5 flex-wrap sm:flex-nowrap">
             <button 
               onClick={() => {
                 const headers = ["ID Request", "Nama Pemohon", "Departemen", "Tipe Armada", "Armada / Kendaraan", "Pengemudi / Driver", "Vendor Sewa", "Biaya Sewa / Rental (Rp)", "Tujuan Perjalanan", "Jadwal", "Prioritas", "Status"];
@@ -588,7 +591,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
             { label: "Total Pengajuan",      value: totalRequestsCount, icon: "assignment",      bg: "bg-blue-50",     color: "text-blue-800" },
             { label: "Menunggu Persetujuan", value: pendingCount,       icon: "pending_actions", bg: "bg-orange-50",   color: "text-orange-700" },
             { label: "Sedang Berjalan",      value: ongoingCount,       icon: "commute",         bg: "bg-sky-50",      color: "text-sky-700" },
-            { label: "Selesai Hari Ini",     value: completedCount,     icon: "task_alt",        bg: "bg-emerald-50",  color: "text-emerald-700" },
+            { label: "Total Selesai",        value: completedCount,     icon: "task_alt",        bg: "bg-emerald-50",  color: "text-emerald-700" },
           ].map(c => (
             <div key={c.label} className="bg-white rounded-2xl p-5 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
               <div className="flex items-center justify-between mb-3">
@@ -617,9 +620,10 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
             <select
               value={statusFilter}
               onChange={e => handleStatusChange(e.target.value)}
-              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer"
+              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer flex-1 sm:flex-initial"
             >
               <option value="All">Semua Status</option>
+              <option value="ACTIVE">Hanya Status Aktif</option>
               <option value="APPROVED">Disetujui</option>
               <option value="PENDING">Menunggu</option>
               <option value="ONGOING">Sedang Berjalan</option>
@@ -630,7 +634,7 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
             <select 
               value={priorityFilter}
               onChange={e => { setPriorityFilter(e.target.value); setCurrentPage(1); }}
-              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer"
+              className="h-9 px-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#1e3a8a] focus:outline-none cursor-pointer flex-1 sm:flex-initial"
             >
               <option value="All">Prioritas: Semua</option>
               <option value="URGENT">MENDESAK</option>
@@ -666,7 +670,16 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                 </tr>
               </thead>
               <tbody>
-                {list.map((r: any) => (
+                {list.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center text-slate-400">
+                      <Icon name="search_off" className="text-4xl mb-2 text-slate-300 mx-auto block" />
+                      <p className="text-[13px] font-semibold text-slate-600">Tidak ada pengajuan yang ditemukan</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Coba sesuaikan kata kunci pencarian atau filter status Anda.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  list.map((r: any) => (
                   <tr key={r.id} className="border-t border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors group">
                     <td className="px-4 py-4 text-[13px] font-bold text-[#1e3a8a]">{r.id}</td>
                     <td className="px-4 py-4">
@@ -690,9 +703,26 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                       </span>
                     </td>
                     <td className="px-4 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(r.status)}`}>
-                        {r.status === "APPROVED" ? "DISETUJUI" : r.status === "PENDING" ? "MENUNGGU" : r.status === "ONGOING" ? "SEDANG BERJALAN" : r.status === "COMPLETED" ? "SELESAI" : r.status === "REJECTED" ? "DITOLAK" : r.status === "CANCELLED" ? "DIBATALKAN" : r.status}
-                      </span>
+                      {(() => {
+                        const isSplit = r.trip_mode === "split_drop_pickup";
+                        const isGateIn = isSplit ? Boolean(r.return_checked_in_at || r.departure_checked_in_at) : Boolean(r.security_checked_in_at);
+                        const isEndKmMissing = isGateIn && !r.is_external && (!r.end_km || Number(r.end_km) === 0) && r.rawStatus !== "completed";
+
+                        if (isEndKmMissing) {
+                          return (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-300 inline-flex items-center gap-1 shrink-0 whitespace-nowrap shadow-xs animate-pulse" title="Mobil sudah masuk gerbang tapi KM akhir belum diisi driver">
+                              <Icon name="speed" className="text-xs" />
+                              Menunggu KM Akhir
+                            </span>
+                          );
+                        }
+
+                        return (
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(r.status)}`}>
+                            {r.status === "APPROVED" ? "DISETUJUI" : r.status === "PENDING" ? "MENUNGGU" : r.status === "ONGOING" ? "SEDANG BERJALAN" : r.status === "COMPLETED" ? "SELESAI" : r.status === "REJECTED" ? "DITOLAK" : r.status === "CANCELLED" ? "DIBATALKAN" : r.status}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
@@ -733,7 +763,8 @@ export default function Request({ onNavigate }: { onNavigate?: (p: string) => vo
                       </div>
                     </td>
                   </tr>
-                ))}
+                ))
+                )}
               </tbody>
             </table>
             </div>

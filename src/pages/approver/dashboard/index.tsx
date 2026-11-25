@@ -326,7 +326,7 @@ export default function DashboardPage() {
             </svg>
           </div>
           <div className="relative z-10">
-            <div className="text-[22px] font-bold text-white mb-2">Selamat Datang Kembali, {user?.name || "Approver"} 👋</div>
+            <div className="text-[22px] font-bold text-white mb-2">Selamat Datang Kembali, {user?.name || "Approver"}</div>
             <div className="text-[14px] text-white/65 max-w-lg leading-relaxed">
               Aktivitas operasional armada hari ini sedang berjalan. Anda memiliki{" "}
               <span className="text-white font-semibold">{pendingCount} permohonan menunggu</span> yang memerlukan

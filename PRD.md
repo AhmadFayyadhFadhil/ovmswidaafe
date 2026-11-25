@@ -4,7 +4,7 @@
 ---
 
 > **Dokumen Kontinuitas Sistem, Arsitektur, Hak Akses, Riwayat Fitur, dan SOP Pengembangan**  
-> **Terakhir Diperbarui:** 9 November 2026  
+> **Terakhir Diperbarui:** 16 November 2026  
 > **Target Branch Aktif:** `dev` (Local & Remote)
 
 ---
@@ -23,15 +23,15 @@
 
 ---
 
-## 2. Status Repositori & Git Branching
+## 2. Status Repositori & Git Branching (per 16 November 2026)
 
 1. **Repositori Backend**: `AhmadFayyadhFadhil/ovmswidaa`
    * **Path Lokal**: `d:\ovmswida2`
-   * **Branch Aktif**: `dev`
+   * **Branch Aktif**: `dev` (Commit: `70fa3ad` - *feat: implement multi-request pooling, master qr, and auto-chaining km*)
    * **Aturan**: Seluruh modifikasi backend dimulai dan diuji di branch `dev`. Merge ke `main` hanya saat siap rilis produksi.
 2. **Repositori Frontend**: `AhmadFayyadhFadhil/ovmswidaafe`
    * **Path Lokal**: `D:\OVMS`
-   * **Branch Aktif**: `dev`
+   * **Branch Aktif**: `dev` (Commit: `1acc829` - *feat: add multi-request pooling UI, master QR, and auto-chained km support*)
    * **Aturan**: Seluruh modifikasi UI/UX diuji via `npx tsc --noEmit` dan `npm run build` sebelum di-push ke remote `origin/dev`.
 
 ---
@@ -89,15 +89,15 @@
 6. **Sistem Upload Avatar & Berkas Anti-Finfo**: Menggunakan Pure Native PHP Binary Stream ganda (`storage/app/public/` & `public/storage/`) untuk server tanpa ekstensi PHP `fileinfo`.
 7. **Sistem Notifikasi Enterprise**: Polling latar belakang senyap (SWR), persistent read/delete state berbasis event token `req-{id}-{status}`, dan role-aware filtering.
 
-### B. 12 Poin Revisi Operasional OVMS (Status: 10 Selesai, 2 Pending)
+### B. 12 Poin Revisi Operasional OVMS (Status: 12 Selesai, 0 Pending)
 
 | No | Poin Revisi | Status | Keterangan Implementasi |
 | :---: | :--- | :---: | :--- |
 | **1** | Modul *Buat Permohonan* & *Permohonan Saya* untuk Driver Coordinator | **SUDAH** | Bp Winaryo dapat mengajukan permohonan langsung dan memantau statusnya di sidebar/dashboard layout. |
 | **2** | Tanda bintang merah mandatory (`*`) pada form pengajuan | **SUDAH** | Indikator visual field wajib (`*` merah) di seluruh input pengajuan [createrequest](file:///D:/OVMS/src/pages/employee/createrequest/index.tsx). |
-| **3** | Rekapitulasi riwayat & sinkronisasi status trip gabungan (*merged trip*) | *PENDING* | Penyesuaian tampilan riwayat permohonan dan alur status untuk permohonan gabungan. |
+| **3** | Rekapitulasi riwayat & sinkronisasi status trip gabungan (*merged trip*) | **SUDAH** | Implementasi Multi-Request Pooling / Shared Ride: Master QR tunggal, sinkronisasi status transaksional gerbang, dan rekapitulasi rombongan di GA, Driver, dan Security. |
 | **4** | Catatan Penumpang Tambahan Hari-H di Pos Security | **SUDAH** | Sistem hybrid: input teks nama bebas dan/atau pencarian autocomplete karyawan internal dari `/users-search` di modal scan checkout security. |
-| **5** | Penjadwalan & Multi-trip Driver | *PENDING* | Fleksibilitas penugasan 1 driver untuk lebih dari 1 permohonan/itinerary pada hari yang sama. |
+| **5** | Penjadwalan & Multi-trip Driver | **SUDAH** | Penjadwalan multi-request dan Auto-Chaining KM antar-trip penjemputan bertahap tanpa perlu supir mengetik ulang speedometer. |
 | **6** | Bypass validasi H-1 untuk GA & Driver Coordinator | **SUDAH** | Tim GA dan Koordinator Driver dapat membuat permohonan armada untuk hari-H (tanpa terblokir validasi H-1). |
 | **7** | Akun bersama Pos Security & penyesuaian login | **SUDAH** | Label login diubah menjadi *"NIK / Username / Email"* dan mendukung akun pos security bersama (`security` / NIK: `SECURITY`). |
 | **8** | Opsi *"Tanpa Penumpang"* untuk muatan logistik / barang / dokumen | **SUDAH** | Checkbox *"Tanpa Penumpang"* menonaktifkan validasi wajib daftar penumpang saat pengajuan khusus kargo barang. |
@@ -106,6 +106,42 @@
 | **11** | Filter tanggal riwayat security default Hari Ini (*Today*) | **SUDAH** | Riwayat Security default menyaring data **Hari Ini (Today)**, dilengkapi pilihan periode (Minggu Ini, Bulan Ini, Semua, Kustom), sinkronisasi kartu statistik, dan auto-expand handling. |
 | **12** | Notifikasi Evaluasi Bintang / Rating Pemohon ke Koordinator & GA | **SUDAH** | Ulasan bintang (1–5) dan catatan pemohon mengirim notifikasi evaluasi berstatus `rated` (`req-{$id}-rated`) ke Bp Winaryo dan Tim GA. |
 
+### C. Fitur & Penyempurnaan Siklus Hidup Split Trip (Dual-Session Drop & Pickup)
+1. **Lifecycle Dua Sesi Terpisah (Sesi 1 Antar vs Sesi 2 Jemput)**:
+   - Dukungan penugasan armada dan pengemudi yang berbeda secara independen untuk Sesi Pengantaran (Sesi 1) dan Sesi Penjemputan (Sesi 2).
+   - Penambahan kolom database terpisah: `departure_total_km`, `return_total_km`, `return_start_km`, `return_end_km`, `return_checked_out_at`, `return_checked_in_at`, dsb.
+   - Akumulasi kalkulasi total jarak tempuh permohonan gabungan: `departure_total_km + return_total_km`.
+2. **Rekonsiliasi Status Permohonan & Ketersediaan Armada Otomatis**:
+   - Begitu Sesi 1 Antar discan check-in gerbang kembali ke pabrik: Mobil 1 otomatis dipulihkan menjadi **`Tersedia` (Available)** dan Driver 1 kembali `Standby`. Status permohonan otomatis berpindah menjadi **`Terjadwal Jemput`**.
+   - Stepper permohonan pada Permohonan Saya (`employee/myrequests`) menampilkan tahap aktif biru: **`TERJADWAL JEMPUT`**.
+   - Begitu Sesi 2 Jemput discan check-out keluar gerbang: Mobil 2 menjadi `In Use`, Driver 2 `On Trip`, dan status permohonan menjadi `Sedang Menjemput` / `Sedang Berjalan`.
+   - Begitu Sesi 2 Jemput discan check-in masuk gerbang pabrik: Mobil 2 kembali `Tersedia`, Driver 2 menginput KM Akhir di Portal Driver untuk menandai permohonan tuntas menjadi **`COMPLETED`**.
+3. **Penyempurnaan Pos Gerbang (Security Dashboard Scan & History)**:
+   - Tampilan multi-sesi mandiri untuk Sesi 1 dan Sesi 2 dengan indikator badge sesi, pencatatan odometer keluar/masuk per sesi, dan pencegahan tabrakan status scan gerbang.
+4. **Pencegahan Fatal Crash & Retensi Portal Driver**:
+   - Null-safety guard menyeluruh pada `assignedVehicleObj`, `partnerDriverName`, `partnerVehicleObj`, `displayDestination`, dan `displayTime` di `src/pages/driver/dasboard/index.tsx`.
+   - Tiket penugasan driver penjemputan tetap dipertahankan pada `activeTrips` sampai driver menyelesaikan input KM akhir, memunculkan prompt aksi pengisian KM akhir secara presisi setelah gerbang discan satpam.
+5. **Standarisasi Visual & Pembersihan Emoticon**:
+   - Seluruh icon/emoticon tidak relevan (seperti icon pesawat `✈️`) dan emoji non-korporat telah dibersihkan total dan digantikan oleh Google Material Icons resmi (`directions_car`, `sync`, `schedule`, `check_circle`) dengan nuansa enterprise yang bersih dan formal.
+
+### D. Fitur Multi-Request Pooling / Shared Ride & Auto-Chaining KM (November 2026)
+1. **Zero Effort Penumpang**: Penumpang tidak perlu memindai kode atau membuka aplikasi di gerbang satpam. Seluruh proses otentikasi keluar gerbang ditangani supir via Master QR.
+2. **Driver Master QR (`POOL-QR-...`)**: Supir memegang 1 Master QR pada dashboard yang secara otomatis merangkum seluruh penumpang dan tujuan yang digabungkan.
+3. **Gate Security One-Click Checkout**: Satpam memindai 1 Master QR, menampilkan daftar seluruh rombongan, dan tombol *"Konfirmasi Berangkat Rombongan"* langsung mengubah seluruh tiket menjadi `ON_GOING` serta mencatat KM Awal yang sama secara transaksional dalam 1 kali aksi.
+4. **Asynchronous Returns & Auto-Chaining KM**:
+   - Jika kepulangan bertahap (jam berbeda): Tiket kloter pertama check-in -> KM Akhir tercatat -> tiket pertama selesai -> gembok ketersediaan kendaraan terbuka.
+   - Saat supir berangkat menjemput tiket kedua, KM awal otomatis mengambil KM akhir tiket pertama via tombol Auto-Chain tanpa supir perlu mengetik manual speedometer.
+   - Jika penjemputan ditugaskan ke supir berbeda, jadwal penjemputan otomatis muncul di akun supir penjemput yang bersangkutan.
+5. **Komponen Backend**:
+   - Migrasi: `2026_11_16_000001_add_pooling_fields_to_requests_table.php` (`pool_group_id`, `is_pooled`, `master_pool_qr`, `chained_from_request_id`).
+   - Action: `AssignDriverAction::poolRequests()`.
+   - Guard: `TripAvailabilityGuardService` mendukung parameter `$excludePoolGroupId`.
+   - Controller: `SecurityController` (Master QR support, synchronized checkout) & `AssignmentController@poolStore`.
+6. **Komponen Frontend**:
+   - GA/HRD Request List: Multi-select checkbox, Floating Action Bar, dan Modal Gabung Jadwal.
+   - Driver Dashboard: Hero Card Rombongan, daftar penumpang pooled, Master QR, dan tombol Auto-Chain KM.
+   - Security Dashboard: Banner Rombongan Perjalanan Gabungan dan tombol Konfirmasi Berangkat Rombongan.
+
 ---
 
 ## 5. Standar Operasional Prosedur (SOP) Development & Deployment
@@ -113,9 +149,8 @@
 ### A. Aturan Git & Branching
 1. Seluruh pekerjaan pengembangan **WAJIB** berada di branch `dev`.
 2. Jangan melakukan commit langsung ke branch `main`.
-3. Sebelum melakukan commit frontend, pastikan lolos type-check:
+3. Sebelum melakukan commit frontend, pastikan lolos type-check dan build:
    ```bash
-   npx tsc --noEmit
    npm run build
    ```
 4. Sebelum melakukan commit backend, pastikan sintaks bebas dari error:
@@ -132,9 +167,9 @@
   ```
 * **Frontend DEV**:
   ```bash
-  cd /www/wwwroot/ovmsdev.widatra.com/frontend && git reset --hard && git pull origin dev
+  cd /www/wwwroot/ovmsdev.widatra.com/frontend && git reset --hard && git pull origin dev && rm -f .env .env.production .env.local && npx vite build
   ```
-  *(Catatan: folder `dist/` sudah otomatis ter-compile dan ter-push dari lokal, tidak perlu menjalankan build di server).*
+  *(Catatan alternatif: jika folder `dist/` sudah otomatis ter-compile dan di-push dari lokal, cukup `git reset --hard && git pull origin dev`).*
 
 ### C. Prosedur Rilis ke Server LIVE (Production)
 Setelah fitur diuji tuntas di lingkungan DEV:
@@ -153,5 +188,5 @@ Setelah fitur diuji tuntas di lingkungan DEV:
    ```
 3. **Frontend LIVE**:
    ```bash
-   cd /www/wwwroot/OVMS/frontend && git reset --hard && git pull origin main
+   cd /www/wwwroot/OVMS/frontend && git reset --hard && git pull origin main && rm -f .env .env.production .env.local && npx vite build
    ```

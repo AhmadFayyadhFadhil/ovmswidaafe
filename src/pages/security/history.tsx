@@ -39,14 +39,19 @@ function parseLogDate(val: any): Date | null {
 function matchesSecurityDate(log: any, period: SecurityDatePeriod, customStart?: string, customEnd?: string): boolean {
   if (period === "ALL") return true;
 
-  const checkoutDate = parseLogDate(log.security_checked_out_at);
-  const checkinDate = parseLogDate(log.security_checked_in_at);
+  const checkoutDate = parseLogDate(log.departure_checked_out_at || log.security_checked_out_at);
+  const checkinDate = parseLogDate(log.return_checked_in_at || log.departure_checked_in_at || log.security_checked_in_at);
+  const returnCheckoutDate = parseLogDate(log.return_checked_out_at);
   const reqDate = parseLogDate(log.startTime || log.start_time || log.date);
-  const isOngoingOut = !!log.security_checked_out_at && !log.security_checked_in_at;
+
+  const isOngoingOut = log.trip_mode === 'split_drop_pickup'
+    ? ((!!log.departure_checked_out_at && !log.departure_checked_in_at) || (!!log.return_checked_out_at && !log.return_checked_in_at))
+    : (!!log.security_checked_out_at && !log.security_checked_in_at);
 
   const dates: Date[] = [];
   if (checkoutDate) dates.push(checkoutDate);
   if (checkinDate) dates.push(checkinDate);
+  if (returnCheckoutDate) dates.push(returnCheckoutDate);
   if (reqDate) dates.push(reqDate);
 
   if (dates.length === 0) return true;
@@ -155,6 +160,10 @@ export default function SecurityHistoryPage() {
       if ((location.state as any).successMsg) {
         setToastMsg((location.state as any).successMsg);
       }
+      // Force clear cache and refresh to guarantee newly scanned request appears immediately
+      requestService.clearCache();
+      refetch();
+
       setTimeout(() => {
         const el = document.getElementById(`log-card-${targetId}`);
         if (el) {
@@ -165,12 +174,12 @@ export default function SecurityHistoryPage() {
       // Clean navigation state
       window.history.replaceState({}, document.title);
     }
-  }, [location.state, requestsList.length]);
+  }, [location.state]);
 
   // Filter requests that have check-out or check-in recorded by security
   const securityLogs = requestsList.filter((r) => {
-    const hasCheckout = !!r.security_checked_out_at;
-    const hasCheckin = !!r.security_checked_in_at;
+    const hasCheckout = !!(r.security_checked_out_at || r.departure_checked_out_at || r.return_checked_out_at);
+    const hasCheckin = !!(r.security_checked_in_at || r.departure_checked_in_at || r.return_checked_in_at);
     return hasCheckout || hasCheckin;
   });
 
@@ -180,11 +189,27 @@ export default function SecurityHistoryPage() {
   );
 
   // Calculate statistics based on filtered logs for the selected date period
+  // Count logs per period for tab badges & smart guidance
+  const todayCount = securityLogs.filter((r) => matchesSecurityDate(r, "TODAY")).length;
+  const weekCount = securityLogs.filter((r) => matchesSecurityDate(r, "THIS_WEEK")).length;
+  const monthCount = securityLogs.filter((r) => matchesSecurityDate(r, "THIS_MONTH")).length;
+  const allCount = securityLogs.length;
+
   const totalScans = dateFilteredLogs.length;
-  const activeTrips = dateFilteredLogs.filter(
-    (r) => !!r.security_checked_out_at && !r.security_checked_in_at
-  ).length;
-  const completedTrips = dateFilteredLogs.filter((r) => !!r.security_checked_in_at).length;
+  const activeTrips = dateFilteredLogs.filter((r) => {
+    if (r.trip_mode === "split_drop_pickup") {
+      return (!!r.departure_checked_out_at && !r.departure_checked_in_at) ||
+             (!!r.return_checked_out_at && !r.return_checked_in_at);
+    }
+    return !!r.security_checked_out_at && !r.security_checked_in_at;
+  }).length;
+
+  const completedTrips = dateFilteredLogs.filter((r) => {
+    if (r.trip_mode === "split_drop_pickup") {
+      return !!r.return_checked_in_at;
+    }
+    return !!r.security_checked_in_at;
+  }).length;
 
   // Filter based on search input and active tab
   const filteredLogs = dateFilteredLogs.filter((r) => {
@@ -193,12 +218,22 @@ export default function SecurityHistoryPage() {
       r.destination.toLowerCase().includes(search.toLowerCase()) ||
       r.employee.toLowerCase().includes(search.toLowerCase()) ||
       (r.driverName && r.driverName.toLowerCase().includes(search.toLowerCase())) ||
+      (r.return_driver?.name && r.return_driver.name.toLowerCase().includes(search.toLowerCase())) ||
       (r.external_driver_name && r.external_driver_name.toLowerCase().includes(search.toLowerCase())) ||
       (r.security_checkout_by && r.security_checkout_by.toLowerCase().includes(search.toLowerCase())) ||
-      (r.security_checkin_by && r.security_checkin_by.toLowerCase().includes(search.toLowerCase()));
+      (r.security_checkin_by && r.security_checkin_by.toLowerCase().includes(search.toLowerCase())) ||
+      (r.departure_checkout_by && r.departure_checkout_by.toLowerCase().includes(search.toLowerCase())) ||
+      (r.departure_checkin_by && r.departure_checkin_by.toLowerCase().includes(search.toLowerCase())) ||
+      (r.return_checkout_by && r.return_checkout_by.toLowerCase().includes(search.toLowerCase())) ||
+      (r.return_checkin_by && r.return_checkin_by.toLowerCase().includes(search.toLowerCase()));
 
-    const isCheckoutOnly = !!r.security_checked_out_at && !r.security_checked_in_at;
-    const isCompleted = !!r.security_checked_in_at;
+    const isCheckoutOnly = r.trip_mode === "split_drop_pickup"
+      ? ((!!r.departure_checked_out_at && !r.departure_checked_in_at) || (!!r.return_checked_out_at && !r.return_checked_in_at))
+      : (!!r.security_checked_out_at && !r.security_checked_in_at);
+
+    const isCompleted = r.trip_mode === "split_drop_pickup"
+      ? !!r.return_checked_in_at
+      : !!r.security_checked_in_at;
 
     if (activeTab === "Sedang Jalan") {
       return matchesSearch && isCheckoutOnly;
@@ -256,6 +291,7 @@ export default function SecurityHistoryPage() {
         setSelectedLogForCheckin(null);
         setSelectedTripForCheckin(null);
         setCheckinNotes("");
+        requestService.clearCache();
         await refetch();
       } else {
         setCheckinError(res.data?.message || "Gagal mencatat konfirmasi masuk gate.");
@@ -374,6 +410,39 @@ export default function SecurityHistoryPage() {
           </div>
         </div>
 
+        {/* Smart Guidance Banner if TODAY has 0 scans but other periods have logs */}
+        {datePeriod === "TODAY" && totalScans === 0 && allCount > 0 && (
+          <div className="p-3.5 sm:p-4 bg-blue-50/95 border border-blue-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+            <div className="flex items-start sm:items-center gap-2.5 text-blue-900 min-w-0">
+              <Icon name="info" className="text-xl text-blue-600 shrink-0 mt-0.5 sm:mt-0" />
+              <div>
+                <span className="font-extrabold block sm:inline">Belum ada aktivitas scan gerbang pada hari ini (Hari Ini: 0).</span>
+                <span className="text-blue-700 block sm:inline sm:ml-1">Terdapat <strong>{allCount}</strong> riwayat scan pada periode sebelumnya.</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              {weekCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setDatePeriod("THIS_WEEK")}
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-[11px] transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
+                >
+                  <Icon name="date_range" className="text-[13px]" />
+                  <span>Buka Minggu Ini ({weekCount})</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setDatePeriod("ALL")}
+                className="px-3.5 py-2 bg-white hover:bg-blue-50 text-blue-900 border border-blue-300 font-bold rounded-xl text-[11px] transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
+              >
+                <Icon name="all_inclusive" className="text-[13px]" />
+                <span>Semua Waktu ({allCount})</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Filters and Tabs */}
         <div className="bg-white rounded-2xl border border-slate-100 p-3 sm:p-4 shadow-xs space-y-3">
           {/* Baris 1: Filter Periode Tanggal (Default: Hari Ini) */}
@@ -401,10 +470,10 @@ export default function SecurityHistoryPage() {
 
             <div className="flex items-center gap-2 overflow-x-auto pb-1 text-[11px] sm:text-xs font-bold scrollbar-none">
               {[
-                { key: "TODAY" as SecurityDatePeriod, label: "Hari Ini", icon: "today" },
-                { key: "THIS_WEEK" as SecurityDatePeriod, label: "Minggu Ini", icon: "date_range" },
-                { key: "THIS_MONTH" as SecurityDatePeriod, label: "Bulan Ini", icon: "calendar_month" },
-                { key: "ALL" as SecurityDatePeriod, label: "Semua Waktu", icon: "all_inclusive" },
+                { key: "TODAY" as SecurityDatePeriod, label: "Hari Ini", count: todayCount, icon: "today" },
+                { key: "THIS_WEEK" as SecurityDatePeriod, label: "Minggu Ini", count: weekCount, icon: "date_range" },
+                { key: "THIS_MONTH" as SecurityDatePeriod, label: "Bulan Ini", count: monthCount, icon: "calendar_month" },
+                { key: "ALL" as SecurityDatePeriod, label: "Semua Waktu", count: allCount, icon: "all_inclusive" },
                 { key: "CUSTOM" as SecurityDatePeriod, label: "Kustom", icon: "edit_calendar" },
               ].map((tab) => {
                 const isActive = datePeriod === tab.key;
@@ -421,6 +490,15 @@ export default function SecurityHistoryPage() {
                   >
                     <Icon name={tab.icon} className="text-sm" />
                     <span>{tab.label}</span>
+                    {typeof tab.count === "number" && (
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : tab.count > 0 ? "bg-blue-100 text-[#1e3a8a]" : "bg-slate-200 text-slate-500"
+                      }`}>
+                        {tab.count}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -538,8 +616,22 @@ export default function SecurityHistoryPage() {
             !error &&
             filteredLogs.map((log) => {
               const isExpanded = expandedRequestId === log.id;
-              const hasCheckin = !!log.security_checked_in_at;
+              const isSplit = log.trip_mode === "split_drop_pickup";
               const isExternal = !!log.is_external;
+
+              // Split trip stage flags
+              const depOut = log.departure_checked_out_at || (isSplit ? log.security_checked_out_at : null);
+              const depIn = log.departure_checked_in_at || (isSplit && log.return_checked_out_at ? null : log.security_checked_in_at);
+              const isDepDone = Boolean(depIn);
+              const isDepOngoing = Boolean(depOut && !depIn);
+
+              const retOut = log.return_checked_out_at;
+              const retIn = log.return_checked_in_at;
+              const isRetDone = Boolean(retIn);
+              const isRetOngoing = Boolean(retOut && !retIn);
+
+              const hasCheckin = isSplit ? isRetDone : !!log.security_checked_in_at;
+              const isOngoing = isSplit ? (isDepOngoing || isRetOngoing) : (!!log.security_checked_out_at && !log.security_checked_in_at);
 
               // Determine primary driver and vehicle info
               const primaryDriver = isExternal 
@@ -570,24 +662,58 @@ export default function SecurityHistoryPage() {
                         </span>
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                            isExternal
-                              ? "bg-amber-50 text-amber-800 border border-amber-200/60"
-                              : "bg-slate-100 text-slate-700 border border-slate-200/60"
+                            isSplit
+                              ? "bg-purple-50 text-purple-800 border border-purple-200/60"
+                              : isExternal
+                                ? "bg-amber-50 text-amber-800 border border-amber-200/60"
+                                : "bg-slate-100 text-slate-700 border border-slate-200/60"
                           }`}
                         >
-                          {isExternal ? "Armada Eksternal" : "Armada Internal"}
+                          {isSplit ? (
+                            <>
+                              <span className="inline sm:hidden">Split Trip</span>
+                              <span className="hidden sm:inline">Split Trip (Antar & Jemput)</span>
+                            </>
+                          ) : isExternal ? "Armada Eksternal" : "Armada Internal"}
                         </span>
                       </div>
 
                       {/* Status Pill & Chevron Toggle */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {hasCheckin ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                        {isSplit ? (
+                          isRetDone ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shrink-0 whitespace-nowrap">
+                              <Icon name="check_circle" className="text-xs text-emerald-600" />
+                              <span>Selesai (Semua Sesi)</span>
+                            </span>
+                          ) : isRetOngoing ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 shrink-0 whitespace-nowrap">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                              <span>Sedang Jemput</span>
+                            </span>
+                          ) : isDepDone ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80 shrink-0 whitespace-nowrap">
+                              <Icon name="schedule" className="text-xs text-blue-600" />
+                              <span>Terjadwal Jemput</span>
+                            </span>
+                          ) : isDepOngoing ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 shrink-0 whitespace-nowrap">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                              <span>Sedang Antar</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700 border border-slate-200/80 shrink-0 whitespace-nowrap">
+                              <Icon name="schedule" className="text-xs text-slate-500" />
+                              <span>Terjadwal</span>
+                            </span>
+                          )
+                        ) : hasCheckin ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shrink-0 whitespace-nowrap">
                             <Icon name="check_circle" className="text-xs text-emerald-600" />
                             <span>Selesai</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 shrink-0 whitespace-nowrap">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                             <span>Sedang Jalan</span>
                           </span>
@@ -617,14 +743,56 @@ export default function SecurityHistoryPage() {
                           Pemohon: <span className="font-semibold text-slate-700">{log.employee}</span>
                           {log.department ? ` (${log.department})` : ""}
                         </div>
-                        {(primaryDriver || primaryVehicle) && (
-                          <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5 truncate">
-                            <Icon name="directions_car" className="text-xs text-slate-400 flex-shrink-0" />
-                            <span className="truncate">{primaryVehicle || "Armada"}</span>
-                            <span className="text-slate-300">•</span>
-                            <Icon name="person" className="text-xs text-slate-400 flex-shrink-0" />
-                            <span className="truncate">{primaryDriver || "Driver"}</span>
+
+                        {isSplit ? (
+                          <div className="mt-2 space-y-1.5">
+                            {/* Sesi 1 Box */}
+                            <div className="bg-slate-50/80 rounded-lg p-2 border border-slate-100 text-[11px] space-y-1">
+                              <div className="flex items-start gap-1.5">
+                                <span className="font-bold text-blue-800 bg-blue-100/70 px-1.5 py-0.5 rounded text-[9px] shrink-0 mt-0.5">
+                                  Sesi 1 (Antar)
+                                </span>
+                                <div className="font-bold text-slate-800 leading-snug">
+                                  {log.vehicle?.name ? `${log.vehicle.name} (${log.vehicle.plate_number})` : (log.vehicleModel || "Armada Antar")}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 text-[10.5px] text-slate-500 pl-0.5">
+                                <Icon name="person" className="text-xs text-slate-400 shrink-0" />
+                                <span>Driver: <strong className="text-slate-700">{log.driver?.name || log.driverName || "-"}</strong></span>
+                              </div>
+                            </div>
+
+                            {/* Sesi 2 Box */}
+                            <div className="bg-slate-50/80 rounded-lg p-2 border border-slate-100 text-[11px] space-y-1">
+                              <div className="flex items-start gap-1.5">
+                                <span className="font-bold text-amber-800 bg-amber-100/70 px-1.5 py-0.5 rounded text-[9px] shrink-0 mt-0.5">
+                                  Sesi 2 (Jemput)
+                                </span>
+                                <div className="font-bold text-slate-800 leading-snug">
+                                  {log.return_vehicle?.name ? `${log.return_vehicle.name} (${log.return_vehicle.plate_number})` : (log.vehicleModel || "Armada Jemput")}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 text-[10.5px] text-slate-500 pl-0.5">
+                                <Icon name="person" className="text-xs text-slate-400 shrink-0" />
+                                <span>Driver: <strong className="text-slate-700">{log.return_driver?.name || log.driverName || "-"}</strong></span>
+                                {log.return_departure_time && (
+                                  <span className="text-slate-400 text-[10px] ml-1">
+                                    • {formatDateTime(log.return_departure_time)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </div>
+                        ) : (
+                          (primaryDriver || primaryVehicle) && (
+                            <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5 truncate">
+                              <Icon name="directions_car" className="text-xs text-slate-400 flex-shrink-0" />
+                              <span className="truncate">{primaryVehicle || "Armada"}</span>
+                              <span className="text-slate-300">•</span>
+                              <Icon name="person" className="text-xs text-slate-400 flex-shrink-0" />
+                              <span className="truncate">{primaryDriver || "Driver"}</span>
+                            </div>
+                          )
                         )}
                       </div>
                     </div>
@@ -634,12 +802,16 @@ export default function SecurityHistoryPage() {
                       <div>
                         <span>Update: </span>
                         <span className="font-medium text-slate-600">
-                          {formatDateTime(log.security_checked_in_at || log.security_checked_out_at)}
+                          {formatDateTime(
+                            isSplit
+                              ? (retIn || retOut || depIn || depOut)
+                              : (log.security_checked_in_at || log.security_checked_out_at)
+                          )}
                         </span>
                       </div>
 
                       {/* Quick Return Action Button only when Collapsed to avoid duplicate */}
-                      {!hasCheckin && log.security_checked_out_at && !isExpanded && (
+                      {isOngoing && !isExpanded && (
                         <button
                           type="button"
                           onClick={(e) => {
@@ -650,7 +822,7 @@ export default function SecurityHistoryPage() {
                           title="Konfirmasi unit armada telah kembali masuk gate pabrik"
                         >
                           <Icon name="login" className="text-sm" />
-                          <span>Konfirmasi Kembali</span>
+                          <span>{isSplit ? (isRetOngoing ? "Kembali Jemput" : "Kembali Antar") : "Konfirmasi Kembali"}</span>
                         </button>
                       )}
                     </div>
@@ -660,7 +832,258 @@ export default function SecurityHistoryPage() {
                   {isExpanded && (
                     <div className="border-t border-slate-100 bg-slate-50/60 p-4 sm:p-5 space-y-4 animate-fadein">
                       
-                      {!isExternal && log.operational_trips && log.operational_trips.length > 0 ? (
+                      {isSplit ? (
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
+                            <span className="text-[11px] font-extrabold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+                              <Icon name="sync" className="text-sm text-blue-700 shrink-0" />
+                              <span className="inline sm:hidden">Rincian Sesi (Split Trip)</span>
+                              <span className="hidden sm:inline">Rincian Sesi Perjalanan (Split Trip: Antar & Jemput)</span>
+                            </span>
+                            {log.total_km ? (
+                              <span className="text-[10px] bg-emerald-600 text-white font-extrabold px-2.5 py-0.5 rounded-full font-mono shrink-0">
+                                Total: {Number(log.total_km).toLocaleString('id-ID')} km
+                              </span>
+                            ) : null}
+                          </div>
+
+                          {/* Card Sesi 1: Antar */}
+                          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-blue-200/70 shadow-xs space-y-3">
+                            <div className="border-b border-blue-50 pb-2.5 space-y-1.5">
+                              {/* Row 1: Session Title + Status Badge */}
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="font-extrabold text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
+                                  <Icon name="directions_car" className="text-base text-blue-900 shrink-0" />
+                                  <span>Sesi 1: Antar (Keberangkatan)</span>
+                                </div>
+                                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 whitespace-nowrap ${
+                                  isDepDone ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                                  isDepOngoing ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse" :
+                                  "bg-slate-100 text-slate-600 border border-slate-200"
+                                }`}>
+                                  {isDepDone ? "Selesai (Kembali)" : isDepOngoing ? "Sedang Mengantar" : "Terjadwal"}
+                                </span>
+                              </div>
+
+                              {/* Row 2: Vehicle details */}
+                              <div className="text-[11.5px] text-slate-700 font-semibold flex items-center gap-1.5 pl-5">
+                                <span>{log.vehicle?.name ? `${log.vehicle.name} (${log.vehicle.plate_number})` : (log.vehicleModel || "Armada")}</span>
+                              </div>
+
+                              {/* Row 3: Driver details */}
+                              <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1 pl-5">
+                                <Icon name="person" className="text-xs text-slate-400 shrink-0" />
+                                <span>Driver: <strong className="text-slate-800">{log.driver?.name || log.driverName || "-"}</strong></span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                              {/* Sesi 1 Berangkat */}
+                              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1">
+                                <div className="text-[10px] font-bold text-amber-700 uppercase flex items-center gap-1">
+                                  <Icon name="arrow_outward" className="text-xs" /> Log Berangkat Antar
+                                </div>
+                                {depOut ? (
+                                  <div className="space-y-0.5 text-[11px] text-slate-600">
+                                    <div>Waktu: <span className="font-bold text-slate-800">{formatDateTime(depOut)}</span></div>
+                                    <div>Petugas: <span className="font-semibold text-slate-700">{log.departure_checkout_by || log.security_checkout_by || "-"}</span></div>
+                                    {log.departure_checkout_notes && (
+                                      <p className="italic bg-white p-1.5 rounded-md mt-1 border border-slate-200/60 text-slate-600">"{log.departure_checkout_notes}"</p>
+                                    )}
+                                    {log.departure_start_km && (
+                                      <div className="pt-1 text-[10.5px] text-slate-700 font-medium">
+                                        KM Keluar: <span className="font-bold font-mono text-amber-900">{Number(log.departure_start_km).toLocaleString('id-ID')} km</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="text-slate-400 italic text-[11px]">Belum tercatat berangkat</div>
+                                )}
+                              </div>
+
+                              {/* Sesi 1 Kembali */}
+                              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1">
+                                <div className="text-[10px] font-bold text-emerald-700 uppercase flex items-center gap-1">
+                                  <Icon name="login" className="text-xs" /> Log Kembali ke Pabrik
+                                </div>
+                                {depIn ? (
+                                  <div className="space-y-0.5 text-[11px] text-slate-600">
+                                    <div>Waktu: <span className="font-bold text-slate-800">{formatDateTime(depIn)}</span></div>
+                                    <div>Petugas: <span className="font-semibold text-slate-700">{log.departure_checkin_by || log.security_checkin_by || "-"}</span></div>
+                                    {log.departure_checkin_notes && (
+                                      <p className="italic bg-white p-1.5 rounded-md mt-1 border border-slate-200/60 text-slate-600">"{log.departure_checkin_notes}"</p>
+                                    )}
+                                    {log.departure_end_km && (
+                                      <div className="pt-1 text-[10.5px] text-slate-700 font-medium">
+                                        KM Masuk: <span className="font-bold font-mono text-emerald-900">{Number(log.departure_end_km).toLocaleString('id-ID')} km</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="text-slate-400 italic text-[11px]">Belum kembali ke pabrik</div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Sesi 1 Odometer summary */}
+                            {log.departure_total_km !== null && log.departure_total_km !== undefined && (
+                              <div className="bg-blue-50/70 p-2.5 sm:px-3 sm:py-2 rounded-xl border border-blue-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                                <span className="text-[11px] font-bold text-blue-900 flex items-center gap-1.5">
+                                  <Icon name="speed" className="text-sm text-blue-600 shrink-0" />
+                                  <span>Odometer Sesi Antar</span>
+                                </span>
+                                <div className="flex items-center justify-between sm:justify-end gap-2 text-xs font-semibold">
+                                  <span className="font-mono text-slate-700 text-[11px]">
+                                    {Number(log.departure_start_km ?? 0).toLocaleString('id-ID')} km ➔ {Number(log.departure_end_km ?? 0).toLocaleString('id-ID')} km
+                                  </span>
+                                  <span className="text-[10px] font-extrabold bg-blue-600 text-white px-2 py-0.5 rounded-full font-mono shrink-0">
+                                    {Number(log.departure_total_km).toLocaleString('id-ID')} km
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Quick return button for Sesi 1 if ongoing */}
+                            {isDepOngoing && (
+                              <div className="pt-2 border-t border-slate-100">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenCheckin(log)}
+                                  className="w-full min-h-[44px] py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                >
+                                  <Icon name="login" className="text-base" />
+                                  <span>
+                                    <span className="inline sm:hidden">Konfirmasi Masuk Gate (Sesi Antar)</span>
+                                    <span className="hidden sm:inline">Konfirmasi Masuk Gate - Sesi Antar (Kembali ke Pabrik)</span>
+                                  </span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Card Sesi 2: Jemput */}
+                          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-amber-200/70 shadow-xs space-y-3">
+                            <div className="border-b border-amber-50 pb-2.5 space-y-1.5">
+                              {/* Row 1: Session Title + Status Badge */}
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="font-extrabold text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
+                                  <Icon name="sync" className="text-base text-amber-700 shrink-0" />
+                                  <span>Sesi 2: Jemput (Penjemputan)</span>
+                                </div>
+                                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 whitespace-nowrap ${
+                                  isRetDone ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                                  isRetOngoing ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse" :
+                                  isDepDone ? "bg-blue-50 text-blue-700 border border-blue-200" :
+                                  "bg-slate-100 text-slate-600 border border-slate-200"
+                                }`}>
+                                  {isRetDone ? "Selesai Sempurna" : isRetOngoing ? "Sedang Menjemput" : isDepDone ? "Siap Berangkat" : "Menunggu Sesi Antar"}
+                                </span>
+                              </div>
+
+                              {/* Row 2: Vehicle details */}
+                              <div className="text-[11.5px] text-slate-700 font-semibold flex items-center gap-1.5 pl-5">
+                                <span>{log.return_vehicle?.name ? `${log.return_vehicle.name} (${log.return_vehicle.plate_number})` : (log.vehicleModel || "Armada")}</span>
+                              </div>
+
+                              {/* Row 3: Driver details */}
+                              <div className="text-[11px] text-slate-500 font-medium flex items-center flex-wrap gap-x-2 gap-y-0.5 pl-5">
+                                <div className="flex items-center gap-1">
+                                  <Icon name="person" className="text-xs text-slate-400 shrink-0" />
+                                  <span>Driver: <strong className="text-slate-800">{log.return_driver?.name || log.driverName || "-"}</strong></span>
+                                </div>
+                                {log.return_departure_time && (
+                                  <span className="text-slate-400 text-[10.5px]">
+                                    (Jadwal: {formatDateTime(log.return_departure_time)})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                              {/* Sesi 2 Berangkat */}
+                              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1">
+                                <div className="text-[10px] font-bold text-amber-700 uppercase flex items-center gap-1">
+                                  <Icon name="arrow_outward" className="text-xs" /> Log Berangkat Jemput
+                                </div>
+                                {retOut ? (
+                                  <div className="space-y-0.5 text-[11px] text-slate-600">
+                                    <div>Waktu: <span className="font-bold text-slate-800">{formatDateTime(retOut)}</span></div>
+                                    <div>Petugas: <span className="font-semibold text-slate-700">{log.return_checkout_by || "-"}</span></div>
+                                    {log.return_checkout_notes && (
+                                      <p className="italic bg-white p-1.5 rounded-md mt-1 border border-slate-200/60 text-slate-600">"{log.return_checkout_notes}"</p>
+                                    )}
+                                    {log.return_start_km && (
+                                      <div className="pt-1 text-[10.5px] text-slate-700 font-medium">
+                                        KM Keluar: <span className="font-bold font-mono text-amber-900">{Number(log.return_start_km).toLocaleString('id-ID')} km</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="text-slate-400 italic text-[11px]">Belum berangkat jemput</div>
+                                )}
+                              </div>
+
+                              {/* Sesi 2 Kembali */}
+                              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1">
+                                <div className="text-[10px] font-bold text-emerald-700 uppercase flex items-center gap-1">
+                                  <Icon name="login" className="text-xs" /> Log Selesai Masuk Gate
+                                </div>
+                                {retIn ? (
+                                  <div className="space-y-0.5 text-[11px] text-slate-600">
+                                    <div>Waktu: <span className="font-bold text-slate-800">{formatDateTime(retIn)}</span></div>
+                                    <div>Petugas: <span className="font-semibold text-slate-700">{log.return_checkin_by || "-"}</span></div>
+                                    {log.return_checkin_notes && (
+                                      <p className="italic bg-white p-1.5 rounded-md mt-1 border border-slate-200/60 text-slate-600">"{log.return_checkin_notes}"</p>
+                                    )}
+                                    {log.return_end_km && (
+                                      <div className="pt-1 text-[10.5px] text-slate-700 font-medium">
+                                        KM Masuk: <span className="font-bold font-mono text-emerald-900">{Number(log.return_end_km).toLocaleString('id-ID')} km</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="text-slate-400 italic text-[11px]">Belum kembali (di perjalanan)</div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Sesi 2 Odometer summary */}
+                            {log.return_total_km !== null && log.return_total_km !== undefined && (
+                              <div className="bg-amber-50/70 p-2.5 sm:px-3 sm:py-2 rounded-xl border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                                <span className="text-[11px] font-bold text-amber-900 flex items-center gap-1.5">
+                                  <Icon name="speed" className="text-sm text-amber-600 shrink-0" />
+                                  <span>Odometer Sesi Jemput</span>
+                                </span>
+                                <div className="flex items-center justify-between sm:justify-end gap-2 text-xs font-semibold">
+                                  <span className="font-mono text-slate-700 text-[11px]">
+                                    {Number(log.return_start_km ?? 0).toLocaleString('id-ID')} km ➔ {Number(log.return_end_km ?? 0).toLocaleString('id-ID')} km
+                                  </span>
+                                  <span className="text-[10px] font-extrabold bg-amber-600 text-white px-2 py-0.5 rounded-full font-mono shrink-0">
+                                    {Number(log.return_total_km).toLocaleString('id-ID')} km
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Quick return button for Sesi 2 if ongoing */}
+                            {isRetOngoing && (
+                              <div className="pt-2 border-t border-slate-100">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenCheckin(log)}
+                                  className="w-full min-h-[44px] py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                >
+                                  <Icon name="login" className="text-base" />
+                                  <span>
+                                    <span className="inline sm:hidden">Konfirmasi Masuk Gate (Sesi Jemput)</span>
+                                    <span className="hidden sm:inline">Konfirmasi Masuk Gate - Sesi Jemput (Selesai Rangkaian)</span>
+                                  </span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : !isExternal && log.operational_trips && log.operational_trips.length > 0 ? (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
@@ -920,6 +1343,28 @@ export default function SecurityHistoryPage() {
                 </div>
                 <div className="text-slate-500">
                   Driver: <span className="font-semibold">{selectedTripForCheckin.driver?.name || "-"}</span>
+                </div>
+              </div>
+            ) : selectedLogForCheckin.trip_mode === "split_drop_pickup" ? (
+              <div className="mb-4 p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs space-y-1.5">
+                <div className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">
+                  {selectedLogForCheckin.return_checked_out_at && !selectedLogForCheckin.return_checked_in_at
+                    ? "Sesi 2: Jemput (Penjemputan)"
+                    : "Sesi 1: Antar (Keberangkatan)"}
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Driver:</span>
+                  <span className="font-bold text-slate-700">
+                    {selectedLogForCheckin.return_driver?.name || selectedLogForCheckin.driverName || "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Kendaraan:</span>
+                  <span className="font-bold text-slate-700">
+                    {selectedLogForCheckin.return_vehicle?.name 
+                      ? `${selectedLogForCheckin.return_vehicle.name} (${selectedLogForCheckin.return_vehicle.plate_number})` 
+                      : (selectedLogForCheckin.vehicleModel || "-")}
+                  </span>
                 </div>
               </div>
             ) : (

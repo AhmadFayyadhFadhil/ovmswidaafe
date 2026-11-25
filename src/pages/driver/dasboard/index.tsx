@@ -177,7 +177,14 @@ export default function DriverDashboard() {
     try {
       const res = await requestService.getById(reqId);
       if (res.data) {
-        setSelectedRequestForDetail(res.data);
+        const detailData = { ...res.data };
+        if ((detailData.is_pooled || detailData.pool_group_id) && (!detailData.pooled_requests || detailData.pooled_requests.length === 0)) {
+          const pooledFromLocal = rawRequests.filter(r => r.pool_group_id && r.pool_group_id === detailData.pool_group_id);
+          if (pooledFromLocal.length > 0) {
+            detailData.pooled_requests = pooledFromLocal;
+          }
+        }
+        setSelectedRequestForDetail(detailData);
         setDetailLoading(false);
         return;
       }
@@ -187,7 +194,11 @@ export default function DriverDashboard() {
 
     const found = rawRequests.find((r) => String(r.id) === String(reqId));
     if (found) {
-      setSelectedRequestForDetail(found);
+      const detailData = { ...found };
+      if ((detailData.is_pooled || detailData.pool_group_id) && (!detailData.pooled_requests || detailData.pooled_requests.length === 0)) {
+        detailData.pooled_requests = rawRequests.filter(r => r.pool_group_id && r.pool_group_id === detailData.pool_group_id);
+      }
+      setSelectedRequestForDetail(detailData);
     } else {
       setAlertModal({
         isOpen: true,
@@ -248,6 +259,55 @@ export default function DriverDashboard() {
     }
   };
 
+  const [kmAnomalyModal, setKmAnomalyModal] = useState<{
+    isOpen: boolean;
+    reqId: string | number;
+    kmNum: number;
+    diffKm: number;
+    isCompleteAction?: boolean;
+  }>({
+    isOpen: false,
+    reqId: "",
+    kmNum: 0,
+    diffKm: 0,
+    isCompleteAction: false,
+  });
+
+  const executeSaveEndKm = async (reqId: string | number, kmNum: number, forceConfirm = false) => {
+    setIsSavingEndKm(true);
+    try {
+      await requestService.recordEndKm(String(reqId), kmNum, forceConfirm);
+      setIsEditingEndKm(false);
+      setEndKmInput("");
+      await fetchData(true);
+      setAlertModal({
+        isOpen: true,
+        title: "Berhasil",
+        message: "Kilometer akhir berhasil disimpan!",
+        variant: "success",
+      });
+    } catch (err: any) {
+      if (err.response?.data?.require_confirmation) {
+        setKmAnomalyModal({
+          isOpen: true,
+          reqId,
+          kmNum,
+          diffKm: err.response.data.diff_km || 1000,
+          isCompleteAction: false,
+        });
+        return;
+      }
+      setAlertModal({
+        isOpen: true,
+        title: "Gagal Menyimpan KM Akhir",
+        message: err.response?.data?.message || "Gagal menyimpan kilometer akhir.",
+        variant: "danger",
+      });
+    } finally {
+      setIsSavingEndKm(false);
+    }
+  };
+
   const handleSaveEndKm = async (reqId: string | number, kmStr: string, minKm?: number | null) => {
     const cleaned = kmStr.replace(/[^\d]/g, '');
     const kmNum = cleaned ? parseInt(cleaned, 10) : NaN;
@@ -269,28 +329,17 @@ export default function DriverDashboard() {
       });
       return;
     }
-    setIsSavingEndKm(true);
-    try {
-      await requestService.recordEndKm(String(reqId), kmNum);
-      setIsEditingEndKm(false);
-      setEndKmInput("");
-      await fetchData(true);
-      setAlertModal({
+    if (minKm !== undefined && minKm !== null && minKm > 0 && (kmNum - minKm > 1000)) {
+      setKmAnomalyModal({
         isOpen: true,
-        title: "Berhasil",
-        message: "Kilometer akhir berhasil disimpan!",
-        variant: "success",
+        reqId,
+        kmNum,
+        diffKm: kmNum - minKm,
+        isCompleteAction: false,
       });
-    } catch (err: any) {
-      setAlertModal({
-        isOpen: true,
-        title: "Gagal Menyimpan KM Akhir",
-        message: err.response?.data?.message || "Gagal menyimpan kilometer akhir.",
-        variant: "danger",
-      });
-    } finally {
-      setIsSavingEndKm(false);
+      return;
     }
+    await executeSaveEndKm(reqId, kmNum, false);
   };
   
   const [confirmModal, setConfirmModal] = useState<{
@@ -314,11 +363,13 @@ export default function DriverDashboard() {
     setError(null);
     try {
       const [assignRes, requestRes, vehicleRes, profileRes, driversRes] = await Promise.all([
-        assignmentService.getAll(),
-        requestService.getAll(),
-        vehicleService.getAll(),
+        assignmentService.getAll({ per_page: 500 }),
+        requestService.getAll({ per_page: 500 }),
+        vehicleService.getAll({ per_page: 500 }),
         import.meta.env.VITE_ENABLE_MOCK !== "true" ? apiClient.get("/profile").catch(() => null) : Promise.resolve(null),
-        driverService.getAll().catch(() => ({ data: [] })),
+        (user?.is_driver_coordinator || user?.roles?.includes('Driver Coordinator') || user?.role === 'gahrd') 
+          ? driverService.getAll().catch(() => ({ data: [] }))
+          : Promise.resolve({ data: [] }),
       ]);
 
       setRawAssignments(assignRes.data || []);
@@ -350,9 +401,20 @@ export default function DriverDashboard() {
     fetchData();
   }, []);
 
-
-
-
+  // Auto-open request detail if ?open_request=X or ?req_id=X is present in URL
+  useEffect(() => {
+    const openReq = searchParams.get("open_request") || searchParams.get("req_id") || searchParams.get("id");
+    if (openReq && (rawRequests.length > 0 || !loading)) {
+      handleViewDetail(String(openReq));
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.delete("open_request");
+        next.delete("req_id");
+        next.delete("id");
+        return next;
+      }, { replace: true });
+    }
+  }, [searchParams, rawRequests.length, loading]);
 
   const handleReject = (assignmentId: string) => {
     setConfirmModal({
@@ -483,27 +545,145 @@ export default function DriverDashboard() {
 
   // Filtered lists
   const pendingAssignments = rawAssignments
-    .filter((a) => a.status === "pending_driver")
+    .filter((a) => {
+      if (a.status !== "pending_driver") return false;
+      return String(a.driver_id || a.driver?.id) === String(user?.id);
+    })
     .map(mapAssignment);
 
   const activeTrips = rawRequests.filter(
     (r) => {
+      if (r.rawStatus === "rejected" || r.rawStatus === "cancelled") return false;
+
+      const isDeptDriver = Boolean(
+        (r.driverId && String(r.driverId) === String(user?.id)) ||
+        (r.driver_id && String(r.driver_id) === String(user?.id)) ||
+        (r.driver?.id && String(r.driver?.id) === String(user?.id)) ||
+        (r.operational_trip?.driver_id && String(r.operational_trip?.driver_id) === String(user?.id)) ||
+        (r.operational_trip?.driver?.id && String(r.operational_trip?.driver?.id) === String(user?.id)) ||
+        (Array.isArray(r.operational_trips) && r.operational_trips.some((ot: any) => String(ot.driver_id || ot.driver?.id) === String(user?.id))) ||
+        (Array.isArray(r.assignments) && r.assignments.some((asg: any) => String(asg.driver_id || asg.driver?.id) === String(user?.id)))
+      );
+      const isRetDriver = Boolean(
+        (r.return_driver_id && String(r.return_driver_id) === String(user?.id)) ||
+        (r.return_driver?.id && String(r.return_driver?.id) === String(user?.id))
+      );
+      const isItineraryDriver = Boolean(
+        Array.isArray(r.itineraries) && r.itineraries.some((it: any) => String(it.driver_id) === String(user?.id))
+      );
+
+      // Determine if assigned to current user:
+      let isAssignedToUser = false;
+      if (r.trip_mode === 'split_drop_pickup') {
+        // In split drop & pickup, driver MUST be either departure driver or return driver
+        isAssignedToUser = isDeptDriver || isRetDriver;
+      } else if (Array.isArray(r.itineraries) && r.itineraries.length > 0) {
+        isAssignedToUser = isItineraryDriver || isDeptDriver;
+      } else if (r.driver_id || r.driverId) {
+        isAssignedToUser = isDeptDriver;
+      } else {
+        const asg = rawAssignments.find(
+          (a) => String(a.request?.id) === String(r.id) && String(a.driver?.id) === String(user?.id)
+        );
+        isAssignedToUser = Boolean(asg && asg.status === "accepted");
+      }
+
+      if (!isAssignedToUser) return false;
+
+      // Handle split trip session completion per driver:
+      if (r.trip_mode === 'split_drop_pickup') {
+        const hasDepEndKm = Boolean(r.departure_end_km && Number(r.departure_end_km) > 0);
+        const hasRetEndKm = Boolean(r.return_end_km && Number(r.return_end_km) > 0);
+
+        if (isDeptDriver && !isRetDriver) {
+          // Departure driver finishes Sesi 1 only when departure_end_km is recorded
+          return !hasDepEndKm;
+        }
+        if (isRetDriver && !isDeptDriver) {
+          // Return driver finishes Sesi 2 only when return_end_km is recorded
+          return !hasRetEndKm;
+        }
+        if (isDeptDriver && isRetDriver) {
+          // Both sessions finished only when return_end_km is recorded
+          return !hasRetEndKm;
+        }
+        return false;
+      }
+
+      // For multi-day trips with itineraries:
+      if (Array.isArray(r.itineraries) && r.itineraries.length > 0) {
+        const myItineraries = r.itineraries.filter((it: any) => 
+          String(it.driver_id) === String(user?.id) || isDeptDriver
+        );
+        if (myItineraries.length > 0) {
+          const hasIncompleteOrPendingEndKm = myItineraries.some((it: any) => {
+            const isCompleted = it.status === 'completed' || it.morning_status === 'completed' || it.afternoon_status === 'completed' || it.assignment?.status === 'completed';
+            const hasEndKm = Boolean(it.end_km && Number(it.end_km) > 0);
+            const hasGateCheckin = Boolean(it.morning_checked_in_at || it.afternoon_checked_in_at || it.security_checked_in_at);
+            if (isCompleted && hasEndKm) return false;
+            if (isCompleted && !hasEndKm && hasGateCheckin) return true;
+            if (!isCompleted) return true;
+            return false;
+          });
+          if (!hasIncompleteOrPendingEndKm) {
+            return false;
+          }
+        }
+      }
+
+      // For standard single trips:
+      const hasEndKm = Boolean(
+        (r.end_km && Number(r.end_km) > 0) ||
+        (r.operational_trip?.end_km && Number(r.operational_trip?.end_km) > 0)
+      );
+
+      // If status is completed but end_km is not yet entered (e.g. security gate check-in done), driver still needs to input KM Akhir
+      if (r.rawStatus === "completed") {
+        return !r.is_external && !hasEndKm;
+      }
+
       const isMatchedStatus = 
         r.rawStatus === "driver_assigned" || 
         r.rawStatus === "on_going" ||
         r.rawStatus === "waiting_driver" ||
-        r.rawStatus === "assigned_by_ga";
-      if (!isMatchedStatus) return false;
-      
-      const asg = rawAssignments.find(
-        (a) => String(a.request?.id) === String(r.id) && String(a.driver?.id) === String(user?.id)
-      );
-      return asg && asg.status === "accepted";
+        r.rawStatus === "assigned_by_ga" ||
+        r.rawStatus === "approved_hrd_ga";
+
+      return isMatchedStatus;
     }
   );
   
   const historyTrips = rawRequests
-    .filter((r) => r.rawStatus === "completed" || r.rawStatus === "rejected" || r.rawStatus === "cancelled")
+    .filter((r) => {
+      if (r.rawStatus === "rejected" || r.rawStatus === "cancelled") {
+        return true;
+      }
+      if (r.trip_mode === 'split_drop_pickup') {
+        const isDeptDriver = String(r.driverId) === String(user?.id) || String(r.driver_id) === String(user?.id);
+        const isRetDriver = String(r.return_driver_id) === String(user?.id) || String(r.return_driver?.id) === String(user?.id);
+        const hasDepEndKm = Boolean(r.departure_end_km && Number(r.departure_end_km) > 0);
+        const hasRetEndKm = Boolean(r.return_end_km && Number(r.return_end_km) > 0);
+
+        if (isDeptDriver && !isRetDriver && hasDepEndKm) {
+          return true;
+        }
+        if (isRetDriver && !isDeptDriver && hasRetEndKm) {
+          return true;
+        }
+        if (isDeptDriver && isRetDriver && hasRetEndKm) {
+          return true;
+        }
+        return false;
+      }
+      if (r.rawStatus === "completed") {
+        // If internal trip with no end_km recorded yet, not yet completed in driver history
+        if (!r.is_external && (!r.end_km || Number(r.end_km) === 0)) {
+          return false;
+        }
+        return true;
+      }
+      return false;
+    })
     .map(mapTripHistory);
 
   const mappedVehicles = rawVehicles.map(mapVehicle);
@@ -546,7 +726,10 @@ export default function DriverDashboard() {
         });
       });
     } else {
-      const isMyTrip = String(r.driverId) === String(user?.id);
+      const isMyTrip = 
+        String(r.driverId) === String(user?.id) || 
+        String(r.return_driver_id) === String(user?.id) || 
+        String(r.return_driver?.id) === String(user?.id);
       if (!isMyTrip) return;
 
       let dateStr = "";
@@ -577,7 +760,50 @@ export default function DriverDashboard() {
     }
   });
 
-  const activeAssignments = activeTrips.map(r => {
+  const getTripSortTime = (t: any): number => {
+    let dateStr = t.date || "";
+    let timeStr = t.time || "00:00";
+
+    if (t.trip_mode === 'split_drop_pickup') {
+      const isRet = String(t.return_driver_id) === String(user?.id) || String(t.return_driver?.id) === String(user?.id);
+      const isDep = String(t.driverId) === String(user?.id) || String(t.driver_id) === String(user?.id);
+
+      if (isRet && (!isDep || Boolean(t.departure_checked_in_at))) {
+        timeStr = t.return_departure_time || t.return_time || t.time || "00:00";
+      } else {
+        timeStr = t.time || "00:00";
+      }
+    } else if (Array.isArray(t.itineraries) && t.itineraries.length > 0) {
+      const myIt = t.itineraries.find((it: any) => String(it.driver_id) === String(user?.id) && it.status !== 'completed')
+        || t.itineraries.find((it: any) => String(it.driver_id) === String(user?.id));
+      if (myIt) {
+        if (myIt.date) dateStr = myIt.date;
+        if (myIt.departure_time || myIt.time) timeStr = myIt.departure_time || myIt.time;
+      }
+    }
+
+    let isoDate = dateStr;
+    if (dateStr.includes('/')) {
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        if (parts[0].length === 4) {
+          isoDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        } else {
+          isoDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+      }
+    }
+
+    const cleanTime = (timeStr || "00:00").substring(0, 5);
+    const parsed = Date.parse(`${isoDate}T${cleanTime}:00`);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  const sortedActiveTrips = [...activeTrips].sort((a, b) => {
+    return getTripSortTime(a) - getTripSortTime(b);
+  });
+
+  const activeAssignments = sortedActiveTrips.map(r => {
     const asg = rawAssignments.find(
       (a) => String(a.request?.id) === String(r.id) && String(a.driver?.id) === String(user?.id)
     );
@@ -627,6 +853,36 @@ export default function DriverDashboard() {
       }
     }
 
+    if (r.trip_mode === 'split_drop_pickup') {
+      const isRet = String(r.return_driver_id) === String(user?.id) || String(r.return_driver?.id) === String(user?.id);
+      const isDep = String(r.driverId) === String(user?.id) || String(r.driver_id) === String(user?.id) || String(r.driver?.id) === String(user?.id);
+      const isRetLeg = isRet && (!isDep || Boolean(r.departure_checked_in_at));
+      
+      if (isRetLeg) {
+        destinationVal = `Jemput dari: ${r.destination || "Lokasi Penjemputan"}`;
+        if (r.return_departure_time) {
+          const retTime = r.return_departure_time;
+          timeVal = retTime.includes(' ') ? retTime.split(' ')[1].substring(0, 5) : (retTime.includes('T') ? retTime.split('T')[1].substring(0, 5) : retTime.substring(0, 5));
+        }
+        const retVeh = r.return_vehicle || rawVehicles.find(v => String(v.id) === String(r.return_vehicle_id));
+        if (retVeh) {
+          vehicleVal = `${retVeh.name || retVeh.model || "Kendaraan"} (${retVeh.plate_number || retVeh.plate || "-"})`;
+        }
+        if (r.return_checked_in_at && (!r.return_end_km || Number(r.return_end_km) === 0)) {
+          tripStatusVal = 'on_going';
+        }
+      } else {
+        destinationVal = `Antar ke: ${r.destination || "Lokasi Tujuan"}`;
+        const depVeh = r.vehicle || rawVehicles.find(v => String(v.id) === String(r.vehicleId || r.vehicle_id));
+        if (depVeh) {
+          vehicleVal = `${depVeh.name || depVeh.model || "Kendaraan"} (${depVeh.plate_number || depVeh.plate || "-"})`;
+        }
+        if (r.departure_checked_in_at && (!r.departure_end_km || Number(r.departure_end_km) === 0)) {
+          tripStatusVal = 'on_going';
+        }
+      }
+    }
+
     return {
       id: asg?.id || String(r.id),
       avatar,
@@ -644,12 +900,37 @@ export default function DriverDashboard() {
     };
   });
 
-  // Current active trip hero (on_going priority, then driver_assigned, then assigned_by_ga, then waiting_driver)
+  // Current active trip hero:
+  // 1. Prioritize trip requiring KM Akhir input (checked in by gate security, awaiting driver closing KM)
+  // 2. Prioritize ongoing trip (in progress)
+  // 3. Earliest scheduled trip (chronologically sorted by date & departure/pickup time ascending)
   const currentTrip = 
-    activeTrips.find(t => t.rawStatus === "on_going") || 
-    activeTrips.find(t => t.rawStatus === "driver_assigned") ||
-    activeTrips.find(t => t.rawStatus === "assigned_by_ga") ||
-    activeTrips.find(t => t.rawStatus === "waiting_driver");
+    sortedActiveTrips.find(t => {
+      if (t.trip_mode === 'split_drop_pickup') {
+        const isRet = String(t.return_driver_id) === String(user?.id) || String(t.return_driver?.id) === String(user?.id);
+        const isDep = String(t.driverId) === String(user?.id) || String(t.driver_id) === String(user?.id);
+        if (isRet && t.return_checked_in_at && (!t.return_end_km || Number(t.return_end_km) === 0)) return true;
+        if (isDep && !isRet && t.departure_checked_in_at && (!t.departure_end_km || Number(t.departure_end_km) === 0)) return true;
+      }
+      if (Array.isArray(t.itineraries) && t.itineraries.length > 0) {
+        const activeIt = t.itineraries.find((it: any) => 
+          String(it.driver_id) === String(user?.id) || String(t.driverId || t.driver_id) === String(user?.id)
+        );
+        if (activeIt) {
+          const itGateCheckin = Boolean(activeIt.morning_checked_in_at || activeIt.afternoon_checked_in_at || activeIt.security_checked_in_at);
+          const itEndKm = Boolean(activeIt.end_km && Number(activeIt.end_km) > 0);
+          if (itGateCheckin && !itEndKm) return true;
+        }
+      }
+      if (t.security_checked_in_at && (!t.end_km || Number(t.end_km) === 0)) return true;
+      return false;
+    }) ||
+    sortedActiveTrips.find(t => t.rawStatus === "on_going") || 
+    sortedActiveTrips.find(t => t.rawStatus === "driver_assigned") ||
+    sortedActiveTrips.find(t => t.rawStatus === "assigned_by_ga") ||
+    sortedActiveTrips.find(t => t.rawStatus === "waiting_driver") ||
+    sortedActiveTrips.find(t => t.rawStatus === "approved_hrd_ga") ||
+    (sortedActiveTrips.length > 0 ? sortedActiveTrips[0] : undefined);
 
   const totalCompletedCount = rawRequests.filter(r => r.rawStatus === "completed").length;
   const upcomingCount = activeTrips.length;
@@ -725,6 +1006,58 @@ export default function DriverDashboard() {
             || currentTrip.itineraries.find((it: any) => String(it.driver_id) === String(user?.id));
         })();
 
+        const isSplitTrip = Boolean(currentTrip?.trip_mode === 'split_drop_pickup');
+
+        const isReturnDriver = Boolean(
+          isSplitTrip &&
+          (String(currentTrip?.return_driver_id) === String(user?.id) || String(currentTrip?.return_driver?.id) === String(user?.id))
+        );
+
+        const isDepartureDriver = Boolean(
+          currentTrip &&
+          (String(currentTrip?.driverId) === String(user?.id) ||
+          String(currentTrip?.driver_id) === String(user?.id))
+        );
+
+        const isReturnLeg = Boolean(
+          isSplitTrip &&
+          isReturnDriver &&
+          (!isDepartureDriver || Boolean(currentTrip?.departure_checked_in_at))
+        );
+
+        // Sesi-aware pooled requests: Only consider requests that share the SAME driver in the CURRENT session
+        const effectivePooledRequests = (() => {
+          if (!currentTrip?.is_pooled && !currentTrip?.pool_group_id) return [];
+
+          const poolList: any[] = (currentTrip.pooled_requests && currentTrip.pooled_requests.length > 0)
+            ? currentTrip.pooled_requests
+            : rawRequests.filter((r: any) => r.pool_group_id && r.pool_group_id === currentTrip.pool_group_id);
+
+          if (poolList.length === 0) return [];
+
+          if (isSplitTrip) {
+            if (isReturnLeg) {
+              // Sesi 2 (Jemput): hanya sertakan permohonan yang supir jemputnya adalah supir saat ini
+              const currentRetDriverId = String(currentTrip.return_driver_id || user?.id);
+              return poolList.filter((pr: any) => {
+                const prRetDriverId = String(pr.return_driver_id || pr.return_driver?.id || "");
+                return prRetDriverId === currentRetDriverId;
+              });
+            } else {
+              // Sesi 1 (Antar): hanya sertakan permohonan yang supir antarnya adalah supir saat ini
+              const currentDepDriverId = String(currentTrip.driver_id || currentTrip.driverId || user?.id);
+              return poolList.filter((pr: any) => {
+                const prDepDriverId = String(pr.driver_id || pr.driverId || pr.driver?.id || "");
+                return prDepDriverId === currentDepDriverId;
+              });
+            }
+          }
+
+          return poolList;
+        })();
+
+        const isSessionPooled = effectivePooledRequests.length > 1;
+
         const driverTripStatus = (() => {
           if (!currentTrip) return null;
           if (activeItineraryForDriver) {
@@ -736,39 +1069,120 @@ export default function DriverDashboard() {
               return 'driver_assigned';
             }
           }
+
+          if (isSplitTrip) {
+            const hasDepEndKm = Boolean(currentTrip.departure_end_km && Number(currentTrip.departure_end_km) > 0);
+            const hasRetEndKm = Boolean(currentTrip.return_end_km && Number(currentTrip.return_end_km) > 0);
+
+            if (isReturnLeg) {
+              if (currentTrip.return_checked_in_at) {
+                return hasRetEndKm ? 'completed' : 'on_going';
+              } else if (currentTrip.return_checked_out_at) {
+                return 'on_going';
+              } else {
+                return 'driver_assigned';
+              }
+            } else {
+              if (currentTrip.departure_checked_in_at) {
+                return hasDepEndKm ? 'completed' : 'on_going';
+              } else if (currentTrip.departure_checked_out_at) {
+                return 'on_going';
+              } else {
+                return 'driver_assigned';
+              }
+            }
+          }
+
           if (currentTrip.is_external) {
             return currentTrip.rawStatus;
           }
           const myTripDetails = currentTrip.operational_trips?.find(
-            (ot: any) => String(ot.driver?.id) === String(user?.id)
+            (ot: any) => String(ot.driver?.id) === String(user?.id) || String(ot.driver_id) === String(user?.id)
           );
           if (myTripDetails) {
+            if (myTripDetails.status === 'completed' && (!myTripDetails.end_km || Number(myTripDetails.end_km) === 0)) {
+              return 'on_going';
+            }
             return myTripDetails.status;
+          }
+          if (currentTrip.security_checked_in_at && (!currentTrip.end_km || Number(currentTrip.end_km) === 0)) {
+            return 'on_going';
           }
           return currentTrip.rawStatus;
         })();
 
-        const heroStatus = currentTrip ? getHeroStatusConfig(driverTripStatus || currentTrip.rawStatus) : null;
+        const isWaitingForSesi1 = Boolean(isSplitTrip && isReturnLeg && !currentTrip?.departure_checked_in_at);
+        const heroStatus = currentTrip 
+          ? (isWaitingForSesi1 
+              ? { label: "Menunggu Sesi Antar Selesai", color: "bg-amber-400" } 
+              : getHeroStatusConfig(driverTripStatus || currentTrip.rawStatus))
+          : null;
 
         const displayDestination = (() => {
+          if (!currentTrip) return "";
           if (activeItineraryForDriver) {
             const dests = [];
             if (activeItineraryForDriver.morning_destination) dests.push(activeItineraryForDriver.morning_destination);
             if (activeItineraryForDriver.afternoon_destination) dests.push(activeItineraryForDriver.afternoon_destination);
             return dests.join(" & ") || currentTrip.destination;
           }
+          if (isSplitTrip) {
+            return isReturnLeg 
+              ? `Jemput dari: ${currentTrip?.destination || "Lokasi Penjemputan"}`
+              : `Antar ke: ${currentTrip?.destination || "Lokasi Tujuan"}`;
+          }
           return currentTrip?.destination || "";
         })();
 
         const displayTime = (() => {
+          if (!currentTrip) return "";
           if (activeItineraryForDriver) {
             const times = [];
             if (activeItineraryForDriver.morning_destination) times.push(activeItineraryForDriver.morning_time || "08:00");
             if (activeItineraryForDriver.afternoon_destination) times.push(activeItineraryForDriver.afternoon_time || "16:00");
             return times.join(" & ") || currentTrip.time || "09:00";
           }
+          if (isReturnLeg && currentTrip?.return_departure_time) {
+            const retTime = currentTrip.return_departure_time;
+            if (retTime.includes(' ')) {
+              const [dPart, tPart] = retTime.split(' ');
+              return `${dPart} ${tPart.substring(0, 5)}`;
+            } else if (retTime.includes('T')) {
+              const [dPart, tPart] = retTime.split('T');
+              return `${dPart} ${tPart.substring(0, 5)}`;
+            }
+            return retTime.substring(0, 5);
+          }
           return currentTrip?.time || "09:00";
         })();
+
+        const assignedVehicleObj = currentTrip
+          ? (isSplitTrip
+              ? (isReturnLeg
+                  ? (currentTrip.return_vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.return_vehicle_id)) || currentTrip.vehicle)
+                  : (currentTrip.vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.vehicleId || currentTrip.vehicle_id))))
+              : (currentTrip.vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.vehicleId || currentTrip.vehicle_id))))
+          : null;
+
+        const assignedVehicleName = assignedVehicleObj 
+          ? `${assignedVehicleObj.name || assignedVehicleObj.model || "Kendaraan"} (${assignedVehicleObj.plate_number || assignedVehicleObj.plate || "-"})`
+          : (currentTrip?.vehicleModel || "Unassigned");
+
+        const partnerDriverName = currentTrip
+          ? (isReturnLeg
+              ? (currentTrip.driver?.name || currentTrip.driver_name || null)
+              : (currentTrip.return_driver?.name || null))
+          : null;
+
+        const partnerVehicleObj = currentTrip
+          ? (isReturnLeg
+              ? (currentTrip.vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.vehicleId || currentTrip.vehicle_id)))
+              : (currentTrip.return_vehicle || rawVehicles.find(v => String(v.id) === String(currentTrip.return_vehicle_id))))
+          : null;
+
+        const partnerVehicleName = partnerVehicleObj
+          ? `${partnerVehicleObj.name || partnerVehicleObj.model || "Kendaraan"} (${partnerVehicleObj.plate_number || partnerVehicleObj.plate || "-"})`
+          : null;
 
         return (
           <div data-guide="driver-dashboard-overview" className="p-4 sm:p-8 space-y-6">
@@ -830,6 +1244,73 @@ export default function DriverDashboard() {
               return null;
             })()}
 
+            {/* Peringatan: Mobil Telah Masuk Gerbang Namun Belum Input KM Akhir */}
+            {(() => {
+              if (!currentTrip || currentTrip.is_external) return null;
+              const isSplit = currentTrip.trip_mode === "split_drop_pickup";
+              const isMultiDay = Array.isArray(currentTrip.itineraries) && currentTrip.itineraries.length > 0;
+              const isReturn = isSplit && String(currentTrip.return_driver_id) === String(user?.id);
+              
+              let isGateCheckedIn = false;
+              let hasEndKm = false;
+
+              if (isMultiDay) {
+                const activeIt = currentTrip.itineraries.find((it: any) => 
+                  String(it.driver_id) === String(user?.id) || String(currentTrip.driverId || currentTrip.driver_id) === String(user?.id)
+                );
+                if (activeIt) {
+                  isGateCheckedIn = Boolean(activeIt.morning_checked_in_at || activeIt.afternoon_checked_in_at || activeIt.security_checked_in_at);
+                  hasEndKm = Boolean(activeIt.end_km && Number(activeIt.end_km) > 0);
+                }
+              } else if (isSplit) {
+                isGateCheckedIn = isReturn ? Boolean(currentTrip.return_checked_in_at) : Boolean(currentTrip.departure_checked_in_at);
+                hasEndKm = isReturn ? Boolean(currentTrip.return_end_km && Number(currentTrip.return_end_km) > 0) : Boolean(currentTrip.departure_end_km && Number(currentTrip.departure_end_km) > 0);
+              } else {
+                isGateCheckedIn = Boolean(currentTrip.security_checked_in_at);
+                hasEndKm = Boolean(currentTrip.end_km && Number(currentTrip.end_km) > 0);
+              }
+
+              if (isGateCheckedIn && !hasEndKm) {
+                return (
+                  <div className="p-4 sm:p-4.5 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-orange-500/10 border-2 border-amber-500/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 shadow-sm animate-fadein">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 animate-bounce">
+                        <Icon name="speed" className="text-[22px]" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-[13.5px] font-black text-amber-950 uppercase tracking-tight">
+                            Peringatan: KM Akhir Belum Dilengkapi!
+                          </h4>
+                          <span className="text-[10px] font-extrabold bg-amber-500 text-white px-2 py-0.5 rounded-full uppercase shrink-0 whitespace-nowrap">
+                            Wajib Isi
+                          </span>
+                        </div>
+                        <p className="text-[12px] text-amber-900 mt-0.5 font-medium leading-relaxed">
+                          Kendaraan telah diverifikasi masuk gerbang pabrik oleh Security. Harap segera catat KM Akhir spidometer untuk menutup penugasan <strong>#{currentTrip.reqId || `REQ-${currentTrip.id}`}</strong>.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConfirmModal({
+                          isOpen: true,
+                          type: "complete",
+                          targetId: currentTrip.id,
+                        });
+                      }}
+                      className="self-start sm:self-auto px-4 py-2.5 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-extrabold text-xs rounded-xl shadow transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer"
+                    >
+                      <Icon name="check_circle" className="text-sm" />
+                      <span>Isi KM Akhir Sekarang</span>
+                    </button>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             {/* Hero current assignment */}
             {currentTrip ? (
               <div data-guide="driver-task-card" className="relative bg-[#0f1f3d] rounded-2xl p-6 sm:p-7 overflow-hidden text-white shadow-lg">
@@ -837,49 +1318,180 @@ export default function DriverDashboard() {
                 <div className="absolute right-20 bottom-0 w-40 h-40 bg-[#1e3a8a]/20 rounded-full translate-y-1/2 pointer-events-none" />
 
                 <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div className="space-y-4">
-                    <div className="inline-flex items-center gap-2 bg-[#1a2d4f] border border-[#2a4a7f] text-white text-[11px] font-bold px-3 py-1.5 rounded-full">
-                      <span className={`w-2 h-2 rounded-full ${heroStatus?.color}`} />
-                      {heroStatus?.label}
+                  <div className="space-y-4 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="inline-flex items-center gap-2 bg-[#1a2d4f] border border-[#2a4a7f] text-white text-[11px] font-bold px-3 py-1.5 rounded-full">
+                        <span className={`w-2 h-2 rounded-full ${heroStatus?.color}`} />
+                        {heroStatus?.label}
+                      </div>
+
+                      {isSplitTrip && (
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-wide border shadow-sm ${
+                          isReturnLeg 
+                            ? 'bg-amber-500/25 text-amber-300 border-amber-400/50' 
+                            : 'bg-blue-500/25 text-blue-300 border-blue-400/50'
+                        }`}>
+                          <Icon name={isReturnLeg ? "sync" : "directions_car"} className="text-[14px]" />
+                          <span>{isReturnLeg ? "Sesi 2: Jemput" : "Sesi 1: Antar"}</span>
+                        </div>
+                      )}
+
+                      {isSessionPooled && (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-wide bg-indigo-500/25 text-indigo-300 border border-indigo-400/50 shadow-sm">
+                          <Icon name="groups" className="text-[14px]" />
+                          <span>Perjalanan Gabungan ({effectivePooledRequests.length} Rombongan)</span>
+                        </div>
+                      )}
                     </div>
 
                     <div>
-                      <h2 className="text-[28px] font-extrabold leading-tight">{currentTrip.employee || "Staff"}</h2>
+                      <h2 className="text-[28px] font-extrabold leading-tight">
+                        {isSessionPooled
+                          ? `Rombongan: ${currentTrip.employee || "Staff"} + ${effectivePooledRequests.length - 1} Lainnya`
+                          : (currentTrip.employee || "Staff")
+                        }
+                      </h2>
                       <div className="text-[11px] font-bold text-[#8ca3c4] uppercase tracking-widest mt-0.5">
                         {currentTrip.department || "Internal Staff"}
                       </div>
+
+                      {/* Pooled Passenger List Summary */}
+                      {isSessionPooled && (
+                        <div className="mt-2.5 p-3 bg-indigo-950/70 border border-indigo-500/30 rounded-xl space-y-1.5">
+                          <div className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                            <Icon name="groups" className="text-[13px]" />
+                            <span>Daftar Permohonan Rombongan Gabungan:</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {effectivePooledRequests.map((pr: any) => (
+                              <div key={pr.id} className="text-[11px] font-medium text-slate-200 bg-indigo-900/50 px-2.5 py-1 rounded-lg border border-indigo-400/20 flex items-center justify-between">
+                                <span className="font-bold text-white">#{pr.id} {pr.user_name || pr.employee || pr.user?.name}</span>
+                                <span className="text-[10px] text-indigo-300">{pr.destination_city || pr.destination_place || pr.destination || "-"}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="bg-[#1a2d4f]/60 border border-[#2a4a7f] rounded-xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div>
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1">
-                          <Icon name="location_on" className="text-[14px]" />
-                          Destination
+                    <div className="bg-[#1a2d4f]/60 border border-[#2a4a7f] rounded-xl p-3 sm:p-4 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1 truncate">
+                          <Icon name="location_on" className="text-[14px] shrink-0" />
+                          <span>Destination</span>
                         </div>
-                        <div className="text-[14px] font-bold truncate max-w-[150px]" title={displayDestination}>
-                          {displayDestination}
+                        <div className="text-[13px] font-bold truncate" title={
+                          isSessionPooled
+                            ? effectivePooledRequests.map((pr: any) => pr.destination_place || pr.destination_city || pr.destination || "-").join(" & ")
+                            : displayDestination
+                        }>
+                          {isSessionPooled
+                            ? effectivePooledRequests.map((pr: any) => pr.destination_place || pr.destination_city || pr.destination || "-").join(" & ")
+                            : displayDestination}
                         </div>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1">
-                          <Icon name="schedule" className="text-[14px]" />
-                          Departure
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1 truncate">
+                          <Icon name="schedule" className="text-[14px] shrink-0" />
+                          <span>Departure</span>
                         </div>
-                        <div className="text-[14px] font-bold">{displayTime}</div>
+                        <div className="text-[13px] font-bold truncate" title={displayTime}>{displayTime}</div>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1">
-                          <Icon name="group" className="text-[14px]" />
-                          Passengers
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1 truncate">
+                          <Icon name="directions_car" className="text-[14px] shrink-0" />
+                          <span>Armada Mobil</span>
                         </div>
-                        <div className="text-[14px] font-bold">{currentTrip.passengerCount || 1} Person</div>
+                        <div className="text-[13px] font-bold truncate text-blue-200" title={assignedVehicleName}>
+                          {assignedVehicleName}
+                        </div>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8ca3c4] uppercase tracking-wider mb-1 truncate">
+                          <Icon name="group" className="text-[14px] shrink-0" />
+                          <span>Passengers</span>
+                        </div>
+                        <div className="text-[13px] font-bold truncate">
+                          {isSessionPooled
+                            ? `${effectivePooledRequests.reduce((acc: number, pr: any) => acc + (Number(pr.passenger_count || pr.passengerCount) || 1), 0)} Orang (${effectivePooledRequests.length} Rombongan)`
+                            : `${currentTrip.passengerCount || 1} Person`}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Multi-Trip Info Banner */}
+                    {isSplitTrip && (
+                      <div className={`rounded-xl p-3 border flex items-start gap-2.5 text-[11px] leading-relaxed animate-fadein ${
+                        isReturnLeg 
+                          ? 'bg-amber-950/40 border-amber-500/40 text-amber-200' 
+                          : 'bg-blue-950/40 border-blue-500/40 text-blue-200'
+                      }`}>
+                        <Icon name={isReturnLeg ? "sync" : "directions_car"} className={`text-[18px] shrink-0 mt-0.5 ${isReturnLeg ? 'text-amber-400' : 'text-blue-400'}`} />
+                        <div className="flex-1">
+                          <div className="font-bold uppercase tracking-wider text-[10px] mb-0.5 opacity-90 flex items-center justify-between">
+                            <span>{isReturnLeg ? "Tugas: Sesi 2 - Penjemputan" : "Tugas: Sesi 1 - Pengantaran"}</span>
+                            {isDepartureDriver && currentTrip.departure_checked_in_at && (
+                              <span className="text-[9.5px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2 py-0.5 rounded-full font-bold">
+                                Sesi Antar Selesai (Kembali ke Pabrik)
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            {isReturnLeg ? (
+                              <div className="space-y-1.5">
+                                {isWaitingForSesi1 && (
+                                  <div className="text-[10.5px] text-amber-200 bg-amber-900/50 p-2.5 rounded-lg border border-amber-500/30 flex items-start gap-2 shadow-xs mb-2">
+                                    <Icon name="hourglass_top" className="text-[14px] mt-0.5 text-amber-300 shrink-0 animate-pulse" />
+                                    <span>
+                                      <strong>Sesi Penjemputan Belum Dibuka:</strong> Menunggu Sesi Pengantaran (Sesi 1) yang sedang dilakukan oleh <strong>{partnerDriverName || "Driver Antar"}</strong> selesai diperiksa check-in kembali di pos security pabrik.
+                                    </span>
+                                  </div>
+                                )}
+                                <div>
+                                  Anda ditugaskan untuk <strong>Sesi Penjemputan</strong> menggunakan kendaraan <strong>{assignedVehicleName}</strong>
+                                  {currentTrip.return_departure_time ? ` pada pukul ${currentTrip.return_departure_time.split(" ")[1] || currentTrip.return_departure_time}` : ''}.
+                                  {partnerDriverName ? ` Sesi Pengantaran telah diselesaikan oleh ${partnerDriverName}${partnerVehicleName ? ` (${partnerVehicleName})` : ''}.` : ''}
+                                </div>
+                                <div className="text-[10.5px] text-amber-200/90 bg-amber-900/30 p-2 rounded-lg border border-amber-500/20 flex items-start gap-1.5">
+                                  <Icon name="info" className="text-xs mt-0.5 text-amber-400 shrink-0" />
+                                  <span>
+                                    Pastikan Anda dan kendaraan berstatus standby/free tidak bertabrakan dengan penugasan lain menjelang waktu penjemputan. Penugasan penjemputan masih dapat disesuaikan oleh Koordinator Driver jika diperlukan.
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                {currentTrip.departure_checked_in_at ? (
+                                  <div>
+                                    <div>
+                                      Sesi Pengantaran telah selesai dan armada telah kembali ke pabrik (status kendaraan <strong>Tersedia</strong>).
+                                    </div>
+                                    <div className="mt-1.5 text-[10.5px] text-blue-200 bg-blue-900/30 p-2 rounded-lg border border-blue-400/20 flex items-start gap-1.5">
+                                      <Icon name="info" className="text-xs mt-0.5 text-blue-400 shrink-0" />
+                                      <span>
+                                        Sesi penjemputan terjadwal oleh <strong>{partnerDriverName || "Driver Jemput"}</strong>{partnerVehicleName ? ` (${partnerVehicleName})` : ''}{currentTrip.return_departure_time ? ` pada pukul ${currentTrip.return_departure_time.split(" ")[1] || currentTrip.return_departure_time}` : ''}. Silakan klik <button type="button" onClick={() => handleViewDetail(String(currentTrip.id))} className="underline font-bold text-white cursor-pointer hover:text-blue-200">Lihat Detail</button> untuk meninjau atau edit jadwal.
+                                      </span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div>
+                                    Anda ditugaskan untuk <strong>Sesi Pengantaran</strong> menggunakan kendaraan <strong>{assignedVehicleName}</strong>. 
+                                    {partnerDriverName ? ` Sesi Penjemputan selanjutnya akan dilakukan oleh ${partnerDriverName}${partnerVehicleName ? ` (${partnerVehicleName})` : ''}.` : ''}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-col items-start md:items-end justify-between h-full gap-4 flex-shrink-0">
                     <div className="flex items-center gap-2">
                       <span className="text-[12px] text-[#8ca3c4] font-bold">
-                        Ref: #REQ-{currentTrip.id}
+                        {isSessionPooled
+                          ? `Ref: ${effectivePooledRequests.map((pr: any) => `#REQ-${pr.id}`).join(" & ")}`
+                          : `Ref: #REQ-${currentTrip.id}`}
                       </span>
                       <button
                         onClick={() => handleViewDetail(String(currentTrip.id))}
@@ -893,17 +1505,42 @@ export default function DriverDashboard() {
                     {(() => {
                       const recordedStartKm = 
                         (activeItineraryForDriver && activeItineraryForDriver.start_km) ??
-                        currentTrip.start_km ??
-                        currentTrip.operational_trip?.start_km ??
-                        (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id))?.start_km) ??
-                        null;
+                        (isSplitTrip
+                          ? (isReturnLeg ? currentTrip.return_start_km : (currentTrip.departure_start_km ?? currentTrip.start_km))
+                          : (currentTrip.start_km ?? currentTrip.operational_trip?.start_km ?? (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id) || String(ot.driver_id) === String(user?.id))?.start_km))
+                        ) ?? null;
 
-                      const matchedVehicle = rawVehicles.find(v => String(v.id) === String(currentTrip.vehicleId || currentTrip.vehicle?.id));
+                      const targetVehicleId = isReturnLeg
+                        ? (currentTrip.return_vehicle_id || currentTrip.return_vehicle?.id)
+                        : (currentTrip.vehicleId || currentTrip.vehicle?.id);
+                      const matchedVehicle = rawVehicles.find(v => String(v.id) === String(targetVehicleId)) || assignedVehicleObj;
                       const lastOdometerNum = matchedVehicle?.odometer || null;
                       const hasRecordedStartKm = Boolean(recordedStartKm && Number(recordedStartKm) > 0);
                       const isTripInternal = !currentTrip.is_external;
 
                       if (isTripInternal && ["driver_assigned", "pending", "on_going"].includes(driverTripStatus || "")) {
+                        if (isWaitingForSesi1) {
+                          return (
+                            <div className="bg-[#102447] border-2 border-amber-400/60 p-4 rounded-2xl flex flex-col items-center gap-2.5 w-full max-w-[280px] text-center shadow-lg animate-fadein">
+                              <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center animate-pulse">
+                                <Icon name="hourglass_top" className="text-[22px]" />
+                              </div>
+                              <div>
+                                <div className="text-[13px] font-extrabold text-amber-300">
+                                  Menunggu Pengantaran Selesai
+                                </div>
+                                <p className="text-[11px] text-slate-300 mt-1 leading-snug">
+                                  {partnerDriverName ? `Sesi 1 (Pengantaran) saat ini masih berjalan oleh ${partnerDriverName}.` : "Sesi 1 (Pengantaran) saat ini masih berjalan."}
+                                </p>
+                              </div>
+                              <div className="text-[10px] text-amber-200 bg-amber-950/60 px-2.5 py-1.5 rounded-lg border border-amber-500/30 font-semibold flex items-start gap-1.5 text-left">
+                                <Icon name="lock" className="text-[13px] text-amber-300 shrink-0 mt-0.5" />
+                                <span>Form KM Awal dan QR Code penjemputan akan otomatis aktif setelah kendaraan kembali ke pabrik (Sesi 1 check-in).</span>
+                              </div>
+                            </div>
+                          );
+                        }
+
                         const isLockedByPrev = Boolean(currentTrip.pending_previous_trip?.is_locked);
                         if (isLockedByPrev && !hasRecordedStartKm) {
                           return (
@@ -919,8 +1556,9 @@ export default function DriverDashboard() {
                                   {currentTrip.pending_previous_trip?.message}
                                 </p>
                               </div>
-                              <div className="text-[10.5px] text-amber-200 bg-amber-950/60 px-2.5 py-1.5 rounded-lg border border-amber-500/30 font-semibold">
-                                🔒 Form KM Awal akan aktif setelah perjalanan sebelumnya selesai.
+                              <div className="text-[10.5px] text-amber-200 bg-amber-950/60 px-2.5 py-1.5 rounded-lg border border-amber-500/30 font-semibold flex items-center gap-1.5">
+                                <Icon name="lock" className="text-[13px] text-amber-300" />
+                                <span>Form KM Awal akan aktif setelah perjalanan sebelumnya selesai.</span>
                               </div>
                             </div>
                           );
@@ -954,6 +1592,18 @@ export default function DriverDashboard() {
                                   />
                                   <span className="text-[11px] font-bold text-slate-300">KM</span>
                                 </div>
+
+                                {currentTrip.chained_from_end_km && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setStartKmInput(String(currentTrip.chained_from_end_km))}
+                                    className="w-full flex items-center justify-center gap-1.5 py-1 px-2 bg-indigo-900/70 hover:bg-indigo-800 text-indigo-200 border border-indigo-400/50 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer shadow-xs active:scale-98"
+                                    title="Klik untuk mengisi otomatis dari KM Akhir perjalanan sebelumnya"
+                                  >
+                                    <Icon name="link" className="text-[12px]" />
+                                    <span>Auto-Chained: {Number(currentTrip.chained_from_end_km).toLocaleString('id-ID')} KM</span>
+                                  </button>
+                                )}
 
                                 {lastOdometerNum && (
                                   <button
@@ -1028,12 +1678,14 @@ export default function DriverDashboard() {
 
                         const recordedEndKm = 
                           (activeItineraryForDriver && activeItineraryForDriver.end_km) ??
-                          currentTrip.end_km ??
-                          currentTrip.operational_trip?.end_km ??
-                          (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id))?.end_km) ??
-                          null;
+                          (isSplitTrip
+                            ? (isReturnLeg ? currentTrip.return_end_km : (currentTrip.departure_end_km ?? currentTrip.end_km))
+                            : (currentTrip.end_km ?? currentTrip.operational_trip?.end_km ?? (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id) || String(ot.driver_id) === String(user?.id))?.end_km))
+                          ) ?? null;
                         const hasRecordedEndKm = Boolean(recordedEndKm && Number(recordedEndKm) > 0);
-                        const isCheckedInBySecurity = Boolean(currentTrip.security_checked_in_at);
+                        const isCheckedInBySecurity = isSplitTrip
+                          ? (isReturnLeg ? Boolean(currentTrip.return_checked_in_at) : Boolean(currentTrip.departure_checked_in_at))
+                          : Boolean(currentTrip.security_checked_in_at);
 
                         // Opsi B Flow 1: If security already scanned check-in at gate, driver MUST input KM Akhir to complete
                         if (!currentTrip.is_external && driverTripStatus === "on_going" && isCheckedInBySecurity && (!hasRecordedEndKm || isEditingEndKm)) {
@@ -1189,19 +1841,24 @@ export default function DriverDashboard() {
                               </div>
                             )}
 
-                            {currentTrip.qr_code_token && (
+                            {((isSessionPooled && currentTrip.master_pool_qr) || currentTrip.qr_code_token) && (
                               <div 
-                                onClick={() => setZoomedQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${currentTrip.qr_code_token}`)}`)}
+                                onClick={() => {
+                                  const tokenToUse = (isSessionPooled && currentTrip.master_pool_qr) ? currentTrip.master_pool_qr : currentTrip.qr_code_token;
+                                  setZoomedQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${tokenToUse}`)}`);
+                                }}
                                 className="bg-white p-2.5 rounded-xl border border-slate-700 shadow-sm flex flex-col items-center cursor-zoom-in hover:border-blue-500 transition-all hover:scale-105"
-                                title="Klik untuk memperbesar"
+                                title="Klik untuk memperbesar QR Satpam"
                               >
                                 <img
-                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${currentTrip.qr_code_token}`)}`}
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(`${window.location.origin}/security/dashboard?token=${(isSessionPooled && currentTrip.master_pool_qr) ? currentTrip.master_pool_qr : currentTrip.qr_code_token}`)}`}
                                   alt="Security Scan QR"
                                   className="w-[80px] h-[80px] object-contain"
                                 />
-                                <span className="text-[8px] font-mono font-bold text-slate-500 mt-1">
-                                  {currentTrip.qr_code_token}
+                                <span className={`text-[8px] font-mono font-bold mt-1 px-1.5 py-0.5 rounded text-center ${
+                                  isSessionPooled && currentTrip.master_pool_qr ? "text-indigo-800 bg-indigo-100 font-extrabold" : "text-slate-500"
+                                }`}>
+                                  {isSessionPooled && currentTrip.master_pool_qr ? `MASTER QR: ${currentTrip.master_pool_qr}` : currentTrip.qr_code_token}
                                 </span>
                               </div>
                             )}
@@ -1247,10 +1904,10 @@ export default function DriverDashboard() {
                     {(() => {
                       const recordedStartKm = 
                         (activeItineraryForDriver && activeItineraryForDriver.start_km) ??
-                        currentTrip.start_km ??
-                        currentTrip.operational_trip?.start_km ??
-                        (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id))?.start_km) ??
-                        null;
+                        (isSplitTrip
+                          ? (isReturnLeg ? currentTrip.return_start_km : (currentTrip.departure_start_km ?? currentTrip.start_km))
+                          : (currentTrip.start_km ?? currentTrip.operational_trip?.start_km ?? (Array.isArray(currentTrip.operational_trips) && currentTrip.operational_trips.find((ot: any) => String(ot.driver?.id) === String(user?.id) || String(ot.driver_id) === String(user?.id))?.start_km))
+                        ) ?? null;
                       const hasRecordedStartKm = Boolean(recordedStartKm && Number(recordedStartKm) > 0);
                       const isTripInternal = !currentTrip.is_external;
 
@@ -1273,7 +1930,11 @@ export default function DriverDashboard() {
                       }
 
                       if ((!isTripInternal || hasRecordedStartKm) && driverTripStatus === "on_going") {
-                        if (currentTrip.security_checked_in_at) {
+                        const isLegCheckedIn = isSplitTrip
+                          ? (isReturnLeg ? Boolean(currentTrip.return_checked_in_at) : Boolean(currentTrip.departure_checked_in_at))
+                          : Boolean(currentTrip.security_checked_in_at);
+
+                        if (isLegCheckedIn) {
                           return (
                             <div className="flex items-center gap-2 text-[#e2e8f0] text-[12px] bg-[#102447] border border-emerald-500/50 px-3.5 py-2 rounded-xl max-w-xs">
                               <Icon name="check_circle" className="text-[15px] text-emerald-400 shrink-0" />
@@ -1320,7 +1981,7 @@ export default function DriverDashboard() {
                 <Icon name="commute" className="text-[48px] text-white/30 mb-2" />
                 <h3 className="text-[16px] font-bold">Tidak ada Perjalanan Aktif</h3>
                 <p className="text-[12.5px] text-white/60 mt-1 max-w-sm mx-auto">
-                  Belum ada penugasan yang perlu dimulai. Terima tugas baru dari daftar di bawah untuk memulai trip.
+                  Belum ada penugasan perjalanan aktif atau terjadwal untuk Anda saat ini.
                 </p>
               </div>
             )}
@@ -1546,13 +2207,13 @@ export default function DriverDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-[17px] font-bold text-[#0f172a]">
-                    {isDriverCoordinator ? "Tugas Menyetir Saya" : "Daftar Tugas Baru"}
+                    Tugas Menyetir Saya
                   </div>
                   <div className="text-[13px] text-[#64748b]">
-                    {isDriverCoordinator ? "Tugas mengemudi yang dialokasikan ke jadwal personal Anda" : "Terima atau tolak penugasan kendaraan operasional"}
+                    Daftar penugasan perjalanan operasional yang dialokasikan ke jadwal Anda
                   </div>
                 </div>
-                {pendingAssignments.length > 0 && (
+                {activeAssignments.length > 0 && (
                   <button
                     onClick={() => setActiveNav("My Assignments")}
                     className="text-[13px] font-semibold text-[#1e3a8a] hover:underline flex items-center gap-0.5 cursor-pointer"
@@ -1563,14 +2224,14 @@ export default function DriverDashboard() {
                 )}
               </div>
 
-              {pendingAssignments.length === 0 ? (
+              {activeAssignments.length === 0 ? (
                 <div className="bg-white border border-[#e2e8f0] rounded-2xl py-8 flex flex-col items-center justify-center text-center shadow-2xs">
-                  <p className="font-bold text-[#0f172a] text-[13.5px]">Tidak ada tugas menyetir baru yang tertunda</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Semua penugasan personal Anda telah diproses.</p>
+                  <p className="font-bold text-[#0f172a] text-[13.5px]">Tidak ada tugas menyetir aktif</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Belum ada jadwal penugasan operasional untuk Anda saat ini.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {pendingAssignments.slice(0, 2).map((req) => (
+                  {activeAssignments.slice(0, 2).map((req) => (
                     <RequestCard
                       key={req.id} req={req}
                       onApprove={handleApproveClick}
@@ -1774,7 +2435,10 @@ export default function DriverDashboard() {
             <div className="p-6 space-y-4">
               {(() => {
                 const targetReq = rawRequests.find((r) => String(r.id) === String(confirmModal.targetId)) || currentTrip;
-                const targetStartKm = targetReq?.start_km ?? targetReq?.operational_trip?.start_km ?? (Array.isArray(targetReq?.operational_trips) && targetReq?.operational_trips[0]?.start_km) ?? null;
+                const isReturnLeg = targetReq?.trip_mode === "split_drop_pickup" && String(targetReq?.return_driver_id) === String(user?.id);
+                const targetStartKm = isReturnLeg
+                  ? (targetReq?.return_start_km ?? targetReq?.return_vehicle?.odometer ?? targetReq?.start_km ?? null)
+                  : (targetReq?.start_km ?? targetReq?.operational_trip?.start_km ?? (Array.isArray(targetReq?.operational_trips) && targetReq?.operational_trips[0]?.start_km) ?? null);
                 const isTripInternal = !targetReq?.is_external;
 
                 return (
@@ -1866,10 +2530,23 @@ export default function DriverDashboard() {
                           try {
                             if (confirmModal.type === "start") {
                               await requestService.start(id);
+                              setRawRequests(prev => prev.map(r => String(r.id) === String(id) ? { ...r, rawStatus: "on_going", status: "On Going" } : r));
                             } else if (confirmModal.type === "complete") {
                               const endKmNum = endKmInput.trim() ? parseInt(endKmInput.trim(), 10) : undefined;
+                              if (endKmNum !== undefined && targetStartKm && (endKmNum - Number(targetStartKm) > 1000)) {
+                                setKmAnomalyModal({
+                                  isOpen: true,
+                                  reqId: id,
+                                  kmNum: endKmNum,
+                                  diffKm: endKmNum - Number(targetStartKm),
+                                  isCompleteAction: true,
+                                });
+                                setActionLoading(false);
+                                return;
+                              }
                               await requestService.complete(id, endKmNum);
                               setEndKmInput("");
+                              setRawRequests(prev => prev.map(r => String(r.id) === String(id) ? { ...r, rawStatus: "completed", status: "Completed", end_km: endKmNum } : r));
                             } else if (confirmModal.type === "reject") {
                               await assignmentService.respond(id, {
                                 response: "rejected",
@@ -1906,6 +2583,18 @@ export default function DriverDashboard() {
                             await fetchData();
                           } catch (err: any) {
                             console.error(err);
+                            if (err.response?.data?.require_confirmation && confirmModal.type === "complete") {
+                              const endKmNum = endKmInput.trim() ? parseInt(endKmInput.trim(), 10) : 0;
+                              setKmAnomalyModal({
+                                isOpen: true,
+                                reqId: id,
+                                kmNum: endKmNum,
+                                diffKm: err.response.data.diff_km || 1000,
+                                isCompleteAction: true,
+                              });
+                              setActionLoading(false);
+                              return;
+                            }
                             const errorMsg = err.response?.data?.message || "Terjadi kesalahan saat memproses aksi.";
                             const isLockError = errorMsg.includes("masih aktif") || errorMsg.includes("KM Akhir");
                             setAlertModal({
@@ -1997,6 +2686,48 @@ export default function DriverDashboard() {
         confirmText="Mengerti"
         variant={alertModal.variant}
         isAlertOnly={true}
+      />
+
+      {/* KM Anomaly Warning Modal */}
+      <ConfirmModal
+        isOpen={kmAnomalyModal.isOpen}
+        onClose={() => setKmAnomalyModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={async () => {
+          const { reqId, kmNum, isCompleteAction } = kmAnomalyModal;
+          setKmAnomalyModal(prev => ({ ...prev, isOpen: false }));
+          if (isCompleteAction) {
+            setActionLoading(true);
+            try {
+              await requestService.complete(String(reqId), kmNum, true);
+              setEndKmInput("");
+              setRawRequests(prev => prev.map(r => String(r.id) === String(reqId) ? { ...r, rawStatus: "completed", status: "Completed", end_km: kmNum } : r));
+              setConfirmModal({ isOpen: false, type: "start", targetId: "" });
+              await fetchData(true);
+              setAlertModal({
+                isOpen: true,
+                title: "Perjalanan Selesai",
+                message: "Perjalanan berhasil diselesaikan dengan konfirmasi jarak tempuh.",
+                variant: "success",
+              });
+            } catch (err: any) {
+              setAlertModal({
+                isOpen: true,
+                title: "Gagal Menyelesaikan Perjalanan",
+                message: err.response?.data?.message || "Terjadi kesalahan saat menyelesaikan perjalanan.",
+                variant: "danger",
+              });
+            } finally {
+              setActionLoading(false);
+            }
+          } else {
+            await executeSaveEndKm(reqId, kmNum, true);
+          }
+        }}
+        title="Peringatan Jarak Tempuh Tidak Wajar"
+        message={`Jarak tempuh perjalanan tercatat sebesar +${kmAnomalyModal.diffKm.toLocaleString('id-ID')} KM (KM Akhir: ${kmAnomalyModal.kmNum.toLocaleString('id-ID')} KM). Apakah Anda yakin angka spidometer ini sudah benar dan bukan salah ketik?`}
+        confirmText="Ya, Angka Sudah Benar"
+        cancelText="Periksa Kembali"
+        variant="warning"
       />
     </Layout>
   );

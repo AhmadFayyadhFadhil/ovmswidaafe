@@ -137,6 +137,68 @@ export interface FleetRequest {
     other_driver_name?: string;
     message?: string;
   } | null;
+
+  // Split Drop & Pickup (Antar & Jemput Terpisah):
+  trip_mode?: "standby" | "split_drop_pickup";
+  departure_start_km?: number | null;
+  departure_end_km?: number | null;
+  departure_total_km?: number | null;
+  departure_checked_out_at?: string | null;
+  departure_checked_in_at?: string | null;
+  departure_checkout_by?: string | null;
+  departure_checkin_by?: string | null;
+
+  return_departure_time?: string | null;
+  return_driver_id?: number | null;
+  return_driver?: { id: number; name: string; email?: string; phone?: string } | null;
+  return_vehicle_id?: number | null;
+  return_vehicle?: { id: number; name: string; plate_number?: string; type?: string; odometer?: number } | null;
+  return_start_km?: number | null;
+  return_end_km?: number | null;
+  return_total_km?: number | null;
+  return_checked_out_at?: string | null;
+  return_checked_in_at?: string | null;
+  return_checkout_by?: string | null;
+  return_checkin_by?: string | null;
+  return_reassigned_at?: string | null;
+  return_reassigned_by?: number | null;
+  return_reassigned_by_name?: string | null;
+  return_notes?: string | null;
+  active_leg_stage?: 'departure_ready' | 'departure_ongoing' | 'return_ready' | 'return_ongoing' | 'all_completed' | null;
+  split_trip_stage?: 'scheduled' | 'departure_ongoing' | 'waiting_pickup' | 'return_ongoing' | 'completed' | null;
+  split_trip_status_label?: string | null;
+
+  // Multi-Request Pooling / Shared Ride:
+  is_pooled?: boolean;
+  pool_group_id?: string | null;
+  return_pool_group_id?: string | null;
+  master_pool_qr?: string | null;
+  chained_from_request_id?: number | null;
+  chained_from_end_km?: number | null;
+  pooled_requests?: Array<{
+    id: number;
+    user_name?: string;
+    department_name?: string;
+    destination_city?: string;
+    destination_place?: string;
+    purpose?: string;
+    start_time?: string;
+    end_time?: string;
+    status?: string;
+    passenger_count?: number;
+    passengers?: Array<{ name: string; notes?: string }>;
+    driver_id?: number | null;
+    driver_name?: string | null;
+    vehicle_id?: number | null;
+    vehicle_name?: string | null;
+    return_driver_id?: number | null;
+    return_driver_name?: string | null;
+    return_vehicle_id?: number | null;
+    return_vehicle_name?: string | null;
+    return_departure_time?: string | null;
+    trip_mode?: string | null;
+    notes?: string | null;
+  }>;
 }
 
 export interface RequestItinerary {

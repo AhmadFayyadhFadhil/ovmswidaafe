@@ -67,14 +67,14 @@ function getTripStatusStyle(status: TripStatus) {
       return {
         bg: "bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-700",
         badge: "bg-emerald-700 text-white font-bold",
-        label: "✓ Selesai",
+        label: "Selesai",
         icon: "check_circle",
       };
     case "on_going":
       return {
         bg: "bg-amber-400 text-amber-950 hover:bg-amber-500 font-extrabold border-amber-500 animate-pulse",
         badge: "bg-amber-950 text-amber-300 font-black",
-        label: "⚡ Sedang Berjalan",
+        label: "Sedang Berjalan",
         icon: "bolt",
       };
     case "scheduled":
@@ -82,7 +82,7 @@ function getTripStatusStyle(status: TripStatus) {
       return {
         bg: "bg-[#1e3a8a] text-white hover:bg-blue-900 border-blue-900",
         badge: "bg-blue-950 text-blue-100 font-bold",
-        label: "🗓️ Terjadwal",
+        label: "Terjadwal",
         icon: "event",
       };
   }
@@ -377,7 +377,10 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
 
           <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 shadow-xs">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-900">🗓️ Terjadwal</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-900 flex items-center gap-1">
+                <Icon name="event" className="text-xs" />
+                <span>Terjadwal</span>
+              </span>
               <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
             </div>
             <div className="text-2xl sm:text-3xl font-black text-blue-950">{loading ? "..." : scheduledCount}</div>
@@ -386,7 +389,10 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
 
           <div className="bg-amber-50/80 border border-amber-300 rounded-2xl p-4 shadow-xs">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-900">⚡ Sedang Berjalan</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-900 flex items-center gap-1">
+                <Icon name="bolt" className="text-xs" />
+                <span>Sedang Berjalan</span>
+              </span>
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
             </div>
             <div className="text-2xl sm:text-3xl font-black text-amber-950">{loading ? "..." : onGoingCount}</div>
@@ -395,7 +401,10 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
 
           <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 shadow-xs">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-900">✓ Selesai</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-900 flex items-center gap-1">
+                <Icon name="check_circle" className="text-xs" />
+                <span>Selesai</span>
+              </span>
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
             </div>
             <div className="text-2xl sm:text-3xl font-black text-emerald-950">{loading ? "..." : completedCount}</div>
@@ -615,15 +624,16 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
                               >
                                 <div className="flex items-center justify-between gap-1 mb-0.5">
                                   <span className="font-extrabold truncate max-w-[90px]">{ev.applicantName}</span>
-                                  <span className={`text-[8px] px-1 py-0.2 rounded ${st.badge}`}>
-                                    {ev.status === "completed" ? "✓" : ev.status === "on_going" ? "⚡" : "🗓️"}
+                                  <span className={`text-[8px] px-1 py-0.2 rounded font-bold ${st.badge}`}>
+                                    {ev.status === "completed" ? "Selesai" : ev.status === "on_going" ? "Jalan" : "Jadwal"}
                                   </span>
                                 </div>
                                 <div className="text-[9.5px] opacity-90 truncate font-semibold">
                                   {ev.vehicleModel}
                                 </div>
-                                <div className="text-[8.5px] opacity-75 truncate">
-                                  📍 {ev.destination || "Trip Operational"}
+                                <div className="text-[8.5px] opacity-75 truncate flex items-center gap-1">
+                                  <Icon name="location_on" className="text-[10px]" />
+                                  <span>{ev.destination || "Trip Operational"}</span>
                                 </div>
                               </button>
                             );
@@ -661,8 +671,14 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
                           <span className="text-xs font-bold text-slate-800">{ev.dateStr}</span>
                         </div>
                         <h4 className="font-extrabold text-slate-900 text-sm">{ev.applicantName} ({ev.departmentName})</h4>
-                        <p className="text-xs text-slate-500 font-semibold">🚗 {ev.vehicleModel} {ev.vehiclePlate && `(${ev.vehiclePlate})`}</p>
-                        <p className="text-xs text-slate-500">📍 {ev.destination}</p>
+                        <p className="text-xs text-slate-500 font-semibold flex items-center gap-1">
+                          <Icon name="directions_car" className="text-xs text-slate-400" />
+                          <span>{ev.vehicleModel} {ev.vehiclePlate && `(${ev.vehiclePlate})`}</span>
+                        </p>
+                        <p className="text-xs text-slate-500 flex items-center gap-1">
+                          <Icon name="location_on" className="text-xs text-slate-400" />
+                          <span>{ev.destination}</span>
+                        </p>
                       </div>
                       <Icon name="chevron_right" className="text-slate-400 text-xl" />
                     </div>
@@ -756,8 +772,9 @@ export default function Schedule({ onNavigate }: { onNavigate?: (page: string) =
 
               <div className="pt-2 border-t border-slate-100">
                 <span className="text-slate-400 block text-xs font-semibold">Tujuan & Keperluan</span>
-                <p className="font-medium text-slate-800 leading-relaxed mt-0.5">
-                  📍 {selectedEvent.destination || selectedEvent.purpose}
+                <p className="font-medium text-slate-800 leading-relaxed mt-0.5 flex items-start gap-1.5">
+                  <Icon name="location_on" className="text-sm text-slate-500 mt-0.5 shrink-0" />
+                  <span>{selectedEvent.destination || selectedEvent.purpose}</span>
                 </p>
               </div>
             </div>
